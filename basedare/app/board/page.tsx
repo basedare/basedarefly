@@ -128,8 +128,8 @@ export default async function BoardPage() {
             The Board
           </div>
           <h1 className="mt-4 text-4xl font-black uppercase italic tracking-tight text-white md:text-6xl">
-            What&apos;s happening<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffe27a] to-[#c39106]">tonight</span>
+            What&apos;s on<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffe27a] to-[#c39106]">the Board</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm font-bold leading-6 text-white/55">
             Live missions, venue nights, and verified presence. If BaseDare can drive attendance or produce a receipt, it&apos;s on The Board.

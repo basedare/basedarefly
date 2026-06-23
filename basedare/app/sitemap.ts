@@ -17,6 +17,12 @@ const staticRoutes: MetadataRoute.Sitemap = [
     priority: 0.9,
   },
   {
+    url: 'https://www.basedare.xyz/board',
+    lastModified: new Date(),
+    changeFrequency: 'hourly',
+    priority: 0.8,
+  },
+  {
     url: 'https://www.basedare.xyz/activations',
     lastModified: new Date(),
     changeFrequency: 'weekly',

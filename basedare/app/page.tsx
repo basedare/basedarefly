@@ -316,6 +316,13 @@ function HomeContent() {
                   >
                     Explore the grid
                   </Link>
+                  <Link
+                    href="/board"
+                    prefetch={false}
+                    className="inline-flex min-h-10 items-center rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.09] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-[#f8dd72] transition hover:bg-[#f5c518]/[0.16] hover:text-white"
+                  >
+                    What&apos;s on tonight
+                  </Link>
                 </div>
               </div>
 
