@@ -486,7 +486,7 @@ export default async function VenueDetailPage(
                 <div className="max-w-3xl">
                   <div className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]">
                     <ShieldCheck className="h-4 w-4" />
-                    {venue.isPartner ? 'Partner Venue' : 'Venue Beacon'}
+                    {venue.isPartner ? 'Partner · Proof Page' : 'Venue Proof Page'}
                   </div>
                   <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end">
                     <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[28px] border border-white/12 bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.035)_38%,rgba(8,8,16,0.92)_100%)] text-3xl shadow-[0_24px_48px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-16px_24px_rgba(0,0,0,0.24)]">
@@ -522,6 +522,36 @@ export default async function VenueDetailPage(
                       <Waves className="h-4 w-4 text-cyan-300" />
                       {venue.liveSession?.campaignLabel ?? 'Venue check-in live'}
                     </span>
+                  </div>
+
+                  {/* Proof-page identity strip — frames the page as the venue's BaseDare proof page. */}
+                  <div className="mt-5 rounded-2xl border border-[#f5c518]/16 bg-[#f5c518]/[0.05] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
+                      {venue.name}&apos;s proof page
+                    </p>
+                    <p className="mt-1 text-sm font-bold leading-6 text-white/68">
+                      Get on the Board <span className="text-[#f5c518]/70">→</span> bring people in{' '}
+                      <span className="text-[#f5c518]/70">→</span> prove visits{' '}
+                      <span className="text-[#f5c518]/70">→</span> show the receipt.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Link
+                        href="/board"
+                        prefetch={false}
+                        className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#f5c518]/28 bg-[#f5c518]/[0.1] px-3.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#f8dd72] transition hover:border-[#f5c518]/50 hover:text-white"
+                      >
+                        See it on The Board
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                      <Link
+                        href={venueRecapHref}
+                        prefetch={false}
+                        className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-emerald-300/24 bg-emerald-500/[0.08] px-3.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:border-emerald-200/40 hover:text-white"
+                      >
+                        View receipt
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
 
