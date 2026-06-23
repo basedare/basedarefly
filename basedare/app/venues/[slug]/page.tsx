@@ -540,7 +540,7 @@ export default async function VenueDetailPage(
                         prefetch={false}
                         className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#f5c518]/28 bg-[#f5c518]/[0.1] px-3.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#f8dd72] transition hover:border-[#f5c518]/50 hover:text-white"
                       >
-                        See it on The Board
+                        Open The Board
                         <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
                       <Link
@@ -548,7 +548,9 @@ export default async function VenueDetailPage(
                         prefetch={false}
                         className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-emerald-300/24 bg-emerald-500/[0.08] px-3.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:border-emerald-200/40 hover:text-white"
                       >
-                        View receipt
+                        {venue.recentCheckIns.length > 0 || last7DayWindow.verifiedOutcomes > 0
+                          ? 'View receipt'
+                          : 'Open proof receipt'}
                         <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
                     </div>
