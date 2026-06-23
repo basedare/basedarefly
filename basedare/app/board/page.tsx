@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, MapPin, Radio } from 'lucide-react';
-import { getBoardFlyers, type Flyer, type FlyerStamp, type FlyerTone } from '@/lib/board';
+import { getBoardSections, type Flyer, type FlyerStamp, type FlyerTone } from '@/lib/board';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +54,7 @@ function FlyerCard({ flyer, index }: { flyer: Flyer; index: number }) {
 
       <div className="flex items-center justify-between">
         <span className="text-[9px] font-black uppercase tracking-[0.24em] text-white/40">
-          {flyer.kind === 'MISSION' ? 'Mission' : 'Venue'}
+          {flyer.kind === 'MISSION' ? 'Mission' : flyer.kind === 'RECEIPT' ? 'Receipt' : 'Venue'}
         </span>
         {flyer.metricValue ? (
           <span className="text-right">
@@ -90,15 +90,34 @@ function FlyerCard({ flyer, index }: { flyer: Flyer; index: number }) {
       </div>
 
       <span className="mt-3 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/45 transition group-hover:text-white/80">
-        Open
+        {flyer.kind === 'RECEIPT' ? 'See receipt' : 'Open'}
         <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
       </span>
     </Link>
   );
 }
 
+function BoardSection({ title, subtitle, flyers }: { title: string; subtitle: string; flyers: Flyer[] }) {
+  if (flyers.length === 0) return null;
+  return (
+    <section className="mt-10">
+      <div className="mb-4 flex items-baseline gap-3">
+        <h2 className="text-xl font-black uppercase italic tracking-tight text-white">{title}</h2>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">{subtitle}</span>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {flyers.map((flyer, index) => (
+          <FlyerCard key={flyer.id} flyer={flyer} index={index} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default async function BoardPage() {
-  const flyers = await getBoardFlyers({ limit: 36 });
+  const sections = await getBoardSections();
+  const total =
+    sections.tonight.length + sections.rewards.length + sections.receipts.length + sections.placesLitUp.length;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_18%_0%,rgba(168,85,247,0.12),transparent_36%),radial-gradient(circle_at_88%_8%,rgba(34,211,238,0.08),transparent_34%),linear-gradient(180deg,#0a0913_0%,#070710_100%)]">
@@ -117,7 +136,7 @@ export default async function BoardPage() {
           </p>
         </div>
 
-        {flyers.length === 0 ? (
+        {total === 0 ? (
           <div className="mx-auto mt-12 max-w-md rounded-[24px] border border-white/10 bg-white/[0.03] p-8 text-center">
             <p className="text-sm font-bold leading-6 text-white/60">
               The board&apos;s quiet right now. Be the first to light up a venue —{' '}
@@ -125,11 +144,12 @@ export default async function BoardPage() {
             </p>
           </div>
         ) : (
-          <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {flyers.map((flyer, index) => (
-              <FlyerCard key={flyer.id} flyer={flyer} index={index} />
-            ))}
-          </div>
+          <>
+            <BoardSection title="Tonight" subtitle="Live now" flyers={sections.tonight} />
+            <BoardSection title="Rewards" subtitle="Open paid missions" flyers={sections.rewards} />
+            <BoardSection title="Receipts" subtitle="Verified proof" flyers={sections.receipts} />
+            <BoardSection title="Places lit up" subtitle="Recent verified activity" flyers={sections.placesLitUp} />
+          </>
         )}
       </section>
     </div>
