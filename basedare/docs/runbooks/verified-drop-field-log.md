@@ -58,6 +58,10 @@ Everything you or the host had to do by hand:
 | | | |
 | | | |
 
+## Payout preference (ask each paid creator — don't assume)
+"Nobody wants USDC" is a hypothesis. Ask + record per creator: **PHP (GCash/Maya) · USDC · venue credit (BaseCash)** → _____
+If testing YODL: tiny amount first; log completion time / fees / FX / failures. Keep USDC payout as fallback.
+
 ## Shadow invoice (compute, never send)
 - Qualified verified customers: _____
 - Hypothetical CPV: _____ → **hypothetical BaseDare fee: _____**

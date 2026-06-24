@@ -217,6 +217,11 @@ automate purchase attribution later — keep it optional.)
 - Frame results as a **directional difference from baseline**, never proven "lift" — one Thursday isn't causality.
 - The ask: **"Same Thursday? Everyone bring one."** Spot the best participant as a future host.
 
+### Paying the creator (optional YODL payout test)
+**Optional payout test:** use YODL to pay the creator's GCash/Maya **QRPh code** from USDC (the creator gives their QR; YODL's licensed PSPs settle the PHP — it's *pay-the-QR*, not "withdraw USDC"). **Test a tiny amount first** — record completion time, fees, FX rate, and any failures. **Keep the contracted USDC payout available as fallback.** And **ask the creator their preference** (PHP via GCash/Maya · USDC · venue credit) — record it, don't assume.
+
+---
+
 ## After Night 1 — turn it into the machine
 - Same format **3–4 weeks, change ONE variable/week** (format / perk / message / channel).
 - After ~4 nights: **Defaults → build · Choices → menu · Exceptions → ignore.**
