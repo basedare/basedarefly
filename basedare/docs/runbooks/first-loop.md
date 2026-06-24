@@ -30,9 +30,9 @@ A mission compiles to: **meet these people → go here → order one thing → d
 
 ## Roles (assign by name)
 - **You (founder) = director + observer.** NOT the host — watch whether they want *more* after the rounds end, and fill the log.
-- **Host = the engine.** Greets at the door, draws crews + rounds, hands out missions, keeps energy.
+- **Host = the engine (your Venue Resident candidate).** Greets at the door, draws crews + rounds, hands out missions, keeps energy. Paid for *reliability + hosting + producing the receipt* — needs social skill, not a following.
 - **Staff (1, behind the bar) = the meter.** Confirms the eligible purchase + redeems perks on the Venue Console device.
-- **Creator (1) = the proof.** Captures the group moment (with consent); gets the one paid bounty.
+- **Proof Creator (required) · promotional influencer (optional).** The paid loop needs *someone* to capture + submit the proof — a local photographer, the host, or a participant (unique link, one recap with consent, the one bounty). It does **not** need an audience-bearing influencer for Night 1; the room comes from the host + hostels. The first receipt is what recruits promotional creators later.
 - **Clawdbot (Telegram) = your ops console.** Live alerts (check-ins → proofs → payouts) hit your admin chat; from your phone at the bar you can `/approve` the creator's proof and pull `/stats`. Admin-only — guests never touch it.
 
 ---
@@ -59,7 +59,7 @@ A printed card with 3 stamps — pool, darts, one more game — each played with
 station). Three stamps → reward. The card tells each person exactly what to do and
 who with. Stamps = proof.
 
-**D) Captain's Draft (scale, Night 2+).**
+**D) Crew Draft (scale, Night 2+).**
 Host drafts 3 crews; crews earn points across pool + darts; most points wins. More
 team-y and structured — run it once the base door flow survives.
 
@@ -73,7 +73,7 @@ deck**; live generation is a later, evidence-gated build.
 ## Social safety (non-negotiable)
 - **Photos require consent** — ask first; the creator shoots tables/the room, not faces without a yes.
 - **Swap or leave anytime** — not just once. Stepping out is always fine, no explanation needed.
-- **The group chat is optional** — joining Telegram can expose contact info; never required to play.
+- **The group chat is optional** — joining the WhatsApp group exposes your phone number; never required to play.
 - **The host can quietly rematch or remove** anyone making someone uncomfortable — no drama.
 - **Close the temporary group after 48h.**
 
@@ -114,7 +114,7 @@ Also get the **baseline:** normal arrivals + sales in that window (for direction
 
 ### T–3 days
 - Send the **pre-onboarding message** (below) to every invitee. Chase non-responders — wallet-ready-before-arrival is the #1 friction fix.
-- **Spin up a temporary Telegram group** for the night (script below): host intro, meeting point, "most people are coming solo," light intros, final reminder. Announce it in the **Signal Room** (`@baresignalroom`) for reach. Joining is **optional**. This cheaply tests the future "Drop Room" — *record how people actually use it.* ⚠️ The bot is **admin/broadcast only** — it won't manage crews or onboard guests; the human host runs the group.
+- **Spin up a temporary WhatsApp group** for the night (travellers already have it; script below): host intro, meeting point, "most people are coming solo," light intros, final reminder. Announce it in the **Signal Room** (`@baresignalroom`, Telegram) for reach. Joining is **optional** (it exposes phone numbers). This cheaply tests the future "Drop Room" — *record how people actually use it.* ⚠️ BaseDare's owned platform (Signal Room + bot) stays **Telegram**; only this throwaway guest group is WhatsApp, and the bot won't run it — the human host does.
 - Make the **printed invite flyer** (static QR → invite page) and distribute it **at hostels + online — not at the entrance.** ⚠️ **Distribute the social invite manually** — the Drop does **not** auto-appear on The Board; the creator bounty shows there as a *Reward* flyer, a different thing. Treat Board appearance as secondary for Night 1.
 - Pick the **format** + write the **mission deck** (below).
 - Create **ONE targeted sub-$50 dare** for the creator (the proof bounty). ⚠️ **Not an open dare.** **Don't promise all guests USDC** — they get the perk + the night; one creator gets the bounty.
@@ -127,7 +127,7 @@ wallet connect → scan the **live** check-in QR → QR+GPS verifies → staff c
 - Confirm the **rotating check-in QR displays + scans** off the console screen.
 
 ### T–24h
-- Confirm headcount; over-confirm for no-shows. Telegram reminder: *"Tomorrow, Hideaway, 7pm — come solo, you'll have a crew."*
+- Confirm headcount; over-confirm for no-shows. WhatsApp reminder: *"Tomorrow, Hideaway, 7pm — come solo, you'll have a crew."*
 
 ### T–3h
 - "Tonight at Hideaway" nudge. Host reviews the format, the round draws, and names.
@@ -149,7 +149,7 @@ wallet connect → scan the **live** check-in QR → QR+GPS verifies → staff c
 - Host runs the **closing ask** (script). You produce the **receipt** + **shadow invoice.**
 
 ### Next day
-- Owner debrief (script). Log Defaults / Choices / Exceptions while fresh. Note how the Telegram group was actually used, then **close it after 48h.**
+- Owner debrief (script). Log Defaults / Choices / Exceptions while fresh. Note how the WhatsApp group was actually used, then **close it after 48h.**
 
 ---
 
@@ -158,7 +158,7 @@ wallet connect → scan the **live** check-in QR → QR+GPS verifies → staff c
 **Pre-onboarding message:**
 > You're on the list for Hideaway games night — Thursday 7pm 🎱🎯 Come solo, leave with a crew. 60-sec setup so you're ready at the door: [link] → tap Connect → done. See you Thursday.
 
-**Telegram group intro (host posts) — joining is optional:**
+**WhatsApp group intro (host posts) — joining is optional:**
 > Welcome to Thursday's Hideaway crew! I'm [name], I'll be running it. Most people here are coming solo — that's the whole point. We'll sort you into game crews on arrival. Meet point: the bar, from 7. (This group's optional — no need to share anything you don't want to.) Drop a 👋 if you like.
 
 **Printed invite flyer / poster (static QR → invite page; hostels + online, not the door):**
