@@ -1,0 +1,60 @@
+# Verified Drop — First-Night Field Log
+
+The capture instrument for the first **manual** Hideaway runs. This log + one real
+performance receipt is the next useful artifact — more valuable than any spec.
+Pairs with [first-loop.md](./first-loop.md).
+
+**Rule:** don't make night 1 resemble the final self-service product. Run it
+**manually-assisted** and record every intervention. The log tells us what to
+standardize; running it tells us the economics.
+
+---
+
+## The contract (set before the night)
+- **Venue type:** _____ (Nightlife / Food & Drink / Community-Social)
+- **Slow window:** _____ (e.g. Thu 7–9pm)
+- **Qualifying action** (the billable result — customers, not scanners): _____ (e.g. "any drink purchase," not "check-in")
+- **Offer / perk** (venue-funded, pass-through): _____
+- **Result target:** _____ verified customers   ·   **Cap:** _____
+- **Baseline** (ask the owner): normal arrivals / sales in that window: _____
+
+## The numbers (the "still unknown" → measured)
+| Metric | Result |
+|---|---|
+| Onboarding time per person (wallet-ready → checked in) | |
+| Show-up rate (committed → arrived) | |
+| Verified arrivals (QR+GPS) | |
+| **Qualifying conversion** (arrival → qualifying action) — the key % | |
+| New vs returning | |
+| Reward paid per result | |
+| Host cost | |
+| Operating cost per qualified visit | |
+| Proof content created | |
+| Receipt generation time | |
+
+## Intervention log (the gold) — tag every manual touch
+Everything you or the host had to do by hand:
+- **Default** → should happen automatically every time → becomes software/template
+- **Choice** → venue/host must configure → becomes a menu input
+- **Exception** → weird one-off → must NOT shape the core product
+
+| What happened | Default / Choice / Exception | Note |
+|---|---|---|
+| | | |
+| | | |
+| | | |
+
+## Shadow invoice (compute, never send)
+- Qualified customers: _____
+- Hypothetical CPV: _____ → **hypothetical BaseDare fee: _____**
+- Reward + host cost: _____
+- Attributed sales (from the till — manual until YODL/POS): _____
+- **Venue retained after costs: _____**
+
+→ Discovers what BaseDare *could* charge — validated without billing a friend.
+
+## After ~3–4 nights
+- **Defaults** → build into the template/software.
+- **Choices** → the venue-config menu (the 5 inputs).
+- **Exceptions** → ignore.
+- Then: hand the runbook to a **different host** and run **venue 2** unchanged — the portability test (Hideaway proves possibility; venue 2 proves it travels).
