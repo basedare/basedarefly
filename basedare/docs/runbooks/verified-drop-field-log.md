@@ -13,10 +13,20 @@ standardize; running it tells us the economics.
 ## The contract (set before the night)
 - **Venue type:** _____ (Nightlife / Food & Drink / Community-Social)
 - **Slow window:** _____ (e.g. Thu 7–9pm)
-- **Qualifying action** (the billable result — customers, not scanners): _____ (e.g. "any drink purchase," not "check-in")
+- **Outcome contract** (the billable result — customers, not scanners): _____ (e.g. "any **eligible menu item** purchase," not "check-in"; not alcohol-specific)
 - **Offer / perk** (venue-funded, pass-through): _____
 - **Result target:** _____ **qualified** verified customers   ·   **Cap:** _____
 - **Baseline** (ask the owner): normal arrivals / sales in that window: _____
+
+## Headline signal (the one that matters most)
+After their **scheduled rounds ended**, how many **voluntarily asked for another game**: _____ / _____
+⚠️ A bracket manufactures "what's my next match" — that doesn't count. Wanting *more* once the plan runs out is the real signal. Also note:
+- Did shoulders drop when handed a crew? (Y / N / mixed)
+- Did they **stay** after their rounds ended? _____
+- Did they **swap contacts**? _____
+- Did they **sign up for next week**? _____
+- Would they have come **not knowing anyone**? _____
+- Did the **one** purchase feel natural or forced? _____
 
 ## The numbers (the "still unknown" → measured)
 
