@@ -15,10 +15,14 @@ standardize; running it tells us the economics.
 - **Slow window:** _____ (e.g. Thu 7–9pm)
 - **Qualifying action** (the billable result — customers, not scanners): _____ (e.g. "any drink purchase," not "check-in")
 - **Offer / perk** (venue-funded, pass-through): _____
-- **Result target:** _____ verified customers   ·   **Cap:** _____
+- **Result target:** _____ **qualified** verified customers   ·   **Cap:** _____
 - **Baseline** (ask the owner): normal arrivals / sales in that window: _____
 
 ## The numbers (the "still unknown" → measured)
+
+**Raw funnel counts** (record the *count*, not the %; compute percentages afterward — raw counts preserve the truth):
+`committed ___ → wallet-ready ___ → arrived ___ → verified ___ → purchased/qualified ___ → completed proof ___`
+
 | Metric | Result |
 |---|---|
 | Onboarding time per person (wallet-ready → checked in) | |
@@ -45,13 +49,16 @@ Everything you or the host had to do by hand:
 | | | |
 
 ## Shadow invoice (compute, never send)
-- Qualified customers: _____
+- Qualified verified customers: _____
 - Hypothetical CPV: _____ → **hypothetical BaseDare fee: _____**
-- Reward + host cost: _____
+- Campaign costs (reward subsidy + host): _____
 - Attributed sales (from the till — manual until YODL/POS): _____
-- **Venue retained after costs: _____**
+- **Sales after campaign costs (BEFORE COGS): _____**
+- *(less COGS on those sales: _____)* → **net incremental contribution: _____**
+- ⚠️ If rewards were spent back at the venue, split **customer spend** vs **reward subsidy** so results aren't inflated.
 
 → Discovers what BaseDare *could* charge — validated without billing a friend.
+Don't let "sales after campaign costs" masquerade as profit — COGS is real.
 
 ## After ~3–4 nights
 - **Defaults** → build into the template/software.
