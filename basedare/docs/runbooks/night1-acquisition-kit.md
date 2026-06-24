@@ -93,6 +93,42 @@ traveller group chats · and the participants themselves (ask them to share thei
 
 ---
 
+## Positioning & messaging (the content brand)
+**Master villain: _maybe_ — unverified attention.** Don't villainise agencies,
+influencers, or Web2 — you need them as partners. The enemy is the *broken system*:
+views that never become visits, followers that never become customers, reports
+nobody can verify, plans that die in the group chat. Contrast: **promises vs proof ·
+attention vs action · maybe vs verified.**
+
+**Villain, tailored by audience** (one enemy, three faces — never mixed in one piece):
+- **Venues** (B2B): paying for uncertain attention → *"Stop paying for maybe."*
+- **Creators:** influence they can't prove or monetise → *"Influence should have a receipt."*
+- **Players:** plans that never happen + the awkward solo arrival → *"Come solo. Leave with a crew."*
+
+**The recurring question — every reel, carousel, and receipt answers it:**
+> **"But did anybody actually show up?"**
+
+### Pre-receipt — launch NOW (the question; honest, problem-led, NO outcome claims)
+- "Your campaign reached 30,000 people. Did anybody show up?"
+- "Influence without attribution is still a guess."
+- "We're testing whether venues can pay for verified customers instead of views."
+- "Most travel plans die in the group chat. We're running a different experiment."
+
+→ Frame it as an *experiment you're running*, never a proven result. The villain can exist immediately; only outcome claims wait.
+
+### Post-receipt — launch AFTER Night 1 (the answer; proof-led, real numbers)
+- "10 arrived. 8 verified. 7 purchased."
+- "This creator generated four qualified customers."
+- "Here's what Hideaway's quiet Thursday produced."
+
+→ ⚠️ The question is double-edged: don't make outcome claims until you can show **your** receipt, or the first skeptic turns it back on you. The proof earns the line.
+
+**Brand story:** villain = marketing built on unverifiable attention · hero = creators who move real people · buyer = venues tired of paying for promises · mechanism = verified presence + qualifying purchase · reward = creators paid / players get a night / venues get customers · **artifact = the receipt.**
+
+**Faceless content:** fine for cheap hook-testing (text carousels, voiceover reels, absurd-marketing-report screenshots, animated receipt numbers, before/after venue stories) — but real humans doing real things is the edge, so verified Drops, creators, and receipts must become the *main* creative.
+
+---
+
 ## Deferred (not now)
 - **Permanent Verified Drop package** — the existing `activation-packages` catalog is reusable, but it sells *creator content*, not *qualified customers*. Let Night 1 set the real delivery burden + economics first, then extend the catalog.
 - **Paid ads** — after 2–3 successful Drops: a geofenced **$20–50 IG test, connection-led vs reward-led creative.** A/B the message, never the loop.
