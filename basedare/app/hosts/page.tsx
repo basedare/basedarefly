@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     'Apply to become a BaseDare Founding Host and get routed into paid IRL creator missions, venue activations, and proof-backed content drops.',
   alternates: {
-    canonical: '/captains',
+    canonical: '/hosts',
   },
 };
 

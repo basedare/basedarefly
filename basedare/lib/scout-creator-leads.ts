@@ -153,7 +153,7 @@ export function buildCaptainInvitePath(input: {
   const creatorHandle = normalizeScoutHandle(input.creatorHandle);
   if (creatorHandle) params.set('creator', creatorHandle);
 
-  return `/captains?${params.toString()}`;
+  return `/hosts?${params.toString()}`;
 }
 
 export function buildCaptainMissionPath(input: { token: string }) {

@@ -293,7 +293,7 @@ export default function CreatorsPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-2xl mx-auto">
-                <Link href="/captains?source=creators-page" className="flex-1">
+                <Link href="/hosts?source=creators-page" className="flex-1">
                   <motion.button
                     whileTap={{ scale: 0.98 }}
                     className="w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border border-cyan-300/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(12,12,22,0.94)_100%)] text-cyan-50 text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_14px_22px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_14px_rgba(0,0,0,0.24)] hover:-translate-y-[1px] hover:border-cyan-200/40"
@@ -473,7 +473,7 @@ export default function CreatorsPage() {
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2 md:w-[22rem]">
                           <Link
-                            href="/captains?source=creators-empty-state"
+                            href="/hosts?source=creators-empty-state"
                             className={`${ghostButtonClass} bd-tactile-button--cyan min-h-11 px-4 tracking-[0.13em]`}
                           >
                             Become a Host
@@ -578,7 +578,7 @@ export default function CreatorsPage() {
                   </p>
                   <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
                     <Link
-                      href="/captains?source=creators-empty-state"
+                      href="/hosts?source=creators-empty-state"
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-200/40"
                     >
                       Become a Host <ArrowRight className="w-4 h-4" />

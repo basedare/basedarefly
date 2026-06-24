@@ -52,6 +52,11 @@ const nextConfig: NextConfig = {
         destination: '/creators',
         permanent: true,
       },
+      {
+        source: '/captains',
+        destination: '/hosts',
+        permanent: true,
+      },
     ];
   },
   images: {

@@ -99,7 +99,7 @@ function mapScoutLeadEvent(event: {
   const status = normalizeScoutCreatorLeadStatus(event.status);
   const scoutCode = stringValue(metadata.scoutCode);
   const creatorHandle = stringValue(metadata.creatorHandle);
-  const captainInvitePath = stringValue(metadata.captainInvitePath) || `/captains?scout=${encodeURIComponent(scoutCode)}`;
+  const captainInvitePath = stringValue(metadata.captainInvitePath) || `/hosts?scout=${encodeURIComponent(scoutCode)}`;
   const captainInviteUrl =
     stringValue(metadata.captainInviteUrl) ||
     `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.basedare.xyz'}${captainInvitePath}`;

@@ -904,7 +904,7 @@ export async function alertCreatorCaptainApplication(data: {
 ${details.join('\n')}
 Application: <code>${escapeHtml(data.applicationId)}</code>
 
-${htmlLink(appUrl(`/admin/creator-captains?applicationId=${encodeURIComponent(data.applicationId)}`), 'Open creator queue')} · ${htmlLink(appUrl('/captains'), 'Public form')} · ${htmlLink(appUrl('/admin/activation-intakes'), 'Activation queue')}
+${htmlLink(appUrl(`/admin/creator-captains?applicationId=${encodeURIComponent(data.applicationId)}`), 'Open creator queue')} · ${htmlLink(appUrl('/hosts'), 'Public form')} · ${htmlLink(appUrl('/admin/activation-intakes'), 'Activation queue')}
 `.trim();
 
   return sendMessage(message);
