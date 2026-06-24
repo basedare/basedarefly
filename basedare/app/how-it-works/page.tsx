@@ -129,7 +129,7 @@ const ROLE_GLOSSARY = [
   },
   {
     icon: Route,
-    title: "Captains",
+    title: "Hosts",
     description: "Trusted locals who help launch venue missions.",
     color: "text-yellow-300",
   },
@@ -303,7 +303,7 @@ export default function HowItWorksPage() {
                 </h2>
               </div>
               <p className="max-w-2xl font-mono text-xs leading-6 text-gray-400">
-                Captains are trusted locals who help venues and creators launch proof-backed missions.
+                Hosts are trusted locals who help venues and creators launch proof-backed missions.
               </p>
             </div>
 

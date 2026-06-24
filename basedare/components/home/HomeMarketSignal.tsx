@@ -282,7 +282,7 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
               Venues ready to turn bounties into proof.
             </h3>
             <p className="mx-auto mt-3 max-w-3xl text-sm font-bold leading-6 text-white/48">
-              Open venues turn bounties into receipts — check-ins, missions, and proof. Captains are the
+              Open venues turn bounties into receipts — check-ins, missions, and proof. Hosts are the
               operators who run them.
             </p>
           </div>
@@ -301,7 +301,7 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(245,197,24,0.18),rgba(245,197,24,0.07))] px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[#f9e27a] shadow-[0_14px_24px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:border-[#f5c518]/45 sm:min-w-[11.5rem]"
             >
               <Briefcase className="h-3.5 w-3.5 shrink-0" />
-              Become a captain
+              Become a host
             </Link>
           </div>
         </div>

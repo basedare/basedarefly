@@ -71,7 +71,7 @@ const sectionLabelClass =
   "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
 
 const launchCreatorMissionHref = buildCreatorMissionActivationHref({
-  creator: "@founding-captain",
+  creator: "@founding-host",
   source: "available-creators",
   city: "Founding city",
   skills: ["Venue scouting", "Proof capture", "Local clips"],
@@ -468,7 +468,7 @@ export default function CreatorsPage() {
                             {creatorFetchFailed ? "Creator rail is loading slowly." : "No creator availability signal yet."}
                           </p>
                           <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-white/52">
-                            The captain intake still works. Route founding creators here first, then missions can use live availability once the backend responds.
+                            The host intake still works. Route founding creators here first, then missions can use live availability once the backend responds.
                           </p>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2 md:w-[22rem]">
@@ -571,7 +571,7 @@ export default function CreatorsPage() {
                 <div className={`${insetCardClass} p-8 text-center`}>
                   <p className="text-gray-500 font-mono text-xs">
                     {creatorFetchFailed
-                      ? "Creator API is slow right now. The captain intake and tag claim rails still work."
+                      ? "Creator API is slow right now. The host intake and tag claim rails still work."
                       : creators.length === 0
                         ? "No creators verified yet. Be the first!"
                         : "No creators match that search yet."}

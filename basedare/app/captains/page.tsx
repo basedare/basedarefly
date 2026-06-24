@@ -7,9 +7,9 @@ import LiquidBackground from '@/components/LiquidBackground';
 import CreatorCaptainApplicationForm from './CreatorCaptainApplicationForm';
 
 export const metadata: Metadata = {
-  title: 'BaseDare Founding Dare Captains — Get Paid for Real-World Missions',
+  title: 'BaseDare Founding Hosts — Get Paid for Real-World Missions',
   description:
-    'Apply to become a BaseDare Founding Dare Captain and get routed into paid IRL creator missions, venue activations, and proof-backed content drops.',
+    'Apply to become a BaseDare Founding Host and get routed into paid IRL creator missions, venue activations, and proof-backed content drops.',
   alternates: {
     canonical: '/captains',
   },
@@ -24,7 +24,7 @@ const signalSteps = [
   {
     icon: BadgeDollarSign,
     title: 'Help the night run',
-    copy: 'Creators make content. Guests create crowd energy. Captains make the offline setup easier.',
+    copy: 'Creators make content. Guests create crowd energy. Hosts make the offline setup easier.',
   },
   {
     icon: RadioTower,
@@ -78,7 +78,7 @@ export default async function CreatorCaptainsPage({ searchParams }: CreatorCapta
               </div>
 
               <h1 className="mt-6 text-4xl font-black tracking-tight text-white sm:text-6xl">
-                Become a BaseDare Dare Captain
+                Become a BaseDare Host
               </h1>
               <p className="mt-5 max-w-xl text-base font-semibold leading-7 text-white/62">
                 Get routed into real-world missions that create proof, clips, venue heat, and repeat paid work.

@@ -145,7 +145,7 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
           <CheckCircle2 className="h-12 w-12 text-emerald-200" />
           <h2 className="mt-5 text-3xl font-black tracking-tight text-white">Application routed</h2>
           <p className="mt-3 text-sm font-semibold leading-6 text-white/58">
-            Your Dare Captain application is in the operator queue. If it fits the first creator squad,
+            Your Host application is in the operator queue. If it fits the first creator squad,
             BaseDare will route you toward a pilot mission or follow-up.
           </p>
           <p className="mt-4 rounded-2xl border border-white/10 bg-black/22 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-white/50">
@@ -172,7 +172,7 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
       <div className="relative grid gap-5">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.26em] text-yellow-200/70">Apply</p>
-          <h2 className="mt-2 text-3xl font-black tracking-tight text-white">Founding Dare Captain</h2>
+          <h2 className="mt-2 text-3xl font-black tracking-tight text-white">Founding Host</h2>
           <p className="mt-2 text-sm font-semibold leading-6 text-white/52">
             Tell us where you create, what you would actually do, and which venue lane you can unlock.
           </p>
@@ -185,7 +185,7 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
             </p>
             <p className="mt-2 text-sm font-bold leading-6 text-cyan-50/72">
               Scout code <span className="text-cyan-100">{form.scoutCode}</span>
-              {form.referredCreatorHandle ? ` routed this captain invite for ${form.referredCreatorHandle}.` : ' routed this captain invite.'}
+              {form.referredCreatorHandle ? ` routed this host invite for ${form.referredCreatorHandle}.` : ' routed this host invite.'}
             </p>
           </div>
         ) : null}
@@ -312,7 +312,7 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
         </label>
 
         <label>
-          <span className={labelClass}>Captain help</span>
+          <span className={labelClass}>Host help</span>
           <p className="-mt-1 mb-3 text-xs font-semibold leading-5 text-white/42">
             Pick the offline jobs you can safely help with. Exact live location stays private.
           </p>
@@ -452,7 +452,7 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
           className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-[20px] border border-yellow-200/30 bg-[linear-gradient(180deg,#ffe66f_0%,#f5c518_45%,#b97800_100%)] px-5 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-black shadow-[0_18px_34px_rgba(245,197,24,0.22),inset_0_1px_0_rgba(255,255,255,0.6)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          Apply as captain
+          Apply as host
         </button>
       </div>
     </form>

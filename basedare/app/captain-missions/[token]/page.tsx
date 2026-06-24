@@ -8,8 +8,8 @@ import { getCaptainMissionByToken } from '@/lib/captain-missions-server';
 import CaptainMissionProofForm from './CaptainMissionProofForm';
 
 export const metadata: Metadata = {
-  title: 'Captain Mission | BaseDare',
-  description: 'Submit proof for a BaseDare Founding Captain venue scout mission.',
+  title: 'Host Mission | BaseDare',
+  description: 'Submit proof for a BaseDare Founding Host venue scout mission.',
 };
 
 type CaptainMissionPageProps = {
@@ -25,7 +25,7 @@ export default async function CaptainMissionPage({ params }: CaptainMissionPageP
   }
 
   const packet = mission.mission.packet;
-  const creatorLabel = mission.creatorHandle || mission.creatorName || 'Captain';
+  const creatorLabel = mission.creatorHandle || mission.creatorName || 'Host';
   const city = mission.creatorCity || 'your city';
 
   return (
@@ -44,7 +44,7 @@ export default async function CaptainMissionPage({ params }: CaptainMissionPageP
             <div className="relative">
               <div className="inline-flex items-center gap-2 rounded-full border border-yellow-300/25 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.26em] text-yellow-100">
                 <Sparkles className="h-4 w-4" />
-                Founding Captain Mission
+                Founding Host Mission
               </div>
 
               <h1 className="mt-6 text-4xl font-black tracking-tight text-white sm:text-6xl">

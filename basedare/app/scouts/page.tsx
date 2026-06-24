@@ -10,7 +10,7 @@ import ScoutCreatorLeadForm from './ScoutCreatorLeadForm';
 export const metadata: Metadata = {
   title: 'BaseDare Scout Army - Recruit Creators, Earn on Proof',
   description:
-    'Submit creator leads to BaseDare, generate attributed captain invites, and help build the creator supply layer for real-world missions.',
+    'Submit creator leads to BaseDare, generate attributed host invites, and help build the creator supply layer for real-world missions.',
   alternates: {
     canonical: '/scouts',
   },
@@ -74,7 +74,7 @@ export default async function ScoutArmyPage({ searchParams }: ScoutArmyPageProps
               </div>
 
               <h1 className="mt-6 text-4xl font-black tracking-tight text-white sm:text-6xl">
-                Recruit captains. Earn on proof.
+                Recruit hosts. Earn on proof.
               </h1>
               <p className="mt-5 max-w-xl text-base font-semibold leading-7 text-white/62">
                 Invite reliable creators and locals. BaseDare routes the best ones into venue missions.
@@ -122,7 +122,7 @@ export default async function ScoutArmyPage({ searchParams }: ScoutArmyPageProps
                   href="/captains"
                   className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/72 transition hover:border-cyan-300/30 hover:text-cyan-100"
                 >
-                  Captain form
+                  Host form
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
                 <Link
