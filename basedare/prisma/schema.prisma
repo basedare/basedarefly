@@ -938,3 +938,63 @@ model DropRsvp {
   @@unique([dropSlug, contact])
   @@index([dropSlug, status, createdAt])
 }
+
+// === Pack Mark v0 — geocaching-style organic onboarding ===
+// PackMember = a PROVISIONAL pack identity (product-facing "Baretag") — wallet-less
+// by design (cold-start). Links to a real wallet/StreamerTag later via the
+// nullable fields below. Does NOT fork User.baseTag / StreamerTag.
+model Pack {
+  id        String       @id @default(cuid())
+  slug      String       @unique // "siargao"
+  name      String // "Siargao Pack"
+  createdAt DateTime     @default(now())
+  marks     Mark[]
+  members   PackMember[]
+  claims    PackClaim[]
+}
+
+model Mark {
+  id        String      @id @default(cuid())
+  packId    String
+  slug      String // "secret-spot-01"
+  name      String // "Secret Spot #01"
+  wordHash  String // sha256(normalized word) — never plaintext, never returned by any API
+  artUrl    String?
+  createdAt DateTime    @default(now())
+  pack      Pack        @relation(fields: [packId], references: [id], onDelete: Cascade)
+  claims    PackClaim[]
+
+  @@unique([packId, slug])
+}
+
+model PackMember {
+  id             String      @id @default(cuid())
+  packId         String
+  handle         String // "@maya" — provisional pack identity (product calls it "Baretag")
+  securedVia     String? // null | 'email' | 'whatsapp' | 'instagram' (fast-follow)
+  securedContact String?
+  walletAddress  String? // later: link to a real account
+  streamerTagId  String? // later: link to StreamerTag
+  createdAt      DateTime    @default(now())
+  pack           Pack        @relation(fields: [packId], references: [id], onDelete: Cascade)
+  claims         PackClaim[]
+
+  @@unique([packId, handle])
+  @@index([packId])
+}
+
+model PackClaim {
+  id           String     @id @default(cuid())
+  packId       String
+  packMemberId String
+  markId       String
+  type         String     @default("claimed") // 'claimed' (+1); future 'verified' (+10) / 'qualified'
+  points       Int        @default(1)
+  createdAt    DateTime   @default(now())
+  pack         Pack       @relation(fields: [packId], references: [id], onDelete: Cascade)
+  member       PackMember @relation(fields: [packMemberId], references: [id], onDelete: Cascade)
+  mark         Mark       @relation(fields: [markId], references: [id], onDelete: Cascade)
+
+  @@unique([packMemberId, markId, type]) // idempotency: one 'claimed' per member per mark
+  @@index([packId, type])
+}

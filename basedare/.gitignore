@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# Pack Mark seed (real secret words — never commit)
+scripts/pack-seed.local.json
+
 # next.js
 /.next/
 /out/
