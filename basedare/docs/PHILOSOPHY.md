@@ -2,8 +2,29 @@
 
 > The durable "why" behind BaseDare. Read this before building features, writing copy, or planning GTM. Pages change; these don't. (Coding agents: build *from* these. Growth brain: `brain-vault/` operationalizes them.)
 
+## ⭐ THE SETTLED CORE MODEL — read first; we keep drifting from this
+
+**BaseDare is a performance-verified DARE marketplace.** The unit is a *dare* — it was always in the name. Venues/brands post **safe, templated dare-briefs with payouts** → local **creators** perform + post them (the spark: content + reach) → BaseDare **verifies and measures** the outcome via the proof ladder → that **receipt** is both the product and the pitch to the next venue.
+
+**The proof ladder = the pricing logic** (charge more as proof moves down):
+1. **execution** — creator showed up + did it (QR/GPS)
+2. **publication** — they actually posted it (the URL exists)
+3. **attention** — the post's numbers (views/saves/comments)
+4. **conversion** — bodies that arrived from their `?src=` link
+5. **qualified** — those bodies bought / acted
+
+You **proof** the outcome; you do **not** underwrite it. BaseDare is a *measurement* layer (carries no risk, touches no money flow) — **not an insurer.**
+
+**Everything else we built is a lower rung, not a separate product:** Drop page (captures the crowd the dare sends) · QR/GPS check-in (rung 1) · venue receipt (the sale) · Pack Marks (keeps the crowd exploring after the spark). Creators = the spark + supply; the pack = the fuel; **the dare = the unit that is simultaneously product, proof, and content** (a check-in is invisible; a dare is a video — that's why it can go viral).
+
+**First SKU = ONE Verified Creator Dare, staged at the Hideaway night.** One creator + one venue (Hideaway) + one safe dare, performed/posted/measured. It needs ONE matched pair, **not a built marketplace.** (e.g. "join the pool mixer, order an eligible item, post a 30s 'come solo, leave with a crew' reel; we verify you were there + track who joined from your link.")
+
+**Non-negotiable safety constraint:** dare briefs are a **constrained, pre-approved menu**, never a free-form box; payout **never scales with risk/escalation.** The platform's own economics pull toward "more extreme = more views = more money" — build the menu so the *safe* version is the *only* version that pays. Day one, not bolted on later.
+
+**⚠️ ANTI-DRIFT — this section exists because we repeatedly wander.** In one session the "core" drifted: location-based social media → leaderboard economy → geocaching → PartiStaff staffing → "measurement company" → back to dares. Those are all *layers/lenses* of the dare model, not replacements. **Before proposing any new direction, re-read this section.** The core is the dare + the proof ladder. Everything else is a rung on it.
+
 ## What BaseDare is (one sentence)
-**Proof-of-presence commerce for the IRL economy:** get paid in USDC to complete real-world missions, verified by actually being there (QR + GPS), onchain.
+**Proof-of-presence commerce for the IRL economy:** get paid in USDC to complete real-world missions, verified by actually being there (QR + GPS), onchain. *(This is the proof **rung** — the measurement underneath the dare; see the settled core model above. The dare is the unit; presence is how rung 1 is verified.)*
 
 ## The category we're in
 The **"IRL economy"** — younger people investing in offline experiences and human connection itself, not screens. It is real, large, and funded (e.g. Airbnb led a **$58M** round into WeRoad's group-travel community in 2026 — see `brain-vault/03-insights/`). BaseDare is the **verified + paid** version of this wave.
