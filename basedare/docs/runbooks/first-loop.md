@@ -22,7 +22,7 @@ plan runs out.) Plus: do shoulders drop when they're handed a crew?
 ## The three layers (keep them separate)
 1. **Outcome contract** — fixed + billable: **"one eligible menu item purchase unlocks the whole night."** (Not "any drink" — includes food/soda/sober guests, fewer disputes. Never per-game.)
 2. **Experience recipe** — BaseDare picks the crew, the meeting point, and the social mission (tonight: a game).
-3. **Proof** — QR/GPS proves arrival; staff (or BaseCash/POS later) confirms the purchase; optional content proves the moment.
+3. **Proof** — QR/GPS proves arrival; staff (or POS/YODL later) confirms the purchase; optional content proves the moment.
 
 A mission compiles to: **meet these people → go here → order one thing → do one interesting thing together → unlock the reward.**
 
@@ -99,7 +99,7 @@ deck**; live generation is a later, evidence-gated build.
 1. **Type:** Community-Social (the solo-traveler games night).
 2. **Window:** quietest 2 hours, same slot weekly — e.g. **Thursday 7–9pm.**
 3. **Outcome contract:** **"one eligible menu item purchase unlocks the whole night"** (fixed for the whole Drop — never per-game). Later-selectable menu: any purchase · min spend · featured item · group purchase · return visit.
-4. **Perk:** low-cost / high-perceived-value, **unlocked by that one purchase** (e.g. tournament entry / a token / prize-draw entry). **Owner funds it.** *(Optional spend-local rail: the YODL-equivalent already exists as **BaseCash** — venue credit, redeemed once via staff, `/basecashapprove`.)*
+4. **Perk:** low-cost / high-perceived-value, **unlocked by that one purchase** (e.g. tournament entry / a token / prize-draw entry). **Owner funds it.** *(Optional spend-local rail: **BaseCash** — venue credit, top up + spend at the venue, redeemed once via staff, `/basecashapprove`. NOT a YODL-equivalent — BaseCash is venue credit; YODL is QRPh cash-out to PHP. Different rails.)*
 5. **Target + cap:** **8–12 qualified customers** (controlled stress test — scale Night 2); one sub-$50 creator bounty (BaseDare-funded) + the perk (venue-funded). Cap both.
 
 Also get the **baseline:** normal arrivals + sales in that window (for directional comparison — one night isn't causal proof).
@@ -210,15 +210,17 @@ wallet connect → scan the **live** check-in QR → QR+GPS verifies → staff c
 BaseDare automatically records **verified arrivals + perk redemptions**. It does
 **not yet** produce a one-click Drop-scoped report with till sales + qualified
 purchases + incremental contribution. So the first receipt = **BaseDare proof data
-+ venue till numbers + manual Drop-window reconciliation.** (BaseCash/POS can
++ venue till numbers + manual Drop-window reconciliation.** (POS/YODL can
 automate purchase attribution later — keep it optional.)
 
 - Compute the **shadow invoice** (don't send): hypothetical CPV × qualified customers; keep customer-spend / reward-subsidy / COGS separate — never inflate.
 - Frame results as a **directional difference from baseline**, never proven "lift" — one Thursday isn't causality.
 - The ask: **"Same Thursday? Everyone bring one."** Spot the best participant as a future host.
 
-### Paying the creator (optional YODL payout test)
-**Optional payout test:** use YODL to pay the creator's GCash/Maya **QRPh code** from USDC (the creator gives their QR; YODL's licensed PSPs settle the PHP — it's *pay-the-QR*, not "withdraw USDC"). **Test a tiny amount first** — record completion time, fees, FX rate, and any failures. **Keep the contracted USDC payout available as fallback.** And **ask the creator their preference** (PHP via GCash/Maya · USDC · venue credit) — record it, don't assume.
+### Paying the creator
+The contracted **bounty settles through BaseDare in USDC** as normal — a sub-$50 dare may auto-approve + auto-pay, so **do not pay it twice.**
+**Optional QRPh test (SEPARATE — not the bounty):** run a *tiny separate* amount through YODL to the creator's GCash/Maya **QRPh code** (it's *pay-the-QR*, not "withdraw USDC"; licensed PSPs settle PHP). Record completion time, fees, FX, failures. ⚠️ This is a standalone rail test, **NOT the creator's bounty** — the bounty still pays in USDC, so you never double-pay.
+**Ask the creator their preference** (PHP via GCash/Maya · USDC · venue credit) — record it, don't assume. *(Long-term: the creator picks ONE mutually-exclusive rail **before** settlement — USDC / PHP via YODL / BaseCash credit — and it settles **once.**)*
 
 ---
 
