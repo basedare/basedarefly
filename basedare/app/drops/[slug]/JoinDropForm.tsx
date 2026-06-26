@@ -117,6 +117,10 @@ export default function JoinDropForm({
         <p className="relative mt-3 text-xs font-semibold text-white/45">Be the first to claim a spot 👀</p>
       )}
 
+      <p className="relative mt-3 text-center text-[11px] font-bold text-white/50">
+        Most people are coming solo — your crew gets matched on arrival.
+      </p>
+
       <div className="relative my-5 h-px bg-white/10" />
 
       {result ? (

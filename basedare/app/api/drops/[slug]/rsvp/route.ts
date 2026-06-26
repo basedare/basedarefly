@@ -76,6 +76,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         data: { handle, gamePref, source: source ?? undefined },
       });
     } else {
+      // NOTE: count-then-create isn't atomic — two simultaneous joins could over-admit
+      // by 1 (cap is "practically 12," not strict). Fine at Night-1 scale; harden with a
+      // serializable tx / row lock if Drops grow.
       const joinedCount = await prisma.dropRsvp.count({ where: { dropSlug: slug, status: 'joined' } });
       status = joinedCount < drop.capacity ? 'joined' : 'waitlist';
       await prisma.dropRsvp.create({
