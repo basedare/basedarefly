@@ -31,7 +31,8 @@ After their **scheduled rounds ended**, how many **voluntarily asked for another
 ## The numbers (the "still unknown" → measured)
 
 **Raw funnel counts** (record the *count*, not the %; compute percentages afterward — raw counts preserve the truth):
-`committed ___ → wallet-ready ___ → arrived ___ → verified ___ → purchased/qualified ___ → completed proof ___`
+`committed ___ → wallet-ready ___ → arrived (manual) ___ → VERIFIED (QR/GPS) ___ → purchased/qualified ___ → completed proof ___`
+⚠️ **"Arrived (manual)" ≠ "Verified."** If someone couldn't complete check-in they're a manual arrival, not proof. The **receipt reports VERIFIED (QR/GPS)** — never the manual number. Log both; never blur "showed up" with "proven."
 
 | Metric | Result |
 |---|---|

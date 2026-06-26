@@ -79,15 +79,41 @@ deck**; live generation is a later, evidence-gated build.
 
 ---
 
-## Pre-flight blockers (ALL true before the night)
-- [ ] **PostHog** live (confirm `$pageview` events flowing).
-- [ ] **Referee hot wallet** configured + funded with a little Base ETH (or payouts stall in `PENDING_PAYOUT`).
-- [ ] **8–12 people pre-onboarded** (wallet-ready before the night).
-- [ ] **Perk agreed** with the owner + briefed to staff.
-- [ ] **Host briefed**, format chosen, mission deck in hand.
-- [ ] **Two QRs sorted** (see below) — Claude arms the live check-in session on the date.
-- [ ] **Venue Console** logged in on one staff tablet/phone.
-- [ ] **Clawdbot alive** — `/help` responds in your admin chat (your live ops console); Signal Room (`@baresignalroom`) reachable for broadcast.
+## T‑72h Execution Preflight — before the first invite goes out
+*Built/decided ≠ proven. This is what must be **true** (with owners + the failure each removes), not just what's been written.*
+
+**🟢 GREEN-LIGHT GATE — all FIVE true before the first invite link leaves your phone:**
+1. [ ] **Drop page live + tested on your phone** (full smoke test ↓)
+2. [ ] **Date / time / format / capacity (12, confirms at 8) locked**
+3. [ ] **Hideaway owner said yes — in writing**
+4. [ ] **Group-chat link works** (`DROP_GROUP_URL` — you've opened it)
+5. [ ] **3 named pullers confirmed**, each with their own `?src=` link
+
+*(Rehearsal, no-show plan, and receipt sheet must be ready before the NIGHT — but invites can start the moment these five pass.)*
+
+**Infra smoke test** *(owner: you + Claude)* — stricter than "db push":
+`prisma db push` → `DROP_GROUP_URL` set → deploy → on a **real phone**: RSVP → roster increments → group link appears → **duplicate contact** updates (doesn't double-count) → past 12 → **waitlist** behaves → `?src=hostel-a` is stored. · *removes: a dead or leaky link at the moment of first invite.*
+
+**Technical blockers** *(owner: you)* — also true before the night:
+- [ ] **Referee hot wallet** funded with Base ETH (or payouts stall `PENDING_PAYOUT`).
+- [ ] **PostHog** `$pageview` confirmed flowing.
+- [ ] **Venue Console** logged in on one staff device; **Clawdbot** `/help` responds; Signal Room (`@baresignalroom`) reachable.
+- [ ] **Two QRs sorted** (↓) — Claude arms the live check-in session on the date.
+- [ ] **8–12 people pre-onboarded**; perk agreed + staff-briefed; host briefed + format + mission deck.
+
+**Distribution named** *(owner: you)* — *which* hostel · *who* posts · *what* message · *which* `?src=`. · *removes: "decided" distribution nobody actually executes.*
+
+**Founding pullers** *(owner: you)* — 3–5 named, each a `?src=`, each accountable for 2–4 RSVPs, each replied "in, bringing N." · *removes: diffuse no-one-is-responsible.*
+
+**Manual RSVP → check-in protocol** *(the seam — bridged by humans for Night 1; don't build the rail yet):*
+- **RSVP roster** = social commitment (NOT proof).
+- **QR/GPS check-in** = **verified presence** (the real proof).
+- **Purchase tally** = manual venue result.
+- ⚠️ If someone can't complete wallet/check-in → they count as **manual arrival**, *not* verified. **The receipt must never blur "showed up" with "verified."** The field log records both numbers; the receipt reports the honest (verified) one.
+
+**Door rehearsal** *(owner: you + 2, 24–48h out)* — 3 humans, real phones, full loop. Decides the bridge: pre-onboard wallets, or host checks names off the live roster (manual is fine). · *removes: discovering the seam live, in front of strangers.*
+
+**No-show / over-show + receipt** *(owner: host / you)* — reminders T‑24h + T‑3h; plan at 6 RSVPs (run smaller — valid) and at 15 (waitlist); receipt tally open (RSVP by src → arrivals → verified → purchases → spend est → photos).
 
 ### ⚠️ Two different QRs (do not conflate — and don't put both at the entrance)
 - **Invite QR** = a *static link* to the invite page. Distribute it **at hostels + online** — **not at Hideaway's entrance.**
