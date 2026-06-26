@@ -19,7 +19,11 @@ export async function getPackBoard(packId: string, limit = 50): Promise<BoardRow
     by: ['packMemberId'],
     where: { packId },
     _sum: { points: true },
-    orderBy: { _sum: { points: 'desc' } },
+    _min: { createdAt: true },
+    orderBy: [
+      { _sum: { points: 'desc' } },
+      { _min: { createdAt: 'asc' } }, // stable tie-break: earliest claimer ranks higher (rewards being early)
+    ],
     take: limit,
   });
   if (grouped.length === 0) return [];
