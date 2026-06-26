@@ -28,11 +28,13 @@ export async function generateMetadata({ params }: DropPageProps): Promise<Metad
   };
 }
 
-const EMPTY_ROSTER = (capacity: number): RosterView => ({
+const EMPTY_ROSTER = (capacity: number, unlockAt: number): RosterView => ({
   joined: 0,
   capacity,
   spotsLeft: capacity,
   waitlist: 0,
+  unlocked: false,
+  toUnlock: unlockAt,
   roster: [],
 });
 
@@ -49,7 +51,7 @@ export default async function DropInvitePage({ params, searchParams }: DropPageP
   try {
     roster = await getRosterView(slug);
   } catch {
-    roster = EMPTY_ROSTER(drop.capacity);
+    roster = EMPTY_ROSTER(drop.capacity, drop.unlockAt);
   }
 
   return (

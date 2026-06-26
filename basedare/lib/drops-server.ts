@@ -10,6 +10,7 @@ const DEFAULT_CAPACITY = 12;
  */
 export async function getRosterView(dropSlug: string): Promise<RosterView> {
   const capacity = DROPS[dropSlug]?.capacity ?? DEFAULT_CAPACITY;
+  const unlockAt = DROPS[dropSlug]?.unlockAt ?? capacity;
 
   const rows = await prisma.dropRsvp.findMany({
     where: { dropSlug },
@@ -19,12 +20,15 @@ export async function getRosterView(dropSlug: string): Promise<RosterView> {
 
   const joined = rows.filter((row) => row.status === 'joined');
   const waitlist = rows.filter((row) => row.status === 'waitlist');
+  const joinedCount = joined.length;
 
   return {
-    joined: joined.length,
+    joined: joinedCount,
     capacity,
-    spotsLeft: Math.max(0, capacity - joined.length),
+    spotsLeft: Math.max(0, capacity - joinedCount),
     waitlist: waitlist.length,
+    unlocked: joinedCount >= unlockAt,
+    toUnlock: Math.max(0, unlockAt - joinedCount),
     roster: joined.map((row) => ({ handle: row.handle, gamePref: row.gamePref as GamePref })),
   };
 }

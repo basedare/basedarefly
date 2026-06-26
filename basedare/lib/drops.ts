@@ -9,7 +9,8 @@ export type DropConfig = {
   title: string; // player-facing — NOT "Drop"
   tagline: string;
   details: string;
-  capacity: number;
+  capacity: number; // max spots
+  unlockAt: number; // min RSVPs to confirm the night happens ("unlocks at N")
   venue: string;
   whenLabel: string; // human label, e.g. "Thursday · 7–9pm"
 };
@@ -27,6 +28,7 @@ export const DROPS: Record<string, DropConfig> = {
     tagline: "Come solo. We'll match you with a crew.",
     details: 'Pool + darts · one eligible purchase unlocks the night.',
     capacity: 12,
+    unlockAt: 8,
     venue: 'Hideaway',
     whenLabel: 'This week · 7–9pm',
   },
@@ -47,5 +49,7 @@ export type RosterView = {
   capacity: number;
   spotsLeft: number;
   waitlist: number;
+  unlocked: boolean; // joined >= unlockAt → the night is confirmed
+  toUnlock: number; // RSVPs still needed to lock it in (0 once unlocked)
   roster: RosterEntry[];
 };

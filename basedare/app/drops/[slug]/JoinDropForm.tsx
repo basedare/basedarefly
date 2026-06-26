@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { ArrowRight, CheckCircle2, Loader2, Users } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Loader2, Share2, Users } from 'lucide-react';
 
 import { GAME_OPTIONS, type DropConfig, type GamePref, type RosterView } from '@/lib/drops';
 import { trackClientEvent } from '@/lib/analytics';
@@ -61,6 +61,19 @@ export default function JoinDropForm({
     }
   }
 
+  async function shareToLock() {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title: drop.title, text: `${drop.title} — ${drop.tagline}`, url });
+      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+      }
+    } catch {
+      /* user dismissed the share sheet */
+    }
+  }
+
   const full = roster.spotsLeft <= 0;
 
   return (
@@ -73,9 +86,13 @@ export default function JoinDropForm({
           <Users className="h-4 w-4 text-cyan-200" />
           {roster.joined} joined
           <span className="text-white/40">·</span>
-          <span className={full ? 'text-[#f8dd72]' : 'text-emerald-300'}>
-            {full ? 'waitlist open' : `${roster.spotsLeft} spots left`}
-          </span>
+          {full ? (
+            <span className="text-[#f8dd72]">waitlist open</span>
+          ) : roster.unlocked ? (
+            <span className="text-emerald-300">🔥 locked in · {roster.spotsLeft} left</span>
+          ) : (
+            <span className="text-cyan-200">{roster.toUnlock} more to lock in 🔓</span>
+          )}
         </span>
         {roster.waitlist > 0 ? (
           <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
@@ -113,6 +130,16 @@ export default function JoinDropForm({
               ? `See you at ${drop.venue}. Come solo — your crew gets sorted on arrival.`
               : "We're full, but spots open up. We'll reach out if one frees up."}
           </p>
+          {result.status === 'joined' && !roster.unlocked ? (
+            <button
+              type="button"
+              onClick={shareToLock}
+              className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-cyan-300/30 bg-cyan-300/[0.1] px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:-translate-y-[1px]"
+            >
+              <Share2 className="h-4 w-4" />
+              {roster.toUnlock} more to lock it in — tap to share
+            </button>
+          ) : null}
           {result.whatsappUrl ? (
             <a
               href={result.whatsappUrl}
