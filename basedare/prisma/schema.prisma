@@ -921,3 +921,20 @@ model WebPushDelivery {
   @@index([status, createdAt])
   @@index([subscriptionId, createdAt])
 }
+
+// Night-1 Drop invite RSVP — wallet-less "claim your spot" for a games night.
+// Player-facing as "Hideaway Games Night"; internally a Drop. No wallet/crypto.
+model DropRsvp {
+  id        String   @id @default(cuid())
+  dropSlug  String   @default("hideaway-games-night")
+  handle    String // public display name / @handle (shown on roster)
+  contact   String // WhatsApp/IG — PRIVATE, never returned in roster
+  gamePref  String   @default("either") // "pool" | "darts" | "either"
+  source    String? // attribution: host / hostel / ig / owner / qr
+  status    String   @default("joined") // "joined" | "waitlist"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([dropSlug, contact])
+  @@index([dropSlug, status, createdAt])
+}
