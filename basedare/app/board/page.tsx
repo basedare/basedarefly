@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, MapPin, Radio } from 'lucide-react';
+import { ArrowLeft, ArrowRight, MapPin, Radio } from 'lucide-react';
 import { getBoardSections, type Flyer, type FlyerStamp, type FlyerTone } from '@/lib/board';
 
 export const dynamic = 'force-dynamic';
@@ -152,6 +152,15 @@ export default async function BoardPage() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[46vh] bg-[radial-gradient(circle_at_50%_0%,rgba(5,5,12,0.55),transparent_70%)]" />
 
       <section className="relative z-10 mx-auto max-w-6xl px-4 pb-24 pt-20 sm:px-6 md:pt-24">
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/68 transition hover:border-[#f5c518]/30 hover:text-[#f8dd72]"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back
+          </Link>
+        </div>
         <div className="mx-auto max-w-3xl text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.09] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-[#f8dd72]">
             <Radio className="h-3.5 w-3.5" />
@@ -159,7 +168,7 @@ export default async function BoardPage() {
           </div>
           <h1 className="mt-4 text-4xl font-black uppercase italic tracking-tight text-white md:text-6xl">
             What&apos;s on<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffe27a] to-[#c39106]">the Board</span>
+            <span className="text-[#f5c518]">the Board</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm font-bold leading-6 text-white/55">
             Live missions, venue nights, and verified presence. If BaseDare can drive attendance or produce a receipt, it&apos;s on The Board.
