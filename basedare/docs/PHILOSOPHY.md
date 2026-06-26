@@ -21,6 +21,10 @@ You **proof** the outcome; you do **not** underwrite it. BaseDare is a *measurem
 
 **Non-negotiable safety constraint:** dare briefs are a **constrained, pre-approved menu**, never a free-form box; payout **never scales with risk/escalation.** The platform's own economics pull toward "more extreme = more views = more money" — build the menu so the *safe* version is the *only* version that pays. Day one, not bolted on later.
 
+**The v0 dare menu** (the safe set you show a venue — pick one): **Crew Dare** (bring strangers together around a game/activity) · **Taste Dare** (try the venue's signature item, get someone's verdict) · **Hunt Dare** (find a mark / mural / hidden detail) · **Challenge Dare** (harmless skill — pool shot, darts round, surf-balance, trivia) · **Story Dare** (capture the "why this place" from staff/locals/travellers). **Never:** humiliation, harassment, trespass, drinking pressure, danger, or escalation-for-views. The dare makes the *venue* look alive, not the creator reckless.
+
+**Run the first Verified Creator Dare MANUALLY** on the live Drop link — do NOT build a brief-template system first. You need exactly: Hideaway (stage) · one host (runs the room) · one creator (the spark) · one `?src=creatorname` link · QR/GPS check-in (proof) · one receipt after. That proves the whole company in miniature. The template system is a build *after* one manual dare proves the unit.
+
 **⚠️ ANTI-DRIFT — this section exists because we repeatedly wander.** In one session the "core" drifted: location-based social media → leaderboard economy → geocaching → PartiStaff staffing → "measurement company" → back to dares. Those are all *layers/lenses* of the dare model, not replacements. **Before proposing any new direction, re-read this section.** The core is the dare + the proof ladder. Everything else is a rung on it.
 
 ## What BaseDare is (one sentence)
