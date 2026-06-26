@@ -6,7 +6,7 @@ import { ArrowRight, CheckCircle2, Loader2, Share2, Users } from 'lucide-react';
 import { GAME_OPTIONS, type DropConfig, type GamePref, type RosterView } from '@/lib/drops';
 import { trackClientEvent } from '@/lib/analytics';
 
-type JoinResult = { status: 'joined' | 'waitlist'; whatsappUrl: string };
+type JoinResult = { status: 'joined' | 'waitlist'; groupUrl: string };
 
 const inputClass =
   'w-full rounded-[16px] border border-white/10 bg-black/30 px-4 py-3 text-base font-bold text-white outline-none transition placeholder:text-white/28 focus:border-cyan-200/40 focus:bg-black/40';
@@ -51,7 +51,7 @@ export default function JoinDropForm({
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Could not save your spot.');
       }
-      setResult({ status: data.data.status, whatsappUrl: data.data.whatsappUrl || '' });
+      setResult({ status: data.data.status, groupUrl: data.data.groupUrl || '' });
       setRoster(data.data.roster as RosterView);
       trackClientEvent('drop_rsvp', { slug, status: data.data.status, src: src || 'direct', gamePref });
     } catch (submitError: unknown) {
@@ -87,11 +87,11 @@ export default function JoinDropForm({
           {roster.joined} joined
           <span className="text-white/40">·</span>
           {full ? (
-            <span className="text-[#f8dd72]">waitlist open</span>
+            <span className="text-[#f8dd72]">full · waitlist open</span>
           ) : roster.unlocked ? (
-            <span className="text-emerald-300">🔥 locked in · {roster.spotsLeft} left</span>
+            <span className="text-emerald-300">🔥 confirmed · {roster.spotsLeft} spots left</span>
           ) : (
-            <span className="text-cyan-200">{roster.toUnlock} more to lock in 🔓</span>
+            <span className="text-cyan-200">confirms at {drop.unlockAt} · {roster.spotsLeft} spots left</span>
           )}
         </span>
         {roster.waitlist > 0 ? (
@@ -123,12 +123,18 @@ export default function JoinDropForm({
         <div className="relative text-center">
           <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-300" />
           <h2 className="mt-3 text-2xl font-black tracking-tight text-white">
-            {result.status === 'joined' ? "You're in! 🎉" : "You're on the waitlist"}
+            {result.status === 'waitlist'
+              ? "You're on the waitlist"
+              : roster.unlocked
+                ? "You're in — it's confirmed! 🔥"
+                : "You're on the founding list 🎉"}
           </h2>
           <p className="mt-2 text-sm font-semibold leading-6 text-white/60">
-            {result.status === 'joined'
-              ? `See you at ${drop.venue}. Come solo — your crew gets sorted on arrival.`
-              : "We're full, but spots open up. We'll reach out if one frees up."}
+            {result.status === 'waitlist'
+              ? "We're full — we'll reach out if a spot opens."
+              : roster.unlocked
+                ? `See you at ${drop.venue}. Come solo — your crew gets sorted on arrival.`
+                : `${drop.title} confirms at ${drop.unlockAt}. Invite ${roster.toUnlock} more to lock it in.`}
           </p>
           {result.status === 'joined' && !roster.unlocked ? (
             <button
@@ -137,24 +143,24 @@ export default function JoinDropForm({
               className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-cyan-300/30 bg-cyan-300/[0.1] px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:-translate-y-[1px]"
             >
               <Share2 className="h-4 w-4" />
-              {roster.toUnlock} more to lock it in — tap to share
+              Invite {roster.toUnlock} more — tap to share
             </button>
           ) : null}
-          {result.whatsappUrl ? (
+          {result.groupUrl ? (
             <a
-              href={result.whatsappUrl}
+              href={result.groupUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-5 inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-[16px] border border-emerald-300/30 bg-[linear-gradient(180deg,rgba(52,211,153,0.22),rgba(16,122,87,0.32))] px-5 py-3.5 text-sm font-black uppercase tracking-[0.14em] text-emerald-50 transition hover:-translate-y-[1px]"
             >
-              Join the WhatsApp group
+              {roster.unlocked ? 'Join the group chat' : 'Join the warm-up group'}
               <ArrowRight className="h-4 w-4" />
             </a>
-          ) : (
+          ) : result.status === 'joined' ? (
             <p className="mt-5 rounded-[14px] border border-white/10 bg-black/25 px-4 py-3 text-xs font-bold text-white/55">
               You&apos;re on the list — the host will add you to the group chat shortly.
             </p>
-          )}
+          ) : null}
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="relative grid gap-4">

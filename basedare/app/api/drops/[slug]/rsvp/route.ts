@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getDrop } from '@/lib/drops';
-import { getDropWhatsappUrl, getRosterView } from '@/lib/drops-server';
+import { getDropGroupUrl, getRosterView } from '@/lib/drops-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,7 +88,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       success: true,
       data: {
         status,
-        whatsappUrl: getDropWhatsappUrl(), // revealed only here, after RSVP
+        // group chat (WhatsApp/Telegram/Messenger) — only for confirmed joins, never waitlist
+        groupUrl: status === 'joined' ? getDropGroupUrl() : '',
         roster,
       },
     });

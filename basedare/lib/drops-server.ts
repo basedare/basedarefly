@@ -33,7 +33,8 @@ export async function getRosterView(dropSlug: string): Promise<RosterView> {
   };
 }
 
-/** WhatsApp group invite — server-only env, revealed only after a successful RSVP. */
-export function getDropWhatsappUrl(): string {
-  return process.env.DROP_WHATSAPP_URL?.trim() || '';
+/** Group-chat invite — chat-app agnostic (WhatsApp / Telegram / Messenger, set per
+ * Drop via env). Server-only; the route returns it only for confirmed ('joined') RSVPs. */
+export function getDropGroupUrl(): string {
+  return process.env.DROP_GROUP_URL?.trim() || '';
 }
