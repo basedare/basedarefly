@@ -81,6 +81,11 @@ export default async function CreatorSignupPage({
               {market.name} is scouting — claim your passport now and you&apos;re first in line when it opens.
             </p>
           ) : null}
+          {market?.live ? (
+            <p className="mx-auto mt-3 max-w-md text-sm font-bold leading-6 text-white/64">
+              <span className="text-[#f5c518]">Founding cohort: {market.name}.</span> For creators who can start real nights, not just post ads.
+            </p>
+          ) : null}
           <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <a
               href="#join"
