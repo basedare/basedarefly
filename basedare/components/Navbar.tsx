@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, MessageCircle, X } from "lucide-react";
+import { Menu, MessageCircle, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
@@ -19,6 +19,7 @@ import BackgroundToneToggle from './BackgroundToneToggle';
 const NAV_LINKS = [
   // Label-only clarity pass: routes unchanged for stability.
   { name: "HOME", href: "/" },
+  { name: "MARKETS", href: "/markets" },
   { name: "MAP", href: "/map" },
   { name: "FUND", href: "/create" },
   { name: "PASSPORT", href: "/dashboard" },
@@ -74,6 +75,16 @@ export default function Navbar() {
         }`}
       >
         <MessageCircle className="h-4 w-4" />
+      </Link>
+
+      {/* Creator Sign Up — distinct gold CTA (not a nav tab); shown when there's room */}
+      <Link
+        href="/creators/signup"
+        prefetch={NAV_LINK_PREFETCH}
+        className="relative z-10 ml-1 inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-yellow-300/35 bg-yellow-300/[0.14] px-4 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100 transition hover:bg-yellow-300/[0.22] hover:text-white"
+      >
+        <Sparkles className="h-3.5 w-3.5" />
+        Sign Up
       </Link>
     </div>
   );
@@ -258,6 +269,17 @@ export default function Navbar() {
                 );
               })}
             </div>
+
+            {/* Creator Sign Up — prominent mobile CTA */}
+            <Link
+              href="/creators/signup"
+              prefetch={NAV_LINK_PREFETCH}
+              onClick={() => setIsOpen(false)}
+              className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-yellow-300/35 bg-yellow-300 px-5 text-sm font-black uppercase tracking-[0.16em] text-black transition active:scale-[0.98]"
+            >
+              <Sparkles className="h-4 w-4" />
+              Creator Sign Up
+            </Link>
 
             {/* Mobile Search Button (Under FAQ) */}
             <div className="mt-6 w-full flex justify-center">

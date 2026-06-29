@@ -13,6 +13,8 @@ import { LiquidInput } from "@/components/LiquidInput";
 import InitProtocolButton from "@/components/InitProtocolButton";
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import HomeGridRadar from "@/components/home/HomeGridRadar";
+import RoleChoiceCards from "@/components/home/RoleChoiceCards";
+import MarketsSection from "@/components/home/MarketsSection";
 
 import { useView } from "@/app/context/ViewContext";
 import {
@@ -294,34 +296,23 @@ function HomeContent() {
                     </span>
                   ))}
                 </div>
-                <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-                  <Link
-                    href="/creators/onboard"
-                    prefetch={false}
-                    className="inline-flex min-h-10 items-center rounded-full border border-yellow-300/30 bg-yellow-300/[0.1] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-yellow-100 transition hover:bg-yellow-300/[0.16]"
-                  >
-                    I&apos;m a Creator
-                  </Link>
-                  <Link
-                    href="/first-spark"
-                    prefetch={false}
-                    className="inline-flex min-h-10 items-center rounded-full border border-white/12 bg-white/[0.05] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/72 transition hover:bg-white/[0.09] hover:text-white"
-                  >
-                    I run a Venue
-                  </Link>
+                <div className="mt-7">
+                  <RoleChoiceCards />
+                </div>
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] font-black uppercase tracking-[0.14em]">
                   <Link
                     href="/map"
                     prefetch={false}
-                    className="inline-flex min-h-10 items-center rounded-full border border-cyan-200/18 bg-cyan-300/[0.06] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100/76 transition hover:bg-cyan-300/[0.1] hover:text-white"
+                    className="inline-flex items-center gap-1.5 text-cyan-100/76 transition hover:text-white"
                   >
-                    Explore the grid
+                    Explore the grid →
                   </Link>
                   <Link
                     href="/board"
                     prefetch={false}
-                    className="inline-flex min-h-10 items-center rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.09] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-[#f8dd72] transition hover:bg-[#f5c518]/[0.16] hover:text-white"
+                    className="inline-flex items-center gap-1.5 text-[#f8dd72] transition hover:text-white"
                   >
-                    See the Board
+                    See the Board →
                   </Link>
                 </div>
               </div>
@@ -357,6 +348,8 @@ function HomeContent() {
                 </div>
                 <HomeGridRadar compact className="mt-4 flex justify-center md:hidden" />
               </div>
+
+              <MarketsSection />
 
               <div id="active-bounties" className="w-full flex justify-center px-4 pb-12 pt-20 z-30 md:px-6 md:pb-14">
                 <div className="relative w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_16%_8%,rgba(184,127,255,0.11),transparent_32%),radial-gradient(circle_at_86%_92%,rgba(34,211,238,0.08),transparent_34%),linear-gradient(160deg,rgba(30,22,52,0.42),rgba(8,9,18,0.94))] px-4 py-10 shadow-[16px_22px_58px_rgba(0,0,0,0.48),-9px_-9px_24px_rgba(255,255,255,0.034),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-28px_42px_rgba(0,0,0,0.28)] backdrop-blur-xl md:px-6 md:py-12">
