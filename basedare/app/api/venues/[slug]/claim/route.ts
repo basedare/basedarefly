@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
@@ -18,14 +19,33 @@ function getSessionWallet(session: ClaimSession | null) {
   return (session?.walletAddress ?? session?.user?.walletAddress ?? '').trim().toLowerCase();
 }
 
+// Defense-in-depth: bound the (untrusted) query params + slug. No JSON body on this route.
+const VenueClaimQuerySchema = z.object({
+  reportSource: z.string().max(64).nullish(),
+  reportAudience: z.string().max(32).nullish(),
+  reportSessionKey: z.string().max(200).nullish(),
+});
+const SlugSchema = z.string().min(1).max(160);
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const reportSource = request.nextUrl.searchParams.get('reportSource');
-    const reportAudience = request.nextUrl.searchParams.get('reportAudience') === 'sponsor' ? 'sponsor' : 'venue';
-    const reportSessionKey = request.nextUrl.searchParams.get('reportSessionKey');
+    const queryResult = VenueClaimQuerySchema.safeParse({
+      reportSource: request.nextUrl.searchParams.get('reportSource'),
+      reportAudience: request.nextUrl.searchParams.get('reportAudience'),
+      reportSessionKey: request.nextUrl.searchParams.get('reportSessionKey'),
+    });
+    if (!queryResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid claim parameters' },
+        { status: 400 }
+      );
+    }
+    const reportSource = queryResult.data.reportSource ?? null;
+    const reportAudience = queryResult.data.reportAudience === 'sponsor' ? 'sponsor' : 'venue';
+    const reportSessionKey = queryResult.data.reportSessionKey ?? null;
     const session = (await getServerSession(authOptions)) as ClaimSession | null;
     if (!session) {
       return NextResponse.json({ success: false, error: 'Sign in required to claim a venue' }, { status: 401 });
@@ -54,6 +74,9 @@ export async function POST(
     }
 
     const { slug } = await params;
+    if (!SlugSchema.safeParse(slug).success) {
+      return NextResponse.json({ success: false, error: 'Invalid venue slug' }, { status: 400 });
+    }
     const venue = await prisma.venue.findUnique({
       where: { slug },
       select: {

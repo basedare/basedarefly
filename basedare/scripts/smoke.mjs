@@ -271,7 +271,7 @@ async function checkEnv() {
   optionalEnv('ADMIN_SECRET', 'Admin safety endpoint');
   optionalEnv('CRON_SECRET', 'Cron routes');
   optionalEnv('TELEGRAM_BOT_TOKEN', 'Telegram alerts');
-  optionalEnv('TELEGRAM_CHAT_ID', 'Telegram target chat');
+  optionalEnv('TELEGRAM_ADMIN_CHAT_ID', 'Telegram target chat');
 
   const refereeKey = process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
   if (!process.env.REFEREE_HOT_WALLET_PRIVATE_KEY && process.env.REFEREE_PRIVATE_KEY) {
