@@ -14,11 +14,11 @@ source: "BaseDare curated venue map"
 source_slug: hideaway
 latitude: 9.78134
 longitude: 126.15625
-next_action: "Find a reliable contact path and draft a boardwalk-night route angle."
-next_action_due_at: 2026-05-14
-last_touched_at: 2026-05-13
+next_action: "Get a priced yes/no for Night 1: date, X verified attributed arrivals, ₱Y payout, sign-off person, check-in method, second-night decision date."
+next_action_due_at: 2026-07-06
+last_touched_at: 2026-06-29
 created_at: 2026-05-13
-updated_at: 2026-05-13
+updated_at: 2026-06-29
 ---
 
 # Hideaway
@@ -34,7 +34,16 @@ Hideaway sits near island-hopping and boardwalk movement, which makes it useful 
 
 ## Next Action
 
-Research the owner or manager contact path, then draft a short Spark Audit that connects tourist movement to verified venue moments.
+Get a **priced yes/no for Night 1** — a written commitment, not a vibe. Lock:
+
+- **Date** — the quiet weeknight slot (e.g. Thursday).
+- **X verified attributed arrivals** — the target the venue is buying: people who came via the creator/source link, checked in during the window, co-confirmed at reconciliation (attribution, *not* "lift").
+- **₱Y payout** the venue commits — must clear the payout-math guard: `creator base + max bonus + BaseDare minimum spread ≤ ₱Y`.
+- **Sign-off person** — who at Hideaway actually says yes (name + role); get it in writing.
+- **Check-in method** — how presence is verified on the night (live rotating QR + GPS).
+- **Second-night decision date** — when they decide on night #2 (paying *again* is the real test).
+
+This replaces the older "Spark Audit" angle: Night 1 is now a priced, co-signed **Verified Creator Dare**, not a research audit.
 
 ## Risks
 

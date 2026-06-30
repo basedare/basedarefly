@@ -50,7 +50,16 @@ crypto / USDC / verification / tech. The rails are the backbone, not the pitch.
 
 ---
 
-## Attribution — measure qualified customers per source
+## Attribution — measure verified attributed arrivals per source
+
+**The Night-1 metric = verified attributed arrivals:** people who (1) came through a creator/source link or code, (2) **checked in during the window** (QR/GPS), and (3) were **co-confirmed by the venue at reconciliation.** That's what you count, price, and put on the receipt — *not* "new" or "incremental" demand. **Attribution is provable; incrementality is not** ("would they have come anyway?" can't be answered on one night — see [objections](../../brain-vault/03-insights/objections/README.md)). **Capture cleanly during the night; reconcile with the venue after.**
+
+**Payout-math guard — never break this:**
+```
+creator base + max bonus + BaseDare minimum spread  ≤  what the venue pays
+```
+If the *most* a creator can earn (base + every bonus) plus BaseDare's minimum spread exceeds the venue's committed ₱, the night loses money. Cap the bonus so the worst case still clears the guard.
+
 Three links, three source codes. **Treat Night-1 attribution as MANUAL** — a
 per-source clipboard tally (pre-assign by the link they used, or ask "how'd you
 hear?"). A `?src=` param *may* surface in PostHog pageviews, but **"joined" and the
@@ -64,7 +73,7 @@ don't assume the data shows up on its own. Count by hand for Night 1; wire it la
 | Hostel B | `hostel-b` | | | | | | | |
 | Social | `ig` | | | | | | | |
 
-**The question this answers:** which channel delivers *qualified customers* — not
+**The question this answers:** which channel delivers *verified attributed arrivals* — not
 clicks. (Feeds the [field log](./verified-drop-field-log.md) raw funnel.)
 
 ---

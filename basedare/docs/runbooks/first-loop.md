@@ -17,6 +17,8 @@ swap contacts, and sign up for next week?** (A bracket manufactures "what's my n
 match," so that question doesn't count — the real signal is wanting *more* once the
 plan runs out.) Plus: do shoulders drop when they're handed a crew?
 
+> **Which loop is this? (name the active one before editing.)** This manual documents the **Community Games Night** mechanic — the host gathers solo travellers → crews → games → one purchase → proof; the room comes from the host + hostels, and a *Proof Creator* only captures it. The **active first SKU** (`docs/PHILOSOPHY.md`) is the **Verified Creator Dare**: a creator is the *spark* who drives **verified attributed arrivals** through their own `?src=creatorname` link and is paid per the [payout-math guard](./night1-acquisition-kit.md). **They compose, not compete** — the games night is the *room mechanic* the dare rides on ("join the games night, bring your crew, post a 30s recap"). The metric (verified attributed arrivals) and the proof (QR/GPS check-in) are identical; only the demand source changes (host-driven vs creator-driven). Confirm which is running before touching the loop.
+
 ---
 
 ## The three layers (keep them separate)
