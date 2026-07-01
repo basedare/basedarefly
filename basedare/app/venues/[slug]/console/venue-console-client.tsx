@@ -1568,23 +1568,23 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                     <div className="mt-2 text-2xl font-black text-white">{venue.activationInsight.lift.recentCompletedCount}</div>
                     <div className="mt-1 text-xs text-white/48">
                       {venue.activationInsight.lift.completedDelta > 0
-                        ? `+${venue.activationInsight.lift.completedDelta} vs previous bucket`
+                        ? `+${venue.activationInsight.lift.completedDelta} vs last window`
                         : 'Track this after launch'}
                     </div>
                   </div>
                   <div className={`${insetCardClass} px-4 py-4`}>
-                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Visitor lift</div>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Visitors vs last window</div>
                     <div className="mt-2 text-2xl font-black text-cyan-100">
                       {venue.activationInsight.lift.uniqueVisitorDelta > 0 ? `+${venue.activationInsight.lift.uniqueVisitorDelta}` : venue.activationInsight.lift.uniqueVisitorDelta}
                     </div>
-                    <div className="mt-1 text-xs text-white/48">vs previous venue bucket</div>
+                    <div className="mt-1 text-xs text-white/48">vs last window</div>
                   </div>
                   <div className={`${insetCardClass} px-4 py-4`}>
-                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Check-in lift</div>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/36">Check-ins vs last window</div>
                     <div className="mt-2 text-2xl font-black text-emerald-100">
                       {venue.activationInsight.lift.checkInDelta > 0 ? `+${venue.activationInsight.lift.checkInDelta}` : venue.activationInsight.lift.checkInDelta}
                     </div>
-                    <div className="mt-1 text-xs text-white/48">confirmed presence delta</div>
+                    <div className="mt-1 text-xs text-white/48">confirmed check-ins vs last window</div>
                   </div>
                 </div>
 

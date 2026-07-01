@@ -19,7 +19,7 @@ export async function generateMetadata(
   const activeCount = venue.activeDares.length;
   const description = venue.description
     ? `${venue.description} Explore ${activeCount} active dare${activeCount === 1 ? '' : 's'}${location ? ` at ${location}` : ''}.`
-    : `${venue.name}${location ? ` in ${location}` : ''} is on the BaseDare grid with ${activeCount} active dare${activeCount === 1 ? '' : 's'}, place memory, and on-chain proof.`;
+    : `${venue.name}${location ? ` in ${location}` : ''} is on the BaseDare grid with ${activeCount} active dare${activeCount === 1 ? '' : 's'}, place memory, and verified proof.`;
 
   return {
     title,

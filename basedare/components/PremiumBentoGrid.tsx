@@ -53,19 +53,6 @@ type PremiumBentoGridProps = {
   dares: Dare[];
 };
 
-const STREAMER_IMAGES: Record<string, string> = {
-  kaicenat: '/assets/KAICENAT.jpeg',
-  'kai cenat': '/assets/KAICENAT.jpeg',
-  '@kaicenat': '/assets/KAICENAT.jpeg',
-  adinross: '/assets/adinross.webp',
-  'adin ross': '/assets/adinross.webp',
-  '@adinross': '/assets/adinross.webp',
-  ishowspeed: '/assets/Ishowspeed.jpg',
-  '1showspeed': '/assets/Ishowspeed.jpg',
-  '@ishowspeed': '/assets/Ishowspeed.jpg',
-  speed: '/assets/Ishowspeed.jpg',
-};
-
 const DARE_EMOJIS: Record<string, string> = {
   reaper: '🌶️',
   pepper: '🌶️',
@@ -91,49 +78,6 @@ const DARE_EMOJIS: Record<string, string> = {
   head: '💈',
   tattoo: '🎨',
 };
-
-// LIVE TARGETS - Featured bounties with real streamers
-const LIVE_TARGETS = [
-  {
-    id: 'live-101',
-    dare: 'EAT THE REAPER',
-    bounty: 5000,
-    time: '02:00h left',
-    streamer: '@KaiCenat',
-    imgUrl: '/assets/KAICENAT.jpeg',
-    emoji: '🌶️',
-    isVulnerable: false,
-    status: 'live' as const,
-  },
-  {
-    id: 'live-102',
-    dare: 'SKYDIVING IRL',
-    bounty: 12000,
-    time: 'EXPIRED',
-    streamer: '@IShowSpeed',
-    imgUrl: '/assets/Ishowspeed.jpg',
-    emoji: '🪂',
-    isVulnerable: true,
-    status: 'expired' as const,
-  },
-  {
-    id: 'live-103',
-    dare: 'CALL YOUR EX',
-    bounty: 500,
-    time: '00:30m left',
-    streamer: '@AdinRoss',
-    imgUrl: '/assets/adinross.webp',
-    emoji: '💔',
-    isVulnerable: false,
-    status: 'live' as const,
-  },
-];
-
-function getStreamerImage(streamerName?: string): string | undefined {
-  if (!streamerName) return undefined;
-  const normalized = streamerName.toLowerCase().trim();
-  return STREAMER_IMAGES[normalized];
-}
 
 function getDareEmoji(description: string): string {
   const normalized = description.toLowerCase();
@@ -257,27 +201,12 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
   };
 
   const cards = useMemo<Card[]>(() => {
-    // Map LIVE_TARGETS (featured streamers) first
-    const liveTargetCards: Card[] = LIVE_TARGETS.map((target) => ({
-      id: target.id,
-      shortId: target.id,
-      dare: target.dare,
-      bounty: target.bounty,
-      streamer: target.streamer,
-      streamerImage: target.imgUrl,
-      emoji: target.emoji,
-      status: target.status,
-      timeRemaining: target.status === 'live' ? target.time : target.status === 'expired' ? 'EXPIRED' : undefined,
-      isOpenBounty: false,
-      proofUrl: undefined,
-    }));
-
-    // Map incoming dares from database
+    // Real dares from the database only — no hardcoded streamer/prank targets.
     const mapped = dares.map((d) => {
       const normalizedStatus = normalizeStatus(d.status);
 
       const streamerName = d.streamer_name || '';
-      const streamerImage = d.image_url || getStreamerImage(streamerName);
+      const streamerImage = d.image_url || undefined;
       const proof = d.video_url;
 
       // Calculate real time remaining from expiresAt
@@ -317,37 +246,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       };
     });
 
-    // Open bounties - available to anyone
-    const openDefaults: Card[] = [
-      {
-        id: 'open-1',
-        shortId: 'open-1',
-        dare: 'CHUG A COKE (NO BURP)',
-        bounty: 50,
-        streamer: 'OPEN TO ALL',
-        streamerImage: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=800',
-        emoji: '🥤',
-        status: 'open',
-        timeRemaining: 'OPEN BOUNTY',
-        isOpenBounty: true,
-        proofUrl: undefined,
-      },
-      {
-        id: 'open-2',
-        shortId: 'open-2',
-        dare: 'EAT A CHEESEBURGER IN 1 BITE',
-        bounty: 150,
-        streamer: 'OPEN TO ALL',
-        streamerImage: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800',
-        emoji: '🍔',
-        status: 'open',
-        timeRemaining: 'OPEN BOUNTY',
-        isOpenBounty: true,
-        proofUrl: undefined,
-      },
-    ];
-
-    return [...liveTargetCards, ...mapped, ...openDefaults];
+    return mapped;
   }, [dares]);
 
   // Convert nearby dares to Card format
@@ -545,6 +444,26 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
           </div>
         </div>
       )}
+
+      {!isLoading && filter !== 'NEARBY' && filteredCards.length === 0 ? (
+        <div className="w-full max-w-[1400px] px-6 mb-8">
+          <div className="bd-dent-surface bd-dent-surface--soft flex flex-col items-center gap-3 rounded-2xl border border-white/[0.06] p-8 text-center">
+            <MapPin className="h-10 w-10 text-white/40" />
+            <p className="text-lg font-black text-white">First missions are forming in Siargao</p>
+            <p className="max-w-md text-sm text-white/50">
+              Run a venue mission or join as a founding creator — verified arrivals, real proof, paid out.
+            </p>
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
+              <Link href="/first-spark" prefetch={false} className="inline-flex min-h-10 items-center rounded-full border border-yellow-300/30 bg-yellow-300 px-4 text-[11px] font-black uppercase tracking-[0.14em] text-black transition hover:bg-yellow-200">
+                Run a venue mission
+              </Link>
+              <Link href="/creators/signup" prefetch={false} className="inline-flex min-h-10 items-center rounded-full border border-white/14 bg-white/[0.05] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/76 transition hover:bg-white/[0.09] hover:text-white">
+                Join as a creator
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="premium-bento-grid premium-bento-stage">
         {isLoading || (filter === 'NEARBY' && (geoLoading || nearbyLoading))

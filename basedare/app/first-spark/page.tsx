@@ -203,15 +203,6 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
       badge="Pilot Portal"
       backHref={cameFromHome ? '/' : '/?mode=control'}
       backLabel={cameFromHome ? 'Home' : 'Control'}
-      action={
-        <Link
-          href="/admin/mission-control"
-          className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/52 transition hover:text-white sm:inline-flex"
-        >
-          Mission Control
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      }
     >
       <ActivationFunnelTracker />
 

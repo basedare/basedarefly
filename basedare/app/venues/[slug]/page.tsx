@@ -956,7 +956,7 @@ export default async function VenueDetailPage(
               <div className={`${insetCardClass} px-4 py-4`}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.24em] text-white/35">7-day lift</p>
+                    <p className="text-[11px] uppercase tracking-[0.24em] text-white/35">Last 7 days</p>
                     <p className="mt-2 text-xl font-black text-white">
                       {venue.activationInsight.timeframeLabel}
                     </p>

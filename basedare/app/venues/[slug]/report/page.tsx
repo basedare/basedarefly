@@ -94,7 +94,7 @@ export default async function VenueReportPage(
           `Recommended move: repeat the winning activation pattern while the venue signal is warm.`,
         ].join('\n')
       : [
-          `${venue.name} is showing measurable activation lift on BaseDare.`,
+          `${venue.name} has verified attributed activity on BaseDare.`,
           `Last 7 days: ${venue.roiSnapshot.windows.last7Days.verifiedOutcomes} verified outcomes, ${venue.roiSnapshot.windows.last7Days.uniqueVisitors} unique visitors, ${venue.roiSnapshot.windows.last7Days.checkIns} check-ins.`,
           `Last 30 days: ${venue.roiSnapshot.windows.last30Days.verifiedOutcomes} verified outcomes and ${venue.roiSnapshot.windows.last30Days.uniqueVisitors} unique visitors.`,
           `Top proving creator: ${venue.roiSnapshot.bestCreator?.creatorTag ?? 'still emerging'}.`,

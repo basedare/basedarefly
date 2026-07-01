@@ -18,7 +18,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
       title: 'BaseDare',
       stats: [
         { value: '#HumanOnly', label: 'unfakeable' },
-        { value: 'Base', label: 'onchain proof' },
+        { value: 'QR + GPS', label: 'verified proof' },
         { value: '0', label: 'middlemen' },
       ],
       badge: 'LIVE',
@@ -34,7 +34,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     location: location || undefined,
     stats: [
       { value: '#HumanOnly', label: 'unfakeable' },
-      { value: 'Base', label: 'onchain proof' },
+      { value: 'QR + GPS', label: 'verified proof' },
       { value: '0', label: 'middlemen' },
     ],
     badge: 'ON THE MAP',

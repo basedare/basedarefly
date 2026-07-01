@@ -3,24 +3,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from "@/lib/utils";
 
-// Popular streamer tags for autocomplete
-const STREAMER_SUGGESTIONS = [
-  '@KaiCenat',
-  '@xQc',
-  '@Asmongold',
-  '@Pokimane',
-  '@Ninja',
-  '@shroud',
-  '@TimTheTatman',
-  '@DrDisrespect',
-  '@Speed',
-  '@AdinRoss',
-  '@HasanAbi',
-  '@Mizkif',
-  '@Ludwig',
-  '@Valkyrae',
-  '@Sykkuno',
-];
+// Creator handle autocomplete — empty until real creators are onboarded.
+// No hardcoded streamer targets (off-thesis + over-promising people who aren't here).
+const STREAMER_SUGGESTIONS: string[] = [];
 
 interface LiquidInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   prefix?: string;
@@ -140,7 +125,7 @@ export function LiquidInput({ className, prefix, value, onChange, onStreamerSele
               >
                 <span className="text-purple-400">@</span>
                 <span>{tag.slice(1)}</span>
-                <span className="ml-auto text-[10px] text-gray-600 uppercase">Streamer</span>
+                <span className="ml-auto text-[10px] text-gray-600 uppercase">Creator</span>
               </button>
             ))}
           </div>

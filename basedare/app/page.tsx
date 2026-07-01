@@ -321,7 +321,7 @@ function HomeContent() {
                 <div className="flex flex-col md:flex-row items-center justify-center gap-6">
                   <div className="w-full md:flex-[2]">
                     <LiquidInput
-                      placeholder="I dare @xQc to..."
+                      placeholder="Dare a creator to…"
                       prefix="$"
                       className="text-xl"
                       value={dareInput}
