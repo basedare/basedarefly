@@ -1,285 +1,117 @@
 -- ============================================================================
--- BaseDare: Enable RLS on all tables
+-- BaseDare: Enable RLS on all public application tables
 -- ============================================================================
 --
--- WHY: Supabase exposes a PostgREST API at your project URL. Anyone with the
--- anon key (which is public by design) can query tables that lack RLS. This
--- script locks every table so that:
+-- WHY: Supabase exposes a PostgREST API at your project URL. Any table in the
+-- public schema with RLS disabled can be reachable through that Data API when
+-- grants exist for anon/authenticated roles.
 --
---   1. The `postgres` role (used by Prisma via DATABASE_URL) BYPASSES RLS
---      entirely — it's a superuser. No policy needed, no code changes.
+-- This script locks application tables so that:
 --
---   2. The `service_role` (used by Supabase admin SDK if ever added) gets
---      explicit full-access policies as a safety net.
---
---   3. The `anon` and `authenticated` roles get ZERO access — no policies
---      granted, so every PostgREST query returns empty/denied.
+--   1. RLS is enabled on every known Prisma-backed public table.
+--   2. Supabase's service_role keeps explicit full-access policies for trusted
+--      server-side use only.
+--   3. anon/authenticated table privileges are revoked. With RLS enabled and no
+--      client policies, direct Data API reads/writes are denied by default.
 --
 -- HOW TO RUN:
---   Option A: Supabase Dashboard → SQL Editor → paste & run
+--   Option A: Supabase Dashboard -> SQL Editor -> paste & run
 --   Option B: psql -h db.<ref>.supabase.co -U postgres -d postgres -f prisma/enable-rls.sql
 --
--- SAFE TO RE-RUN: All statements are idempotent.
--- ============================================================================
-
--- ============================================================================
--- STEP 1: Enable RLS on every application table
--- ============================================================================
--- Prisma models (14 tables created by Prisma)
-ALTER TABLE "User"                     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Dare"                     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Referral"                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "StreamerTag"              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Brand"                    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Campaign"                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "CampaignSlot"             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Scout"                    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "ScoutCreator"             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "LivePot"                  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "PotTransaction"           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "LeaderboardEntry"         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "WeeklyRewardDistribution" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Venue"                    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "PlaceTag"                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "VenueCheckIn"             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "VenueMemory"              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "VenueQrSession"           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "VenueRoomMessage"         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "VenueRoomPresence"        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "FounderEvent"             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Comment"                  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Vote"                     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "VoterPoints"              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Notification"             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "InboxThread"              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "InboxMessage"             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "CreatorReview"            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "VenueReportEvent"         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "VenueReportLead"          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "AppSettings"              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "WebPushSubscription"      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "WebPushDelivery"          ENABLE ROW LEVEL SECURITY;
-
--- Prisma internal table
-ALTER TABLE "_prisma_migrations"       ENABLE ROW LEVEL SECURITY;
-
--- ============================================================================
--- STEP 2: Service-role bypass policies (full CRUD)
--- ============================================================================
--- The `service_role` is Supabase's privileged role for server-side SDKs.
--- These policies grant unrestricted access if you ever use @supabase/supabase-js
--- with the service_role key.
---
--- DROP IF EXISTS ensures idempotency on re-runs.
--- ============================================================================
-
--- User
-DROP POLICY IF EXISTS "service_role_all_User" ON "User";
-CREATE POLICY "service_role_all_User" ON "User"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- Dare
-DROP POLICY IF EXISTS "service_role_all_Dare" ON "Dare";
-CREATE POLICY "service_role_all_Dare" ON "Dare"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- Referral
-DROP POLICY IF EXISTS "service_role_all_Referral" ON "Referral";
-CREATE POLICY "service_role_all_Referral" ON "Referral"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- StreamerTag
-DROP POLICY IF EXISTS "service_role_all_StreamerTag" ON "StreamerTag";
-CREATE POLICY "service_role_all_StreamerTag" ON "StreamerTag"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- Brand
-DROP POLICY IF EXISTS "service_role_all_Brand" ON "Brand";
-CREATE POLICY "service_role_all_Brand" ON "Brand"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- Campaign
-DROP POLICY IF EXISTS "service_role_all_Campaign" ON "Campaign";
-CREATE POLICY "service_role_all_Campaign" ON "Campaign"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- CampaignSlot
-DROP POLICY IF EXISTS "service_role_all_CampaignSlot" ON "CampaignSlot";
-CREATE POLICY "service_role_all_CampaignSlot" ON "CampaignSlot"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- Scout
-DROP POLICY IF EXISTS "service_role_all_Scout" ON "Scout";
-CREATE POLICY "service_role_all_Scout" ON "Scout"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- ScoutCreator
-DROP POLICY IF EXISTS "service_role_all_ScoutCreator" ON "ScoutCreator";
-CREATE POLICY "service_role_all_ScoutCreator" ON "ScoutCreator"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- LivePot
-DROP POLICY IF EXISTS "service_role_all_LivePot" ON "LivePot";
-CREATE POLICY "service_role_all_LivePot" ON "LivePot"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- PotTransaction
-DROP POLICY IF EXISTS "service_role_all_PotTransaction" ON "PotTransaction";
-CREATE POLICY "service_role_all_PotTransaction" ON "PotTransaction"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- LeaderboardEntry
-DROP POLICY IF EXISTS "service_role_all_LeaderboardEntry" ON "LeaderboardEntry";
-CREATE POLICY "service_role_all_LeaderboardEntry" ON "LeaderboardEntry"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- WeeklyRewardDistribution
-DROP POLICY IF EXISTS "service_role_all_WeeklyRewardDistribution" ON "WeeklyRewardDistribution";
-CREATE POLICY "service_role_all_WeeklyRewardDistribution" ON "WeeklyRewardDistribution"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- Venue
-DROP POLICY IF EXISTS "service_role_all_Venue" ON "Venue";
-CREATE POLICY "service_role_all_Venue" ON "Venue"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- VenueCheckIn
-DROP POLICY IF EXISTS "service_role_all_VenueCheckIn" ON "VenueCheckIn";
-CREATE POLICY "service_role_all_VenueCheckIn" ON "VenueCheckIn"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- PlaceTag
-DROP POLICY IF EXISTS "service_role_all_PlaceTag" ON "PlaceTag";
-CREATE POLICY "service_role_all_PlaceTag" ON "PlaceTag"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- VenueMemory
-DROP POLICY IF EXISTS "service_role_all_VenueMemory" ON "VenueMemory";
-CREATE POLICY "service_role_all_VenueMemory" ON "VenueMemory"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- VenueQrSession
-DROP POLICY IF EXISTS "service_role_all_VenueQrSession" ON "VenueQrSession";
-CREATE POLICY "service_role_all_VenueQrSession" ON "VenueQrSession"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- VenueRoomMessage
-DROP POLICY IF EXISTS "service_role_all_VenueRoomMessage" ON "VenueRoomMessage";
-CREATE POLICY "service_role_all_VenueRoomMessage" ON "VenueRoomMessage"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- VenueRoomPresence
-DROP POLICY IF EXISTS "service_role_all_VenueRoomPresence" ON "VenueRoomPresence";
-CREATE POLICY "service_role_all_VenueRoomPresence" ON "VenueRoomPresence"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- FounderEvent
-DROP POLICY IF EXISTS "service_role_all_FounderEvent" ON "FounderEvent";
-CREATE POLICY "service_role_all_FounderEvent" ON "FounderEvent"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- Comment
-DROP POLICY IF EXISTS "service_role_all_Comment" ON "Comment";
-CREATE POLICY "service_role_all_Comment" ON "Comment"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- Vote
-DROP POLICY IF EXISTS "service_role_all_Vote" ON "Vote";
-CREATE POLICY "service_role_all_Vote" ON "Vote"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- VoterPoints
-DROP POLICY IF EXISTS "service_role_all_VoterPoints" ON "VoterPoints";
-CREATE POLICY "service_role_all_VoterPoints" ON "VoterPoints"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- Notification
-DROP POLICY IF EXISTS "service_role_all_Notification" ON "Notification";
-CREATE POLICY "service_role_all_Notification" ON "Notification"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- InboxThread
-DROP POLICY IF EXISTS "service_role_all_InboxThread" ON "InboxThread";
-CREATE POLICY "service_role_all_InboxThread" ON "InboxThread"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- InboxMessage
-DROP POLICY IF EXISTS "service_role_all_InboxMessage" ON "InboxMessage";
-CREATE POLICY "service_role_all_InboxMessage" ON "InboxMessage"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- CreatorReview
-DROP POLICY IF EXISTS "service_role_all_CreatorReview" ON "CreatorReview";
-CREATE POLICY "service_role_all_CreatorReview" ON "CreatorReview"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- VenueReportEvent
-DROP POLICY IF EXISTS "service_role_all_VenueReportEvent" ON "VenueReportEvent";
-CREATE POLICY "service_role_all_VenueReportEvent" ON "VenueReportEvent"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- VenueReportLead
-DROP POLICY IF EXISTS "service_role_all_VenueReportLead" ON "VenueReportLead";
-CREATE POLICY "service_role_all_VenueReportLead" ON "VenueReportLead"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- AppSettings
-DROP POLICY IF EXISTS "service_role_all_AppSettings" ON "AppSettings";
-CREATE POLICY "service_role_all_AppSettings" ON "AppSettings"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- WebPushSubscription
-DROP POLICY IF EXISTS "service_role_all_WebPushSubscription" ON "WebPushSubscription";
-CREATE POLICY "service_role_all_WebPushSubscription" ON "WebPushSubscription"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- WebPushDelivery
-DROP POLICY IF EXISTS "service_role_all_WebPushDelivery" ON "WebPushDelivery";
-CREATE POLICY "service_role_all_WebPushDelivery" ON "WebPushDelivery"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- _prisma_migrations (internal — only service_role should touch this)
-DROP POLICY IF EXISTS "service_role_all_prisma_migrations" ON "_prisma_migrations";
-CREATE POLICY "service_role_all_prisma_migrations" ON "_prisma_migrations"
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
-
--- ============================================================================
--- STEP 3: Explicitly deny anon and authenticated (belt-and-suspenders)
--- ============================================================================
--- With RLS enabled and NO policies for anon/authenticated, they already get
--- zero rows. But we revoke table-level privileges too, so PostgREST can't
--- even attempt a query.
+-- SAFE TO RE-RUN: All statements are idempotent. Tables missing from an older
+-- database are skipped with a NOTICE.
 -- ============================================================================
 
 DO $$
 DECLARE
   tbl TEXT;
+  policy_name TEXT;
+  app_tables TEXT[] := ARRAY[
+    'User',
+    'Dare',
+    'CreatorReview',
+    'Venue',
+    'BaseCashVenueCredit',
+    'FounderEvent',
+    'VenueReportEvent',
+    'VenueReportLead',
+    'PlaceTag',
+    'VenueCheckIn',
+    'VenueReview',
+    'VenueMemory',
+    'VenueQrSession',
+    'VenueRoomMessage',
+    'VenueRoomPresence',
+    'AppSettings',
+    'Comment',
+    'Referral',
+    'StreamerTag',
+    'Brand',
+    'Campaign',
+    'CampaignSlot',
+    'Scout',
+    'ScoutRakeEvent',
+    'ScoutCreator',
+    'LivePot',
+    'PotTransaction',
+    'LeaderboardEntry',
+    'WeeklyRewardDistribution',
+    'Vote',
+    'VoterPoints',
+    'CreatorPassport',
+    'PointsEvent',
+    'Notification',
+    'InboxThread',
+    'InboxMessage',
+    'WebPushSubscription',
+    'WebPushDelivery',
+    'DropRsvp',
+    'Pack',
+    'Mark',
+    'PackMember',
+    'PackClaim',
+    'Meetup',
+    'MeetupRsvp',
+    'MeetupReport',
+    'MeetupBlock',
+    '_prisma_migrations'
+  ];
 BEGIN
-  FOREACH tbl IN ARRAY ARRAY[
-    'User', 'Dare', 'Referral', 'StreamerTag', 'Brand', 'Campaign',
-    'CampaignSlot', 'Scout', 'ScoutCreator', 'LivePot', 'PotTransaction',
-    'LeaderboardEntry', 'WeeklyRewardDistribution', 'Venue', 'PlaceTag', 'VenueCheckIn',
-    'VenueMemory', 'VenueQrSession', 'VenueRoomMessage', 'VenueRoomPresence', 'FounderEvent', 'Comment', 'Vote', 'VoterPoints',
-    'Notification', 'InboxThread', 'InboxMessage', 'CreatorReview', 'VenueReportEvent', 'VenueReportLead',
-    'AppSettings', 'WebPushSubscription', 'WebPushDelivery', '_prisma_migrations'
-  ]
+  FOREACH tbl IN ARRAY app_tables
   LOOP
-    EXECUTE format('REVOKE ALL ON TABLE %I FROM anon', tbl);
-    EXECUTE format('REVOKE ALL ON TABLE %I FROM authenticated', tbl);
+    IF to_regclass(format('public.%I', tbl)) IS NULL THEN
+      RAISE NOTICE 'Skipping public.%, table does not exist in this database', tbl;
+      CONTINUE;
+    END IF;
+
+    policy_name := 'service_role_all_' || replace(tbl, '_', '');
+
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', tbl);
+
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', policy_name, tbl);
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I FOR ALL TO service_role USING (true) WITH CHECK (true)',
+      policy_name,
+      tbl
+    );
+
+    EXECUTE format('REVOKE ALL ON TABLE public.%I FROM anon', tbl);
+    EXECUTE format('REVOKE ALL ON TABLE public.%I FROM authenticated', tbl);
   END LOOP;
 END $$;
 
 -- ============================================================================
--- STEP 4: Verify
+-- Verify after running
 -- ============================================================================
--- After running, confirm in Supabase Dashboard → Table Editor that each table
--- shows the RLS shield icon as enabled.
+-- Supabase Dashboard -> Database -> Security Advisor should clear
+-- rls_disabled_in_public after its next scan.
 --
--- Or run this query:
+-- Or run:
+--
 --   SELECT tablename, rowsecurity
 --   FROM pg_tables
 --   WHERE schemaname = 'public'
 --   ORDER BY tablename;
 --
--- All should show rowsecurity = true.
+-- All application tables should show rowsecurity = true.
 -- ============================================================================
