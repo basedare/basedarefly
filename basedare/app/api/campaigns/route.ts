@@ -653,6 +653,8 @@ export async function POST(request: NextRequest) {
               title,
               missionMode: 'IRL',
               missionTag: 'brand-campaign',
+              // Paid brand/venue mission — never auto-approve on generic proof.
+              requireSentinel: true,
               amount: payoutPerCreator,
               streamerTag: chosenCreator.creator.tag,
               streamId: `campaign:${createdCampaign.id}`,

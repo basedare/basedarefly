@@ -24,6 +24,9 @@ export default function Verify() {
             <p className="text-gray-400 font-mono text-xs sm:text-sm max-w-xl mx-auto">
               Review proof, cast signal, and help clean payouts move.
             </p>
+            <p className="mt-3 text-white/55 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed">
+              Community votes help flag, rank, and review proof. Paid venue and brand missions settle against the mission&apos;s agreed proof standard, not crowd opinion alone.
+            </p>
           </div>
         </div>
 

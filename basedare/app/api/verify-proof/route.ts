@@ -11,6 +11,7 @@ import { alertError, alertSentinelReviewRequired, alertVerification } from '@/li
 import { verifyInternalApiKey } from '@/lib/api-auth';
 import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
+import { isPaidMission } from '@/lib/paid-mission';
 import { recordDareFounderEventSafe, type FounderDareEventLike } from '@/lib/founder-events';
 import { createWalletNotification } from '@/lib/notifications';
 import { getRefereeAccount } from '@/lib/referee-wallet';
@@ -226,6 +227,8 @@ async function validateProof(
     title: string;
     bounty: number;
     requireSentinel?: boolean;
+    venueId?: string | null;
+    tag?: string | null;
     videoUrl?: string | null;
     streamId?: string | null;
   },
@@ -306,10 +309,15 @@ async function validateProof(
   // -------------------------------------------------------------------------
   // DECISION: Auto-approve or require manual review based on value
   // -------------------------------------------------------------------------
-  const requiresManualReview = Boolean(dare.requireSentinel) || dare.bounty >= AUTO_APPROVE_THRESHOLD;
+  // Paid venue/brand missions carry the receipt promise — they settle against the
+  // mission's agreed proof standard, never generic auto-approval. Always route to review.
+  const paidMission = isPaidMission({ venueId: dare.venueId, tag: dare.tag });
+  const requiresManualReview = paidMission || Boolean(dare.requireSentinel) || dare.bounty >= AUTO_APPROVE_THRESHOLD;
 
   if (requiresManualReview) {
-    const reviewReason = dare.requireSentinel
+    const reviewReason = paidMission
+      ? 'Valid proof submitted. Paid venue/brand missions settle against the mission proof standard and need referee review.'
+      : dare.requireSentinel
       ? 'Valid proof submitted. Sentinel verification was requested and now needs referee review.'
       : `Valid proof submitted. Bounties ≥$${AUTO_APPROVE_THRESHOLD} require manual review for security.`;
 
@@ -548,6 +556,8 @@ export async function POST(req: NextRequest) {
         title: dare.title,
         bounty: dare.bounty,
         requireSentinel: dare.requireSentinel,
+        venueId: dare.venueId,
+        tag: dare.tag,
         videoUrl: dare.videoUrl,
         streamId: streamId,
       },
@@ -681,6 +691,50 @@ export async function POST(req: NextRequest) {
     const passedVerification = verification.success && verification.confidence > 0.80;
 
     if (passedVerification) {
+      // Defense-in-depth: a paid venue/brand mission must never auto-settle on
+      // generic proof. The review gate above already diverts these; this guard
+      // guarantees finalizeVerifiedDare is never reached for a paid mission even
+      // if that gate is ever changed.
+      if (isPaidMission({ venueId: dare.venueId, tag: dare.tag })) {
+        console.error(`[SECURITY] Paid mission ${dareId} reached the auto-approve path — routing to referee review instead of finalizing.`);
+        const divertedDare = await prisma.dare.update({
+          where: { id: dareId },
+          data: {
+            status: 'PENDING_REVIEW',
+            videoUrl: proofData?.videoUrl || dare.videoUrl,
+            proofHash: verification.proofHash,
+            verifyConfidence: verification.confidence,
+            appealStatus: 'PENDING',
+            appealReason: 'Paid venue/brand mission requires referee review (not auto-approved).',
+            appealedAt: new Date(),
+          },
+        });
+        await recordDareFounderEventSafe({
+          eventType: 'proof_submitted',
+          source: 'verify-proof',
+          dare: divertedDare,
+          status: 'PENDING_REVIEW',
+          actor: authorizedWallet,
+          metadata: {
+            confidence: verification.confidence,
+            proofHash: verification.proofHash,
+            paidMissionGuard: true,
+          },
+        });
+        return NextResponse.json({
+          success: true,
+          data: {
+            dareId,
+            status: 'PENDING_REVIEW',
+            verification: {
+              confidence: verification.confidence,
+              reason: 'Paid venue/brand mission requires referee review.',
+              proofHash: verification.proofHash,
+            },
+          },
+        });
+      }
+
       // SUCCESS PATH: Trigger on-chain payout
       let txHash: string | null = null;
       let blockNumber: string | null = null;
