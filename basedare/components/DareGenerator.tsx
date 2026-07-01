@@ -5,251 +5,95 @@ import { Sparkles, RefreshCw } from 'lucide-react';
 import SquircleButton from '@/components/ui/SquircleButton';
 import { useFeedback } from '@/hooks/useFeedback';
 import { cn } from '@/lib/utils';
+import {
+  CREATOR_CAPTAIN_CATEGORIES,
+  CREATOR_CAPTAIN_CATEGORY_LABELS,
+  type CreatorCaptainCategory,
+} from '@/lib/creator-captains';
 import './PremiumBentoGrid.css';
 
-const SUGGESTIONS = {
-  "GAMING": [
-    "Win a Warzone match using only a pistol",
-    "Speedrun Minecraft in under 20 mins",
-    "Beat a Dark Souls boss without rolling",
-    "Win a chess game in under 15 moves",
-    "Complete a Valorant match with inverted controls",
-    "Get a pentakill in League of Legends",
-    "Win a Fortnite match with no building",
-    "Complete a GTA 5 heist without dying",
-    "Reach Diamond rank in one stream session",
-    "Win a Street Fighter match using only kicks",
-    "Complete Elden Ring boss hitless",
-    "Get a 20-bomb in Apex Legends"
-  ],
-  "CREATIVE": [
-    "Write and perform an original rap about chat",
-    "Draw your viewers' usernames as cartoon characters",
-    "Create a song using only household items",
-    "Paint a portrait blindfolded",
-    "Write a short story live based on chat suggestions",
-    "Compose a beat in 10 minutes",
-    "Create a TikTok dance and teach it to chat",
-    "Make a comedy skit about streaming life",
-    "Freestyle rap for 5 minutes straight",
-    "Create digital art using MS Paint only",
-    "Write and sing a ballad about pizza",
-    "Improv a standup comedy set for 10 mins"
-  ],
-  "SOCIAL": [
-    "Call your mom and tell her you love her live",
-    "Text your crush and confess your feelings",
-    "DM 5 streamers asking for collab (politely)",
-    "Post an embarrassing childhood photo on Twitter",
-    "Call a random friend and sing them happy birthday",
-    "Compliment 10 strangers in your DMs",
-    "Ask 10 strangers on the street for a high-five",
-    "Tell your best friend your most embarrassing moment",
-    "Ask your followers to roast you for 10 mins",
-    "Call your best friend and apologize for something silly",
-    "Text your ex 'I miss our friendship' (if appropriate)",
-    "Post your most cringy old tweet"
-  ],
-  "FITNESS": [
-    "Do 100 pushups in one stream",
-    "Hold a plank for 5 minutes straight",
-    "Do 50 burpees without stopping",
-    "Complete a full yoga flow live",
-    "Do squats every time you die in game (50 max)",
-    "Wall sit for 3 minutes",
-    "Do jumping jacks for every donation (100 max)",
-    "Complete a 10-minute ab workout",
-    "Do pushups every time chat spams (50 max)",
-    "Hold a handstand for 30 seconds",
-    "Complete 200 jump rope skips",
-    "Do a full body workout routine live"
-  ],
-  "FOOD": [
-    "Eat a raw onion like an apple",
-    "Try the spiciest hot sauce you can find",
-    "Eat a lemon whole (peel and all)",
-    "Make and eat a disgusting food combo chat chooses",
-    "Drink a gallon of water in 10 minutes",
-    "Eat a whole jar of pickles",
-    "Try every chip flavor and rank them",
-    "Make a meal with 5 random ingredients",
-    "Eat cereal with orange juice instead of milk",
-    "Try durian fruit for the first time",
-    "Eat a full ghost pepper (if you dare)",
-    "Order food delivery but chat picks everything"
-  ],
-  "CHAOS": [
-    "Let chat control your playlist for the stream",
-    "Delete your least viewed YouTube video",
-    "Tweet your most controversial gaming opinion",
-    "Change your display name to what chat votes",
-    "Let chat pick your outfit for tomorrow",
-    "Unfollow everyone on Twitter then refollow",
-    "Post your screen time report on social media",
-    "Let chat redesign your stream overlay live",
-    "Change all your profile pics to what chat picks",
-    "Let viewers control your phone for 5 mins",
-    "Read your most embarrassing old tweets",
-    "Show your browser bookmarks on stream"
-  ],
-  "MUSIC": [
-    "Learn and perform a song in one stream",
-    "Sing karaoke for 30 minutes straight",
-    "Beatbox for 5 minutes without stopping",
-    "Cover a popular song in a different genre",
-    "Write original lyrics to a famous beat",
-    "Learn 3 instruments and play them live",
-    "Sing every message in chat for 10 mins",
-    "Perform an acoustic cover of a rap song",
-    "Create a remix live using free software",
-    "Sing the alphabet in opera style",
-    "Rap battle with your viewers",
-    "Play guitar while singing upside down"
-  ]
-};
-
-const IRL_SUGGESTIONS = {
+// Mission-type is chosen first (no default) so the product never quietly pre-selects
+// a lane. Categories = the single-source taxonomy (CREATOR_CAPTAIN_CATEGORIES).
+// Idea templates are on-thesis venue/experience proof — never streamer stunts.
+const MISSION_SUGGESTIONS: Record<CreatorCaptainCategory, string[]> = {
   nightlife: [
-    "Film a 15-second first-impression walkthrough of the venue",
-    "Capture the signature drink or ritual that makes this spot memorable",
-    "Ask the bartender for one local recommendation and film the answer",
-    "Record the cleanest crowd-energy moment without disturbing anyone",
-    "Find the best corner, table, or view and explain why it works"
+    'Film a 15-second first-impression walkthrough of the venue',
+    'Capture the signature drink or ritual that makes this spot memorable',
+    'Ask a staff member for one local recommendation and film the answer',
+    'Record the cleanest crowd-energy moment without disturbing anyone',
   ],
-  gym: [
-    "Complete a safe 60-second form challenge and explain the movement",
-    "Film a before-and-after energy check from warm-up to finish",
-    "Ask staff for one beginner-friendly tip and show it on camera",
-    "Capture the cleanest recovery, stretch, or cooldown ritual here",
-    "Show the one piece of equipment or class someone should try first"
+  food: [
+    "Order the venue's signature dish and give an honest 15-second verdict",
+    'Ask the staff what regulars order and film the recommendation',
+    'Capture the first-bite reaction and the room in one clean clip',
+    'Make a quick menu guide: what to order if you only have one shot',
   ],
-  cafe: [
-    "Order the most photogenic item and give a 15-second verdict",
-    "Ask the barista what regulars order and film the recommendation",
-    "Find the best seat for working, reading, or people-watching",
-    "Capture the first-sip reaction and the venue atmosphere in one clip",
-    "Show the menu item someone should buy if they only have one shot"
-  ],
-  beach: [
-    "Film the best golden-hour angle and include one recognizable local anchor",
-    "Record a 15-second beach condition report for someone deciding whether to come",
-    "Capture a clean boardwalk, swim, sunset, or surf-side ritual",
-    "Show the hidden angle most visitors miss without blocking anyone",
-    "Make a fast local guide: where to stand, what to bring, and when to go"
+  travel: [
+    'Film the route from the nearest landmark so a stranger could find this spot',
+    'Capture the one view or detail most visitors miss',
+    "Make a 15-second 'why come here' guide: what to do and when to go",
+    'Record a quick condition report for someone deciding whether to visit',
   ],
   street: [
-    "Film a clean street-level intro that shows movement, sound, and signs",
-    "Ask one person for a local recommendation and keep it respectful",
-    "Capture the route from the nearest landmark to the venue entrance",
-    "Show the detail that makes this block feel different from a normal map pin",
-    "Create a 10-second micro-guide for someone arriving here for the first time"
-  ]
+    'Film a clean street-level intro showing movement, sound, and signs',
+    'Ask one person for a respectful local recommendation and film it',
+    'Capture the detail that makes this block feel different from a map pin',
+    'Create a 10-second micro-guide for someone arriving for the first time',
+  ],
+  challenge: [
+    'Take on a harmless skill challenge (pool shot, darts, trivia) and film the attempt',
+    'Set a simple group challenge and capture who wins',
+    "Film a 30-second 'can you do this?' and invite a friend to try",
+  ],
+  fitness: [
+    'Film a safe 60-second movement or drill and explain it',
+    'Capture a run-club, surf, or class meetup and the post-session energy',
+    'Ask staff for one beginner tip and demonstrate it on camera',
+    'Show the one class, court, or session a newcomer should try first',
+  ],
+  web3: [
+    'Explain how this place pays out on Base in one clear, jargon-free clip',
+    'Film a first-time on-chain check-in and how simple it was',
+    "Capture a 15-second 'why verified proof matters here' explainer",
+  ],
+  digital: [
+    'Post the mission link and drive signups or RSVPs you can track',
+    'Run a story with the link and report the clicks it produced',
+    'Share the route/claim link and count who actually claimed it',
+    'Post a clear call-to-action and track the verified conversions',
+  ],
+  music: [
+    "Capture the live music or the room's sound in a 15-second clip",
+    'Film the artist or DJ moment that makes the night',
+    'Ask the performer one question and film the answer',
+  ],
 };
 
-const IRL_TAGS: Array<{ key: keyof typeof IRL_SUGGESTIONS; label: string; emoji: string }> = [
-  { key: 'nightlife', label: 'nightlife', emoji: '🍸' },
-  { key: 'gym', label: 'fitness', emoji: '💪' },
-  { key: 'cafe', label: 'cafe', emoji: '☕' },
-  { key: 'beach', label: 'outdoors', emoji: '🌴' },
-  { key: 'street', label: 'city', emoji: '🌃' },
-];
+const CATEGORY_EMOJI: Record<CreatorCaptainCategory, string> = {
+  nightlife: '🍸',
+  food: '🍜',
+  travel: '🌴',
+  street: '🌃',
+  challenge: '🎯',
+  fitness: '💪',
+  web3: '⛓️',
+  digital: '📲',
+  music: '🎵',
+};
 
-const STREAM_TAGS: Array<{ key: keyof typeof SUGGESTIONS; label: string; emoji: string }> = [
-  { key: 'GAMING', label: 'gaming', emoji: '🎮' },
-  { key: 'CREATIVE', label: 'creative', emoji: '🎨' },
-  { key: 'SOCIAL', label: 'social', emoji: '💬' },
-  { key: 'FITNESS', label: 'fitness', emoji: '🏋️' },
-  { key: 'FOOD', label: 'food', emoji: '🍜' },
-  { key: 'CHAOS', label: 'chaos', emoji: '⚡' },
-  { key: 'MUSIC', label: 'music', emoji: '🎵' },
-];
-
-function inferVenueStory(venueName: string) {
-  const normalized = venueName.toLowerCase();
-
-  if (/(surf|beach|shore|coast|icebergs|bay|cloud 9|boardwalk|harbour|harbor|island|hideaway)/.test(normalized)) {
-    return {
-      type: 'shoreline',
-      anchor: 'water, light, local route, and arrival energy',
-      ritual: 'sunset, surf check, swim, dock, boardwalk, or first drink ritual',
-    };
-  }
-
-  if (/(cafe|coffee|bakery|brunch|roast|kitchen|deli)/.test(normalized)) {
-    return {
-      type: 'cafe',
-      anchor: 'menu detail, staff recommendation, best seat, and first-bite reaction',
-      ritual: 'coffee order, dish reveal, work corner, or regulars-only recommendation',
-    };
-  }
-
-  if (/(bar|club|hotel|pub|lounge|night|tavern|cantina|saloon)/.test(normalized)) {
-    return {
-      type: 'nightlife',
-      anchor: 'sound, crowd energy, signature drink, and arrival moment',
-      ritual: 'first round, bartender recommendation, dance-floor pulse, or late-night story',
-    };
-  }
-
-  if (/(gym|fitness|yoga|box|studio|training|pilates)/.test(normalized)) {
-    return {
-      type: 'fitness',
-      anchor: 'movement, effort, staff coaching, and post-session energy',
-      ritual: 'warm-up, safe challenge, class clip, form check, or recovery ritual',
-    };
-  }
-
-  return {
-    type: 'venue',
-    anchor: 'arrival route, local detail, staff recommendation, and proof people should come here',
-    ritual: 'signature moment, best angle, local tip, or first impression',
-  };
+// digital = tracked online action -> online proof; everything else = IRL presence.
+const ONLINE_CATEGORIES: CreatorCaptainCategory[] = ['digital'];
+function categoryMode(category: CreatorCaptainCategory): 'IRL' | 'STREAM' {
+  return ONLINE_CATEGORIES.includes(category) ? 'STREAM' : 'IRL';
 }
 
-function buildVenueAwareSuggestions(venueName: string, category: keyof typeof IRL_SUGGESTIONS) {
-  const name = venueName.trim();
-  const story = inferVenueStory(name);
-  const base = {
-    nightlife: [
-      `Capture the ${name} arrival moment: door, sound, crowd energy, and why someone should come tonight`,
-      `Ask staff at ${name} for the signature order, film it cleanly, and give a 15-second verdict`,
-      `Find the most on-brand corner of ${name} and explain why it fits the place's story`,
-      `Film a respectful ${name} pulse check: one shot of the room, one detail, one reason to return`,
-      `Create a first-round ritual at ${name}: order, toast, proof clip, and caption the vibe in one line`,
-    ],
-    gym: [
-      `Complete a safe 60-second movement challenge at ${name} and show the setup, effort, and cooldown`,
-      `Ask staff at ${name} for one beginner tip and demonstrate it without blocking anyone`,
-      `Film the ${name} energy arc: arrival, work set, post-session reaction, and why it felt worth showing up`,
-      `Show the one class, machine, or recovery ritual at ${name} a newcomer should try first`,
-      `Create a form-check proof at ${name}: simple movement, clean angle, and one coaching takeaway`,
-    ],
-    cafe: [
-      `Order the most photogenic item at ${name}, film the reveal, and give a 15-second honest verdict`,
-      `Ask the team at ${name} what regulars order and prove whether it deserves the reputation`,
-      `Find the best seat at ${name} for working, reading, or people-watching and show why`,
-      `Capture the ${name} first-sip or first-bite ritual with one menu detail and one atmosphere shot`,
-      `Make a micro-guide for ${name}: what to order, where to sit, and what time to come`,
-    ],
-    beach: [
-      `Film the cleanest ${name} golden-hour angle with one local anchor in frame`,
-      `Create a ${name} condition report: weather, crowd, water or street energy, and whether to come now`,
-      `Show the hidden angle at ${name} most visitors miss, then explain it in one sentence`,
-      `Capture a ${name} ritual: ${story.ritual}, one proof shot, and one reason it belongs on the grid`,
-      `Make a fast local guide to ${name}: where to stand, what to bring, and when it hits best`,
-    ],
-    street: [
-      `Film the route into ${name} from the nearest landmark so a stranger could find it`,
-      `Capture one street-level detail near ${name} that makes this block feel different from a normal map pin`,
-      `Ask one respectful local recommendation near ${name} and turn it into a 15-second proof clip`,
-      `Make a ${name} arrival guide: movement, sound, sign, door, and first impression`,
-      `Show why ${name} is worth a detour using one route shot, one detail shot, and one proof caption`,
-    ],
-  } satisfies Record<keyof typeof IRL_SUGGESTIONS, string[]>;
-
+function buildSuggestions(category: CreatorCaptainCategory, venueName?: string | null) {
+  const base = MISSION_SUGGESTIONS[category];
+  const name = venueName?.trim();
+  if (!name) return base;
   return [
-    ...base[category],
-    `Tell the ${name} story through ${story.anchor}; keep it human, useful, and easy to verify`,
+    ...base.map((s) => s),
+    `Tell the ${name} story in one clean, verifiable clip — human, useful, and easy to prove.`,
   ];
 }
 
@@ -267,10 +111,9 @@ export default function DareGenerator({
   venueName,
 }: GeneratorProps) {
   const { trigger, haptic } = useFeedback();
-  const [mode, setMode] = useState<'IRL' | 'STREAM'>('IRL');
-  const [streamCategory, setStreamCategory] = useState<keyof typeof SUGGESTIONS>('GAMING');
-  const [irlCategory, setIrlCategory] = useState<keyof typeof IRL_SUGGESTIONS>('nightlife');
-  const [suggestion, setSuggestion] = useState(IRL_SUGGESTIONS.nightlife[0]);
+  // No default lane — the user chooses. null = "Choose a mission type" empty state.
+  const [category, setCategory] = useState<CreatorCaptainCategory | null>(null);
+  const [suggestion, setSuggestion] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSegmentScrubbing, setIsSegmentScrubbing] = useState(false);
   const scrubPointerIdRef = useRef<number | null>(null);
@@ -278,41 +121,36 @@ export default function DareGenerator({
   const onSelectRef = useRef(onSelect);
   const rollTimeoutRef = useRef<number | null>(null);
 
-  const activeSuggestions = useMemo(() => {
-    if (mode === 'IRL' && venueName?.trim()) {
-      return buildVenueAwareSuggestions(venueName, irlCategory);
-    }
-
-    return mode === 'IRL' ? IRL_SUGGESTIONS[irlCategory] : SUGGESTIONS[streamCategory];
-  }, [mode, irlCategory, streamCategory, venueName]);
-
-  const currentSegments = useMemo(
-    () => (mode === 'IRL' ? IRL_TAGS : STREAM_TAGS),
-    [mode]
+  const activeSuggestions = useMemo(
+    () => (category ? buildSuggestions(category, venueName) : []),
+    [category, venueName]
   );
 
-  const selectedSegmentKey = mode === 'IRL' ? irlCategory : streamCategory;
+  const currentSegments = useMemo(
+    () => CREATOR_CAPTAIN_CATEGORIES.map((key) => ({ key, label: CREATOR_CAPTAIN_CATEGORY_LABELS[key], emoji: CATEGORY_EMOJI[key] })),
+    []
+  );
+
+  const selectedSegmentKey = category;
 
   useEffect(() => {
     onSelectRef.current = onSelect;
   }, [onSelect]);
 
+  // Fill the first idea only AFTER a category is chosen. Never auto-fill on mount.
   useEffect(() => {
+    if (!category) return;
     const first = activeSuggestions[0];
-    if (!first) {
-      return;
-    }
+    if (!first) return;
 
     const frame = window.requestAnimationFrame(() => {
       setSuggestion(first);
-
       if (shouldAutoFillTitle) {
         onSelectRef.current(first);
       }
     });
-
     return () => window.cancelAnimationFrame(frame);
-  }, [activeSuggestions, shouldAutoFillTitle]);
+  }, [category, activeSuggestions, shouldAutoFillTitle]);
 
   useEffect(() => {
     return () => {
@@ -322,10 +160,11 @@ export default function DareGenerator({
     };
   }, []);
 
+  // Only report context once a lane is chosen — no mount-time default leaks out.
   useEffect(() => {
-    const tag = mode === 'IRL' ? irlCategory : streamCategory;
-    onContextChange?.({ mode, tag });
-  }, [mode, irlCategory, streamCategory, onContextChange]);
+    if (!category) return;
+    onContextChange?.({ mode: categoryMode(category), tag: category });
+  }, [category, onContextChange]);
 
   const generate = useCallback(() => {
     if (isAnimating || activeSuggestions.length === 0) {
@@ -358,26 +197,10 @@ export default function DareGenerator({
   }, [activeSuggestions, haptic, isAnimating, suggestion, trigger]);
 
   const updateSegmentSelection = useCallback((segmentKey: string) => {
-    if (mode === 'IRL') {
-      const nextKey = segmentKey as keyof typeof IRL_SUGGESTIONS;
-      setIrlCategory(nextKey);
-      setSuggestion(
-        venueName?.trim()
-          ? buildVenueAwareSuggestions(venueName, nextKey)[0]
-          : IRL_SUGGESTIONS[nextKey][0]
-      );
-      return;
-    }
-
-    const nextKey = segmentKey as keyof typeof SUGGESTIONS;
-    setStreamCategory(nextKey);
-    setSuggestion(SUGGESTIONS[nextKey][0]);
-  }, [mode, venueName]);
-
-  const handleModeChange = (nextMode: 'IRL' | 'STREAM') => {
-    trigger('click');
-    setMode(nextMode);
-  };
+    const nextKey = segmentKey as CreatorCaptainCategory;
+    setCategory(nextKey);
+    setSuggestion(buildSuggestions(nextKey, venueName)[0]);
+  }, [venueName]);
 
   const handleSegmentChange = (segmentKey: string) => {
     trigger('click');
@@ -453,33 +276,8 @@ export default function DareGenerator({
     <div className="mb-5 rounded-[24px] border border-purple-500/22 bg-purple-900/10 p-4 shadow-[0_18px_42px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.06)] md:mb-8 md:p-6">
       <div className="flex flex-col gap-4 mb-4">
         <h3 className="text-purple-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[#FFD700]" /> Mission Ideas
+          <Sparkles className="w-4 h-4 text-[#FFD700]" /> Mission Type
         </h3>
-
-        <div className="grid grid-cols-2 gap-2">
-          <SquircleButton
-            onClick={() => handleModeChange('IRL')}
-            tone={mode === 'IRL' ? 'yellow' : 'slate'}
-            label="IRL"
-            height={44}
-            fullWidth
-            className={cn(
-              'min-w-0 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-full after:border after:border-white/8',
-              mode === 'IRL' ? 'after:opacity-65' : 'after:opacity-35'
-            )}
-          />
-          <SquircleButton
-            onClick={() => handleModeChange('STREAM')}
-            tone={mode === 'STREAM' ? 'purple' : 'slate'}
-            label="STREAM"
-            height={44}
-            fullWidth
-            className={cn(
-              'min-w-0 after:pointer-events-none after:absolute after:inset-[2px] after:rounded-full after:border after:border-white/8',
-              mode === 'STREAM' ? 'after:opacity-65' : 'after:opacity-35'
-            )}
-          />
-        </div>
 
         <div className="overflow-x-auto scrollbar-hide -mx-2 px-2 md:mx-0 md:px-0">
           <div
@@ -507,7 +305,7 @@ export default function DareGenerator({
                     segmentRefs.current[segment.key] = node;
                   }}
                   className={cn(
-                    'group relative h-12 min-w-[88px] rounded-[1.15rem] cursor-grab active:cursor-grabbing',
+                    'group relative h-12 min-w-[104px] rounded-[1.15rem] cursor-grab active:cursor-grabbing',
                     isSegmentScrubbing && 'cursor-grabbing'
                   )}
                   aria-pressed={selected}
@@ -529,7 +327,7 @@ export default function DareGenerator({
                         )}
                       >
                         <motion.span
-                          key={`${mode}-${segment.key}`}
+                          key={segment.key}
                           initial={{ opacity: 0, scale: 0.82 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ duration: 0.22 }}
@@ -543,7 +341,7 @@ export default function DareGenerator({
 
                   <span
                     className={cn(
-                      'relative z-10 flex h-full w-full items-center text-[10px] font-bold uppercase tracking-[0.18em] transition-colors duration-300',
+                      'relative z-10 flex h-full w-full items-center text-[10px] font-bold uppercase tracking-[0.16em] transition-colors duration-300',
                       selected
                         ? 'justify-start pl-12 pr-3 text-white'
                         : 'justify-center px-3 text-white/42 group-hover:text-white/78'
@@ -557,7 +355,7 @@ export default function DareGenerator({
           </div>
         </div>
       </div>
-      
+
       <div className="grid gap-3 md:grid-cols-[1fr_150px] md:gap-4">
         <div
           className={cn(
@@ -569,22 +367,32 @@ export default function DareGenerator({
           <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
           <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-black/45 to-transparent" />
           <div className="pointer-events-none absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_18%_16%,rgba(192,132,252,0.12),transparent_30%),radial-gradient(circle_at_85%_85%,rgba(250,204,21,0.08),transparent_28%)]" />
-          <span className="text-gray-500 mr-2">{">"}</span>
-          <span className="relative z-10">{suggestion}</span>
-          {/* Scanning Line Effect */}
+          {category ? (
+            <>
+              <span className="text-gray-500 mr-2">{'>'}</span>
+              <span className="relative z-10">{suggestion}</span>
+            </>
+          ) : (
+            <div className="relative z-10">
+              <p className="text-sm font-bold text-white md:text-base">Choose a mission type</p>
+              <p className="mt-1 text-xs font-normal leading-5 text-white/50 md:text-sm">
+                Pick the lane that best fits this mission. We&apos;ll suggest safer templates after you choose.
+              </p>
+            </div>
+          )}
           {isAnimating && (
-            <div 
+            <div
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/6 to-transparent -skew-x-12"
               style={{
-                animation: 'shine-scan 0.42s ease-out 1'
+                animation: 'shine-scan 0.42s ease-out 1',
               }}
             />
           )}
         </div>
-        
+
         <SquircleButton
           onClick={generate}
-          disabled={isAnimating}
+          disabled={isAnimating || !category}
           tone="yellow"
           height={54}
           label="Roll"
@@ -593,6 +401,12 @@ export default function DareGenerator({
           className="shrink-0"
         />
       </div>
+
+      {category === 'digital' ? (
+        <p className="mt-3 text-[11px] font-bold leading-4 text-emerald-200/70">
+          Digital Missions = tracked online action (signups, RSVPs, link clicks, route claims, verified campaign actions) — not stunts.
+        </p>
+      ) : null}
 
       <p className="mt-3 text-xs text-gray-400 font-mono">
         Keep it fun and legal. No harm, no crime.
