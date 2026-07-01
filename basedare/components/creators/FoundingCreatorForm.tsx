@@ -198,6 +198,9 @@ export default function FoundingCreatorForm({ defaultCity = 'Siargao / General L
             <ControlChip key={c} label={CREATOR_CAPTAIN_CATEGORY_LABELS[c]} active={categories.includes(c)} onClick={() => toggleCategory(c)} />
           ))}
         </div>
+        <p className="text-[11px] font-bold leading-4 text-white/40">
+          Digital Missions = tracked online action (signups, RSVPs, link clicks, route claims, verified campaign actions) — not stunts.
+        </p>
       </div>
 
       {/* Audience size */}

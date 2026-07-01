@@ -17,6 +17,7 @@ export const CREATOR_CAPTAIN_CATEGORIES = [
   'challenge',
   'fitness',
   'web3',
+  'digital',
   'music',
 ] as const;
 
@@ -84,8 +85,9 @@ export const CREATOR_CAPTAIN_CATEGORY_LABELS: Record<CreatorCaptainCategory, str
   travel: 'Travel',
   street: 'Street interviews',
   challenge: 'Challenge',
-  fitness: 'Fitness',
+  fitness: 'Sports / Fitness',
   web3: 'Base/Web3',
+  digital: 'Digital Missions',
   music: 'Music',
 };
 
@@ -300,7 +302,7 @@ export function scoreCreatorCaptain(input: Pick<
   };
   score += audienceScore[input.audienceSize] ?? 0;
 
-  if (input.categories.some((category) => ['nightlife', 'food', 'travel', 'street', 'challenge'].includes(category))) {
+  if (input.categories.some((category) => ['nightlife', 'food', 'travel', 'street', 'challenge', 'fitness'].includes(category))) {
     score += 14;
     reasons.push('high-fit real-world content lane');
   }
