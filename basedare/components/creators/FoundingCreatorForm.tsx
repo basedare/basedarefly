@@ -72,7 +72,7 @@ export default function FoundingCreatorForm({ defaultCity = 'Siargao / General L
     if (!audienceSize) return 'Pick your audience size.';
     if (!availability) return 'Tell us when you can start.';
     if (!expectedPayout) return 'Pick what makes this worth your time.';
-    if (contentStyle.trim().length < 12) return 'Tell us a bit more about the night you could start (12+ chars).';
+    if (contentStyle.trim().length < 12) return 'Tell us a bit more about what you could run (12+ chars).';
     if (dareIdeas.trim().length < 12) return 'Tell us how you could bring people (12+ chars).';
     return null;
   };
@@ -132,7 +132,7 @@ export default function FoundingCreatorForm({ defaultCity = 'Siargao / General L
           You&apos;re on the founding creator list
         </h3>
         <p className="mx-auto mt-2 max-w-md text-sm font-bold leading-6 text-white/64">
-          We&apos;ll reach out about the next night in {city.trim() || 'your city'}. Two quick next steps:
+          We&apos;ll reach out about the next mission in {city.trim() || 'your city'}. Two quick next steps:
         </p>
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
@@ -232,8 +232,8 @@ export default function FoundingCreatorForm({ defaultCity = 'Siargao / General L
 
       {/* Open prompts */}
       <label className="flex flex-col gap-1.5">
-        <span className={labelClass}>What kind of night could you help start?</span>
-        <textarea className={`${inputClass} min-h-[88px] resize-y`} value={contentStyle} onChange={(e) => setContentStyle(e.target.value)} placeholder="e.g. a pool-bar mixer where strangers leave as a crew…" />
+        <span className={labelClass}>What kind of mission could you run?</span>
+        <textarea className={`${inputClass} min-h-[88px] resize-y`} value={contentStyle} onChange={(e) => setContentStyle(e.target.value)} placeholder="e.g. a pool-bar mixer, a sunrise surf meetup, a food crawl, an online challenge…" />
       </label>
       <label className="flex flex-col gap-1.5">
         <span className={labelClass}>Could you bring 3–10 real people? How?</span>

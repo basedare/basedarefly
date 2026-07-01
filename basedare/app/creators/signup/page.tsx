@@ -8,11 +8,11 @@ import FoundingCreatorForm from '@/components/creators/FoundingCreatorForm';
 export const metadata: Metadata = {
   title: 'Creator Sign Up — BaseDare',
   description:
-    'Become a Founding Creator on BaseDare. Show up, post the night, bring people, and get paid for verified arrivals. Put your scene on the map.',
+    'Become a Founding Creator on BaseDare. Show up, post it, bring people, and get paid for verified arrivals. Put your scene on the map.',
   openGraph: {
     title: 'Become a Founding Creator — BaseDare',
     description:
-      'Show up. Post the night. Bring people. Get paid for verified arrivals. Put your scene on the map.',
+      'Show up. Post it. Bring people. Get paid for verified arrivals. Put your scene on the map.',
     url: 'https://www.basedare.xyz/creators/signup',
     siteName: 'BaseDare',
     type: 'website',
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Become a Founding Creator — BaseDare',
     description:
-      'Show up. Post the night. Bring people. Get paid for verified arrivals.',
+      'Show up. Post it. Bring people. Get paid for verified arrivals.',
   },
   alternates: { canonical: '/creators/signup' },
 };
@@ -35,7 +35,7 @@ const PERKS = [
   {
     icon: MapPin,
     title: 'Put your scene on the map',
-    body: 'Your nights become the signal others follow. You own the room, not a feed.',
+    body: 'Your missions become the signal others follow. You own the scene, not a feed.',
   },
   {
     icon: Star,
@@ -46,7 +46,7 @@ const PERKS = [
 
 const STEPS = [
   'Claim your tag and tune your radar.',
-  'Take a venue dare — show up and post the night.',
+  'Take a mission — show up and post it.',
   'We verify who came from you. You get paid.',
 ];
 
@@ -73,8 +73,8 @@ export default async function CreatorSignupPage({
             Become a <span className="text-[#f5c518]">Founding Creator</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base font-bold leading-7 text-white/64">
-            Show up. Post the night. Bring people. Get paid. You&apos;re not staff — you&apos;re the
-            reason the night happens.
+            Show up. Post it. Bring people. Get paid. You&apos;re not staff — you&apos;re the
+            reason it happens.
           </p>
           {market && !market.live ? (
             <p className="mx-auto mt-3 max-w-md text-sm font-bold leading-6 text-emerald-200/80">
@@ -83,7 +83,7 @@ export default async function CreatorSignupPage({
           ) : null}
           {market?.live ? (
             <p className="mx-auto mt-3 max-w-md text-sm font-bold leading-6 text-white/64">
-              <span className="text-[#f5c518]">Founding cohort: {market.name}.</span> For creators who can start real nights, not just post ads.
+              <span className="text-[#f5c518]">Founding cohort: {market.name}.</span> For creators who can start something real, not just post ads.
             </p>
           ) : null}
           <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -160,7 +160,7 @@ export default async function CreatorSignupPage({
         <p className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
           Run a venue instead?{' '}
           <Link href="/first-spark" className="text-cyan-100/80 underline-offset-4 hover:underline">
-            Light up your night →
+            Light up your venue →
           </Link>
         </p>
       </section>

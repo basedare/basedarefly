@@ -38,7 +38,7 @@ export default function RoleChoiceCards() {
               I&apos;m joining as a creator
             </h3>
             <p className="mt-2 text-sm font-bold leading-6 text-white/64">
-              Show up. Post the night. Bring people. Get paid.
+              Show up. Post it. Bring people. Get paid.
             </p>
           </div>
           <span className="relative mt-auto inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#f5c518]">
@@ -64,7 +64,7 @@ export default function RoleChoiceCards() {
               I run a venue
             </h3>
             <p className="mt-2 text-sm font-bold leading-6 text-white/64">
-              Bring creators, verified arrivals, and proof to your night.
+              Bring creators, verified arrivals, and proof to your venue.
             </p>
           </div>
           <span className="relative mt-auto inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-cyan-100/90">
