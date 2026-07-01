@@ -50,3 +50,76 @@ export function isStartTimeInBounds(startTime: Date | string, now: number = Date
   if (Number.isNaN(t)) return false;
   return t >= now - MEETUP_START_MIN_PAST_MS && t <= now + MEETUP_START_MAX_FUTURE_MS;
 }
+
+// ============================================================================
+// Stage 3 — map read layer (client-safe). Visual only; no settlement or value.
+// ============================================================================
+
+/** Shape returned by GET /api/meetups (rounded coords, joined creator display). */
+export type MeetupPin = {
+  id: string;
+  title: string;
+  type: string;
+  placeLabel: string;
+  venueId: string | null;
+  approxLat: number;
+  approxLng: number;
+  startTime: string;
+  note: string | null;
+  happeningNow: boolean;
+  creator: { tag: string; pfpUrl: string | null } | null;
+};
+
+/**
+ * Map layer filter. Labels are the founder-approved vocabulary — do NOT reword
+ * (never "Verified missions"). "Live Dares" = the paid/proof layer; "Free
+ * Meetups" = this community layer; "Happening Now" = temporal cut, not verified.
+ */
+export const MAP_LAYER_FILTERS = ['all', 'dares', 'meetups', 'now'] as const;
+export type MapLayerFilter = (typeof MAP_LAYER_FILTERS)[number];
+export const MAP_LAYER_FILTER_LABELS: Record<MapLayerFilter, string> = {
+  all: 'All',
+  dares: 'Live Dares',
+  meetups: 'Free Meetups',
+  now: 'Happening Now',
+};
+
+/**
+ * Whether a meetup pin shows for the active layer filter (controls the MEETUP
+ * layer only — the paid layer is governed separately by a CSS attr hook).
+ */
+export function meetupPassesLayerFilter(
+  meetup: Pick<MeetupPin, 'happeningNow'>,
+  filter: MapLayerFilter
+): boolean {
+  switch (filter) {
+    case 'dares':
+      return false; // paid layer only — meetups hidden
+    case 'now':
+      return meetup.happeningNow;
+    case 'meetups':
+    case 'all':
+    default:
+      return true;
+  }
+}
+
+const MEETUP_TYPE_GLYPH: Record<MeetupType, string> = {
+  surf: '🏄',
+  skate: '🛹',
+  sunset: '🌅',
+  jam: '🎸',
+  dwmb: '🚲',
+  custom: '📍',
+};
+
+/**
+ * Lighter community pin for the free-meetup layer. Deliberately SUBORDINATE to
+ * verified dare pins: no gold, no seal/stamp, no "verified" chrome. A subtle
+ * ring pulses only while a meetup is happening now (temporal, not verified).
+ * Glyph is a fixed lookup — no user free-text in marker HTML, so no XSS surface.
+ */
+export function createMeetupMarkerHtml(meetup: Pick<MeetupPin, 'type' | 'happeningNow'>): string {
+  const glyph = MEETUP_TYPE_GLYPH[meetup.type as MeetupType] ?? '📍';
+  return `<div class="bd-meetup-pin" data-now="${meetup.happeningNow ? 'true' : 'false'}"><span aria-hidden="true">${glyph}</span></div>`;
+}

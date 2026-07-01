@@ -56,6 +56,16 @@ import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import type { VenueLegend, VenueMemorySummary, VenueProfileSummary, VenueSessionSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
+import {
+  createMeetupMarkerHtml,
+  meetupPassesLayerFilter,
+  MAP_LAYER_FILTERS,
+  MAP_LAYER_FILTER_LABELS,
+  MEETUP_TYPE_LABELS,
+  type MeetupPin,
+  type MapLayerFilter,
+  type MeetupType,
+} from '@/lib/meetups';
 import CosmicButton from '@/components/ui/CosmicButton';
 import CreatePlaceChallengeButton from '@/components/place-challenges/CreatePlaceChallengeButton';
 import TagPlaceButton from '@/components/place-tags/TagPlaceButton';
@@ -3371,6 +3381,9 @@ export default function RealWorldMap() {
   const searchShellRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
   const mapMarkersRef = useRef<Map<string, ManagedMapMarker>>(new Map());
+  // Free meetup layer (Stage 3) — its OWN marker set, independent of the paid
+  // marker set above. Additive; never reads or mutates mapMarkersRef.
+  const meetupMarkersRef = useRef<Map<string, MapLibreMarker>>(new Map());
   const mapInteractionQuietTimerRef = useRef<number | null>(null);
   const desktopMapSettlingTimerRef = useRef<number | null>(null);
   const desktopMapSettlingRef = useRef(false);
@@ -3398,6 +3411,13 @@ export default function RealWorldMap() {
   const [searching, setSearching] = useState(false);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [nearbyDares, setNearbyDares] = useState<NearbyDare[]>([]);
+  const [meetups, setMeetups] = useState<MeetupPin[]>([]);
+  const [mapLayerFilter, setMapLayerFilter] = useState<MapLayerFilter>('all');
+  const [selectedMeetup, setSelectedMeetup] = useState<MeetupPin | null>(null);
+  // Guard: a stale "Free Meetups" selection must never keep paid pins hidden
+  // once the meetup layer is empty (the filter UI unmounts at 0). Derive the
+  // effective filter so the paid layer always returns when there are no meetups.
+  const effectiveLayerFilter: MapLayerFilter = meetups.length > 0 ? mapLayerFilter : 'all';
   const [localSignals, setLocalSignals] = useState<LocalSignal[]>([]);
   const [venuePresenceSignals, setVenuePresenceSignals] = useState<VenuePresenceSummary[]>([]);
   const [nearbyDaresLoading, setNearbyDaresLoading] = useState(false);
@@ -4356,6 +4376,87 @@ export default function RealWorldMap() {
   useEffect(() => {
     fetchNearbyPlacesRef.current = fetchNearbyPlaces;
   }, [fetchNearbyPlaces]);
+
+  // ── Free meetup layer (Stage 3): fetch ────────────────────────────────────
+  // Open GET (no bearer); same-origin cookies let a signed-in viewer's blocks
+  // apply server-side. Failures are swallowed — the free layer must never
+  // interrupt or mutate the paid map.
+  useEffect(() => {
+    if (!mapReady) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/meetups');
+        const payload = (await res.json()) as { success?: boolean; data?: MeetupPin[] };
+        if (!cancelled && res.ok && payload.success && Array.isArray(payload.data)) {
+          setMeetups(payload.data);
+        }
+      } catch {
+        // Silent by design.
+      }
+    };
+    void load();
+    const interval = window.setInterval(load, 180_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [mapReady]);
+
+  // ── Free meetup layer (Stage 3): marker reconcile ─────────────────────────
+  // Reconciles our OWN marker set against the meetups visible for the active
+  // layer filter. Lighter community pins (no seal); click opens a read-only
+  // React card. Never touches mapMarkersRef, camera, sources, or layers.
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapReady) return;
+
+    const store = meetupMarkersRef.current;
+    const visible = meetups.filter((meetup) => meetupPassesLayerFilter(meetup, mapLayerFilter));
+    const visibleIds = new Set(visible.map((meetup) => meetup.id));
+
+    for (const [id, marker] of store) {
+      if (!visibleIds.has(id)) {
+        marker.remove();
+        store.delete(id);
+      }
+    }
+
+    for (const meetup of visible) {
+      if (store.has(meetup.id)) continue;
+      if (!Number.isFinite(meetup.approxLat) || !Number.isFinite(meetup.approxLng)) continue;
+      const element = createMarkerElement(createMeetupMarkerHtml(meetup), 'bd-meetup-marker');
+      element.style.pointerEvents = 'auto';
+      element.title = `${meetup.title} · ${meetup.placeLabel}`;
+      element.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        // Meetup card and the venue sheet are mutually exclusive — closing the
+        // venue selection prevents a bottom-sheet collision on mobile.
+        setSelectedPlace(null);
+        setSelectedMeetup(meetup);
+      });
+      const marker = new maplibregl.Marker({
+        element,
+        anchor: 'center',
+        pitchAlignment: 'viewport',
+        rotationAlignment: 'viewport',
+        subpixelPositioning: true,
+      })
+        .setLngLat([meetup.approxLng, meetup.approxLat])
+        .addTo(map);
+      store.set(meetup.id, marker);
+    }
+  }, [meetups, mapLayerFilter, mapReady]);
+
+  // ── Free meetup layer (Stage 3): teardown on unmount ──────────────────────
+  useEffect(() => {
+    const store = meetupMarkersRef.current;
+    return () => {
+      for (const [, marker] of store) marker.remove();
+      store.clear();
+    };
+  }, []);
 
   const scheduleNearbyPlaceFetch = useCallback(
     (latitude: number, longitude: number, zoom: number) => {
@@ -9899,6 +10000,7 @@ export default function RealWorldMap() {
           <div
             ref={mapViewportRef}
             data-map-preset={mapPreset}
+            data-layer-filter={effectiveLayerFilter}
             data-crosshair={!isMobileViewport ? 'true' : undefined}
             className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
               isImmersiveMobile
@@ -9912,6 +10014,91 @@ export default function RealWorldMap() {
               aria-label="BaseDare MapLibre 3D city grid"
             />
             <div className="maplibre-depth-vignette pointer-events-none absolute inset-0 z-[1]" />
+
+            {/* Free meetup layer (Stage 3) — layer filter + legend. Only mounts
+                once real meetups exist, so the paid map is untouched until then. */}
+            {meetups.length > 0 ? (
+              <div className="pointer-events-auto absolute left-1/2 top-3 z-[12] flex max-w-[calc(100%-6.5rem)] -translate-x-1/2 flex-col items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1 rounded-full border border-white/12 bg-black/55 p-1 shadow-[0_10px_28px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl">
+                  {MAP_LAYER_FILTERS.map((key) => {
+                    const active = mapLayerFilter === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          setMapLayerFilter(key);
+                          triggerHaptic('selection');
+                        }}
+                        data-active={active}
+                        className="inline-flex min-h-8 items-center rounded-full px-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/55 transition hover:text-white/80 data-[active=true]:bg-white/[0.12] data-[active=true]:text-white"
+                      >
+                        {MAP_LAYER_FILTER_LABELS[key]}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="hidden flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-black/45 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur md:flex">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-[linear-gradient(180deg,#fff0a8,#f5c518)]" aria-hidden="true" />
+                    Verified dare
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-full border border-slate-300/60 bg-slate-800/80" aria-hidden="true" />
+                    Free meetup
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-full border border-cyan-300/70" aria-hidden="true" />
+                    Happening now
+                  </span>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Read-only meetup card (Stage 3). JSX auto-escapes all user text.
+                RSVP / report live in Stage 4. */}
+            {selectedMeetup && !selectedPlace ? (
+              <div className="pointer-events-auto absolute bottom-5 left-1/2 z-[13] w-[min(calc(100%-1.5rem),22rem)] -translate-x-1/2 rounded-[24px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(9,10,18,0.95))] p-4 shadow-[0_24px_58px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMeetup(null)}
+                  aria-label="Close meetup"
+                  className="absolute -right-3 -top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/70 text-white/64 shadow-[0_10px_22px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur transition hover:border-white/22 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-slate-300/30 bg-slate-500/[0.14] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-200/80">
+                    Free meetup · {MEETUP_TYPE_LABELS[selectedMeetup.type as MeetupType] ?? 'Meetup'}
+                  </span>
+                  {selectedMeetup.happeningNow ? (
+                    <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.14] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-cyan-100">
+                      Happening now
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-2 text-base font-black text-white">{selectedMeetup.title}</p>
+                <p className="mt-1 text-xs font-semibold text-white/58">
+                  {selectedMeetup.placeLabel}
+                  {selectedMeetup.happeningNow
+                    ? ''
+                    : ` · ${new Date(selectedMeetup.startTime).toLocaleString(undefined, {
+                        weekday: 'short',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}`}
+                </p>
+                {selectedMeetup.creator?.tag ? (
+                  <p className="mt-1 text-[11px] font-bold text-white/44">by @{selectedMeetup.creator.tag}</p>
+                ) : null}
+                {selectedMeetup.note ? (
+                  <p className="mt-2 text-xs leading-relaxed text-white/62">{selectedMeetup.note}</p>
+                ) : null}
+                <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/34">
+                  Free community meetup · not a paid dare
+                </p>
+              </div>
+            ) : null}
             <div className="map-engine-badge pointer-events-none absolute right-4 top-4 z-[10] hidden rounded-full border border-cyan-200/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.13)_0%,rgba(8,10,20,0.82)_100%)] px-3.5 py-2 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-100 shadow-[0_16px_34px_rgba(0,0,0,0.32),0_0_22px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur md:block">
               3D Map
             </div>

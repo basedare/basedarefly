@@ -2834,3 +2834,51 @@ button[data-testid='ockConnectWalletButton']:hover {
   mix-blend-mode: overlay;
   border-radius: inherit;
 }
+
+/* ============================================================================
+   Free meetup layer (Stage 3) — community pins, visually SUBORDINATE to the
+   verified dare layer. No gold, no seal/stamp. Additive only; never touches
+   settlement or the paid-marker JS.
+   ============================================================================ */
+.bd-meetup-pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(15, 23, 42, 0.72);
+  color: rgba(226, 232, 240, 0.94);
+  font-size: 13px;
+  line-height: 1;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.bd-meetup-pin:hover {
+  transform: translateY(-1px) scale(1.06);
+  border-color: rgba(148, 163, 184, 0.8);
+}
+/* Happening now = temporal pulse (cool ring), NOT verified/gold styling. */
+.bd-meetup-pin[data-now="true"]::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  animation: bd-meetup-now-pulse 1.8s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes bd-meetup-now-pulse {
+  0% { transform: scale(0.82); opacity: 0.75; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bd-meetup-pin[data-now="true"]::before { animation: none; opacity: 0.5; }
+}
+/* Layer filter: "Free Meetups" hides the paid pin layer via a single CSS hook
+   on the viewport — no paid-marker JS or MapLibre changes. */
+[data-layer-filter="meetups"] .basedare-maplibre-marker { display: none !important; }
