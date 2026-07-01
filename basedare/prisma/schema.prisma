@@ -998,3 +998,67 @@ model PackClaim {
   @@unique([packMemberId, markId, type]) // idempotency: one 'claimed' per member per mark
   @@index([packId, type])
 }
+
+// ============================================================================
+// FREE MEETUP LAYER (Stage 2) — standalone social layer for the existing map.
+// HARD BOUNDARY: never touches settlement / payouts / bounties / requireSentinel /
+// finalizeVerifiedDare / receipts. No value is ever released here. References to
+// StreamerTag (Baretag) and Venue are PLAIN STRINGS validated in the API — so this
+// layer is fully separate from Dare/Campaign and adds no field to any existing model.
+// Location is privacy-safe by construction: only approximate/rounded coords, never
+// raw device GPS. Posting/RSVP require a session-owned claimed Baretag; viewing does not.
+// ============================================================================
+model Meetup {
+  id               String   @id @default(cuid())
+  creatorBaretagId String   // StreamerTag.id — server-derived from the session, never client-trusted
+  title            String
+  type             String   // surf | skate | sunset | jam | dwmb | custom
+  venueId          String?  // optional Venue.id (public place binding)
+  placeLabel       String   // required public-place text (e.g. "Cloud 9 boardwalk")
+  approxLat        Float    // ROUNDED (~3dp) or the venue's public coord — never raw device GPS
+  approxLng        Float
+  startTime        DateTime
+  note             String?
+  status           String   @default("active") // active | cancelled (expired derived at READ time from startTime)
+  createdAt        DateTime @default(now())
+  rsvps            MeetupRsvp[]
+  reports          MeetupReport[]
+
+  @@index([status, startTime])
+  @@index([creatorBaretagId])
+  @@index([venueId])
+}
+
+model MeetupRsvp {
+  id        String   @id @default(cuid())
+  meetupId  String
+  meetup    Meetup   @relation(fields: [meetupId], references: [id], onDelete: Cascade)
+  baretagId String   // StreamerTag.id — server-derived
+  createdAt DateTime @default(now())
+
+  @@unique([meetupId, baretagId]) // idempotent RSVP
+  @@index([baretagId])
+}
+
+model MeetupReport {
+  id                String   @id @default(cuid())
+  meetupId          String?
+  meetup            Meetup?  @relation(fields: [meetupId], references: [id], onDelete: Cascade)
+  reportedBaretagId String?  // report a person and/or a meetup
+  reporterBaretagId String
+  reason            String
+  createdAt         DateTime @default(now())
+
+  @@index([meetupId])
+  @@index([reportedBaretagId])
+}
+
+model MeetupBlock {
+  id               String   @id @default(cuid())
+  blockerBaretagId String
+  blockedBaretagId String
+  createdAt        DateTime @default(now())
+
+  @@unique([blockerBaretagId, blockedBaretagId])
+  @@index([blockerBaretagId])
+}
