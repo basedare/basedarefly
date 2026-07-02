@@ -1280,6 +1280,7 @@ function CreateDareContent() {
                   shouldAutoFillTitle={!watchTitle || watchTitle.trim() === ''}
                   onContextChange={handleGeneratorContextChange}
                   venueName={venuePrefill?.name ?? null}
+                  isCommunitySpark={isCommunitySpark}
                 />
                 <textarea
                   {...register('title')}

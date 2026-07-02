@@ -69,6 +69,56 @@ const MISSION_SUGGESTIONS: Record<CreatorCaptainCategory, string[]> = {
   ],
 };
 
+// Community Spark = free/pro-bono local proof: help, meetups, cleanups, crowd energy.
+// Same lanes, but framed as gathering people / doing good — never a paid creator stunt.
+const COMMUNITY_SUGGESTIONS: Record<CreatorCaptainCategory, string[]> = {
+  nightlife: [
+    'Rally a crew for a spontaneous night out and film the turnout',
+    'Welcome newcomers to the local scene and capture the group energy',
+    'Organize a no-cover meetup and prove who actually showed up',
+  ],
+  food: [
+    'Organize a shared meal or food-share and film who came together',
+    'Gather food for someone who needs it and capture the handoff',
+    'Host a potluck-style meetup and prove the community turnout',
+  ],
+  travel: [
+    'Lead a small group to a local spot and capture the meetup',
+    'Help a lost traveler find their way and film the good deed',
+    'Run a free walking tour and prove who joined',
+  ],
+  street: [
+    'Run a quick neighborhood cleanup and film the before and after',
+    'Help a local with a small task and capture the moment',
+    'Clear litter along one block and prove the cleanup',
+  ],
+  challenge: [
+    'Set a friendly group challenge and capture strangers joining in',
+    'Start a harmless dare chain and film who takes it on',
+    'Rally people for a silly group challenge and prove the crowd',
+  ],
+  fitness: [
+    'Host a free run, surf, or yoga meetup and film the group session',
+    'Lead a beginner-friendly workout and capture who showed up',
+    'Organize a pickup game and prove the turnout',
+  ],
+  web3: [
+    'Onboard a newcomer to Base for free and film how simple it was',
+    'Help someone make their first on-chain check-in and capture it',
+    'Explain verified proof to a first-timer and film the aha moment',
+  ],
+  digital: [
+    'Post a community call-out and count who actually shows up',
+    'Rally your followers to a real meetup and prove the turnout',
+    'Share an open invite and capture who answered it in person',
+  ],
+  music: [
+    'Gather people for an impromptu jam or dance and capture the energy',
+    'Start a singalong or drum circle and film the crowd',
+    'Bring strangers together around live music and prove the moment',
+  ],
+};
+
 const CATEGORY_EMOJI: Record<CreatorCaptainCategory, string> = {
   nightlife: '🍸',
   food: '🍜',
@@ -87,13 +137,19 @@ function categoryMode(category: CreatorCaptainCategory): 'IRL' | 'STREAM' {
   return ONLINE_CATEGORIES.includes(category) ? 'STREAM' : 'IRL';
 }
 
-function buildSuggestions(category: CreatorCaptainCategory, venueName?: string | null) {
-  const base = MISSION_SUGGESTIONS[category];
+function buildSuggestions(
+  category: CreatorCaptainCategory,
+  venueName?: string | null,
+  isCommunitySpark = false
+) {
+  const base = (isCommunitySpark ? COMMUNITY_SUGGESTIONS : MISSION_SUGGESTIONS)[category];
   const name = venueName?.trim();
   if (!name) return base;
   return [
     ...base.map((s) => s),
-    `Tell the ${name} story in one clean, verifiable clip — human, useful, and easy to prove.`,
+    isCommunitySpark
+      ? `Bring people together at ${name} and capture the turnout — human, useful, and easy to prove.`
+      : `Tell the ${name} story in one clean, verifiable clip — human, useful, and easy to prove.`,
   ];
 }
 
@@ -102,6 +158,7 @@ interface GeneratorProps {
   onContextChange?: (context: { mode: 'IRL' | 'STREAM'; tag: string }) => void;
   shouldAutoFillTitle?: boolean;
   venueName?: string | null;
+  isCommunitySpark?: boolean;
 }
 
 export default function DareGenerator({
@@ -109,6 +166,7 @@ export default function DareGenerator({
   onContextChange,
   shouldAutoFillTitle = true,
   venueName,
+  isCommunitySpark = false,
 }: GeneratorProps) {
   const { trigger, haptic } = useFeedback();
   // No default lane — the user chooses. null = "Choose a mission type" empty state.
@@ -120,10 +178,11 @@ export default function DareGenerator({
   const segmentRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const onSelectRef = useRef(onSelect);
   const rollTimeoutRef = useRef<number | null>(null);
+  const segmentScrollRef = useRef<HTMLDivElement | null>(null);
 
   const activeSuggestions = useMemo(
-    () => (category ? buildSuggestions(category, venueName) : []),
-    [category, venueName]
+    () => (category ? buildSuggestions(category, venueName, isCommunitySpark) : []),
+    [category, venueName, isCommunitySpark]
   );
 
   const currentSegments = useMemo(
@@ -158,6 +217,22 @@ export default function DareGenerator({
         window.clearTimeout(rollTimeoutRef.current);
       }
     };
+  }, []);
+
+  // Desktop: mobile scrolls the category rail via native touch-pan, but on desktop the
+  // drag is bound to scrub-select and the scrollbar is hidden — so a vertical wheel would
+  // never reach cut-off categories. Translate vertical wheel into horizontal scroll.
+  useEffect(() => {
+    const el = segmentScrollRef.current;
+    if (!el) return;
+    const handleWheel = (event: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth) return;
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      event.preventDefault();
+      el.scrollLeft += event.deltaY;
+    };
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
   }, []);
 
   // Only report context once a lane is chosen — no mount-time default leaks out.
@@ -199,8 +274,8 @@ export default function DareGenerator({
   const updateSegmentSelection = useCallback((segmentKey: string) => {
     const nextKey = segmentKey as CreatorCaptainCategory;
     setCategory(nextKey);
-    setSuggestion(buildSuggestions(nextKey, venueName)[0]);
-  }, [venueName]);
+    setSuggestion(buildSuggestions(nextKey, venueName, isCommunitySpark)[0]);
+  }, [venueName, isCommunitySpark]);
 
   const handleSegmentChange = (segmentKey: string) => {
     trigger('click');
@@ -279,7 +354,7 @@ export default function DareGenerator({
           <Sparkles className="w-4 h-4 text-[#FFD700]" /> Mission Type
         </h3>
 
-        <div className="overflow-x-auto scrollbar-hide -mx-2 px-2 md:mx-0 md:px-0">
+        <div ref={segmentScrollRef} className="overflow-x-auto scrollbar-hide -mx-2 px-2 md:mx-0 md:px-0">
           <div
             onPointerDown={handleSegmentRailPointerDown}
             onPointerMove={handleSegmentRailPointerMove}
