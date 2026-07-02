@@ -3335,6 +3335,22 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
     );
   }
 
+  if (!tag.proofMediaUrl) {
+    return (
+      <div className={`relative shrink-0 overflow-hidden border border-[#f5c518]/22 bg-[linear-gradient(180deg,rgba(245,197,24,0.16)_0%,rgba(14,12,20,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${sizeClass}`}>
+        <Image
+          src="/assets/peebear-head.webp"
+          alt="BaseDare verified proof stamp"
+          fill
+          sizes="96px"
+          className="object-contain p-1.5"
+          unoptimized
+        />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.14),transparent_32%)]" />
+      </div>
+    );
+  }
+
   if (tag.proofType === 'VIDEO') {
     return (
       <div className={`relative shrink-0 overflow-hidden border border-white/10 bg-black/30 ${sizeClass}`}>
@@ -7790,7 +7806,7 @@ export default function RealWorldMap() {
       return {
         label: proximityAccess.canReveal ? 'Open the live dare' : 'Move closer to unlock',
         detail: proximityAccess.canReveal
-          ? 'A funded mission is already active here.'
+          ? 'A funded dare is already active here.'
           : `Full brief unlocks inside ${PROXIMITY_REVEAL_METERS}m.`,
         tone: 'gold' as const,
         href: liveDareHref,
@@ -8692,13 +8708,55 @@ export default function RealWorldMap() {
     selectedPlace?.slug && selectedPlace.baseCashEnabled
       ? `/venues/${selectedPlace.slug}/basecash?source=map-sheet`
       : null;
-  const selectedPlaceActionRailGridClass = selectedPlace?.slug
-    ? selectedPlaceBaseCashHref
-      ? 'venue-action-rail--four'
-      : 'venue-action-rail--three'
-    : isMobileViewport
-      ? 'venue-action-rail--two'
-      : 'venue-action-rail--two';
+  const selectedPlaceHasLiveDare =
+    (selectedPlace?.activeDareCount ?? 0) > 0 || selectedPlaceActiveDares.length > 0;
+  const selectedPlacePrimaryDareShortId =
+    selectedPlaceActiveDares.find((dare) => dare.shortId)?.shortId ?? null;
+  // Trust ladder: NO PROOF -> PRESENCE -> VERIFIED (LIVE DARE overrides as the activity state).
+  // VERIFIED = proof-backed ONLY (≥1 verified proof/check-in/review). NEVER claimed/operated —
+  // that is a separate CLAIMED/HOSTED axis handled by the command-center section.
+  const selectedPlaceHasVerifiedTrace =
+    (selectedPlace?.approvedCount ?? 0) > 0 ||
+    (selectedPlace?.checkInCount ?? selectedPlace?.memorySummary?.checkInCount ?? 0) > 0 ||
+    (selectedPlace?.reviewSignal?.count ?? 0) > 0;
+  // PRESENCE = real venue with soft/non-proof signal (heat, nearby activity) but no verified trace.
+  const selectedPlaceHasPresenceSignal =
+    !selectedPlaceHasVerifiedTrace && (selectedPlace?.heatScore ?? 0) > 0;
+  const selectedPlaceStateTrustWord = selectedPlaceHasVerifiedTrace
+    ? 'VERIFIED'
+    : selectedPlaceHasPresenceSignal
+      ? 'PRESENCE'
+      : 'NO PROOF';
+  const selectedPlaceStateActivityWord = selectedPlaceHasLiveDare ? 'LIVE DARE' : 'NO LIVE DARE';
+  const selectedPlaceStateHeadline = selectedPlaceHasLiveDare
+    ? `${selectedPlace?.name ?? 'This spot'} has a live dare right now.`
+    : selectedPlaceHasVerifiedTrace
+      ? `${selectedPlace?.name ?? 'This spot'} is a verified spot — no live dare yet.`
+      : selectedPlaceHasPresenceSignal
+        ? `${selectedPlace?.name ?? 'This spot'} has presence — no live dare yet.`
+        : `${selectedPlace?.name ?? 'This spot'} has no verified proof yet.`;
+  const selectedPlaceStateSupport = selectedPlaceHasLiveDare
+    ? 'Join the dare, or leave proof to keep it warm.'
+    : selectedPlaceHasVerifiedTrace
+      ? 'Leave proof to keep it warm, or fund the first dare to activate it.'
+      : 'Be the first to leave verified proof here, or fund the first dare to activate it.';
+  const selectedPlaceStateTone = selectedPlaceHasLiveDare
+    ? 'venue-state-card--live'
+    : selectedPlaceHasVerifiedTrace
+      ? 'venue-state-card--verified'
+      : selectedPlaceHasPresenceSignal
+        ? 'venue-state-card--presence'
+        : 'venue-state-card--noproof';
+  const selectedPlaceStateCard =
+    selectedPlace && !selectedPlaceIsPrivateSpot ? (
+      <div className={`venue-state-card ${selectedPlaceStateTone}`}>
+        <span className="venue-state-card__label">
+          {selectedPlaceStateTrustWord} · {selectedPlaceStateActivityWord}
+        </span>
+        <p className="venue-state-card__headline">{selectedPlaceStateHeadline}</p>
+        <p className="venue-state-card__support">{selectedPlaceStateSupport}</p>
+      </div>
+    ) : null;
   const selectedCheckInLive = selectedPlace?.liveSession?.status === 'LIVE';
   const selectedCheckInStatusLabel =
     selectedPlace && selectedPlace.liveSession === undefined && selectedPlaceActiveDaresLoading
@@ -8710,23 +8768,8 @@ export default function RealWorldMap() {
     selectedPlace?.memorySummary?.checkInCount ??
     selectedPlace?.commandCenter?.metrics.uniqueVisitorsToday ??
     0;
-  const selectedPlaceActionRail = selectedPlace && !selectedPlaceIsPrivateSpot ? (
-    <div
-      className={`venue-action-rail venue-action-rail--primary ${
-        showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''
-      } mt-3 grid ${selectedPlaceActionRailGridClass}`}
-    >
-      {selectedPlaceBaseCashHref ? (
-        <Link
-          href={selectedPlaceBaseCashHref}
-          className="map-primary-action-button map-primary-action-button--pay"
-          aria-label={`Open BaseCash for ${selectedPlace.name}`}
-        >
-          <CreditCard className="h-4 w-4" />
-          <span>BaseCash</span>
-        </Link>
-      ) : null}
-
+  const selectedPlaceTakeProofButton =
+    selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <TagPlaceButton
         placeId={selectedPlace.placeId}
         placeName={selectedPlace.name}
@@ -8800,7 +8843,10 @@ export default function RealWorldMap() {
         buttonClassName="map-primary-action-button map-primary-action-button--proof"
         autoOpenKey={proofAutoOpenKey}
       />
+    ) : null;
 
+  const selectedPlaceFundDareButton =
+    selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <CreatePlaceChallengeButton
         placeId={selectedPlace.placeId}
         placeName={selectedPlace.name}
@@ -8864,22 +8910,85 @@ export default function RealWorldMap() {
         buttonVariant="default"
         buttonClassName="map-primary-action-button map-primary-action-button--fund"
       />
+    ) : null;
 
-      {selectedPlace.slug ? (
-        <Link
-          href={`/venues/${selectedPlace.slug}${
-            isCreatorSource
-              ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
-              : ''
+  const selectedPlaceBaseCashButton =
+    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlaceBaseCashHref ? (
+      <Link
+        href={selectedPlaceBaseCashHref}
+        className="map-primary-action-button map-primary-action-button--pay"
+        aria-label={`Open BaseCash for ${selectedPlace.name}`}
+      >
+        <CreditCard className="h-4 w-4" />
+        <span>BaseCash</span>
+      </Link>
+    ) : null;
+
+  const selectedPlaceOpenVenueButton =
+    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlace.slug ? (
+      <Link
+        href={`/venues/${selectedPlace.slug}${
+          isCreatorSource
+            ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
+            : ''
+        }`}
+        className="map-primary-action-button map-primary-action-button--venue"
+        aria-label={`Open venue page for ${selectedPlace.name}`}
+      >
+        <span>Open venue</span>
+      </Link>
+    ) : null;
+
+  const selectedPlaceJoinDareButton =
+    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlaceHasLiveDare ? (
+      <Link
+        href={
+          selectedPlacePrimaryDareShortId
+            ? `/dare/${selectedPlacePrimaryDareShortId}`
+            : selectedPlace.slug
+              ? `/venues/${selectedPlace.slug}`
+              : '#'
+        }
+        className="map-primary-action-button map-primary-action-button--proof"
+        aria-label={`Join the live dare at ${selectedPlace.name}`}
+      >
+        <span>Join dare</span>
+      </Link>
+    ) : null;
+
+  const selectedPlacePrimaryAction = selectedPlaceHasLiveDare
+    ? selectedPlaceJoinDareButton
+    : selectedPlaceTakeProofButton;
+
+  const selectedPlaceActionRail =
+    selectedPlace && !selectedPlaceIsPrivateSpot ? (
+      <div
+        className={`venue-action-rail-stack flex flex-col gap-2 mt-3 ${
+          showCompactSelectedPlacePanel ? 'venue-action-rail-stack--compact-dock' : ''
+        }`}
+      >
+        <div
+          className={`venue-action-rail venue-action-rail--primary venue-action-rail--lead venue-action-rail--two grid ${
+            showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''
           }`}
-          className="map-primary-action-button map-primary-action-button--venue"
-          aria-label={`Open venue page for ${selectedPlace.name}`}
         >
-          <span>Open venue</span>
-        </Link>
-      ) : null}
-    </div>
-  ) : null;
+          {selectedPlacePrimaryAction}
+        </div>
+        {selectedPlaceHasLiveDare ? null : (
+          <p className="venue-cta-hint">Check in with GPS + QR to leave verified proof.</p>
+        )}
+        <div
+          className={`venue-action-rail venue-action-rail--primary venue-action-rail--utility venue-action-rail--four grid ${
+            showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''
+          }`}
+        >
+          {selectedPlaceHasLiveDare ? selectedPlaceTakeProofButton : null}
+          {selectedPlaceFundDareButton}
+          {selectedPlaceBaseCashButton}
+          {selectedPlaceOpenVenueButton}
+        </div>
+      </div>
+    ) : null;
   const selectedSaveSpotRail =
     saveSpotDraft || selectedPrivateMapSpot ? (
       <div className="map-panel-section map-save-spot-rail mt-3 rounded-[22px] border border-emerald-300/16 bg-[linear-gradient(180deg,rgba(16,185,129,0.1)_0%,rgba(7,12,15,0.92)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
@@ -9656,7 +9765,7 @@ export default function RealWorldMap() {
           <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-3">
             <p className="text-sm font-semibold text-white">Vault is empty.</p>
             <p className="mt-1.5 text-xs leading-5 text-white/54">
-              First proof or a verified mission turns this spot into a real BaseDare trail.
+              First proof or a verified dare turns this spot into a real BaseDare trail.
             </p>
           </div>
         )}
@@ -10238,7 +10347,7 @@ export default function RealWorldMap() {
                       setNearbyDarePanelCollapsed(false);
                     }}
                     className="relative flex w-full flex-col gap-2 px-4 pb-3 pt-2 text-left"
-                    aria-label="Expand nearby mission tray"
+                    aria-label="Expand nearby dare tray"
                     aria-expanded={false}
                   >
                     <span className="map-sheet-drag-handle mx-auto flex h-5 w-24 items-center justify-center rounded-full">
@@ -10751,6 +10860,7 @@ export default function RealWorldMap() {
                               </button>
                             </div>
                           </div>
+                          {selectedPlaceStateCard}
                           <div className="mt-2 flex min-w-0 items-center gap-2 rounded-[16px] border border-white/10 bg-white/[0.045] px-2.5 py-1.5 text-[12px] leading-snug text-white/58">
                             <MapPin className="h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
                             <span className="truncate">
@@ -10836,6 +10946,7 @@ export default function RealWorldMap() {
                           @{selectedPlace.handle}
                         </p>
                       ) : null}
+                      {selectedPlaceStateCard}
                       <div className="mt-2 flex items-start gap-2 rounded-[16px] border border-white/10 bg-white/[0.045] px-3 py-2 text-xs leading-snug text-white/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] md:mt-3 md:rounded-[18px] md:text-sm md:leading-relaxed">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
                         <span className="line-clamp-1 min-w-0 md:line-clamp-2">
@@ -11276,27 +11387,19 @@ export default function RealWorldMap() {
                   ) : null}
 
                   {selectedPlaceFootprintStats ? (
-                    <div className="map-panel-section mt-4 rounded-[24px] border border-fuchsia-300/18 bg-[linear-gradient(180deg,rgba(168,85,247,0.14)_0%,rgba(10,10,18,0.82)_22%,rgba(5,6,12,0.98)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-14px_18px_rgba(0,0,0,0.22)]">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-fuchsia-100/82">
-                          <Sparkles className="h-3.5 w-3.5 text-fuchsia-200" />
-                          Your History Here
-                        </div>
-                        <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-fuchsia-100">
-                          personal trace
-                        </span>
-                      </div>
-                      <p className="mt-3 text-sm text-white/72">
-                        You&apos;ve left {selectedPlaceFootprintStats.totalMarks} verified {selectedPlaceFootprintStats.totalMarks === 1 ? 'proof' : 'proofs'} here
-                        {selectedPlaceFootprintStats.firstMarks > 0
-                          ? ` and created ${selectedPlaceFootprintStats.firstMarks} first ${selectedPlaceFootprintStats.firstMarks === 1 ? 'proof' : 'proofs'}`
-                          : ''}
-                        .
+                    <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/[0.07] pt-3">
+                      <p className="min-w-0 text-[12px] leading-snug text-white/62">
+                        <Sparkles className="mr-1.5 inline h-3 w-3 -translate-y-px text-fuchsia-200/70" />
+                        You&apos;ve left{' '}
+                        <span className="font-semibold text-white/82">
+                          {selectedPlaceFootprintStats.totalMarks} verified {selectedPlaceFootprintStats.totalMarks === 1 ? 'proof' : 'proofs'}
+                        </span>{' '}
+                        here{selectedPlaceFootprintStats.firstMarks > 0 ? ` · ${selectedPlaceFootprintStats.firstMarks} first` : ''}
                       </p>
                       {selectedPlaceFootprintStats.lastMarkedAt ? (
-                        <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/42">
-                          Last proof {getLastSparkLabel(selectedPlaceFootprintStats.lastMarkedAt).replace('Last proof ', '')}
-                        </p>
+                        <span className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-white/38">
+                          {getLastSparkLabel(selectedPlaceFootprintStats.lastMarkedAt).replace('Last proof ', '')}
+                        </span>
                       ) : null}
                     </div>
                   ) : null}
@@ -11553,6 +11656,7 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
+                  {selectedPlaceActiveDaresLoading || selectedPlaceActiveDares.length > 0 ? (
                   <div className={`active-challenges-section bd-dent-surface mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
@@ -11727,27 +11831,9 @@ export default function RealWorldMap() {
                           );
                         })}
                       </div>
-                    ) : (
-                      <div className="mt-3 rounded-[20px] border border-[#f5c518]/16 bg-[linear-gradient(180deg,rgba(245,197,24,0.1)_0%,rgba(18,14,6,0.84)_22%,rgba(6,7,12,0.98)_100%)] px-4 py-4 shadow-[0_18px_30px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-12px_18px_rgba(0,0,0,0.2)]">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-[#f8dd72]">
-                            First activation open
-                          </span>
-                          {selectedPlace.approvedCount && selectedPlace.approvedCount > 0 ? (
-                            <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-fuchsia-100">
-                              venue already verified
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-3 text-sm font-semibold text-white">
-                          This place has presence, but no live mission to chase yet.
-                        </p>
-                        <p className="mt-1.5 text-sm leading-relaxed text-white/62">
-                          Fund the first dare here and turn this venue into an active spot.
-                        </p>
-                      </div>
-                    )}
+                    ) : null}
                   </div>
+                  ) : null}
 
                   <div className={`mt-4 ${mapPanelSectionClass}`}>
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
@@ -11762,11 +11848,11 @@ export default function RealWorldMap() {
                     ) : selectedPlaceTagsError ? (
                       <p className="mt-3 text-sm text-rose-200/80">{selectedPlaceTagsError}</p>
                     ) : selectedPlaceTags.length > 0 ? (
-                      <div className="mt-3 space-y-2.5">
+                      <div className="mt-2 divide-y divide-white/[0.06]">
                         {selectedPlaceTags.slice(0, 3).map((tag) => (
                           <div
                             key={tag.id}
-                            className="rounded-[18px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(7,10,16,0.92)_16%,rgba(6,6,12,0.9)_100%)] px-2.5 py-2 shadow-[0_14px_24px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                            className="px-0.5 py-2.5"
                           >
                             <div className="flex gap-2.5">
                               {renderProofPreview(tag, { compact: true })}
@@ -14327,14 +14413,6 @@ export default function RealWorldMap() {
         }
 
         :global(.venue-action-rail--primary .map-primary-action-button--proof) {
-          color: #111827 !important;
-          border-color: rgba(226, 240, 255, 0.72) !important;
-          background:
-            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.8), transparent 36%),
-            linear-gradient(180deg, #f8fbff 0%, #e6eef8 55%, #a9b8c9 100%) !important;
-        }
-
-        :global(.venue-action-rail--primary .map-primary-action-button--fund) {
           color: #15120c !important;
           border-color: rgba(255, 232, 122, 0.72) !important;
           background:
@@ -14342,20 +14420,25 @@ export default function RealWorldMap() {
             linear-gradient(180deg, #ffe36a 0%, #f5c518 52%, #8a5a00 100%) !important;
         }
 
-        :global(.venue-action-rail--primary .map-primary-action-button--pay) {
-          color: #eaffff !important;
-          border-color: rgba(125, 249, 255, 0.62) !important;
+        :global(.venue-action-rail--primary .map-primary-action-button--fund) {
+          color: #bdf3ff !important;
+          border-color: rgba(103, 232, 249, 0.42) !important;
           background:
-            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.48), transparent 36%),
-            linear-gradient(180deg, #67e8f9 0%, #06b6d4 52%, #164e63 100%) !important;
+            linear-gradient(180deg, rgba(34, 211, 238, 0.14) 0%, rgba(8, 20, 26, 0.9) 100%) !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button--pay) {
+          color: rgba(189, 243, 255, 0.82) !important;
+          border-color: rgba(103, 232, 249, 0.24) !important;
+          background:
+            linear-gradient(180deg, rgba(34, 211, 238, 0.08) 0%, rgba(8, 16, 22, 0.9) 100%) !important;
         }
 
         :global(.venue-action-rail--primary .map-primary-action-button--venue) {
-          color: #fff6ff !important;
-          border-color: rgba(236, 189, 255, 0.62) !important;
+          color: #e6ccff !important;
+          border-color: rgba(201, 152, 255, 0.34) !important;
           background:
-            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.38), transparent 36%),
-            linear-gradient(180deg, #c785ff 0%, #934fd7 52%, #4b1d78 100%) !important;
+            linear-gradient(180deg, rgba(147, 79, 215, 0.16) 0%, rgba(16, 12, 22, 0.9) 100%) !important;
         }
 
         @media (max-width: 767px) {
@@ -14371,6 +14454,147 @@ export default function RealWorldMap() {
             letter-spacing: 0.01em !important;
           }
 
+        }
+
+        /* Two-tier venue action rail: one dominant primary, quiet utilities. */
+        .venue-action-rail-stack--compact-dock {
+          gap: 0.35rem;
+        }
+
+        .venue-status-strip {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.4rem;
+        }
+
+        .venue-status-chip {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          padding: 0.18rem 0.58rem;
+          font-size: 0.58rem;
+          font-weight: 800;
+          line-height: 1;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+        }
+
+        .venue-status-chip--verified {
+          color: #f8dd72;
+          border-color: rgba(245, 197, 24, 0.4);
+          background: rgba(245, 197, 24, 0.12);
+        }
+
+        .venue-status-chip--presence {
+          color: rgba(255, 255, 255, 0.66);
+          border-color: rgba(255, 255, 255, 0.16);
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .venue-status-chip--live {
+          color: #8bffc7;
+          border-color: rgba(52, 211, 153, 0.42);
+          background: rgba(16, 185, 129, 0.14);
+        }
+
+        .venue-status-chip--dormant {
+          color: rgba(255, 255, 255, 0.5);
+          border-color: rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.035);
+        }
+
+        .venue-action-rail--lead :global(.map-primary-action-button) {
+          min-height: 58px !important;
+          font-size: clamp(0.62rem, 0.82vw, 0.8rem) !important;
+          letter-spacing: 0.05em !important;
+        }
+
+        .venue-action-rail--utility :global(.map-primary-action-button) {
+          min-height: 40px !important;
+          font-size: clamp(0.46rem, 0.56vw, 0.56rem) !important;
+        }
+
+        .venue-action-rail--utility :global(.map-primary-action-button) {
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 6px 12px rgba(0, 0, 0, 0.24) !important;
+          font-weight: 800 !important;
+        }
+
+        .venue-action-rail--utility :global(.map-primary-action-button::before) {
+          display: none !important;
+        }
+
+        .venue-cta-hint {
+          margin-top: 0.05rem;
+          text-align: center;
+          font-size: 0.68rem;
+          line-height: 1.3;
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        .venue-state-card {
+          margin-top: 0.55rem;
+          border-radius: 18px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 0.7rem 0.85rem;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(8, 10, 18, 0.7) 100%);
+        }
+
+        .venue-state-card__label {
+          display: inline-block;
+          font-size: 0.58rem;
+          font-weight: 800;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+        }
+
+        .venue-state-card__headline {
+          margin-top: 0.4rem;
+          font-size: 0.95rem;
+          font-weight: 800;
+          line-height: 1.15;
+          color: #ffffff;
+        }
+
+        .venue-state-card__support {
+          margin-top: 0.3rem;
+          font-size: 0.8rem;
+          line-height: 1.35;
+          color: rgba(255, 255, 255, 0.62);
+        }
+
+        .venue-state-card--presence {
+          border-color: rgba(201, 152, 255, 0.28);
+          background: linear-gradient(180deg, rgba(147, 79, 215, 0.14) 0%, rgba(8, 8, 16, 0.72) 100%);
+        }
+        .venue-state-card--presence .venue-state-card__label {
+          color: #d8b6ff;
+        }
+
+        .venue-state-card--verified {
+          border-color: rgba(245, 197, 24, 0.32);
+          background: linear-gradient(180deg, rgba(245, 197, 24, 0.12) 0%, rgba(14, 11, 4, 0.72) 100%);
+        }
+        .venue-state-card--verified .venue-state-card__label {
+          color: #f8dd72;
+        }
+
+        .venue-state-card--live {
+          border-color: rgba(103, 232, 249, 0.34);
+          background: linear-gradient(180deg, rgba(34, 211, 238, 0.14) 0%, rgba(4, 12, 16, 0.72) 100%);
+        }
+        .venue-state-card--live .venue-state-card__label {
+          color: #7fe9ff;
+        }
+
+        .venue-state-card--noproof {
+          border-color: rgba(255, 255, 255, 0.12);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(8, 8, 14, 0.72) 100%);
+        }
+        .venue-state-card--noproof .venue-state-card__label {
+          color: rgba(255, 255, 255, 0.55);
         }
 
         .map-filter-pill {
