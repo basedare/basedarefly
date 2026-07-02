@@ -19,7 +19,6 @@ import BackgroundToneToggle from './BackgroundToneToggle';
 const NAV_LINKS = [
   // Label-only clarity pass: routes unchanged for stability.
   { name: "HOME", href: "/" },
-  { name: "MARKETS", href: "/markets" },
   { name: "MAP", href: "/map" },
   { name: "FUND", href: "/create" },
   { name: "PASSPORT", href: "/dashboard" },

@@ -143,7 +143,7 @@ export default function FoundingCreatorForm({ defaultCity = 'Siargao / General L
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
-            href="/markets"
+            href="/#markets"
             className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/14 bg-white/[0.05] px-6 text-sm font-black uppercase tracking-[0.14em] text-white/76 transition hover:bg-white/[0.09] hover:text-white"
           >
             See the markets

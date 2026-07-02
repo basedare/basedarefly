@@ -349,7 +349,9 @@ function HomeContent() {
                 <HomeGridRadar compact className="mt-4 flex justify-center md:hidden" />
               </div>
 
-              <MarketsSection />
+              <div id="markets" className="scroll-mt-24">
+                <MarketsSection />
+              </div>
 
               <div id="active-bounties" className="w-full flex justify-center px-4 pb-12 pt-20 z-30 md:px-6 md:pb-14">
                 <div className="relative w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_16%_8%,rgba(184,127,255,0.11),transparent_32%),radial-gradient(circle_at_86%_92%,rgba(34,211,238,0.08),transparent_34%),linear-gradient(160deg,rgba(30,22,52,0.42),rgba(8,9,18,0.94))] px-4 py-10 shadow-[16px_22px_58px_rgba(0,0,0,0.48),-9px_-9px_24px_rgba(255,255,255,0.034),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-28px_42px_rgba(0,0,0,0.28)] backdrop-blur-xl md:px-6 md:py-12">
