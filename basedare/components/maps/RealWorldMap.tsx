@@ -9781,7 +9781,7 @@ export default function RealWorldMap() {
           : 'map-shell-section relative z-20 px-4 pb-20 pt-4 sm:px-6 sm:pb-24 sm:pt-5'
       }
     >
-      <div className={isImmersiveMobile ? 'h-full w-full' : 'map-shell-inner mx-auto max-w-7xl'}>
+      <div className={isImmersiveMobile ? 'h-full w-full' : 'map-shell-inner w-full'}>
         {!isImmersiveMobile ? (
           <h1 className="sr-only">BaseDare live map</h1>
         ) : null}
@@ -12301,7 +12301,7 @@ export default function RealWorldMap() {
             left: 0;
             z-index: 20;
             overflow: hidden;
-            padding: 0 2.5rem 1.5rem;
+            padding: 0 1.5rem 1.25rem;
           }
 
           .map-shell-inner {
