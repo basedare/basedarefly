@@ -834,8 +834,8 @@ const markerIconCache = new Map<string, string>();
 const footprintMarkerIconCache = new Map<string, string>();
 const placeClusterIconCache = new Map<string, string>();
 
-const DEFAULT_CENTER: [number, number] = [9.8066, 126.1602];
-const DEFAULT_ZOOM = 13.35;
+const DEFAULT_CENTER: [number, number] = [9.802, 126.1635];
+const DEFAULT_ZOOM = 14;
 const DEFAULT_DESKTOP_MAP_BEARING = -14;
 const DEFAULT_MOBILE_MAP_BEARING = -18;
 const DEFAULT_DESKTOP_MAP_PITCH = 22;
@@ -1336,7 +1336,7 @@ function buildChaosZoneCollection({
         return createCirclePolygonFeature({
           latitude: place.latitude,
           longitude: place.longitude,
-          radiusMeters: Math.min(720, 130 + chaosLevel * 5.8 + place.activeDareCount * 90),
+          radiusMeters: Math.min(380, 130 + chaosLevel * 5.8 + place.activeDareCount * 90),
           properties: {
             id: place.id,
             slug: place.slug,
@@ -1617,6 +1617,35 @@ function ensureMapLibreDareLayers(
     } catch {
       // OpenFreeMap-compatible styles do not all expose building vectors under the same source-layer.
     }
+  }
+
+  // Separate sea from land: tint water fills dark blue + add a faint coastline stroke.
+  try {
+    for (const layer of map.getStyle().layers ?? []) {
+      const sourceLayer = (layer as { 'source-layer'?: string })['source-layer'];
+      if (layer.type === 'fill' && (sourceLayer === 'water' || layer.id.toLowerCase().includes('water'))) {
+        map.setPaintProperty(layer.id, 'fill-color', preset === 'noir' ? '#070d16' : '#081019');
+      }
+    }
+    const coastSourceId = getMapLibreVectorSourceId(map);
+    if (coastSourceId) {
+      addMapLibreLayer(
+        map,
+        {
+          id: 'basedare-coastline',
+          type: 'line',
+          source: coastSourceId,
+          'source-layer': 'water',
+          paint: {
+            'line-color': 'rgba(148, 170, 200, 0.2)',
+            'line-width': 1,
+          },
+        },
+        firstSymbolLayerId
+      );
+    }
+  } catch {
+    // Style variants without a water layer skip the treatment.
   }
 
   addMapLibreLayer(
@@ -2489,7 +2518,7 @@ function fitMapToVenueCluster(
   map.fitBounds(bounds, {
     padding: isMobileViewport
       ? { top: 44, right: 34, bottom: 132, left: 34 }
-      : { top: 62, right: 118, bottom: 118, left: 118 },
+      : { top: 72, right: 500, bottom: 190, left: 96 },
     maxZoom: isMobileViewport ? 14.85 : 15.15,
     bearing: defaultCamera.bearing,
     pitch: defaultCamera.pitch,
@@ -5469,7 +5498,11 @@ export default function RealWorldMap() {
       bearing: map.getBearing(),
       duration: 900,
       essential: true,
-      ...(targetOffset ? { offset: targetOffset } : {}),
+      ...(targetOffset
+        ? { offset: targetOffset }
+        : !isMobileViewport && selectedPlaceIdentity
+          ? { offset: [-236, 0] as [number, number] }
+          : {}),
     });
   }, [
     isImmersiveMobile,
