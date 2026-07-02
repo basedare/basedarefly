@@ -3317,7 +3317,7 @@ function createPlaceClusterMarkerHtml({
 
 function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) {
   const compact = options?.compact ?? false;
-  const sizeClass = compact ? 'h-16 w-16 rounded-[14px]' : 'h-20 w-20 rounded-[16px] md:h-22 md:w-22';
+  const sizeClass = compact ? 'h-16 w-16 rounded-[11px]' : 'h-20 w-20 rounded-[12px] md:h-22 md:w-22';
 
   if (tag.source === 'SEEDED_MEMORY') {
     return (
@@ -3335,7 +3335,7 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
     );
   }
 
-  if (!tag.proofMediaUrl) {
+  if (!tag.proofMediaUrl || !/^(https?:\/\/|\/)/.test(tag.proofMediaUrl)) {
     return (
       <div className={`relative shrink-0 overflow-hidden border border-[#f5c518]/22 bg-[linear-gradient(180deg,rgba(245,197,24,0.16)_0%,rgba(14,12,20,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${sizeClass}`}>
         <Image
@@ -3353,7 +3353,7 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
 
   if (tag.proofType === 'VIDEO') {
     return (
-      <div className={`relative shrink-0 overflow-hidden border border-white/10 bg-black/30 ${sizeClass}`}>
+      <div className={`relative shrink-0 overflow-hidden border border-[#f5c518]/25 bg-black/30 ${sizeClass}`}>
         <video
           src={tag.proofMediaUrl}
           className="h-full w-full object-cover"
@@ -3370,7 +3370,7 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
   }
 
   return (
-      <div className={`relative shrink-0 overflow-hidden border border-white/10 bg-black/30 ${sizeClass}`}>
+      <div className={`relative shrink-0 overflow-hidden border border-[#f5c518]/25 bg-black/30 ${sizeClass}`}>
         <Image
           src={tag.proofMediaUrl}
           alt={tag.caption || 'Place tag proof'}
@@ -8729,12 +8729,12 @@ export default function RealWorldMap() {
       : 'NO PROOF';
   const selectedPlaceStateActivityWord = selectedPlaceHasLiveDare ? 'LIVE DARE' : 'NO LIVE DARE';
   const selectedPlaceStateHeadline = selectedPlaceHasLiveDare
-    ? `${selectedPlace?.name ?? 'This spot'} has a live dare right now.`
+    ? 'Live dare running here.'
     : selectedPlaceHasVerifiedTrace
-      ? `${selectedPlace?.name ?? 'This spot'} is a verified spot — no live dare yet.`
+      ? 'Verified spot — no live dare yet.'
       : selectedPlaceHasPresenceSignal
-        ? `${selectedPlace?.name ?? 'This spot'} has presence — no live dare yet.`
-        : `${selectedPlace?.name ?? 'This spot'} has no verified proof yet.`;
+        ? 'Has presence — no live dare yet.'
+        : 'No verified proof here yet.';
   const selectedPlaceStateSupport = selectedPlaceHasLiveDare
     ? 'Join the dare, or leave proof to keep it warm.'
     : selectedPlaceHasVerifiedTrace
@@ -9524,22 +9524,30 @@ export default function RealWorldMap() {
         </span>
       </div>
 
-      {spotVaultIsEmpty ? null : (
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <div className="rounded-[16px] border border-white/8 bg-black/20 px-2.5 py-2">
-          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">Proof</p>
-          <p className="mt-1 text-lg font-black leading-none text-white">{spotVault?.stats.proofs ?? selectedPlace.approvedCount ?? 0}</p>
-        </div>
-        <div className="rounded-[16px] border border-white/8 bg-black/20 px-2.5 py-2">
-          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">Visitors</p>
-          <p className="mt-1 text-lg font-black leading-none text-white">{spotVault?.stats.uniqueVisitors ?? 0}</p>
-        </div>
-        <div className="rounded-[16px] border border-white/8 bg-black/20 px-2.5 py-2">
-          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">Wins</p>
-          <p className="mt-1 text-lg font-black leading-none text-white">{spotVault?.stats.completedDares ?? 0}</p>
-        </div>
-      </div>
-      )}
+      {spotVaultIsEmpty
+        ? null
+        : (() => {
+            const vaultStats = [
+              { label: 'Proof', value: spotVault?.stats.proofs ?? selectedPlace.approvedCount ?? 0 },
+              { label: 'Visitors', value: spotVault?.stats.uniqueVisitors ?? 0 },
+              { label: 'Wins', value: spotVault?.stats.completedDares ?? 0 },
+            ].filter((stat) => stat.value > 0);
+            if (vaultStats.length === 0) return null;
+            return (
+              <div
+                className={`mt-3 grid gap-2 ${
+                  vaultStats.length === 3 ? 'grid-cols-3' : vaultStats.length === 2 ? 'grid-cols-2' : 'grid-cols-1'
+                }`}
+              >
+                {vaultStats.map((stat) => (
+                  <div key={stat.label} className="rounded-[16px] border border-white/8 bg-black/20 px-2.5 py-2">
+                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/34">{stat.label}</p>
+                    <p className="mt-1 text-lg font-black leading-none text-white">{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
       <div className="mt-2 rounded-[18px] border border-white/8 bg-black/18 px-3 py-2.5">
         <div className="flex items-start justify-between gap-3">
@@ -9836,23 +9844,25 @@ export default function RealWorldMap() {
                 {searching ? <Loader2 className="h-4 w-4 animate-spin text-white/45" /> : null}
               </div>
 
-              <div className="map-intent-row">
-                {visibleMapIntentChips.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onMouseDown={(event) => event.preventDefault()}
-                    data-active={searchQuery.trim().toLowerCase() === chip.toLowerCase()}
-                    onClick={() => {
-                      setSearchQuery(chip.toLowerCase());
-                      setSearchPopoverOpen(true);
-                    }}
-                    className="map-intent-chip"
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
+              {searchPopoverOpen ? (
+                <div className="map-intent-row">
+                  {visibleMapIntentChips.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      data-active={searchQuery.trim().toLowerCase() === chip.toLowerCase()}
+                      onClick={() => {
+                        setSearchQuery(chip.toLowerCase());
+                        setSearchPopoverOpen(true);
+                      }}
+                      className="map-intent-chip"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
 
               {searchPopoverOpen && searchResults.length > 0 ? (
                 <div className="map-search-popover absolute left-0 right-0 top-[calc(100%+10px)] z-40 overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,16,26,0.98)_0%,rgba(7,8,16,0.98)_100%)] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
@@ -11877,7 +11887,7 @@ export default function RealWorldMap() {
                                 </p>
                                 {tag.vibeTags.length > 0 ? (
                                   <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                    {tag.vibeTags.slice(0, 2).map((vibeTag) => (
+                                    {tag.vibeTags.filter((vibeTag) => !/first\s*-?\s*proof/i.test(vibeTag)).slice(0, 2).map((vibeTag) => (
                                       <span
                                         key={vibeTag}
                                         className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white/45"
@@ -11885,9 +11895,9 @@ export default function RealWorldMap() {
                                         {vibeTag}
                                       </span>
                                     ))}
-                                    {tag.vibeTags.length > 2 ? (
+                                    {tag.vibeTags.filter((vibeTag) => !/first\s*-?\s*proof/i.test(vibeTag)).length > 2 ? (
                                       <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white/38">
-                                        +{tag.vibeTags.length - 2}
+                                        +{tag.vibeTags.filter((vibeTag) => !/first\s*-?\s*proof/i.test(vibeTag)).length - 2}
                                       </span>
                                     ) : null}
                                   </div>
@@ -12281,7 +12291,7 @@ export default function RealWorldMap() {
             right: 16px;
             bottom: 16px;
             left: auto;
-            width: min(420px, calc(100% - 88px));
+            width: min(472px, calc(100% - 88px));
             max-height: calc(100% - 32px);
           }
         }
@@ -14505,25 +14515,52 @@ export default function RealWorldMap() {
         }
 
         .venue-action-rail--lead :global(.map-primary-action-button) {
-          min-height: 58px !important;
-          font-size: clamp(0.62rem, 0.82vw, 0.8rem) !important;
-          letter-spacing: 0.05em !important;
+          min-height: 60px !important;
+          border-radius: 18px !important;
+          font-size: clamp(0.72rem, 0.9vw, 0.88rem) !important;
+          letter-spacing: 0.09em !important;
+        }
+
+        .venue-action-rail--lead :global(.map-primary-action-button > span::before) {
+          content: '✦';
+          margin-right: 0.5rem;
+          font-size: 0.9em;
         }
 
         .venue-action-rail--utility :global(.map-primary-action-button) {
-          min-height: 40px !important;
-          font-size: clamp(0.46rem, 0.56vw, 0.56rem) !important;
-        }
-
-        .venue-action-rail--utility :global(.map-primary-action-button) {
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            0 6px 12px rgba(0, 0, 0, 0.24) !important;
+          min-height: 52px !important;
+          flex-direction: column !important;
+          gap: 3px !important;
+          border-radius: 14px !important;
+          padding: 0.55rem 0.4rem !important;
+          font-size: 0.6rem !important;
+          letter-spacing: 0.1em !important;
           font-weight: 800 !important;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
         }
 
         .venue-action-rail--utility :global(.map-primary-action-button::before) {
           display: none !important;
+        }
+
+        .venue-action-rail--utility :global(.map-primary-action-button::after) {
+          font-size: 0.5rem;
+          font-weight: 600;
+          letter-spacing: 0.14em;
+          text-transform: lowercase;
+          opacity: 0.5;
+        }
+
+        .venue-action-rail--utility :global(.map-primary-action-button--fund::after) {
+          content: 'funding';
+        }
+
+        .venue-action-rail--utility :global(.map-primary-action-button--pay::after) {
+          content: 'wallet';
+        }
+
+        .venue-action-rail--utility :global(.map-primary-action-button--venue::after) {
+          content: 'admin';
         }
 
         .venue-cta-hint {
@@ -14535,64 +14572,57 @@ export default function RealWorldMap() {
         }
 
         .venue-state-card {
-          margin-top: 0.55rem;
-          border-radius: 18px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          padding: 0.7rem 0.85rem;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(8, 10, 18, 0.7) 100%);
+          margin-top: 0.6rem;
         }
 
         .venue-state-card__label {
-          display: inline-block;
-          font-size: 0.58rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 0.6rem;
           font-weight: 800;
-          letter-spacing: 0.18em;
+          letter-spacing: 0.2em;
           text-transform: uppercase;
         }
 
+        .venue-state-card__label::before {
+          content: '';
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: currentColor;
+          box-shadow: 0 0 10px currentColor;
+        }
+
         .venue-state-card__headline {
-          margin-top: 0.4rem;
-          font-size: 0.95rem;
+          margin-top: 0.45rem;
+          font-size: 0.98rem;
           font-weight: 800;
-          line-height: 1.15;
+          line-height: 1.2;
           color: #ffffff;
+          text-wrap: pretty;
         }
 
         .venue-state-card__support {
-          margin-top: 0.3rem;
+          margin-top: 0.25rem;
           font-size: 0.8rem;
           line-height: 1.35;
-          color: rgba(255, 255, 255, 0.62);
+          color: rgba(255, 255, 255, 0.55);
         }
 
-        .venue-state-card--presence {
-          border-color: rgba(201, 152, 255, 0.28);
-          background: linear-gradient(180deg, rgba(147, 79, 215, 0.14) 0%, rgba(8, 8, 16, 0.72) 100%);
-        }
         .venue-state-card--presence .venue-state-card__label {
           color: #d8b6ff;
         }
 
-        .venue-state-card--verified {
-          border-color: rgba(245, 197, 24, 0.32);
-          background: linear-gradient(180deg, rgba(245, 197, 24, 0.12) 0%, rgba(14, 11, 4, 0.72) 100%);
-        }
         .venue-state-card--verified .venue-state-card__label {
           color: #f8dd72;
         }
 
-        .venue-state-card--live {
-          border-color: rgba(103, 232, 249, 0.34);
-          background: linear-gradient(180deg, rgba(34, 211, 238, 0.14) 0%, rgba(4, 12, 16, 0.72) 100%);
-        }
         .venue-state-card--live .venue-state-card__label {
           color: #7fe9ff;
         }
 
-        .venue-state-card--noproof {
-          border-color: rgba(255, 255, 255, 0.12);
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(8, 8, 14, 0.72) 100%);
-        }
         .venue-state-card--noproof .venue-state-card__label {
           color: rgba(255, 255, 255, 0.55);
         }
