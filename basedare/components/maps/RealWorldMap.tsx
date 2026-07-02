@@ -9001,11 +9001,12 @@ export default function RealWorldMap() {
         }`}
       >
         <div
-          className={`venue-action-rail venue-action-rail--primary venue-action-rail--lead venue-action-rail--two grid ${
-            showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''
-          }`}
+          className={`venue-action-rail venue-action-rail--primary venue-action-rail--lead grid ${
+            selectedPlaceOpenVenueButton ? 'venue-action-rail--lead-duo' : 'venue-action-rail--two'
+          } ${showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''}`}
         >
           {selectedPlacePrimaryAction}
+          {selectedPlaceOpenVenueButton}
         </div>
         {selectedPlaceHasLiveDare ? null : (
           <p className="venue-cta-hint">Check in with GPS + QR to leave verified proof.</p>
@@ -9018,7 +9019,6 @@ export default function RealWorldMap() {
           {selectedPlaceHasLiveDare ? selectedPlaceTakeProofButton : null}
           {selectedPlaceFundDareButton}
           {selectedPlaceBaseCashButton}
-          {selectedPlaceOpenVenueButton}
         </div>
       </div>
     ) : null;
@@ -10936,7 +10936,7 @@ export default function RealWorldMap() {
                           : 'max-h-[52dvh] md:h-full md:max-h-none'
                     }`}
                   >
-                  <div className="selected-place-panel-header sticky top-0 z-10 max-h-[50%] shrink-0 overflow-hidden rounded-t-[28px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-3 md:pt-4">
+                  <div className="selected-place-panel-header sticky top-0 z-10 shrink-0 overflow-hidden rounded-t-[28px] border-b border-white/8 bg-[rgba(7,9,18,0.9)] px-4 pb-3 pt-3 backdrop-blur-xl md:border-b-0 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.055)_0%,rgba(7,9,18,0.88)_40%,rgba(7,9,18,0.62)_100%)] md:px-5 md:pb-3 md:pt-4">
                     <button
                       type="button"
                       onPointerDown={(event) => beginMapSheetDrag('selected-place', event)}
@@ -11027,7 +11027,7 @@ export default function RealWorldMap() {
                   </div>
 
                   <div
-                    className="selected-place-panel-content min-h-[50%] flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
+                    className="selected-place-panel-content min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
                     style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)' } : undefined}
                   >
 
@@ -14556,10 +14556,14 @@ export default function RealWorldMap() {
           letter-spacing: 0.09em !important;
         }
 
-        .venue-action-rail--lead :global(.map-primary-action-button > span::before) {
+        .venue-action-rail--lead :global(.map-primary-action-button--proof > span::before) {
           content: '✦';
           margin-right: 0.5rem;
           font-size: 0.9em;
+        }
+
+        .venue-action-rail--lead-duo {
+          grid-template-columns: 1.55fr 1fr !important;
         }
 
         .venue-action-rail--utility :global(.map-primary-action-button) {
