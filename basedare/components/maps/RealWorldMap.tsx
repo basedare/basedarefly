@@ -1151,14 +1151,6 @@ function createCirclePolygonFeature({
   };
 }
 
-function getMapLibrePulseColor(pulse: PulseState, visualState: PlaceVisualState) {
-  if (visualState === 'hot' || pulse === 'blazing') return '#ff2d55';
-  if (visualState === 'active' || pulse === 'igniting') return '#22d3ee';
-  if (visualState === 'first-mark' || pulse === 'simmering') return '#f8dd72';
-  if (visualState === 'pending') return '#f59e0b';
-  return '#b87fff';
-}
-
 function getEmptyVenueReviewSignal(checkInCount = 0): VenueReviewSignal {
   return {
     count: 0,
@@ -1183,15 +1175,6 @@ function getReviewSignalHeatContribution(reviewSignal: VenueReviewSignal) {
   return 4;
 }
 
-function getReviewSignalColor(reviewSignal: VenueReviewSignal) {
-  if (reviewSignal.fresh && reviewSignal.count > 0) return '#8bffc7';
-  if (reviewSignal.state === 'worth-it') return '#f8dd72';
-  if (reviewSignal.state === 'mixed') return '#b87fff';
-  if (reviewSignal.state === 'skip') return '#fb7185';
-  if (reviewSignal.state === 'needs-review') return '#64748b';
-  return '#67e8f9';
-}
-
 function getReviewSignalLabel(reviewSignal: VenueReviewSignal) {
   if (reviewSignal.count > 0) {
     const percent = Math.round(reviewSignal.worthItRatio * 100);
@@ -1200,6 +1183,30 @@ function getReviewSignalLabel(reviewSignal: VenueReviewSignal) {
 
   if (reviewSignal.state === 'needs-review') return 'needs review';
   return 'no reviews';
+}
+
+// Trust ladder — the ONLY thing a pin's color may encode (status, never metrics):
+// LIVE DARE (cyan) overrides, then VERIFIED = proof-backed (gold), then
+// PRESENCE = soft signal only (purple), then NO PROOF (gray). Mirrors the
+// venue panel's ladder exactly; review sentiment belongs in the popup, not
+// the pin. Paid-live full cyan stays distinct from the soft meetup ring.
+function getTrustColor({
+  activeDareCount,
+  approvedCount,
+  checkInCount,
+  reviewCount,
+  heatScore,
+}: {
+  activeDareCount: number;
+  approvedCount: number;
+  checkInCount: number;
+  reviewCount: number;
+  heatScore: number;
+}) {
+  if (activeDareCount > 0) return '#22d3ee';
+  if (approvedCount > 0 || checkInCount > 0 || reviewCount > 0) return '#f8dd72';
+  if (heatScore > 0) return '#b87fff';
+  return '#64748b';
 }
 
 function getMapLibreSignalLabel({
@@ -1283,7 +1290,13 @@ function buildVenueSignalCollection({
           matched,
           selected,
           activated: isVenueActivated(place.commandCenter),
-          pulseColor: reviewSignal.state !== 'none' ? getReviewSignalColor(reviewSignal) : getMapLibrePulseColor(pulse, visualState),
+          pulseColor: getTrustColor({
+            activeDareCount: place.activeDareCount,
+            approvedCount: place.tagSummary.approvedCount,
+            checkInCount: place.checkInCount,
+            reviewCount: reviewSignal.count,
+            heatScore: place.tagSummary.heatScore,
+          }),
           signalLabel: getMapLibreSignalLabel({
             activeDareCount: place.activeDareCount,
             approvedCount: place.tagSummary.approvedCount,
@@ -1348,7 +1361,13 @@ function buildChaosZoneCollection({
             reviewFresh: reviewSignal.fresh,
             reviewCount: reviewSignal.count,
             activeDareCount: place.activeDareCount,
-            pulseColor: reviewSignal.state !== 'none' ? getReviewSignalColor(reviewSignal) : getMapLibrePulseColor(pulse, visualState),
+            pulseColor: getTrustColor({
+              activeDareCount: place.activeDareCount,
+              approvedCount: place.tagSummary.approvedCount,
+              checkInCount: place.checkInCount,
+              reviewCount: reviewSignal.count,
+              heatScore: place.tagSummary.heatScore,
+            }),
           },
         });
       })
