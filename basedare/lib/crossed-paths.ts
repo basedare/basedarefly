@@ -72,3 +72,86 @@ export async function haveCrossedPaths(walletA: string, walletB: string): Promis
   if (checkInsA.length === 0 || checkInsB.length === 0) return null;
   return findOverlap(checkInsA, checkInsB);
 }
+
+export type CrossedPathPerson = {
+  tag: string;
+  pfpUrl: string | null;
+  lastCrossedAt: string;
+};
+
+/**
+ * People the viewer verifiably crossed paths with at one venue: overlapping
+ * CONFIRMED check-ins within the window, surfaced ONLY when they hold a
+ * claimed (non-revoked) Baretag — public handles, never bare wallets.
+ */
+export async function listCrossedPathsAtVenue(
+  viewerWallet: string,
+  venueId: string,
+  limit = 12
+): Promise<CrossedPathPerson[]> {
+  const since = new Date(Date.now() - CROSSED_PATH_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+
+  const viewerCheckIns = await prisma.venueCheckIn.findMany({
+    where: {
+      venueId,
+      status: 'CONFIRMED',
+      scannedAt: { gte: since },
+      walletAddress: { equals: viewerWallet, mode: 'insensitive' },
+    },
+    select: { scannedAt: true },
+    orderBy: { scannedAt: 'desc' },
+    take: 200,
+  });
+  if (viewerCheckIns.length === 0) return [];
+
+  const others = await prisma.venueCheckIn.findMany({
+    where: {
+      venueId,
+      status: 'CONFIRMED',
+      scannedAt: { gte: since },
+      NOT: { walletAddress: { equals: viewerWallet, mode: 'insensitive' } },
+    },
+    select: { walletAddress: true, scannedAt: true },
+    orderBy: { scannedAt: 'desc' },
+    take: 800,
+  });
+  if (others.length === 0) return [];
+
+  const viewerTimes = viewerCheckIns.map((row) => row.scannedAt.getTime());
+  const lastCrossedByWallet = new Map<string, number>();
+  const storedCasingByWallet = new Map<string, string>();
+  for (const row of others) {
+    const timeMs = row.scannedAt.getTime();
+    const overlaps = viewerTimes.some((viewerMs) => Math.abs(viewerMs - timeMs) <= CROSSED_PATH_WINDOW_MS);
+    if (!overlaps) continue;
+    const key = row.walletAddress.toLowerCase();
+    storedCasingByWallet.set(key, row.walletAddress);
+    const existing = lastCrossedByWallet.get(key);
+    if (!existing || timeMs > existing) lastCrossedByWallet.set(key, timeMs);
+  }
+  if (lastCrossedByWallet.size === 0) return [];
+
+  // Check-in and tag tables may disagree on wallet casing — query both forms.
+  const walletVariants = [...lastCrossedByWallet.keys()].flatMap((lower) => {
+    const stored = storedCasingByWallet.get(lower);
+    return stored && stored !== lower ? [lower, stored] : [lower];
+  });
+
+  const tags = await prisma.streamerTag.findMany({
+    where: { walletAddress: { in: walletVariants }, NOT: { status: 'REVOKED' } },
+    select: { tag: true, pfpUrl: true, walletAddress: true },
+  });
+
+  const seenWallets = new Set<string>();
+  const people: CrossedPathPerson[] = [];
+  for (const tagRow of tags) {
+    const key = tagRow.walletAddress.toLowerCase();
+    if (seenWallets.has(key)) continue;
+    const crossedMs = lastCrossedByWallet.get(key);
+    if (!crossedMs) continue;
+    seenWallets.add(key);
+    people.push({ tag: tagRow.tag, pfpUrl: tagRow.pfpUrl, lastCrossedAt: new Date(crossedMs).toISOString() });
+  }
+
+  return people.sort((a, b) => (a.lastCrossedAt < b.lastCrossedAt ? 1 : -1)).slice(0, limit);
+}

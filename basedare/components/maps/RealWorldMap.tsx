@@ -2278,37 +2278,6 @@ function getPlaceVisualState({
   return 'active';
 }
 
-function getPlaceVisualCopy(state: PlaceVisualState) {
-  switch (state) {
-    case 'pending':
-      return {
-        label: 'Proof pending',
-        description: 'A fresh proof is waiting for review.',
-      };
-    case 'first-mark':
-      return {
-        label: 'First proof',
-        description: 'This venue has its first approved proof.',
-      };
-    case 'active':
-      return {
-        label: 'Verified',
-        description: 'Approved proofs are starting to stack here.',
-      };
-    case 'hot':
-      return {
-        label: 'Hot',
-        description: 'Recent proof activity is strong here.',
-      };
-    case 'unmarked':
-    default:
-      return {
-        label: 'No proof yet',
-        description: 'No approved proof yet. Be first.',
-      };
-  }
-}
-
 function getPulseMeaning({
   pulse,
   approvedCount,
@@ -2998,62 +2967,6 @@ function getSignalFundConfig(happening: MapHappening) {
   };
 }
 
-function getPulseLegendPalette(pulse: PulseState) {
-  switch (pulse) {
-    case 'blazing':
-      return {
-        activeCount: 4,
-        activeClass: 'from-rose-300 to-amber-200 shadow-[0_0_18px_rgba(251,113,133,0.32)]',
-      };
-    case 'igniting':
-      return {
-        activeCount: 3,
-        activeClass: 'from-cyan-300 to-sky-200 shadow-[0_0_16px_rgba(34,211,238,0.28)]',
-      };
-    case 'simmering':
-      return {
-        activeCount: 2,
-        activeClass: 'from-[#f5c518] to-[#f8dd72] shadow-[0_0_14px_rgba(245,197,24,0.24)]',
-      };
-    case 'cold':
-    default:
-      return {
-        activeCount: 1,
-        activeClass: 'from-white/60 to-white/30 shadow-none',
-      };
-  }
-}
-
-function renderPulseLegend(
-  pulse: PulseState,
-  options?: {
-    compact?: boolean;
-  }
-) {
-  const compact = options?.compact ?? false;
-  const palette = getPulseLegendPalette(pulse);
-  const barClass = compact ? 'h-2 w-6 rounded-full' : 'h-3 w-10 rounded-full';
-
-  return (
-    <div className={compact ? 'inline-flex items-center gap-1.5' : 'inline-flex items-center gap-2'}>
-      {Array.from({ length: 4 }).map((_, index) => {
-        const active = index < palette.activeCount;
-        return (
-          <span
-            key={`${pulse}-${index}`}
-            className={`${barClass} border border-white/10 transition ${
-              active
-                ? `bg-gradient-to-r ${palette.activeClass}`
-                : 'bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
-            }`}
-            aria-hidden="true"
-          />
-        );
-      })}
-    </div>
-  );
-}
-
 function escapeMarkerAttribute(value: string) {
   return value
     .replace(/&/g, '&amp;')
@@ -3453,6 +3366,32 @@ export default function RealWorldMap() {
   useEffect(() => {
     setProofReelOpen(false);
   }, [selectedPlace?.placeId, selectedPlace?.slug]);
+  const [crossedPathsPeople, setCrossedPathsPeople] = useState<
+    { tag: string; pfpUrl: string | null; lastCrossedAt: string }[]
+  >([]);
+  // Verified-overlap discovery for the selected venue. Cookie-session read:
+  // signed-out viewers get an empty list and the section simply never shows.
+  useEffect(() => {
+    const slug = selectedPlace?.slug;
+    setCrossedPathsPeople([]);
+    if (!slug) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`/api/venues/${encodeURIComponent(slug)}/crossed-paths`, { cache: 'no-store' });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!cancelled && payload?.success && Array.isArray(payload.data?.people)) {
+          setCrossedPathsPeople(payload.data.people);
+        }
+      } catch {
+        // Discovery is additive — a failed fetch just hides the section.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPlace?.slug]);
   const [selectedPlaceActiveDares, setSelectedPlaceActiveDares] = useState<SelectedPlaceActiveDare[]>([]);
   const [selectedPlaceActiveDaresLoading, setSelectedPlaceActiveDaresLoading] = useState(false);
   const [selectedPlaceFeaturedPaidActivation, setSelectedPlaceFeaturedPaidActivation] = useState<SelectedPlaceActiveDare | null>(null);
@@ -6274,11 +6213,6 @@ export default function RealWorldMap() {
     [selectedPlace]
   );
 
-  const selectedLastSpark = useMemo(
-    () => getLastSparkLabel(selectedPlace?.lastTaggedAt ?? null),
-    [selectedPlace]
-  );
-
   const selectedPendingPlaceTags = useMemo(() => {
     if (!selectedPlace?.placeId) {
       return pendingPlaceTags;
@@ -6295,10 +6229,6 @@ export default function RealWorldMap() {
         pendingCount: selectedPendingPlaceTags.length,
       }),
     [selectedPendingPlaceTags.length, selectedPlace]
-  );
-  const selectedVisualCopy = useMemo(
-    () => getPlaceVisualCopy(selectedVisualState),
-    [selectedVisualState]
   );
   const selectedVenueTransformation = useMemo(
     () =>
@@ -11613,27 +11543,40 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  <div className={`hidden crossed-paths-section map-mobile-secondary bd-dent-surface mt-4 ${mapPanelSectionClass}`}>
-                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
-                      <Flame className="h-3.5 w-3.5 text-cyan-200" />
-                      Crossed Paths
+                  {crossedPathsPeople.length > 0 ? (
+                  <div className={`crossed-paths-section map-mobile-secondary bd-dent-surface mt-4 ${mapPanelSectionClass}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
+                        <Flame className="h-3.5 w-3.5 text-cyan-200" />
+                        Crossed Paths
+                      </div>
+                      <span className="rounded-full border border-cyan-300/18 bg-cyan-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100">
+                        {crossedPathsPeople.length} verified
+                      </span>
                     </div>
-                    <p className="mt-3 text-sm leading-relaxed text-white/80">{selectedVisualCopy.description}</p>
-                    <div className="mt-4 flex flex-wrap gap-2.5">
-                      <span className={mapPanelInsetChipClass}>
-                        {selectedLastSpark}
-                      </span>
-                      <span
-                        className={`inline-flex items-center ${mapPanelInsetChipClass}`}
-                        aria-label={`Pulse level ${selectedPulse}`}
-                      >
-                        {renderPulseLegend(selectedPulse, { compact: true })}
-                      </span>
-                      <span className={mapPanelInsetChipClass}>
-                        {selectedPlace.approvedCount ?? 0} proofs on record
-                      </span>
+                    <p className="mt-2 text-sm leading-snug text-white/62">
+                      Checked in here when you were. Wave to open a chat — DMs unlock only through verified overlap.
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {crossedPathsPeople.slice(0, 5).map((person) => (
+                        <div
+                          key={person.tag}
+                          className="flex items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2"
+                        >
+                          <p className="truncate text-sm font-semibold text-white">@{person.tag.replace(/^@/, '')}</p>
+                          <Link
+                            href={`/chat?to=${encodeURIComponent(person.tag)}&message=${encodeURIComponent(
+                              `👋 We crossed paths at ${selectedPlace.name} — verified.`
+                            )}`}
+                            className="shrink-0 rounded-full border border-cyan-300/24 bg-cyan-500/[0.1] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:bg-cyan-500/[0.18]"
+                          >
+                            👋 Wave
+                          </Link>
+                        </div>
+                      ))}
                     </div>
                   </div>
+                  ) : null}
 
                   {selectedPendingPlaceTags.length > 0 ? (
                     <div className="map-panel-section mt-4 rounded-[24px] border border-amber-400/18 bg-[linear-gradient(180deg,rgba(251,191,36,0.08)_0%,rgba(10,10,18,0.94)_100%)] px-4 py-3.5 shadow-[0_18px_36px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
