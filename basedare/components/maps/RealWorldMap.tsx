@@ -1539,6 +1539,14 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
         map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.58 : 0.74);
       }
 
+      // Liberty's own 3D buildings ship light gray — pull them into the dark
+      // cyber palette so the pitched view reads night city, not daylight CAD.
+      if (layer.type === 'fill-extrusion') {
+        map.setPaintProperty(layer.id, 'fill-extrusion-color', muted ? '#14161f' : '#1c1f36');
+        map.setPaintProperty(layer.id, 'fill-extrusion-opacity', 0.92);
+        map.setPaintProperty(layer.id, 'fill-extrusion-vertical-gradient', true);
+      }
+
       if (layer.type === 'line') {
         if (
           layerId.includes('water') ||
@@ -1553,19 +1561,19 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
 
         // Arterials run dim gold so the road network reads as the veins of a
         // city you light up — pins stay the brightest gold on the map.
-        const roadColor = muted ? '#2b2b33' : '#332a66';
-        const arterialColor = muted ? '#3b3941' : '#9c7a25';
+        const roadColor = muted ? '#2b2b33' : '#3d3277';
+        const arterialColor = muted ? '#3b3941' : '#c2952c';
         const isArterial =
           layerId.includes('major') || layerId.includes('primary') || layerId.includes('motorway');
         map.setPaintProperty(layer.id, 'line-color', isArterial ? arterialColor : roadColor);
-        map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.48 : isArterial ? 0.66 : 0.72);
+        map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.48 : isArterial ? 0.8 : 0.76);
       }
 
       if (layer.type === 'symbol') {
         if (layerId.includes('place') || layerId.includes('label') || layerId.includes('name')) {
-          map.setPaintProperty(layer.id, 'text-color', muted ? '#e6e8ee' : '#eee7ff');
+          map.setPaintProperty(layer.id, 'text-color', muted ? '#e6e8ee' : '#f6f1ff');
           map.setPaintProperty(layer.id, 'text-halo-color', muted ? '#020203' : '#05030b');
-          map.setPaintProperty(layer.id, 'text-halo-width', 1.2);
+          map.setPaintProperty(layer.id, 'text-halo-width', 1.45);
         }
 
         if (layerId.includes('poi')) {
@@ -1600,6 +1608,20 @@ function ensureMapLibreDareLayers(
 ) {
   if (options.tuneBaseStyle) {
     tuneMapLibreBaseStyle(map, preset);
+    // Night sky + horizon fog: gives the pitched 3D view cinematic depth
+    // instead of a hard void behind the coastline.
+    try {
+      map.setSky({
+        'sky-color': preset === 'noir' ? '#04050a' : '#070718',
+        'horizon-color': preset === 'noir' ? '#0d0f18' : '#241238',
+        'fog-color': preset === 'noir' ? '#05060c' : '#0b0a1c',
+        'sky-horizon-blend': 0.5,
+        'horizon-fog-blend': 0.5,
+        'fog-ground-blend': 0.55,
+      });
+    } catch {
+      // Style variants without sky support skip the treatment.
+    }
   }
 
   ensureMapLibreSource(map, MAPLIBRE_CHAOS_SOURCE_ID, emptyPolygonCollection());
@@ -15650,31 +15672,38 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label) {
-          top: -12px;
+          top: -14px;
           z-index: 18;
           min-width: 122px;
           max-width: 204px;
           overflow: visible;
-          border-radius: 11px 11px 7px 7px;
-          border-color: rgba(255, 244, 190, 0.72);
+          border-radius: 12px 12px 8px 8px;
+          border-color: rgba(255, 244, 190, 0.78);
           background:
             radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.72), transparent 40%),
+            linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.5) 42%, rgba(255, 255, 255, 0.08) 54%, transparent 62%),
             linear-gradient(180deg, rgba(255, 246, 183, 0.98), rgba(245, 197, 24, 0.98) 46%, rgba(148, 92, 12, 0.98) 100%);
-          padding: 8px 13px 9px;
+          background-size: 100% 100%, 240% 100%, 100% 100%;
+          background-position: 0 0, -160% 0, 0 0;
+          background-repeat: no-repeat;
+          animation: venueSignShine 4.6s ease-in-out infinite;
+          padding: 9px 14px 10px;
           color: rgba(22, 14, 0, 0.96);
           font-size: 11px;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.12em;
           line-height: 1.05;
           text-shadow:
-            0 1px 0 rgba(255, 255, 255, 0.38),
+            0 1px 0 rgba(255, 255, 255, 0.42),
             0 2px 8px rgba(255, 248, 196, 0.28);
-          transform: translateX(-50%) perspective(120px) rotateX(8deg);
+          transform: translateX(-50%) perspective(170px) rotateX(17deg);
           transform-origin: center bottom;
           box-shadow:
-            0 16px 20px rgba(0, 0, 0, 0.42),
-            0 0 26px rgba(245, 197, 24, 0.32),
-            0 0 0 2px rgba(245, 197, 24, 0.12),
-            inset 0 1px 0 rgba(255, 255, 255, 0.78),
+            0 2px 0 rgba(126, 78, 8, 0.95),
+            0 4px 0 rgba(92, 55, 5, 0.9),
+            0 6px 1px rgba(56, 33, 3, 0.85),
+            0 18px 26px rgba(0, 0, 0, 0.46),
+            0 0 30px rgba(245, 197, 24, 0.34),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8),
             inset 0 -9px 12px rgba(64, 37, 0, 0.28);
           backdrop-filter: blur(8px);
         }
@@ -15701,6 +15730,17 @@ export default function RealWorldMap() {
           transform: perspective(46px) rotateX(62deg);
           transform-origin: center top;
           pointer-events: none;
+        }
+
+        @keyframes venueSignShine {
+          0%,
+          58% {
+            background-position: 0 0, -160% 0, 0 0;
+          }
+          82%,
+          100% {
+            background-position: 0 0, 260% 0, 0 0;
+          }
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-compact .peebear-venue-label) {
