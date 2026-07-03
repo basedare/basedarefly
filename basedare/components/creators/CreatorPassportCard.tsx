@@ -24,6 +24,7 @@ type CreatorPassportCardProps = {
   signalPoints: number;
   routeReady?: boolean;
   proofs?: number;
+  streakDays?: number;
   className?: string;
 };
 
@@ -44,6 +45,7 @@ export function CreatorPassportCard({
   signalPoints,
   routeReady = false,
   proofs = 0,
+  streakDays = 0,
   className,
 }: CreatorPassportCardProps) {
   return (
@@ -70,7 +72,14 @@ export function CreatorPassportCard({
             <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/44">
               <Trophy className="h-3.5 w-3.5" /> Proofs
             </p>
-            <p className="mt-1 text-sm font-black text-white">{proofs}</p>
+            <p className="mt-1 flex items-center gap-2 text-sm font-black text-white">
+              {proofs}
+              {streakDays >= 2 ? (
+                <span className="rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#f8dd72]">
+                  🔥 {streakDays}-day streak
+                </span>
+              ) : null}
+            </p>
           </div>
         </div>
 

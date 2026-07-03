@@ -114,4 +114,6 @@ export type ComposedPassport = {
   completedMissions: MissionId[];
   missions: PassportMissionState[];
   hasTag: boolean;
+  /** Consecutive days (UTC, ending today/yesterday) with >=1 verified proof. */
+  streakDays: number;
 };

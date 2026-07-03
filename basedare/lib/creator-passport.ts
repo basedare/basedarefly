@@ -27,26 +27,47 @@ function normalizeWallet(wallet: string): string {
   return wallet.trim().toLowerCase();
 }
 
+/** Consecutive UTC days (ending today or yesterday) with >=1 verified proof.
+ * Verified-only streaks can't be botted with posts — proof or it didn't count. */
+function computeStreakDays(dates: Date[]): number {
+  if (dates.length === 0) return 0;
+  const days = new Set(dates.map((date) => Math.floor(date.getTime() / 86_400_000)));
+  const today = Math.floor(Date.now() / 86_400_000);
+  const anchor = days.has(today) ? today : days.has(today - 1) ? today - 1 : null;
+  if (anchor === null) return 0;
+  let streak = 0;
+  while (days.has(anchor - streak)) streak += 1;
+  return streak;
+}
+
 /** Query real data signals used by `data`-detected missions. */
 async function detectDataSignals(wallet: string): Promise<{
   hasTag: boolean;
   hasProof: boolean;
   hasMark: boolean;
+  streakDays: number;
 }> {
   const where = { walletAddress: { equals: wallet, mode: 'insensitive' as const } };
 
-  const [tag, markCount] = await Promise.all([
+  const [tag, markCount, recentMarks] = await Promise.all([
     prisma.streamerTag.findFirst({
       where,
       select: { id: true, completedDares: true, status: true },
     }),
     prisma.placeTag.count({ where }),
+    prisma.placeTag.findMany({
+      where: { ...where, status: 'APPROVED' },
+      select: { submittedAt: true },
+      orderBy: { submittedAt: 'desc' },
+      take: 120,
+    }),
   ]);
 
   return {
     hasTag: Boolean(tag && tag.status !== 'REVOKED'),
     hasProof: (tag?.completedDares ?? 0) > 0,
     hasMark: markCount > 0,
+    streakDays: computeStreakDays(recentMarks.map((mark) => mark.submittedAt)),
   };
 }
 
@@ -92,7 +113,8 @@ function buildComposed(
   passport: PassportRow,
   completed: Set<MissionId>,
   hasTag: boolean,
-  ledgerPoints: number
+  ledgerPoints: number,
+  streakDays: number
 ): ComposedPassport {
   const missionPoints = STARTER_MISSIONS.reduce(
     (total, mission) => (completed.has(mission.id) ? total + mission.points : total),
@@ -114,6 +136,7 @@ function buildComposed(
     completedMissions: [...completed],
     missions: STARTER_MISSIONS.map((mission) => ({ ...mission, complete: completed.has(mission.id) })),
     hasTag,
+    streakDays,
   };
 }
 
@@ -172,7 +195,7 @@ export async function composePassport(
   const signals = await detectDataSignals(wallet);
   const completed = resolveMissionCompletion(passport, signals, existing !== null);
   const ledgerPoints = await sumLedgerPoints(wallet);
-  const composed = buildComposed(passport, completed, signals.hasTag, ledgerPoints);
+  const composed = buildComposed(passport, completed, signals.hasTag, ledgerPoints, signals.streakDays);
 
   if (persist) {
     await prisma.creatorPassport.upsert({
