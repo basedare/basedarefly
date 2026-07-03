@@ -3054,7 +3054,9 @@ function createPeebearMarkerHtml({
   const liveLabel =
     challengeLiveCount > 1 ? `LIVE ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}` : 'LIVE';
   const showActivatedMarkerChrome = activated && (!compact || active);
-  const visibleLegends = activated ? [] : (legends ?? []).slice(0, compact ? 2 : 3);
+  // Activated venues keep their legend emojis too — the gold sign says "official",
+  // the chips say "what kind of place" at a glance. CSS already positions them.
+  const visibleLegends = (legends ?? []).slice(0, compact ? 2 : 3);
   const legendKey = visibleLegends.map((legend) => legend.key).join(',');
   const venueLabel = getMarkerVenueLabel(venueName);
   const safeVenueLabel = venueLabel ? escapeMarkerAttribute(venueLabel) : null;
