@@ -14485,11 +14485,11 @@ export default function RealWorldMap() {
         }
 
         :global(.venue-action-rail--primary .map-primary-action-button--pay) {
-          color: #dcf9ff !important;
-          border-color: rgba(103, 232, 249, 0.45) !important;
+          color: #e9fff4 !important;
+          border-color: rgba(52, 211, 153, 0.6) !important;
           background:
-            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.38), transparent 36%),
-            linear-gradient(180deg, #46c4dd 0%, #0891b2 52%, #10333f 100%) !important;
+            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.42), transparent 36%),
+            linear-gradient(180deg, #34d399 0%, #059669 52%, #064e3b 100%) !important;
         }
 
         :global(.venue-action-rail--primary .map-primary-action-button--venue) {
