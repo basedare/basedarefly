@@ -18,7 +18,7 @@ export default function VenueRecapActions({
   shareBody: string;
   audience?: VenueReportAudience;
 }) {
-  const [copied, setCopied] = useState<'brief' | 'link' | null>(null);
+  const [copied, setCopied] = useState<'brief' | 'link' | 'email' | null>(null);
 
   const shareUrl = useMemo(() => {
     if (typeof window === 'undefined') return '';
@@ -117,6 +117,15 @@ export default function VenueRecapActions({
       <a
         href={mailtoHref}
         onClick={() => {
+          // mailto silently no-ops on machines without a mail app — copy the
+          // draft to the clipboard too so the click always yields something.
+          void navigator.clipboard
+            ?.writeText(`${shareSubject}\n\n${shareBody}\n\n${shareUrl}`)
+            .then(() => {
+              setCopied('email');
+              window.setTimeout(() => setCopied(null), 2200);
+            })
+            .catch(() => {});
           void trackVenueReportEvent({
             venueSlug,
             audience,
@@ -127,7 +136,7 @@ export default function VenueRecapActions({
         className="inline-flex items-center gap-2 rounded-full border border-amber-400/22 bg-amber-500/[0.08] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100 transition hover:-translate-y-[1px] hover:border-amber-300/34 hover:bg-amber-500/[0.12]"
       >
         <Mail className="h-3.5 w-3.5" />
-        Email receipt
+        {copied === 'email' ? 'Draft copied ✓' : 'Email draft'}
       </a>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { drawProofReceipt, PROOF_RECEIPT_H, PROOF_RECEIPT_W } from '@/lib/proof-receipt';
+import { trackClientEvent } from '@/lib/analytics';
 
 /**
  * The post-check-in moment: one screen, three jobs.
@@ -128,8 +129,14 @@ export default function ProofMomentSheet({
   const handleShare = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // Analytics only — no PII beyond the venue slug and a referral boolean.
+    const shareAnalytics = { source: 'proof_moment_sheet', venueSlug, hasReferral: Boolean(creatorTag) };
+    trackClientEvent('proof_shared', { ...shareAnalytics, method: 'native_file_attempt' });
     canvas.toBlob((blob) => {
-      if (!blob) return;
+      if (!blob) {
+        trackClientEvent('proof_shared', { ...shareAnalytics, method: 'render', status: 'failed' });
+        return;
+      }
       const file = new File([blob], 'basedare-proof-receipt.png', { type: 'image/png' });
       const nav = navigator as Navigator & {
         canShare?: (data: { files: File[] }) => boolean;
@@ -138,8 +145,14 @@ export default function ProofMomentSheet({
       if (nav.canShare?.({ files: [file] }) && nav.share) {
         nav
           .share({ files: [file], title: 'BaseDare receipt', text: shareText })
-          .then(() => setShareState('shared'))
-          .catch(() => {});
+          .then(() => {
+            trackClientEvent('proof_shared', { ...shareAnalytics, method: 'native_file', status: 'success' });
+            setShareState('shared');
+          })
+          .catch(() => {
+            // Cancelled or failed — indistinguishable on the web, logged as one.
+            trackClientEvent('proof_shared', { ...shareAnalytics, method: 'native_file', status: 'failed' });
+          });
         return;
       }
       const url = URL.createObjectURL(blob);
@@ -149,6 +162,7 @@ export default function ProofMomentSheet({
       anchor.click();
       URL.revokeObjectURL(url);
       void navigator.clipboard?.writeText(shareText).catch(() => {});
+      trackClientEvent('proof_shared', { ...shareAnalytics, method: 'download', status: 'fallback_saved' });
       setShareState('saved');
       window.setTimeout(() => setShareState('idle'), 2200);
     }, 'image/png');
