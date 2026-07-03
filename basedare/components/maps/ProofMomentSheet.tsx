@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { drawProofReceipt, PROOF_RECEIPT_H, PROOF_RECEIPT_W } from '@/lib/proof-receipt';
 
 /**
  * The post-check-in moment: one screen, three jobs.
- * Value delivery (your venue-sealed receipt), retention (streak tick +
- * crossed-paths tease), and the ad engine (share sheet). Replaces the old
- * ceremony toast for APPROVED proofs.
+ * Value delivery (a thermal-statement Proof Receipt, rendered to a real PNG),
+ * retention (streak tick + crossed-paths tease), and the ad engine (the
+ * receipt image travels through the native share sheet — Stories, WhatsApp,
+ * iMessage — with a referral link riding in the share text).
  */
 export default function ProofMomentSheet({
   venueName,
@@ -29,9 +30,18 @@ export default function ProofMomentSheet({
   submittedAt: string;
   onClose: () => void;
 }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [streakDays, setStreakDays] = useState<number | null>(null);
   const [crossedCount, setCrossedCount] = useState<number | null>(null);
-  const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
+  const [bearImage, setBearImage] = useState<HTMLImageElement | null>(null);
+  const [shareState, setShareState] = useState<'idle' | 'shared' | 'saved'>('idle');
+
+  // PeeBear stamp for the receipt (decoration — receipt renders without it).
+  useEffect(() => {
+    const image = new window.Image();
+    image.onload = () => setBearImage(image);
+    image.src = '/assets/peebear-head.webp';
+  }, []);
 
   // Streak tick — verified-only, computed server-side on the passport.
   useEffect(() => {
@@ -77,6 +87,22 @@ export default function ProofMomentSheet({
     };
   }, [venueSlug]);
 
+  // Render (and re-render as the streak/crossed rows arrive).
+  useEffect(() => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    drawProofReceipt(ctx, {
+      venueName,
+      venueHandle,
+      creatorTag,
+      submittedAt,
+      firstMark,
+      streakDays,
+      crossedCount,
+      bearImage,
+    });
+  }, [venueName, venueHandle, creatorTag, submittedAt, firstMark, streakDays, crossedCount, bearImage]);
+
   // Escape closes; background scroll locks while open.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -91,98 +117,93 @@ export default function ProofMomentSheet({
     };
   }, [onClose]);
 
+  // Referral rides the share text: ?by=@tag credits the sharer once the
+  // claim-side wiring lands. Harmless today, meaningful tomorrow.
+  const referral = creatorTag ? `?by=${encodeURIComponent(creatorTag.replace(/^@/, ''))}` : '';
   const shareUrl = venueSlug
-    ? `https://www.basedare.xyz/venues/${venueSlug}`
-    : 'https://www.basedare.xyz/map';
-  const shareText = `Verified at ${venueName} — proof on the map. #HumanOnly`;
+    ? `https://www.basedare.xyz/venues/${venueSlug}${referral}`
+    : `https://www.basedare.xyz/map${referral}`;
+  const shareText = `Verified at ${venueName} — proof of presence. #HumanOnly ${shareUrl}`;
 
-  const handleShare = async () => {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({ title: 'BaseDare receipt', text: shareText, url: shareUrl });
+  const handleShare = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const file = new File([blob], 'basedare-proof-receipt.png', { type: 'image/png' });
+      const nav = navigator as Navigator & {
+        canShare?: (data: { files: File[] }) => boolean;
+        share?: (data: { files: File[]; title?: string; text?: string }) => Promise<void>;
+      };
+      if (nav.canShare?.({ files: [file] }) && nav.share) {
+        nav
+          .share({ files: [file], title: 'BaseDare receipt', text: shareText })
+          .then(() => setShareState('shared'))
+          .catch(() => {});
         return;
       }
-      await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-      setShareState('copied');
-      window.setTimeout(() => setShareState('idle'), 1600);
-    } catch {
-      // User dismissed the share sheet — nothing to clean up.
-    }
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'basedare-proof-receipt.png';
+      anchor.click();
+      URL.revokeObjectURL(url);
+      void navigator.clipboard?.writeText(shareText).catch(() => {});
+      setShareState('saved');
+      window.setTimeout(() => setShareState('idle'), 2200);
+    }, 'image/png');
   };
-
-  const timeLabel = new Date(submittedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
   return (
     <div
-      className="fixed inset-0 z-[135] flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[135] flex flex-col items-center justify-center bg-black/85 px-4 py-6 backdrop-blur-sm"
       role="dialog"
       aria-label={`Verified proof receipt for ${venueName}`}
     >
-      <div className="relative w-full max-w-sm rounded-[28px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(10,10,18,0.97)_30%,rgba(5,5,12,0.99)_100%)] p-5 shadow-[0_32px_90px_rgba(0,0,0,0.6),0_0_40px_rgba(245,197,24,0.12)]">
+      <div className="relative flex w-full max-w-sm flex-col items-center">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] text-white/70 transition hover:text-white"
+          className="absolute -right-1 -top-1 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/14 bg-black/70 text-white/70 transition hover:text-white"
           aria-label="Close receipt"
         >
           <X className="h-4 w-4" />
         </button>
 
-        {/* the receipt */}
-        <div className="mx-auto mt-2 w-full rounded-[22px] border border-[#f5c518]/45 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(12,10,6,0.95)_55%,rgba(6,5,10,0.98)_100%)] p-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_0_0_5px_rgba(5,5,12,0.9),inset_0_0_0_7px_rgba(245,197,24,0.3)]">
-          <div className="relative mx-auto h-16 w-16 overflow-hidden rounded-[16px] border border-[#f5c518]/30 bg-black/40">
-            <Image
-              src="/assets/peebear-head.webp"
-              alt="PeeBear verified stamp"
-              fill
-              sizes="64px"
-              className="object-contain p-1.5"
-              unoptimized
-            />
-          </div>
-          <p className="mt-3 text-[10px] font-black uppercase tracking-[0.3em] text-[#f8dd72]/85">Verified at</p>
-          <p className="mt-1 text-xl font-black leading-tight text-white">{venueName}</p>
-          {venueHandle ? (
-            <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100/55">@{venueHandle}</p>
-          ) : null}
-          <div className="mt-3 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55">
-            <span>{creatorTag ? `@${creatorTag.replace(/^@/, '')}` : 'Your proof'}</span>
-            <span aria-hidden="true">·</span>
-            <span>{timeLabel}</span>
-          </div>
-          {firstMark ? (
-            <span className="mt-2 inline-block rounded-full border border-[#f5c518]/45 bg-[#f5c518]/[0.14] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-[#f8dd72]">
-              ⚡ First proof — this spot is yours
-            </span>
-          ) : null}
-          <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.24em] text-white/35">✓ #HumanOnly · on the map forever</p>
-        </div>
+        <canvas
+          ref={canvasRef}
+          width={PROOF_RECEIPT_W}
+          height={PROOF_RECEIPT_H}
+          className="rounded-2xl"
+          style={{
+            width: 'min(78vw, 310px)',
+            maxHeight: '56vh',
+            objectFit: 'contain',
+            boxShadow: '0 0 44px rgba(245,197,24,0.28), 0 24px 60px rgba(0,0,0,0.6)',
+          }}
+          aria-label="Your BaseDare proof receipt"
+        />
 
-        {/* streak + crossed paths */}
-        <div className="mt-4 space-y-2">
-          <div className="rounded-[16px] border border-white/8 bg-black/25 px-3.5 py-2.5 text-sm text-white/78">
-            {streakDays !== null && streakDays >= 2 ? (
-              <span className="font-bold text-[#f8dd72]">🔥 {streakDays}-day streak — keep it alive tomorrow.</span>
-            ) : (
-              <span>🔥 Night one logged. Check in tomorrow to start a streak.</span>
-            )}
-          </div>
-          {crossedCount !== null && crossedCount > 0 ? (
-            <div className="rounded-[16px] border border-cyan-300/18 bg-cyan-500/[0.07] px-3.5 py-2.5 text-sm text-cyan-50/90">
-              👋 <span className="font-bold">{crossedCount}</span> {crossedCount === 1 ? 'person has' : 'people have'} verifiably
-              crossed your path here — find them in the venue panel and wave.
-            </div>
-          ) : null}
-        </div>
+        {crossedCount !== null && crossedCount > 0 ? (
+          <p className="mt-3 w-full rounded-[14px] border border-cyan-300/18 bg-cyan-500/[0.08] px-3 py-2 text-center text-[12px] leading-snug text-cyan-50/90">
+            👋 {crossedCount} {crossedCount === 1 ? 'person' : 'people'} verifiably crossed your path here — find
+            them in the venue panel and wave.
+          </p>
+        ) : (
+          <p className="mt-3 text-center text-[11px] text-white/45">
+            {streakDays !== null && streakDays >= 2
+              ? `🔥 ${streakDays}-day streak — keep it alive tomorrow.`
+              : '🔥 Night one logged. Check in tomorrow to start a streak.'}
+          </p>
+        )}
 
-        {/* actions */}
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="mt-4 flex w-full flex-col gap-2">
           <button
             type="button"
             onClick={handleShare}
-            className="w-full rounded-full border border-[#ffe87a]/70 bg-[linear-gradient(180deg,#ffe36a_0%,#f5c518_55%,#8a5a00_100%)] px-4 py-3 text-sm font-black uppercase tracking-[0.1em] text-[#15120c] shadow-[0_10px_22px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.6)] transition hover:-translate-y-[1px]"
+            className="w-full rounded-full border border-[#ffe87a]/70 bg-[linear-gradient(180deg,#ffe36a_0%,#f5c518_55%,#8a5a00_100%)] px-4 py-3.5 text-sm font-black uppercase tracking-[0.12em] text-[#15120c] shadow-[0_10px_22px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.6)] transition hover:-translate-y-[1px]"
           >
-            {shareState === 'copied' ? 'Link copied ✓' : 'Share the receipt'}
+            {shareState === 'shared' ? 'Shared ✓' : shareState === 'saved' ? 'Saved to device ✓' : '⇪ Share the receipt'}
           </button>
           <button
             type="button"
