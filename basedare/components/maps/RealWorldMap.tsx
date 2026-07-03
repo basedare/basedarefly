@@ -56,6 +56,7 @@ import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import type { VenueLegend, VenueMemorySummary, VenueProfileSummary, VenueSessionSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
+import ProofReel from '@/components/maps/ProofReel';
 import {
   createMeetupMarkerHtml,
   meetupPassesLayerFilter,
@@ -3423,6 +3424,12 @@ export default function RealWorldMap() {
   const [selectedPlaceTags, setSelectedPlaceTags] = useState<PlaceTagItem[]>([]);
   const [selectedPlaceTagsLoading, setSelectedPlaceTagsLoading] = useState(false);
   const [selectedPlaceTagsError, setSelectedPlaceTagsError] = useState<string | null>(null);
+  const [proofReelOpen, setProofReelOpen] = useState(false);
+  // Close the reel whenever the selected venue changes (or the panel closes),
+  // so it never auto-opens on the next venue with stale state.
+  useEffect(() => {
+    setProofReelOpen(false);
+  }, [selectedPlace?.placeId, selectedPlace?.slug]);
   const [selectedPlaceActiveDares, setSelectedPlaceActiveDares] = useState<SelectedPlaceActiveDare[]>([]);
   const [selectedPlaceActiveDaresLoading, setSelectedPlaceActiveDaresLoading] = useState(false);
   const [selectedPlaceFeaturedPaidActivation, setSelectedPlaceFeaturedPaidActivation] = useState<SelectedPlaceActiveDare | null>(null);
@@ -11842,9 +11849,20 @@ export default function RealWorldMap() {
                   ) : null}
 
                   <div className={`mt-4 ${mapPanelSectionClass}`}>
-                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
-                      <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
-                      Recent Proofs
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/40">
+                        <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
+                        Recent Proofs
+                      </div>
+                      {selectedPlaceTags.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => setProofReelOpen(true)}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/[0.1] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#f8dd72] transition hover:border-[#f5c518]/55 hover:bg-[#f5c518]/[0.16]"
+                        >
+                          ▶ Reel
+                        </button>
+                      ) : null}
                     </div>
                     {selectedPlaceTagsLoading ? (
                       <div className="mt-3 flex items-center gap-2 text-sm text-white/55">
@@ -11919,6 +11937,16 @@ export default function RealWorldMap() {
           </div>
         </div>
       </div>
+
+      {proofReelOpen && selectedPlace && selectedPlaceTags.length > 0 ? (
+        <ProofReel
+          key={selectedPlace.placeId ?? selectedPlace.slug ?? selectedPlace.name}
+          venueName={selectedPlace.name}
+          venueHandle={selectedPlace.handle}
+          items={selectedPlaceTags}
+          onClose={() => setProofReelOpen(false)}
+        />
+      ) : null}
 
       <style jsx>{`
         :root {
