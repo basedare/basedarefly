@@ -57,6 +57,7 @@ import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import type { VenueLegend, VenueMemorySummary, VenueProfileSummary, VenueSessionSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import ProofReel from '@/components/maps/ProofReel';
+import ProofMomentSheet from '@/components/maps/ProofMomentSheet';
 import LayerReelBar from '@/components/maps/LayerReelBar';
 import {
   createMeetupMarkerHtml,
@@ -3451,6 +3452,14 @@ export default function RealWorldMap() {
   const [startProofDockDismissed, setStartProofDockDismissed] = useState(false);
   const isImmersiveMobile = isMobileViewport && isMapFullscreenMobile;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
+  const [proofMoment, setProofMoment] = useState<null | {
+    venueName: string;
+    venueSlug: string | null;
+    venueHandle: string | null;
+    creatorTag: string | null;
+    firstMark: boolean;
+    submittedAt: string;
+  }>(null);
   const [bootstrappedDefaultPins, setBootstrappedDefaultPins] = useState(false);
   const deepLinkedPlaceSlug = searchParams.get('place');
   const deepLinkedSearchQuery = searchParams.get('q') || searchParams.get('search') || searchParams.get('intent');
@@ -8754,16 +8763,18 @@ export default function RealWorldMap() {
           setTargetZoom(15);
         }}
         onTagSubmitted={(tag) => {
-          // Presence-backed marks return APPROVED — they're already live, so skip
-          // the pending overlay, refresh the gallery, and celebrate "verified now".
+          // Presence-backed marks return APPROVED — they're already live. Skip
+          // the pending overlay and open the full moment sheet: receipt +
+          // share + streak tick + crossed-paths tease in one screen.
           if (tag.status === 'APPROVED') {
             void loadSelectedPlaceTags(selectedPlace?.placeId ?? tag.placeId, undefined, { silent: true });
-            setCeremonyState({
-              kind: tag.firstMark ? 'first-spark' : 'alive-upgrade',
-              title: tag.firstMark ? 'First proof — verified live' : 'Proof verified — live now',
-              body: tag.firstMark
-                ? 'Your check-in cleared it instantly. This place now has its first verified proof.'
-                : 'Your check-in cleared it instantly. It’s on the map now.',
+            setProofMoment({
+              venueName: selectedPlace?.name ?? 'This spot',
+              venueSlug: selectedPlace?.slug ?? null,
+              venueHandle: selectedPlace?.handle ?? null,
+              creatorTag: tag.creatorTag,
+              firstMark: tag.firstMark,
+              submittedAt: tag.submittedAt,
             });
             return;
           }
@@ -11920,6 +11931,19 @@ export default function RealWorldMap() {
           venueHandle={selectedPlace.handle}
           items={selectedPlaceTags}
           onClose={() => setProofReelOpen(false)}
+        />
+      ) : null}
+
+      {proofMoment ? (
+        <ProofMomentSheet
+          venueName={proofMoment.venueName}
+          venueSlug={proofMoment.venueSlug}
+          venueHandle={proofMoment.venueHandle}
+          creatorTag={proofMoment.creatorTag}
+          walletAddress={address ?? null}
+          firstMark={proofMoment.firstMark}
+          submittedAt={proofMoment.submittedAt}
+          onClose={() => setProofMoment(null)}
         />
       ) : null}
 
