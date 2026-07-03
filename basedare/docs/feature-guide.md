@@ -1,16 +1,24 @@
 # BaseDare Feature Guide — what exists, who it's for, how to use it
 
-**Status:** living doc. Grounded in shipped code only — if it's listed here, it
-works on prod today. Gaps are listed at the bottom so promotion never
-overpromises. Goal of this phase: **users and word-of-mouth, not revenue.**
-Every feature below is judged by one question: *does it give someone a reason
-to sign up, come back, or tell a friend?*
+**Status:** living doc. Goal of this phase: **users and word-of-mouth, not
+revenue.** Every feature is judged by one question: *does it give someone a
+reason to sign up, come back, or tell a friend?*
+
+**Every claim in this doc carries one of three labels — never blur them:**
+- **PROMOTE NOW** — shipped, works today, say it out loud to strangers.
+- **DEMO CAREFULLY** — shipped, but needs density or device verification
+  before it demos smoothly. Show it yourself; don't promise it cold.
+- **TARGET FLOW** — designed or partially built. Internal language only.
+
+Copy discipline: never say "Face ID" in product or promo copy — passkeys are
+Face ID on iPhone, fingerprint on Android, QR-to-phone on desktop. Say
+**"Continue with phone"** or **"one-tap passkey."**
 
 ---
 
 ## The five to hammer (promote these, ignore the rest)
 
-### 1. The Living Map — "where's popping right now"
+### 1. The Living Map — "where's popping right now" · PROMOTE NOW
 The map is the feed. Venues glow by verified activity: heat is weighted by
 real proofs, live dares, and recency (a proof in the last hour burns brightest;
 quiet spots visibly cool). Gold = verified, purple = presence, cyan = live
@@ -19,18 +27,18 @@ dare, gray = no proof yet.
 - **How:** basedare.xyz/map → browse free, no signup → tap any venue.
 - **Share moment:** "look what's popping" screenshot.
 
-### 2. Take Proof → the venue-sealed receipt
+### 2. Take Proof → the venue-sealed receipt · DEMO CAREFULLY (until connect flow is device-verified)
 Check in at a venue with GPS + QR and you mint a verified receipt of your
 night — PeeBear-stamped, venue-sealed ("VERIFIED AT HIDEAWAY · #HUMANONLY").
 It's yours forever, on the map, unfakeable.
 - **Hook:** you walked in with nothing; 60 seconds later you own proof you
   were there. Nobody can fake it — not even AI.
-- **How:** map → tap venue → gold **TAKE PROOF** button → Face ID → done.
-  First proof at a virgin venue = you own "FIRST PROOF" there permanently.
+- **How:** map → tap venue → gold **TAKE PROOF** button → one-tap passkey →
+  done. First proof at a virgin venue = you own "FIRST PROOF" permanently.
 - **Share moment:** the receipt card unfurls with the venue seal on X /
   iMessage / anywhere — every share is an ad with your name on it.
 
-### 3. Earned DMs — "you can only message people you've actually met"
+### 3. Earned DMs — "you can only message people you've actually met" · DEMO CAREFULLY (needs check-in density; invisible at zero overlaps)
 Crossed paths = both of you checked in at the same venue the same night
 (verified, ±6h). Only then does the venue panel show them and a 👋 Wave
 button. Cold DMs from randos are impossible by design.
@@ -41,7 +49,7 @@ button. Cold DMs from randos are impossible by design.
 - **Share moment:** the pitch line itself. Say it out loud at a bar and watch
   people install.
 
-### 4. Proof Reels — the night, replayable
+### 4. Proof Reels — the night, replayable · PROMOTE NOW (at venues with proofs)
 Tap **▶ Reel** on any venue's Recent Proofs and watch its verified proofs
 play fullscreen like a story — every frame stamped VERIFIED, credited, and
 timestamped. Snapchat venue stories, except none of it can be faked.
@@ -49,7 +57,7 @@ timestamped. Snapchat venue stories, except none of it can be faked.
   this place actually like at night?").
 - **How:** map → venue panel → Recent Proofs → **▶ Reel** → tap/swipe.
 
-### 5. Streaks + the first-proof land grab
+### 5. Streaks + the first-proof land grab · PROMOTE NOW
 Consecutive nights with a verified proof = a 🔥 streak on your Passport
 (verified-only — can't be botted with posts). Virgin venues show "no proof
 yet": be first anywhere and the FIRST PROOF badge is yours forever.
@@ -110,9 +118,11 @@ yet": be first anywhere and the FIRST PROOF badge is yours forever.
 
 ## Onboarding scripts (the QR-at-venue moment)
 
-**The 60-second flow (target):** scan tabletop QR → venue page → "Claim your
-@tag" → pick a name → Face ID → TAKE PROOF → receipt + share sheet.
-One thumb, one typed word, zero crypto vocabulary.
+**The 60-second flow — TARGET FLOW until device-verified (iOS Safari +
+Android Chrome):** scan tabletop QR → venue page → "Claim your @tag" → pick a
+name → one-tap passkey → TAKE PROOF → receipt + share sheet. One thumb, one
+typed word, zero crypto vocabulary. Success metric: a normal person reaches
+TAKE PROOF without understanding wallets.
 
 **Pitch lines per audience:**
 - Crowd: *"Check in once and you'll never argue about who was actually there."*
@@ -144,8 +154,10 @@ where humans verifiably are · #HumanOnly.
 ---
 
 ## Honest gaps — do NOT promote these yet
-- **Wallet-first connect modal** — smart-wallet/Face ID default not yet
-  shipped (fix queued; today's modal shows MetaMask etc. first).
+- **Passkey-first connect** — SHIPPED (smart wallet is the hero button,
+  crypto wallets under "More wallet options") but NOT yet verified on real
+  devices. Gate: pass the QR → connect → Take Proof run on iOS Safari and
+  Android Chrome, plus desktop fallback, before promoting the 60-second flow.
 - **Meetup creation** — view layer is live; composer is gated behind the
   mobile QA pass. Don't promise "start a meetup" yet.
 - **Referral rewards** — receipts don't carry referral credit yet.

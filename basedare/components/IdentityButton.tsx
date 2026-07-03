@@ -240,10 +240,10 @@ export function IdentityButton() {
             className="w-full rounded-xl border border-[#ffe87a]/70 bg-[linear-gradient(180deg,#ffe36a_0%,#f5c518_55%,#8a5a00_100%)] px-4 py-3 text-left shadow-[0_10px_22px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.6)] transition hover:-translate-y-[1px] disabled:cursor-wait disabled:opacity-70"
           >
             <span className="block text-sm font-black uppercase tracking-[0.08em] text-[#15120c]">
-              {connectingSmartWallet ? 'Opening…' : '✦ Continue with Face ID'}
+              {connectingSmartWallet ? 'Opening…' : '✦ Continue with phone'}
             </span>
             <span className="mt-0.5 block text-[10px] font-semibold text-[#3d2f05]">
-              or fingerprint · no app · no seed phrase · ~10s
+              one-tap passkey · no app · no seed phrase
             </span>
           </button>
         ) : (
@@ -257,7 +257,7 @@ export function IdentityButton() {
             onClick={() => setShowOtherWallets((current) => !current)}
             className="w-full px-3 py-2 text-center text-[11px] font-semibold text-white/45 transition hover:text-white/75"
           >
-            {showOtherWallets ? 'Hide crypto wallets' : 'I have a crypto wallet'}
+            {showOtherWallets ? 'Hide options' : 'More wallet options'}
           </button>
         ) : null}
 
