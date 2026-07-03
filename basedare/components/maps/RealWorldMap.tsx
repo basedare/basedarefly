@@ -1175,16 +1175,6 @@ function getReviewSignalHeatContribution(reviewSignal: VenueReviewSignal) {
   return 4;
 }
 
-function getReviewSignalLabel(reviewSignal: VenueReviewSignal) {
-  if (reviewSignal.count > 0) {
-    const percent = Math.round(reviewSignal.worthItRatio * 100);
-    return reviewSignal.fresh ? `${percent}% fresh` : `${percent}% worth`;
-  }
-
-  if (reviewSignal.state === 'needs-review') return 'needs review';
-  return 'no reviews';
-}
-
 // Trust ladder — the ONLY thing a pin's color may encode (status, never metrics):
 // LIVE DARE (cyan) overrides, then VERIFIED = proof-backed (gold), then
 // PRESENCE = soft signal only (purple), then NO PROOF (gray). Mirrors the
@@ -1209,28 +1199,31 @@ function getTrustColor({
   return '#64748b';
 }
 
+// Marker words follow the trust ladder — status + neutral metrics only.
+// Review sentiment lives in the venue panel (Spot Vault), never on pins.
 function getMapLibreSignalLabel({
   activeDareCount,
   approvedCount,
   matched,
   reviewSignal,
   visualState,
+  heatScore,
 }: {
   activeDareCount: number;
   approvedCount: number;
   matched: boolean;
   reviewSignal: VenueReviewSignal;
   visualState: PlaceVisualState;
+  heatScore: number;
 }) {
   if (activeDareCount > 1) return `${activeDareCount} live`;
   if (activeDareCount === 1) return 'live dare';
-  if (reviewSignal.fresh && reviewSignal.count > 0) return 'fresh signal';
-  if (reviewSignal.state === 'worth-it') return 'worth it';
-  if (reviewSignal.state === 'needs-review') return 'needs review';
-  if (matched) return 'for you';
   if (approvedCount > 1) return `${approvedCount} proofs`;
   if (approvedCount === 1) return 'first proof';
+  if (reviewSignal.count > 0) return 'verified';
+  if (matched) return 'for you';
   if (visualState === 'pending') return 'pending';
+  if (heatScore > 0) return 'presence';
   return 'no proof';
 }
 
@@ -1303,6 +1296,7 @@ function buildVenueSignalCollection({
             matched,
             reviewSignal,
             visualState,
+            heatScore: place.tagSummary.heatScore,
           }),
         },
         geometry: {
@@ -3052,7 +3046,6 @@ function createPeebearMarkerHtml({
   activated = false,
   activationLabel,
   legends,
-  reviewSignal = getEmptyVenueReviewSignal(),
   liveTonight = false,
 }: {
   pulse: PulseState;
@@ -3067,15 +3060,12 @@ function createPeebearMarkerHtml({
   activated?: boolean;
   activationLabel?: string;
   legends?: VenueLegend[];
-  reviewSignal?: VenueReviewSignal;
   liveTonight?: boolean;
 }) {
   const badge = getSparkBadge(approvedCount);
   const showRipple = !compact && (pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark');
   const showCount = approvedCount > 0;
   const showPulseChip = !compact && heatScore > 0;
-  const showReviewSignal = !compact && reviewSignal.state !== 'none';
-  const reviewSignalLabel = getReviewSignalLabel(reviewSignal);
   const hasChallengeLive = challengeLiveCount > 0;
   const showChallengeLiveChrome = hasChallengeLive && !compact;
   const showMatchBadge = matched && !compact;
@@ -3085,10 +3075,10 @@ function createPeebearMarkerHtml({
       : visualState === 'pending'
         ? 'PENDING'
         : visualState === 'hot'
-          ? 'HOT'
+          ? 'VERIFIED'
           : visualState === 'active'
             ? 'VERIFIED'
-            : 'OPEN';
+            : 'NO PROOF';
   const activationBadgeLabel = activationLabel ?? 'ACTIVATED';
   const safeActivationBadgeLabel = escapeMarkerAttribute(activationBadgeLabel);
   const liveLabel =
@@ -3099,8 +3089,7 @@ function createPeebearMarkerHtml({
   const venueLabel = getMarkerVenueLabel(venueName);
   const safeVenueLabel = venueLabel ? escapeMarkerAttribute(venueLabel) : null;
   const safeVenueTitle = venueName ? escapeMarkerAttribute(venueName) : null;
-  const safeReviewSignalLabel = escapeMarkerAttribute(reviewSignalLabel);
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}:${reviewSignal.state}:${reviewSignal.count}:${reviewSignal.fresh ? 'fresh' : 'stale'}:${liveTonight ? 'tonight' : 'off-night'}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}:${liveTonight ? 'tonight' : 'off-night'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -3108,7 +3097,7 @@ function createPeebearMarkerHtml({
   }
 
   const html = `
-    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} peebear-marker--review-${reviewSignal.state} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${showReviewSignal ? 'has-review-signal' : ''} ${reviewSignal.fresh ? 'is-review-fresh' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${liveTonight ? 'is-live-tonight' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
+    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${liveTonight ? 'is-live-tonight' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
       ${
         safeVenueLabel
           ? `<span class="peebear-venue-label ${activated ? 'peebear-venue-label--activated' : ''}" title="${safeVenueTitle ?? safeVenueLabel}"><span class="peebear-venue-label-name">${safeVenueLabel}</span></span>`
@@ -3117,7 +3106,6 @@ function createPeebearMarkerHtml({
       ${liveTonight ? `<span class="peebear-tonight-ring" aria-hidden="true"></span>${compact ? '' : '<span class="peebear-tonight-pill">TONIGHT</span>'}` : ''}
       ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
       ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
-      ${showReviewSignal ? `<span class="peebear-review-aura" aria-hidden="true"></span><span class="peebear-review-signal">${safeReviewSignalLabel}</span>` : ''}
       ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
       ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
       ${
@@ -8169,7 +8157,6 @@ export default function RealWorldMap() {
       activated: selectedVenueActivated,
       activationLabel: getVenueActivationMarkerLabel(selectedCommandCenter),
       legends: selectedVenueProfile?.legends,
-      reviewSignal: selectedPlace.reviewSignal,
       liveTonight: isVenueNightTonight(selectedPlace.name, selectedPlace.slug),
     });
   }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
@@ -8427,7 +8414,6 @@ export default function RealWorldMap() {
           activated: activatedVenue,
           activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
           legends: place.profile?.legends,
-          reviewSignal,
           liveTonight: isVenueNightTonight(place.name, place.slug),
         }),
         className: 'basedare-maplibre-marker basedare-maplibre-marker--venue',
