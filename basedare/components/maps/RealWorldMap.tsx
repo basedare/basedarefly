@@ -57,6 +57,7 @@ import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import type { VenueLegend, VenueMemorySummary, VenueProfileSummary, VenueSessionSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import ProofReel from '@/components/maps/ProofReel';
+import LayerReelBar from '@/components/maps/LayerReelBar';
 import {
   createMeetupMarkerHtml,
   meetupPassesLayerFilter,
@@ -10151,6 +10152,14 @@ export default function RealWorldMap() {
                 once real meetups exist, so the paid map is untouched until then. */}
             {meetups.length > 0 ? (
               <div className="pointer-events-auto absolute left-1/2 top-3 z-[12] flex max-w-[calc(100%-6.5rem)] -translate-x-1/2 flex-col items-center gap-2">
+                {isMobileViewport ? (
+                  <LayerReelBar
+                    options={MAP_LAYER_FILTERS.map((key) => ({ value: key, label: MAP_LAYER_FILTER_LABELS[key] }))}
+                    value={mapLayerFilter}
+                    onChange={(next) => setMapLayerFilter(next as MapLayerFilter)}
+                    onTick={() => triggerHaptic('selection')}
+                  />
+                ) : (
                 <div className="flex flex-wrap items-center gap-1 rounded-full border border-white/12 bg-black/55 p-1 shadow-[0_10px_28px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl">
                   {MAP_LAYER_FILTERS.map((key) => {
                     const active = mapLayerFilter === key;
@@ -10170,6 +10179,7 @@ export default function RealWorldMap() {
                     );
                   })}
                 </div>
+                )}
                 <div className="hidden flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-black/45 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur md:flex">
                   <span className="inline-flex items-center gap-1.5">
                     <span className="inline-block h-2.5 w-2.5 rounded-full bg-[linear-gradient(180deg,#fff0a8,#f5c518)]" aria-hidden="true" />
