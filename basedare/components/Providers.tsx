@@ -23,7 +23,10 @@ const config = createConfig({
     injected({ target: 'metaMask', unstable_shimAsyncInject: 1000 }),
     injected({ target: 'braveWallet', unstable_shimAsyncInject: 1000 }),
     injected({ unstable_shimAsyncInject: 1000 }), // Fallback for other browser wallets
-    coinbaseWallet({ appName: 'BaseDare', preference: 'all' }),
+    // smartWalletOnly = the passkey path (Face ID / fingerprint, no extension,
+    // no seed phrase) — the onboarding hero. Coinbase-extension users still
+    // connect through the injected fallback above.
+    coinbaseWallet({ appName: 'BaseDare', preference: 'smartWalletOnly' }),
     ...(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
       ? [walletConnect({ projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID })]
       : []),

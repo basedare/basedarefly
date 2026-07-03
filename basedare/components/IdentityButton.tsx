@@ -77,6 +77,7 @@ export function IdentityButton() {
   const { disconnect } = useDisconnect();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showWalletPicker, setShowWalletPicker] = useState(false);
+  const [showOtherWallets, setShowOtherWallets] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [pendingConnectorUid, setPendingConnectorUid] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -162,6 +163,7 @@ export function IdentityButton() {
     } else {
       trigger('connect');
       setConnectError(null);
+      setShowOtherWallets(false);
       setShowWalletPicker(!showWalletPicker);
       setShowDropdown(false);
     }
@@ -210,47 +212,79 @@ export function IdentityButton() {
     </div>
   ) : null;
 
+  const smartWalletEntry = uniqueConnectors.find(({ meta }) => meta.key === 'coinbase') ?? null;
+  const otherConnectors = orderedConnectors.filter(({ meta }) => meta.key !== 'coinbase');
+  const connectingSmartWallet =
+    isPending && smartWalletEntry !== null && pendingConnectorUid === smartWalletEntry.connector.uid;
+
   const walletPicker = showWalletPicker && !isConnected ? (
     <div
       ref={walletPickerRef}
-      className="fixed w-64 bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[200]"
+      className="fixed w-72 bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[200]"
       style={{ top: menuPosition.top, right: menuPosition.right }}
     >
       <div className="px-4 py-3 border-b border-white/[0.06] bg-black/40">
-        <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black text-center">Select Vault</p>
+        <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black text-center">Sign in to BaseDare</p>
       </div>
-      <div className="flex flex-col p-2 gap-1">
-        {uniqueConnectors.length === 0 && (
-          <div className="px-3 py-4 text-center text-xs text-white/50">
-            No wallet providers detected. Install a wallet extension or open in a wallet browser.
-          </div>
-        )}
+      <div className="flex flex-col p-2 gap-1.5">
         {connectError ? (
           <div className="mb-1 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-200">
             {connectError}
           </div>
         ) : null}
-        {isMobile && orderedConnectors.length > 0 ? (
-          <p className="px-3 pb-1 pt-0.5 text-[10px] leading-4 text-white/40">
-            On mobile? Pick WalletConnect to open your wallet app directly.
-          </p>
-        ) : null}
-        {orderedConnectors.map(({ connector, meta }) => {
-          const finalMeta = meta;
-          const isConnectingThisWallet = isPending && pendingConnectorUid === connector.uid;
 
-          return (
-            <button
-              key={`${meta.key}:${connector.id}`}
-              onClick={() => handleConnectWallet(connector)}
-              disabled={isPending}
-              className="w-full px-4 py-3 text-left text-sm text-gray-300 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all flex items-center gap-3 border border-transparent hover:border-white/10 group/btn disabled:cursor-wait disabled:opacity-60"
-            >
-              <span className="text-xl group-hover/btn:scale-110 transition-transform">{finalMeta.icon}</span>
-              <span className="font-semibold">{isConnectingThisWallet ? 'Connecting...' : finalMeta.label}</span>
-            </button>
-          );
-        })}
+        {smartWalletEntry ? (
+          <button
+            onClick={() => handleConnectWallet(smartWalletEntry.connector)}
+            disabled={isPending}
+            className="w-full rounded-xl border border-[#ffe87a]/70 bg-[linear-gradient(180deg,#ffe36a_0%,#f5c518_55%,#8a5a00_100%)] px-4 py-3 text-left shadow-[0_10px_22px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.6)] transition hover:-translate-y-[1px] disabled:cursor-wait disabled:opacity-70"
+          >
+            <span className="block text-sm font-black uppercase tracking-[0.08em] text-[#15120c]">
+              {connectingSmartWallet ? 'Opening…' : '✦ Continue with Face ID'}
+            </span>
+            <span className="mt-0.5 block text-[10px] font-semibold text-[#3d2f05]">
+              or fingerprint · no app · no seed phrase · ~10s
+            </span>
+          </button>
+        ) : (
+          <div className="px-3 py-4 text-center text-xs text-white/50">
+            No sign-in providers detected. Try a different browser.
+          </div>
+        )}
+
+        {otherConnectors.length > 0 ? (
+          <button
+            onClick={() => setShowOtherWallets((current) => !current)}
+            className="w-full px-3 py-2 text-center text-[11px] font-semibold text-white/45 transition hover:text-white/75"
+          >
+            {showOtherWallets ? 'Hide crypto wallets' : 'I have a crypto wallet'}
+          </button>
+        ) : null}
+
+        {showOtherWallets ? (
+          <>
+            {isMobile && otherConnectors.length > 0 ? (
+              <p className="px-3 pb-1 pt-0.5 text-[10px] leading-4 text-white/40">
+                On mobile? Pick WalletConnect to open your wallet app directly.
+              </p>
+            ) : null}
+            {otherConnectors.map(({ connector, meta }) => {
+              const isConnectingThisWallet = isPending && pendingConnectorUid === connector.uid;
+
+              return (
+                <button
+                  key={`${meta.key}:${connector.id}`}
+                  onClick={() => handleConnectWallet(connector)}
+                  disabled={isPending}
+                  className="w-full px-4 py-3 text-left text-sm text-gray-300 hover:text-white hover:bg-white/[0.08] rounded-lg transition-all flex items-center gap-3 border border-transparent hover:border-white/10 group/btn disabled:cursor-wait disabled:opacity-60"
+                >
+                  <span className="text-xl group-hover/btn:scale-110 transition-transform">{meta.icon}</span>
+                  <span className="font-semibold">{isConnectingThisWallet ? 'Connecting...' : meta.label}</span>
+                </button>
+              );
+            })}
+          </>
+        ) : null}
       </div>
     </div>
   ) : null;
