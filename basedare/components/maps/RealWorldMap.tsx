@@ -6829,6 +6829,27 @@ export default function RealWorldMap() {
     return items.slice(0, 5);
   }, [happeningWindow, localSignals, nearbyDareFeed, nearbyPlaceBySlug, nearbyPlaces, userLocation, viewportCenter]);
   const featuredMapHappening = mapHappenings[0] ?? null;
+  // Snap-style spike surfacing: a venue is "popping" when a dare is live or
+  // verified proof landed in the last 6h — ranked by recency-weighted chaos.
+  const poppingNowSpike = useMemo(() => {
+    const candidates = nearbyPlaces.filter((place) => {
+      if (place.activeDareCount > 0) return true;
+      if (!place.tagSummary.lastTaggedAt) return false;
+      const hoursSince = (Date.now() - new Date(place.tagSummary.lastTaggedAt).getTime()) / 3_600_000;
+      return Number.isFinite(hoursSince) && hoursSince >= 0 && hoursSince <= 6;
+    });
+    if (candidates.length === 0) return null;
+    const top = candidates.reduce((best, place) =>
+      getChaosLevelForPlace(place) > getChaosLevelForPlace(best) ? place : best
+    );
+    return {
+      place: top,
+      label:
+        top.activeDareCount > 0
+          ? `${top.name} — ${top.activeDareCount > 1 ? `${top.activeDareCount} dares live` : 'live dare'}`
+          : `${top.name} — proof ${getLastSparkLabel(top.tagSummary.lastTaggedAt).replace('Last proof ', '')}`,
+    };
+  }, [nearbyPlaces]);
   const firstProofStartPlace = useMemo(() => {
     const happeningPlace = mapHappenings.find(
       (happening) => happening.place && happening.rewardLabel === 'First proof'
@@ -10331,12 +10352,18 @@ export default function RealWorldMap() {
                         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
                           Nearby now
                         </p>
-                        <p className="mt-1 truncate text-[11px] text-white/52">
+                        <p
+                          className={`mt-1 truncate text-[11px] ${
+                            poppingNowSpike && !happeningLoading ? 'font-semibold text-[#f8dd72]' : 'text-white/52'
+                          }`}
+                        >
                           {happeningLoading
                             ? 'Scanning nearby...'
-                            : featuredMapHappening
-                              ? `Best next: ${featuredMapHappening.title}`
-                              : 'Move the map or take first proof'}
+                            : poppingNowSpike
+                              ? `⚡ Popping now: ${poppingNowSpike.label}`
+                              : featuredMapHappening
+                                ? `Best next: ${featuredMapHappening.title}`
+                                : 'Move the map or take first proof'}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -10376,12 +10403,18 @@ export default function RealWorldMap() {
                       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
                         Nearby now
                       </p>
-                      <p className="mt-1 text-[11px] text-white/55">
-                        {featuredMapHappening
-                          ? `Best next: ${featuredMapHappening.title}`
-                          : userLocation
-                            ? 'Closest useful moves.'
-                            : `${happeningWindow.dateLabel} around the map`}
+                      <p
+                        className={`mt-1 text-[11px] ${
+                          poppingNowSpike ? 'font-semibold text-[#f8dd72]' : 'text-white/55'
+                        }`}
+                      >
+                        {poppingNowSpike
+                          ? `⚡ Popping now: ${poppingNowSpike.label}`
+                          : featuredMapHappening
+                            ? `Best next: ${featuredMapHappening.title}`
+                            : userLocation
+                              ? 'Closest useful moves.'
+                              : `${happeningWindow.dateLabel} around the map`}
                       </p>
                     </div>
                     <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
