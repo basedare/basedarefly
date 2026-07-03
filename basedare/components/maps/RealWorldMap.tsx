@@ -1227,14 +1227,36 @@ function getMapLibreSignalLabel({
   return 'no proof';
 }
 
+// Recency pushes heat toward "popping now": fresh verified activity boosts a
+// venue across every chaos-driven layer; long-quiet spots visibly cool off.
+function getRecencyHeatBoost(lastTaggedAt: string | null) {
+  if (!lastTaggedAt) return 0;
+  const hoursSince = (Date.now() - new Date(lastTaggedAt).getTime()) / 3_600_000;
+  if (!Number.isFinite(hoursSince) || hoursSince < 0) return 0;
+  if (hoursSince <= 1) return 30;
+  if (hoursSince <= 6) return 18;
+  if (hoursSince <= 24) return 10;
+  if (hoursSince <= 72) return 4;
+  return 0;
+}
+
 function getChaosLevelForPlace(place: NearbyPlace) {
   const approvedCount = place.tagSummary.approvedCount;
   const heatScore = place.tagSummary.heatScore;
   const liveSignal = place.activeDareCount * 22;
   const memorySignal = approvedCount * 7;
   const reviewSignal = getReviewSignalHeatContribution(getVenueReviewSignal(place));
+  const recencyBoost = getRecencyHeatBoost(place.tagSummary.lastTaggedAt);
+  const hoursSinceLast = place.tagSummary.lastTaggedAt
+    ? (Date.now() - new Date(place.tagSummary.lastTaggedAt).getTime()) / 3_600_000
+    : Number.POSITIVE_INFINITY;
+  // Two quiet weeks with nothing live -> the spot cools instead of glowing forever.
+  const staleDamp = place.activeDareCount === 0 && hoursSinceLast > 336 ? 0.7 : 1;
 
-  return Math.min(100, Math.max(8, heatScore + liveSignal + memorySignal + reviewSignal));
+  return Math.min(
+    100,
+    Math.max(8, Math.round((heatScore + liveSignal + memorySignal + reviewSignal + recencyBoost) * staleDamp))
+  );
 }
 
 function buildVenueSignalCollection({
@@ -1719,9 +1741,19 @@ function ensureMapLibreDareLayers(
           100,
           1,
         ],
-        'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 10, 0.7, 15, 1.8],
-        'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 18, 15, 46],
-        'heatmap-opacity': preset === 'noir' ? 0.16 : 0.22,
+        'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 10, 1.15, 15, 1.9],
+        'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 30, 13, 40, 15, 52],
+        'heatmap-opacity': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          10,
+          preset === 'noir' ? 0.44 : 0.55,
+          13.5,
+          preset === 'noir' ? 0.3 : 0.4,
+          15.5,
+          preset === 'noir' ? 0.1 : 0.14,
+        ],
         'heatmap-color': [
           'interpolate',
           ['linear'],
@@ -1729,13 +1761,13 @@ function ensureMapLibreDareLayers(
           0,
           'rgba(0,0,0,0)',
           0.18,
-          'rgba(34,211,238,0.12)',
+          'rgba(34,211,238,0.16)',
           0.42,
-          'rgba(34,211,238,0.24)',
+          'rgba(34,211,238,0.3)',
           0.72,
-          'rgba(245,197,24,0.32)',
-          1,
           'rgba(245,197,24,0.42)',
+          1,
+          'rgba(245,197,24,0.55)',
         ],
       },
     },
