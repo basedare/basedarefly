@@ -4,6 +4,7 @@ import { isAddress } from 'viem';
 import { z } from 'zod';
 
 import { createWalletNotification } from '@/lib/notifications';
+import { haveCrossedPaths } from '@/lib/crossed-paths';
 import { getInboxApiError } from '@/lib/inbox-errors';
 import { prisma } from '@/lib/prisma';
 import { alertInboxSupportMessage } from '@/lib/telegram';
@@ -618,6 +619,27 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Stranger DMs are earned, not free: a brand-new DIRECT thread (no venue,
+      // dare, campaign, or support context) requires a verified crossed path —
+      // both wallets checked in at the same venue within the same window.
+      let crossedPathVenueId: string | null = null;
+      let crossedPathAt: string | null = null;
+      if (!existingThread && !input.support && !resolved.venue && !resolved.dare && !resolved.campaign && resolved.recipientWallet) {
+        const crossing = await haveCrossedPaths(senderWallet, resolved.recipientWallet);
+        if (!crossing) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                'Direct messages unlock after you verifiably cross paths — check in at the same spot as this person first.',
+            },
+            { status: 403 }
+          );
+        }
+        crossedPathVenueId = crossing.venueId;
+        crossedPathAt = crossing.at.toISOString();
+      }
+
       thread = existingThread ?? await prisma.inboxThread.create({
         data: {
           type: input.support ? 'SUPPORT' : resolved.venue ? 'VENUE' : resolved.campaign ? 'CAMPAIGN' : resolved.dare ? 'DARE' : 'DIRECT',
@@ -628,6 +650,8 @@ export async function POST(request: NextRequest) {
           dareId: resolved.dare?.id ?? null,
           campaignId: resolved.campaign?.id ?? null,
           metadataJson: {
+            crossedPathVenueId,
+            crossedPathAt,
             recipientTag: resolved.recipientTag ?? null,
             supportQueue: input.support ? 'ADMIN' : null,
             supportStatus: input.support ? 'OPEN' : null,
