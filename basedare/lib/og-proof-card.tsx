@@ -26,6 +26,8 @@ type ProofCardOptions = {
   badge?: string;
   badgeTone?: 'emerald' | 'gold';
   footerNote?: string;
+  /** Venue-branded verification seal — turns every shared receipt into venue marketing. */
+  venueStamp?: { name: string } | null;
 };
 
 function titleFontSize(title: string): number {
@@ -45,6 +47,7 @@ export function renderProofCard(opts: ProofCardOptions): ImageResponse {
     badge = 'VERIFIED',
     badgeTone = 'emerald',
     footerNote = 'verified human action · no middlemen',
+    venueStamp = null,
   } = opts;
 
   const badgeColor = badgeTone === 'gold' ? GOLD : '#34d399';
@@ -58,6 +61,7 @@ export function renderProofCard(opts: ProofCardOptions): ImageResponse {
           width: '1200px',
           height: '630px',
           display: 'flex',
+          position: 'relative',
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: '64px',
@@ -65,6 +69,63 @@ export function renderProofCard(opts: ProofCardOptions): ImageResponse {
           color: '#ffffff',
         }}
       >
+        {venueStamp ? (
+          <div
+            style={{
+              position: 'absolute',
+              right: '76px',
+              top: '196px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '212px',
+              height: '212px',
+              borderRadius: '9999px',
+              border: '3px solid rgba(245,197,24,0.75)',
+              boxShadow: 'inset 0 0 0 8px #05050c, inset 0 0 0 11px rgba(245,197,24,0.45)',
+              background: 'rgba(245,197,24,0.07)',
+              transform: 'rotate(-8deg)',
+              color: GOLD,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                fontSize: '16px',
+                letterSpacing: '3px',
+                fontWeight: 700,
+                color: 'rgba(245,197,24,0.8)',
+              }}
+            >
+              VERIFIED AT
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                textAlign: 'center',
+                maxWidth: '176px',
+                margin: '8px 0',
+                fontSize: venueStamp.name.length > 12 ? '23px' : '30px',
+                fontWeight: 800,
+                letterSpacing: '1px',
+              }}
+            >
+              {venueStamp.name.toUpperCase()}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                fontSize: '14px',
+                letterSpacing: '2px',
+                color: 'rgba(245,197,24,0.7)',
+              }}
+            >
+              ✓ #HUMANONLY
+            </div>
+          </div>
+        ) : null}
         {/* top row: wordmark + verified badge */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', fontSize: '34px', fontWeight: 800, letterSpacing: '2px', color: GOLD }}>
@@ -101,7 +162,15 @@ export function renderProofCard(opts: ProofCardOptions): ImageResponse {
           >
             {eyebrow}
           </div>
-          <div style={{ display: 'flex', fontSize: `${titleFontSize(title)}px`, fontWeight: 800, lineHeight: 1.05 }}>
+          <div
+            style={{
+              display: 'flex',
+              fontSize: `${titleFontSize(title)}px`,
+              fontWeight: 800,
+              lineHeight: 1.05,
+              maxWidth: venueStamp ? '790px' : '1060px',
+            }}
+          >
             {title}
           </div>
           {location ? (

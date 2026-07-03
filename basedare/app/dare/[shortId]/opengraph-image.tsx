@@ -18,7 +18,14 @@ export default async function Image({ params }: { params: Promise<{ shortId: str
 
   const dare = await prisma.dare.findFirst({
     where: { OR: [{ shortId }, { id: shortId }] },
-    select: { title: true, bounty: true, streamerHandle: true, status: true },
+    select: {
+      title: true,
+      bounty: true,
+      streamerHandle: true,
+      status: true,
+      locationLabel: true,
+      venue: { select: { name: true } },
+    },
   });
 
   if (!dare) {
@@ -39,8 +46,10 @@ export default async function Image({ params }: { params: Promise<{ shortId: str
   const verified = ['VERIFIED', 'PAID', 'COMPLETED'].includes(status);
   const target = dare.streamerHandle ? `@${dare.streamerHandle.replace(/^@/, '')}` : null;
   const amount = formatAmount(dare.bounty);
+  const venueName = dare.venue?.name ?? dare.locationLabel ?? null;
 
   return renderProofCard({
+    venueStamp: venueName ? { name: venueName } : null,
     eyebrow: verified ? 'VERIFIED DARE' : target ? 'OPEN DARE' : 'OPEN BOUNTY',
     title: dare.title,
     location: target ? `Target: ${target}` : 'Open to anyone',
