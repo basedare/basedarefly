@@ -1,7 +1,7 @@
 'use client';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, RefreshCw } from 'lucide-react';
+import { Sparkles, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import SquircleButton from '@/components/ui/SquircleButton';
 import { useFeedback } from '@/hooks/useFeedback';
 import { cn } from '@/lib/utils';
@@ -235,6 +235,34 @@ export default function DareGenerator({
     return () => el.removeEventListener('wheel', handleWheel);
   }, []);
 
+  // Wheel-scroll is real but invisible — desktop needs a discoverable way to
+  // reach cut-off lanes. Chevron paddles page the rail; each shows only while
+  // there is actually overflow in that direction.
+  const [railOverflow, setRailOverflow] = useState({ left: false, right: false });
+  useEffect(() => {
+    const el = segmentScrollRef.current;
+    if (!el) return;
+    const update = () => {
+      setRailOverflow({
+        left: el.scrollLeft > 4,
+        right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
+      });
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, []);
+
+  const pageRail = useCallback((direction: -1 | 1) => {
+    const el = segmentScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction * el.clientWidth * 0.6, behavior: 'smooth' });
+  }, []);
+
   // Only report context once a lane is chosen — no mount-time default leaks out.
   useEffect(() => {
     if (!category) return;
@@ -354,6 +382,27 @@ export default function DareGenerator({
           <Sparkles className="w-4 h-4 text-[#FFD700]" /> Mission Type
         </h3>
 
+        <div className="relative">
+          {railOverflow.left ? (
+            <button
+              type="button"
+              onClick={() => pageRail(-1)}
+              aria-label="Scroll mission types left"
+              className="absolute -left-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/14 bg-[#0c0a16]/95 text-white/75 shadow-[0_10px_22px_rgba(0,0,0,0.5)] transition hover:text-white md:flex"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          ) : null}
+          {railOverflow.right ? (
+            <button
+              type="button"
+              onClick={() => pageRail(1)}
+              aria-label="Scroll mission types right"
+              className="absolute -right-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/14 bg-[#0c0a16]/95 text-white/75 shadow-[0_10px_22px_rgba(0,0,0,0.5)] transition hover:text-white md:flex"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          ) : null}
         <div ref={segmentScrollRef} className="overflow-x-auto scrollbar-hide -mx-2 px-2 md:mx-0 md:px-0">
           <div
             onPointerDown={handleSegmentRailPointerDown}
@@ -428,6 +477,7 @@ export default function DareGenerator({
               );
             })}
           </div>
+        </div>
         </div>
       </div>
 
