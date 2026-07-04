@@ -166,6 +166,7 @@ type NearbyPlace = {
   profile?: VenueProfileSummary;
   activeDareCount: number;
   checkInCount: number;
+  mayor?: { tag: string; proofCount: number } | null;
 };
 
 type SelectedPlace = {
@@ -3018,6 +3019,7 @@ function createPeebearMarkerHtml({
   activationLabel,
   legends,
   liveTonight = false,
+  mayorTag = null,
 }: {
   pulse: PulseState;
   approvedCount: number;
@@ -3032,6 +3034,7 @@ function createPeebearMarkerHtml({
   activationLabel?: string;
   legends?: VenueLegend[];
   liveTonight?: boolean;
+  mayorTag?: string | null;
 }) {
   const badge = getSparkBadge(approvedCount);
   const showRipple = !compact && (pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark');
@@ -3062,7 +3065,8 @@ function createPeebearMarkerHtml({
   const venueLabel = getMarkerVenueLabel(venueName);
   const safeVenueLabel = venueLabel ? escapeMarkerAttribute(venueLabel) : null;
   const safeVenueTitle = venueName ? escapeMarkerAttribute(venueName) : null;
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}:${liveTonight ? 'tonight' : 'off-night'}`;
+  const safeMayorTag = mayorTag ? escapeMarkerAttribute(mayorTag.replace(/^@/, '').slice(0, 12).toUpperCase()) : null;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${liveTonight ? 'tonight' : 'off-night'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -3095,6 +3099,7 @@ function createPeebearMarkerHtml({
         <img src="/assets/peebear-head.webp" alt="PeeBear pin" class="peebear-head" />
       </div>
       <div class="peebear-meta">
+        ${safeMayorTag && !compact ? `<span class="peebear-mayor">👑 ${safeMayorTag}</span>` : ''}
         ${showPulseChip ? `<span class="peebear-pulse-pill peebear-pulse-pill--${pulse}">HEAT ${Math.min(heatScore, 99)}</span>` : ''}
         <span class="peebear-state peebear-state--${visualState}">${stateLabel}</span>
       </div>
@@ -3376,6 +3381,11 @@ export default function RealWorldMap() {
   const [crossedPathsPeople, setCrossedPathsPeople] = useState<
     { tag: string; pfpUrl: string | null; lastCrossedAt: string }[]
   >([]);
+  const selectedMayor = useMemo(() => {
+    const slug = selectedPlace?.slug;
+    if (!slug) return null;
+    return nearbyPlaces.find((place) => place.slug === slug)?.mayor ?? null;
+  }, [nearbyPlaces, selectedPlace?.slug]);
   // Verified-overlap discovery for the selected venue. Cookie-session read:
   // signed-out viewers get an empty list and the section simply never shows.
   useEffect(() => {
@@ -8186,8 +8196,11 @@ export default function RealWorldMap() {
       activationLabel: getVenueActivationMarkerLabel(selectedCommandCenter),
       legends: selectedVenueProfile?.legends,
       liveTonight: isVenueNightTonight(selectedPlace.name, selectedPlace.slug),
+      mayorTag: selectedPlace.slug
+        ? nearbyPlaces.find((place) => place.slug === selectedPlace.slug)?.mayor?.tag ?? null
+        : null,
     });
-  }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
+  }, [nearbyPlaces, selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
   const currentLocationMarkerHtml = useMemo(
     () => createCurrentLocationMarkerHtml({ centered: isUserCentered, heading: userHeading }),
     [isUserCentered, userHeading]
@@ -8443,6 +8456,7 @@ export default function RealWorldMap() {
           activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
           legends: place.profile?.legends,
           liveTonight: isVenueNightTonight(place.name, place.slug),
+          mayorTag: place.mayor?.tag ?? null,
         }),
         className: 'basedare-maplibre-marker basedare-maplibre-marker--venue',
         anchor: 'bottom',
@@ -10951,6 +10965,11 @@ export default function RealWorldMap() {
                         </p>
                       ) : null}
                       {selectedPlaceStateCard}
+                      {selectedMayor ? (
+                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#f8dd72]">
+                          👑 Mayor @{selectedMayor.tag.replace(/^@/, '')} · {selectedMayor.proofCount} proofs / 30d
+                        </div>
+                      ) : null}
                       <div className="mt-2 flex items-start gap-2 rounded-[16px] border border-white/10 bg-white/[0.045] px-3 py-2 text-xs leading-snug text-white/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] md:mt-3 md:rounded-[18px] md:text-sm md:leading-relaxed">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
                         <span className="line-clamp-1 min-w-0 md:line-clamp-2">
@@ -15773,6 +15792,25 @@ export default function RealWorldMap() {
           display: none;
         }
 
+        .basedare-maplibre-map :global(.peebear-mayor) {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          border-radius: 9999px;
+          border: 1px solid rgba(245, 197, 24, 0.55);
+          background: linear-gradient(180deg, rgba(245, 197, 24, 0.26), rgba(90, 60, 4, 0.6));
+          padding: 2px 7px;
+          font-size: 8px;
+          font-weight: 900;
+          letter-spacing: 0.08em;
+          color: #ffe9a8;
+          text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+          box-shadow:
+            0 6px 12px rgba(0, 0, 0, 0.3),
+            0 0 12px rgba(245, 197, 24, 0.22),
+            inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        }
+
         .basedare-maplibre-map :global(.venue-legend-stack) {
           position: absolute;
           left: 50%;
@@ -16819,6 +16857,7 @@ export default function RealWorldMap() {
         /* Label declutter by zoom band (set imperatively in syncViewport).
            FAR: only Lit pins + the selected pin speak; everything else is bears. */
         .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-mayor),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-pulse-pill),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-state),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-count),

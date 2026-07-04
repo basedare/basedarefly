@@ -37,6 +37,7 @@ import type {
   VenueRoiSnapshot,
   BrandVenueRadarItem,
   NearbyVenueItem,
+  VenueMayorSummary,
   VenueCommandCenterSummary,
   VenueDetail,
   VenueCreatorContribution,
@@ -1689,6 +1690,59 @@ export async function getBrandVenueRadar(input: {
   }));
 }
 
+const MAYOR_WINDOW_DAYS = 30;
+const MAYOR_MIN_PROOFS = 2;
+
+/**
+ * Mayor 👑 — the wallet with the most APPROVED proofs at a venue over the
+ * last 30 days (minimum 2), crowned only while it holds a claimed Baretag.
+ * Rolling window by design: crowns can be taken, which is the whole game.
+ */
+async function getVenueMayorMap(venueIds: string[]): Promise<Map<string, VenueMayorSummary>> {
+  const mayorMap = new Map<string, VenueMayorSummary>();
+  if (venueIds.length === 0) return mayorMap;
+
+  const since = new Date(Date.now() - MAYOR_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const grouped = await prisma.placeTag.groupBy({
+    by: ['venueId', 'walletAddress'],
+    where: { venueId: { in: venueIds }, status: 'APPROVED', submittedAt: { gte: since } },
+    _count: { _all: true },
+    _max: { submittedAt: true },
+  });
+
+  type MayorCandidate = { walletAddress: string; proofCount: number; latestAt: number };
+  const topByVenue = new Map<string, MayorCandidate>();
+  for (const row of grouped) {
+    const proofCount = row._count._all;
+    if (proofCount < MAYOR_MIN_PROOFS) continue;
+    const latestAt = row._max.submittedAt ? row._max.submittedAt.getTime() : 0;
+    const current = topByVenue.get(row.venueId);
+    if (
+      !current ||
+      proofCount > current.proofCount ||
+      (proofCount === current.proofCount && latestAt > current.latestAt)
+    ) {
+      topByVenue.set(row.venueId, { walletAddress: row.walletAddress, proofCount, latestAt });
+    }
+  }
+  if (topByVenue.size === 0) return mayorMap;
+
+  const wallets = [...new Set([...topByVenue.values()].map((candidate) => candidate.walletAddress))];
+  const walletVariants = [...new Set(wallets.flatMap((wallet) => [wallet, wallet.toLowerCase()]))];
+  const tags = await prisma.streamerTag.findMany({
+    where: { walletAddress: { in: walletVariants }, NOT: { status: 'REVOKED' } },
+    select: { tag: true, walletAddress: true },
+  });
+  const tagByWallet = new Map(tags.map((row) => [row.walletAddress.toLowerCase(), row.tag]));
+
+  for (const [venueId, candidate] of topByVenue) {
+    const tag = tagByWallet.get(candidate.walletAddress.toLowerCase());
+    if (!tag) continue; // The crown requires a claimed public identity.
+    mayorMap.set(venueId, { tag, proofCount: candidate.proofCount });
+  }
+  return mayorMap;
+}
+
 export async function getNearbyVenues(input: {
   lat: number;
   lng: number;
@@ -1786,6 +1840,7 @@ export async function getNearbyVenues(input: {
   const tagSummaryMap = await getApprovedTagSummaryMap(venueIds);
   const checkInCounts = new Map(venues.map((venue) => [venue.id, venue._count.checkIns]));
   const reviewSignalMap = await getVenueReviewSignalMap(venueIds, checkInCounts);
+  const mayorMap = await getVenueMayorMap(venueIds);
 
   const nearbyVenues: NearbyVenueItem[] = venues
     .map((venue) => {
@@ -1796,6 +1851,7 @@ export async function getNearbyVenues(input: {
 
       const memorySummary = mapMemorySummary(venue.memories[0] ?? null);
       const tagSummary = getVenueTagSummary(tagSummaryMap, venue.id);
+      const mayor = mayorMap.get(venue.id) ?? null;
       const activePerk = getActiveVenuePerk(venue.metadataJson);
       const liveSession = mapSessionSummary(venue.qrSessions[0] ?? null);
       const commandCenter = buildVenueCommandCenterSummary({
@@ -1848,6 +1904,7 @@ export async function getNearbyVenues(input: {
         distanceDisplay: formatDistance(distanceKm),
         memorySummary,
         tagSummary,
+        mayor,
         reviewSignal: reviewSignalMap.get(venue.id) ?? buildEmptyReviewSignal(venue._count.checkIns),
         activePerk,
         firstSparkWindow: getFirstSparkWindow(venue.metadataJson, {

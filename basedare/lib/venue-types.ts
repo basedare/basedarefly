@@ -317,6 +317,8 @@ export type NearbyVenueItem = {
   memorySummary: VenueMemorySummary | null;
   profile: VenueProfileSummary;
   tagSummary: VenueTagSummary;
+  /** Mayor 👑 — top verified prover in the rolling 30-day window (tag-holders only). */
+  mayor?: VenueMayorSummary | null;
   reviewSignal: VenueReviewSignalSummary;
   activePerk: VenuePerkLite | null;
   firstSparkWindow: FirstSparkWindowSummary | null;
@@ -325,6 +327,11 @@ export type NearbyVenueItem = {
   mapModes: VenueExperienceMode[];
   activeDareCount: number;
   checkInCount: number;
+};
+
+export type VenueMayorSummary = {
+  tag: string;
+  proofCount: number;
 };
 
 export type VenueDetail = {
