@@ -118,6 +118,7 @@ function getCuratedFallbackVenues(query: NearbyVenueQuery | null): NearbyVenueIt
         heatScore: 0,
         lastTaggedAt: null,
       },
+      mayor: null,
       reviewSignal: {
         count: 0,
         worthItCount: 0,

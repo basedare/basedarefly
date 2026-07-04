@@ -318,7 +318,7 @@ export type NearbyVenueItem = {
   profile: VenueProfileSummary;
   tagSummary: VenueTagSummary;
   /** Mayor 👑 — top verified prover in the rolling 30-day window (tag-holders only). */
-  mayor?: VenueMayorSummary | null;
+  mayor: VenueMayorSummary | null;
   reviewSignal: VenueReviewSignalSummary;
   activePerk: VenuePerkLite | null;
   firstSparkWindow: FirstSparkWindowSummary | null;
