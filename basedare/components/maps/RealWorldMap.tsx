@@ -58,6 +58,7 @@ import type { VenueLegend, VenueMemorySummary, VenueProfileSummary, VenueSession
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import ProofReel from '@/components/maps/ProofReel';
 import ProofMomentSheet from '@/components/maps/ProofMomentSheet';
+import MeetupComposerSheet from '@/components/maps/MeetupComposerSheet';
 import LayerReelBar from '@/components/maps/LayerReelBar';
 import {
   createMeetupMarkerHtml,
@@ -3364,10 +3365,13 @@ export default function RealWorldMap() {
   const [selectedPlaceTagsLoading, setSelectedPlaceTagsLoading] = useState(false);
   const [selectedPlaceTagsError, setSelectedPlaceTagsError] = useState<string | null>(null);
   const [proofReelOpen, setProofReelOpen] = useState(false);
-  // Close the reel whenever the selected venue changes (or the panel closes),
-  // so it never auto-opens on the next venue with stale state.
+  const [meetupComposerOpen, setMeetupComposerOpen] = useState(false);
+  const [meetupsRefreshNonce, setMeetupsRefreshNonce] = useState(0);
+  // Close venue-scoped overlays whenever the selected venue changes (or the
+  // panel closes), so they never auto-open on the next venue with stale state.
   useEffect(() => {
     setProofReelOpen(false);
+    setMeetupComposerOpen(false);
   }, [selectedPlace?.placeId, selectedPlace?.slug]);
   const [crossedPathsPeople, setCrossedPathsPeople] = useState<
     { tag: string; pfpUrl: string | null; lastCrossedAt: string }[]
@@ -4358,7 +4362,7 @@ export default function RealWorldMap() {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [mapReady]);
+  }, [mapReady, meetupsRefreshNonce]);
 
   // ── Free meetup layer (Stage 3): marker reconcile ─────────────────────────
   // Reconciles our OWN marker set against the meetups visible for the active
@@ -8944,6 +8948,18 @@ export default function RealWorldMap() {
           {selectedPlaceFundDareButton}
           {selectedPlaceBaseCashButton}
         </div>
+        {selectedPlace.slug ? (
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('selection');
+              setMeetupComposerOpen(true);
+            }}
+            className="mt-1 w-full rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 transition hover:border-white/22 hover:text-white/85"
+          >
+            🤙 Start a free meetup here
+          </button>
+        ) : null}
       </div>
     ) : null;
   const selectedSaveSpotRail =
@@ -11946,6 +11962,20 @@ export default function RealWorldMap() {
           firstMark={proofMoment.firstMark}
           submittedAt={proofMoment.submittedAt}
           onClose={() => setProofMoment(null)}
+        />
+      ) : null}
+
+      {meetupComposerOpen && selectedPlace?.slug ? (
+        <MeetupComposerSheet
+          venueSlug={selectedPlace.slug}
+          venueName={selectedPlace.name}
+          latitude={selectedPlace.latitude}
+          longitude={selectedPlace.longitude}
+          onClose={() => setMeetupComposerOpen(false)}
+          onCreated={() => {
+            setMeetupComposerOpen(false);
+            setMeetupsRefreshNonce((nonce) => nonce + 1);
+          }}
         />
       ) : null}
 

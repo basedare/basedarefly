@@ -72,6 +72,7 @@ const CreateMeetupSchema = z.object({
   type: z.enum(MEETUP_TYPES),
   placeLabel: z.string().min(2).max(140),
   venueId: z.string().max(60).optional(),
+  venueSlug: z.string().max(80).optional(),
   approxLat: z.number().min(-90).max(90),
   approxLng: z.number().min(-180).max(180),
   startTime: z.string().datetime(),
@@ -124,9 +125,11 @@ export async function POST(request: NextRequest) {
     let approxLng = roundCoord(input.approxLng);
     let placeLabel = input.placeLabel.trim();
     let venueId: string | null = null;
-    if (input.venueId) {
+    if (input.venueId || input.venueSlug) {
+      // Clients may know the venue by slug only (the map panel does) — both
+      // resolve to the same public binding.
       const venue = await prisma.venue.findUnique({
-        where: { id: input.venueId },
+        where: input.venueId ? { id: input.venueId } : { slug: input.venueSlug as string },
         select: { id: true, name: true, latitude: true, longitude: true },
       });
       if (venue) {
