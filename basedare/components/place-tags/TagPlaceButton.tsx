@@ -143,6 +143,7 @@ export default function TagPlaceButton({
     error: geoError,
     requestLocation,
     isSupported: geoSupported,
+    permissionState: geoPermission,
   } = useGeolocation();
 
   const primarySession = getSessionFields((session as SessionShape | null) ?? null);
@@ -183,10 +184,13 @@ export default function TagPlaceButton({
   }, [open]);
 
   useEffect(() => {
-    if (open && !coordinates && !geoLoading && !geoError && geoSupported) {
+    // Just-in-time permission: auto-lock ONLY when the browser has already
+    // granted location (no dialog fires). First-timers see the value-first
+    // copy and tap an explicit button instead of a cold permission prompt.
+    if (open && !coordinates && !geoLoading && !geoError && geoSupported && geoPermission === 'granted') {
       requestLocation();
     }
-  }, [open, coordinates, geoLoading, geoError, geoSupported, requestLocation]);
+  }, [open, coordinates, geoLoading, geoError, geoSupported, geoPermission, requestLocation]);
 
   useEffect(() => {
     if (!open || hasVerifiedSession) return;
@@ -219,13 +223,16 @@ export default function TagPlaceButton({
     };
   }, [open, hasVerifiedSession]);
 
+  const locationDenied = geoPermission === 'denied' || Boolean(geoError && /denied/i.test(geoError));
   const locationStatus = useMemo(() => {
     if (!geoSupported) return 'Location is not supported in this browser.';
     if (geoLoading) return 'Locating you near this place...';
+    if (locationDenied)
+      return 'Proof needs location + venue QR. You can still browse the map — enable location in your browser settings when you want to leave proof.';
     if (geoError) return geoError;
     if (coordinates) return 'Location locked. Proof will be checked against this place.';
-    return 'We need your location to verify this proof.';
-  }, [coordinates, geoError, geoLoading, geoSupported]);
+    return 'Location proves you are really here — it unlocks your venue-sealed receipt.';
+  }, [coordinates, geoError, geoLoading, geoSupported, locationDenied]);
 
   const authMessage = useMemo(() => {
     if (authChecking || sessionStatus === 'loading') {
@@ -753,13 +760,14 @@ export default function TagPlaceButton({
                         <p className="mt-2 text-xs text-white/34">
                           Target anchor: {latitude.toFixed(4)}, {longitude.toFixed(4)}
                         </p>
-                        {!coordinates && geoSupported ? (
+                        {!coordinates && geoSupported && !locationDenied ? (
                           <button
                             type="button"
                             onClick={requestLocation}
-                            className="mt-3 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/75"
+                            disabled={geoLoading}
+                            className="mt-3 rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.1] px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#f8dd72] transition hover:border-[#f5c518]/55 hover:bg-[#f5c518]/[0.16] disabled:cursor-wait disabled:opacity-60"
                           >
-                            Refresh location
+                            {geoLoading ? 'Locating…' : geoError ? 'Retry location' : 'Enable location'}
                           </button>
                         ) : null}
                       </div>
