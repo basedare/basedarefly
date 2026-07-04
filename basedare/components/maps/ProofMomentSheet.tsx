@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useSignMessage } from 'wagmi';
 import { drawProofReceipt, PROOF_RECEIPT_H, PROOF_RECEIPT_W } from '@/lib/proof-receipt';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { trackClientEvent } from '@/lib/analytics';
 
 /**
@@ -36,6 +39,41 @@ export default function ProofMomentSheet({
   const [crossedCount, setCrossedCount] = useState<number | null>(null);
   const [bearImage, setBearImage] = useState<HTMLImageElement | null>(null);
   const [shareState, setShareState] = useState<'idle' | 'shared' | 'saved'>('idle');
+  const [verdictState, setVerdictState] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
+  const { data: session } = useSession();
+  const { signMessageAsync } = useSignMessage();
+
+  // One-tap venue verdict — presence-gated by construction: the API requires a
+  // verified check-in, and this sheet only opens right after one.
+  const castVerdict = async (verdict: 'worth_it' | 'skip') => {
+    if (!venueSlug || !walletAddress || verdictState === 'submitting') return;
+    setVerdictState('submitting');
+    try {
+      const sessionShape = session as { token?: string; walletAddress?: string | null; user?: { walletAddress?: string | null } | null } | null;
+      const headers = await buildWalletActionAuthHeaders({
+        walletAddress,
+        sessionToken: sessionShape?.token ?? null,
+        sessionWallet: sessionShape?.walletAddress ?? sessionShape?.user?.walletAddress ?? null,
+        action: 'spot-vault:review',
+        resource: `venue:${venueSlug}:reviews`,
+        signMessageAsync,
+      });
+      const response = await fetch(`/api/venues/${encodeURIComponent(venueSlug)}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ walletAddress, verdict, ...(creatorTag ? { tag: creatorTag } : {}) }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) {
+        setVerdictState('error');
+        return;
+      }
+      trackClientEvent('venue_verdict', { venueSlug, verdict });
+      setVerdictState('done');
+    } catch {
+      setVerdictState('error');
+    }
+  };
 
   // PeeBear stamp for the receipt (decoration — receipt renders without it).
   useEffect(() => {
@@ -210,6 +248,41 @@ export default function ProofMomentSheet({
               : '🔥 Night one logged. Check in tomorrow to start a streak.'}
           </p>
         )}
+
+        {venueSlug && walletAddress ? (
+          verdictState === 'done' ? (
+            <p className="mt-3 w-full rounded-[14px] border border-emerald-300/22 bg-emerald-500/[0.08] px-3 py-2 text-center text-[12px] text-emerald-100/90">
+              Verdict locked ✓ — verified visitors only
+            </p>
+          ) : (
+            <div className="mt-3 flex w-full items-center gap-2">
+              <span className="shrink-0 text-[11px] font-black uppercase tracking-[0.16em] text-white/45">
+                Worth it?
+              </span>
+              <button
+                type="button"
+                onClick={() => void castVerdict('worth_it')}
+                disabled={verdictState === 'submitting'}
+                className="flex-1 rounded-full border border-emerald-300/28 bg-emerald-500/[0.1] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-emerald-100 transition hover:bg-emerald-500/[0.18] disabled:cursor-wait disabled:opacity-60"
+              >
+                👍 Worth it
+              </button>
+              <button
+                type="button"
+                onClick={() => void castVerdict('skip')}
+                disabled={verdictState === 'submitting'}
+                className="flex-1 rounded-full border border-white/12 bg-white/[0.05] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-white/60 transition hover:text-white/85 disabled:cursor-wait disabled:opacity-60"
+              >
+                👎 Skip
+              </button>
+            </div>
+          )
+        ) : null}
+        {verdictState === 'error' ? (
+          <p className="mt-1.5 text-center text-[10px] text-rose-200/75">
+            Verdict didn&apos;t stick — you can rate from the venue page later.
+          </p>
+        ) : null}
 
         <div className="mt-4 flex w-full flex-col gap-2">
           <button
