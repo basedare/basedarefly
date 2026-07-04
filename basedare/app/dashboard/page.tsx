@@ -401,6 +401,38 @@ function getClaimLoopState(dare: Dare, walletAddress?: string | null) {
 export default function Dashboard() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  const [passportStats, setPassportStats] = useState<{
+    streakDays: number;
+    signalPoints: number;
+    routeReady: boolean;
+  } | null>(null);
+  // Live passport stats for the identity card — additive; card renders without.
+  useEffect(() => {
+    if (!address) {
+      setPassportStats(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`/api/creators/passport?wallet=${address}`, { cache: 'no-store' });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!cancelled && payload?.success && payload.data) {
+          setPassportStats({
+            streakDays: payload.data.streakDays ?? 0,
+            signalPoints: payload.data.signalPoints ?? 0,
+            routeReady: Boolean(payload.data.routeReady),
+          });
+        }
+      } catch {
+        // Silent — stats strip is decoration on the identity card.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
   const { signMessageAsync } = useSignMessage();
   const { connect, connectors, isPending: isConnecting } = useConnect();
   const { data: session } = useSession();
@@ -1115,26 +1147,51 @@ export default function Dashboard() {
                 </p>
 
                 {isConnected && userTag ? (
-                  <div className={`${insetCardClass} mt-4 flex items-center gap-4 px-4 py-4 sm:px-5`}>
-                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border border-white/15 bg-[linear-gradient(135deg,rgba(168,85,247,0.95),rgba(250,204,21,0.9))] shadow-[0_16px_34px_rgba(0,0,0,0.32)] sm:h-24 sm:w-24">
-                      {dashboardAvatarUrl ? (
-                        <img
-                          src={dashboardAvatarUrl}
-                          alt={userTag.tag}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-lg font-black text-white">
-                          {dashboardIdentityInitial}
+                  <div className={`${insetCardClass} mt-4 px-4 py-4 sm:px-5`}>
+                    <div className="flex items-center gap-4">
+                      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border border-white/15 bg-[linear-gradient(135deg,rgba(168,85,247,0.95),rgba(250,204,21,0.9))] shadow-[0_16px_34px_rgba(0,0,0,0.32)] sm:h-24 sm:w-24">
+                        {dashboardAvatarUrl ? (
+                          <img
+                            src={dashboardAvatarUrl}
+                            alt={userTag.tag}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-lg font-black text-white">
+                            {dashboardIdentityInitial}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-lg font-black tracking-tight text-white">{userTag.tag}</span>
+                          {passportStats?.routeReady ? (
+                            <span className="rounded-full border border-emerald-300/25 bg-emerald-500/[0.1] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-200">
+                              Route ready
+                            </span>
+                          ) : null}
                         </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-base font-semibold text-white">{userTag.tag}</div>
-                      <div className="mt-1.5 text-sm text-white/55">
-                        {userTag.bio || 'Add a short bio and profile photo so people know who you are.'}
+                        <div className="mt-1.5 text-sm leading-relaxed text-white/60">
+                          {userTag.bio || 'No bio yet — hit Edit profile and give the island one line about you.'}
+                        </div>
                       </div>
                     </div>
+                    {passportStats ? (
+                      <div className="mt-3 flex flex-wrap gap-2 border-t border-white/[0.07] pt-3">
+                        <span className="rounded-full border border-[#f5c518]/25 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#f8dd72]">
+                          ⚡ {passportStats.signalPoints.toLocaleString()} points
+                        </span>
+                        {passportStats.streakDays >= 2 ? (
+                          <span className="rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#f8dd72]">
+                            🔥 {passportStats.streakDays}-day streak
+                          </span>
+                        ) : (
+                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
+                            🔥 Check in tonight to start a streak
+                          </span>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </div>

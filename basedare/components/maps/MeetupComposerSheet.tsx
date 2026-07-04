@@ -3,8 +3,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { useAccount } from 'wagmi';
 import { X } from 'lucide-react';
 import { MEETUP_TYPES, MEETUP_TYPE_LABELS, type MeetupType } from '@/lib/meetups';
+
+type HostSessionShape = {
+  token?: string;
+  walletAddress?: string | null;
+  user?: { walletAddress?: string | null } | null;
+};
 
 const TYPE_EMOJI: Record<MeetupType, string> = {
   surf: '🏄',
@@ -60,7 +67,34 @@ export default function MeetupComposerSheet({
   onCreated: () => void;
 }) {
   const { data: session, status: sessionStatus } = useSession();
-  const sessionToken = (session as { token?: string } | null)?.token ?? null;
+  const { isConnected: walletConnected } = useAccount();
+  const [fallbackSession, setFallbackSession] = useState<HostSessionShape | null>(null);
+  const [sessionChecking, setSessionChecking] = useState(false);
+  const primaryToken = (session as HostSessionShape | null)?.token ?? null;
+  const sessionToken = primaryToken ?? fallbackSession?.token ?? null;
+
+  // useSession() sometimes misses a live session the API still honors (same
+  // gotcha TagPlaceButton handles) — hydrate a fallback before telling anyone
+  // to claim a tag they already own.
+  useEffect(() => {
+    if (primaryToken || sessionStatus === 'loading') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setSessionChecking(true);
+        const response = await fetch('/api/auth/session', { cache: 'no-store' });
+        const payload = (await response.json().catch(() => null)) as HostSessionShape | null;
+        if (!cancelled) setFallbackSession(payload);
+      } catch {
+        if (!cancelled) setFallbackSession(null);
+      } finally {
+        if (!cancelled) setSessionChecking(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [primaryToken, sessionStatus]);
 
   const [type, setType] = useState<MeetupType>('sunset');
   const [title, setTitle] = useState('');
@@ -98,7 +132,8 @@ export default function MeetupComposerSheet({
     return { min: toDatetimeLocal(min), max: toDatetimeLocal(max) };
   }, []);
 
-  const canHost = sessionStatus === 'authenticated' && Boolean(sessionToken);
+  const canHost = Boolean(sessionToken);
+  const authResolving = sessionStatus === 'loading' || sessionChecking;
 
   const handleSubmit = async () => {
     setError(null);
@@ -185,7 +220,25 @@ export default function MeetupComposerSheet({
             <p className="text-lg font-black text-emerald-100">Meetup is live on the map 🤙</p>
             <p className="mt-1 text-sm text-emerald-100/70">Anyone nearby can now see it and RSVP.</p>
           </div>
-        ) : !canHost && sessionStatus !== 'loading' ? (
+        ) : !canHost && authResolving ? (
+          <div className="mt-6 rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white/55">
+            Checking your hosting session…
+          </div>
+        ) : !canHost && walletConnected ? (
+          <div className="mt-6 rounded-[18px] border border-amber-400/22 bg-amber-500/[0.08] px-4 py-4">
+            <p className="text-sm font-semibold text-amber-100">Quick session check needed.</p>
+            <p className="mt-1 text-sm text-amber-100/70">
+              Your wallet is connected but the hosting session expired. One quick verify and you can post — your
+              @tag is untouched.
+            </p>
+            <Link
+              href="/claim-tag"
+              className="mt-3 inline-flex rounded-full border border-amber-300/28 bg-amber-500/[0.12] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-amber-100"
+            >
+              Verify session
+            </Link>
+          </div>
+        ) : !canHost ? (
           <div className="mt-6 rounded-[18px] border border-amber-400/22 bg-amber-500/[0.08] px-4 py-4">
             <p className="text-sm font-semibold text-amber-100">Hosting needs a Baretag.</p>
             <p className="mt-1 text-sm text-amber-100/70">
