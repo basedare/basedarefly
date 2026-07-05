@@ -16,6 +16,7 @@ import { trackClientEvent } from '@/lib/analytics';
  * iMessage — with a referral link riding in the share text).
  */
 export default function ProofMomentSheet({
+  tagId,
   venueName,
   venueSlug,
   venueHandle,
@@ -25,6 +26,7 @@ export default function ProofMomentSheet({
   submittedAt,
   onClose,
 }: {
+  tagId?: string | null;
   venueName: string;
   venueSlug: string | null;
   venueHandle?: string | null;
@@ -82,6 +84,31 @@ export default function ProofMomentSheet({
     image.src = '/assets/peebear-head.webp';
   }, []);
 
+  const [receiptNumber, setReceiptNumber] = useState<number | null>(null);
+  // The receipt serial — global sequence of approved proofs. Low numbers are
+  // the founding cohort; the artifact carries the status.
+  useEffect(() => {
+    if (!tagId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`/api/places/receipt-number?tagId=${encodeURIComponent(tagId)}`, {
+          cache: 'no-store',
+        });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!cancelled && payload?.success && typeof payload.data?.number === 'number') {
+          setReceiptNumber(payload.data.number);
+        }
+      } catch {
+        // The receipt prints without a serial rather than blocking the moment.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tagId]);
+
   // Streak tick — verified-only, computed server-side on the passport.
   useEffect(() => {
     if (!walletAddress) return;
@@ -138,9 +165,10 @@ export default function ProofMomentSheet({
       firstMark,
       streakDays,
       crossedCount,
+      receiptNumber,
       bearImage,
     });
-  }, [venueName, venueHandle, creatorTag, submittedAt, firstMark, streakDays, crossedCount, bearImage]);
+  }, [venueName, venueHandle, creatorTag, submittedAt, firstMark, streakDays, crossedCount, receiptNumber, bearImage]);
 
   // Escape closes; background scroll locks while open.
   useEffect(() => {

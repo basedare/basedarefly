@@ -24,6 +24,8 @@ export type ProofReceiptData = {
   firstMark: boolean;
   streakDays?: number | null;
   crossedCount?: number | null;
+  /** Global serial — receipt #42 is #42 forever. Low numbers = founding cohort. */
+  receiptNumber?: number | null;
   /** Pre-loaded PeeBear stamp image (skip the stamp when null). */
   bearImage?: HTMLImageElement | null;
 };
@@ -100,7 +102,11 @@ export function drawProofReceipt(ctx: CanvasRenderingContext2D, data: ProofRecei
     .toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     .toUpperCase();
   const timeLabel = submitted.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toUpperCase();
-  ctx.fillText(`ISSUED ${dateLabel} · ${timeLabel}`, W / 2, 188);
+  const serialLabel =
+    typeof data.receiptNumber === 'number' && data.receiptNumber > 0
+      ? `RECEIPT #${String(data.receiptNumber).padStart(4, '0')} · `
+      : '';
+  ctx.fillText(`${serialLabel}ISSUED ${dateLabel} · ${timeLabel}`, W / 2, 188);
   ctx.strokeStyle = INK;
   ctx.lineWidth = 2;
   ctx.beginPath();

@@ -3469,6 +3469,7 @@ export default function RealWorldMap() {
   const isImmersiveMobile = isMobileViewport && isMapFullscreenMobile;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [proofMoment, setProofMoment] = useState<null | {
+    tagId: string;
     venueName: string;
     venueSlug: string | null;
     venueHandle: string | null;
@@ -8789,6 +8790,7 @@ export default function RealWorldMap() {
           if (tag.status === 'APPROVED') {
             void loadSelectedPlaceTags(selectedPlace?.placeId ?? tag.placeId, undefined, { silent: true });
             setProofMoment({
+              tagId: tag.tagId,
               venueName: selectedPlace?.name ?? 'This spot',
               venueSlug: selectedPlace?.slug ?? null,
               venueHandle: selectedPlace?.handle ?? null,
@@ -11973,6 +11975,7 @@ export default function RealWorldMap() {
 
       {proofMoment ? (
         <ProofMomentSheet
+          tagId={proofMoment.tagId}
           venueName={proofMoment.venueName}
           venueSlug={proofMoment.venueSlug}
           venueHandle={proofMoment.venueHandle}
