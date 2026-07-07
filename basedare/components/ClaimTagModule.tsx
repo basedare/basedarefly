@@ -12,15 +12,9 @@ import {
   Loader2,
   Tag,
   Shield,
-  AlertTriangle,
-  Copy,
-  ExternalLink,
   Gift,
   Clock,
-  Share2,
-  Camera,
-  Music2,
-  Globe2,
+  Sparkles,
 } from 'lucide-react';
 import { LiquidMetalButton } from '@/components/ui/LiquidMetalButton';
 import { useToast } from '@/components/ui/use-toast';
@@ -30,19 +24,6 @@ import {
   clearWalletSessionAuth,
 } from '@/lib/wallet-action-auth';
 import { IdentityButton } from '@/components/IdentityButton';
-
-// Platform icons as SVG components
-const TwitterIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-  </svg>
-);
-
-type Platform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'other';
-
-const InstagramIcon = ({ className }: { className?: string }) => <Camera className={className} />;
-const TikTokIcon = ({ className }: { className?: string }) => <Music2 className={className} />;
-const OtherIcon = ({ className }: { className?: string }) => <Globe2 className={className} />;
 
 interface InviteData {
   streamerHandle: string;
@@ -58,15 +39,6 @@ interface InviteData {
   }>;
 }
 
-interface PlatformConfig {
-  id: Platform;
-  name: string;
-  color: string;
-  bgColor: string;
-  borderColor: string;
-  Icon: React.FC<{ className?: string }>;
-}
-
 interface ExistingTag {
   tag: string;
   status: string;
@@ -76,53 +48,6 @@ interface ExistingTag {
   identityPlatform?: string | null;
 }
 
-const PLATFORMS: PlatformConfig[] = [
-  {
-    id: 'instagram',
-    name: 'Instagram',
-    color: 'text-pink-300',
-    bgColor: 'bg-pink-500/15',
-    borderColor: 'border-pink-400/35',
-    Icon: InstagramIcon,
-  },
-  {
-    id: 'tiktok',
-    name: 'TikTok',
-    color: 'text-cyan-200',
-    bgColor: 'bg-cyan-500/15',
-    borderColor: 'border-cyan-400/35',
-    Icon: TikTokIcon,
-  },
-  {
-    id: 'youtube',
-    name: 'YouTube',
-    color: 'text-[#FF0000]',
-    bgColor: 'bg-[#FF0000]/20',
-    borderColor: 'border-[#FF0000]/50',
-    Icon: ({ className }) => (
-      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'twitter',
-    name: 'Twitter/X',
-    color: 'text-white',
-    bgColor: 'bg-black/80',
-    borderColor: 'border-white/30',
-    Icon: TwitterIcon,
-  },
-  {
-    id: 'other',
-    name: 'Other',
-    color: 'text-white/80',
-    bgColor: 'bg-white/5',
-    borderColor: 'border-white/15',
-    Icon: OtherIcon,
-  },
-];
-
 const raisedPanelClass =
   "relative overflow-hidden rounded-[28px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.38),0_0_28px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
 
@@ -131,10 +56,6 @@ const raisedTileClass =
 
 const insetWellClass =
   "bd-dent-surface bd-dent-surface--soft rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(8,8,14,0.94)_0%,rgba(16,14,28,0.86)_100%)]";
-
-function isPlatform(value: string | null | undefined): value is Platform {
-  return Boolean(value && PLATFORMS.some((platform) => platform.id === value));
-}
 
 function sanitizeTagCandidate(value: string | null | undefined): string {
   if (!value) return '';
@@ -181,12 +102,6 @@ function getTagStatusMeta(status: string) {
   }
 }
 
-function getPlatformLabel(value: string | null | undefined) {
-  if (!value) return 'manual review';
-  const platform = PLATFORMS.find((item) => item.id === value.toLowerCase());
-  return platform?.name ?? value.replace(/_/g, ' ').toLowerCase();
-}
-
 export function ClaimTagModule() {
   const { address } = useAccount();
   const { signMessageAsync } = useSignMessage();
@@ -201,7 +116,6 @@ export function ClaimTagModule() {
   const activeWallet = address?.toLowerCase() ?? sessionWallet;
   const walletReady = Boolean(activeWallet);
 
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [tag, setTag] = useState('');
   const [tagAvailable, setTagAvailable] = useState<boolean | null>(null);
   const [tagOwnedByCurrentWallet, setTagOwnedByCurrentWallet] = useState(false);
@@ -211,35 +125,17 @@ export function ClaimTagModule() {
   const [success, setSuccess] = useState<string | null>(null);
   const [existingTags, setExistingTags] = useState<ExistingTag[]>([]);
 
-  // Manual verification state (works for any platform)
-  const [manualCode, setManualCode] = useState<string | null>(null);
-  const [manualUsername, setManualUsername] = useState('');
-  const [useManualVerification, setUseManualVerification] = useState(false);
-
   // Invite flow state
   const [inviteData, setInviteData] = useState<InviteData | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
-  const platformHandle = manualUsername.trim() || null;
-  const isPlatformConnected = Boolean(selectedPlatform && platformHandle);
-  const isManualMode = Boolean(selectedPlatform && useManualVerification);
   const orderedExistingTags = [...existingTags].sort((left, right) => {
     if (left.isPrimary && !right.isPrimary) return -1;
     if (!left.isPrimary && right.isPrimary) return 1;
     return left.tag.localeCompare(right.tag);
   });
   const walletStepDone = walletReady;
-  const platformStepDone = isPlatformConnected || isManualMode;
   const tagStepDone = Boolean(tag && (tagAvailable === true || tagOwnedByCurrentWallet));
-
-  useEffect(() => {
-    if (platformHandle && !tag) {
-      const suggestedTag = sanitizeTagCandidate(platformHandle);
-      if (suggestedTag) {
-        setTag(suggestedTag);
-      }
-    }
-  }, [platformHandle, tag]);
 
   // Fetch invite data from URL params
   useEffect(() => {
@@ -257,7 +153,7 @@ export function ClaimTagModule() {
             // Pre-fill tag from invite data
             const streamerHandle = data.data.streamerHandle?.replace('@', '') || handle || '';
             if (streamerHandle && !tag) {
-              setTag(streamerHandle);
+              setTag(sanitizeTagCandidate(streamerHandle));
             }
           } else if (data.data?.alreadyClaimed) {
             setInviteError('This invite has already been claimed!');
@@ -270,40 +166,19 @@ export function ClaimTagModule() {
           setInviteError('Failed to load invite data');
         })
         .finally(() => setInviteLoading(false));
-    } else if (handle) {
-      // Pre-fill from handle param even without invite token
-      setTag(handle);
     }
   }, [searchParams, tag]);
 
+  // Pre-fill the tag from ?tag= or ?handle= links
   useEffect(() => {
-    const platformParam = searchParams.get('platform');
-    const handleParam = searchParams.get('handle');
-    const tagParam = searchParams.get('tag');
-
-    if (tagParam && !tag) {
-      const suggestedTag = sanitizeTagCandidate(tagParam);
+    const prefill = searchParams.get('tag') || searchParams.get('handle');
+    if (prefill && !tag) {
+      const suggestedTag = sanitizeTagCandidate(prefill);
       if (suggestedTag) {
         setTag(suggestedTag);
       }
     }
-
-    if (handleParam && !manualUsername) {
-      setManualUsername(handleParam.replace(/^@+/, '').trim());
-    }
-
-    if (isPlatform(platformParam)) {
-      if (selectedPlatform !== platformParam) {
-        setSelectedPlatform(platformParam);
-      }
-      if (!useManualVerification) {
-        setUseManualVerification(true);
-      }
-      if (!manualCode) {
-        generateManualCode();
-      }
-    }
-  }, [searchParams, tag, manualUsername, manualCode, selectedPlatform, useManualVerification]);
+  }, [searchParams, tag]);
 
   // Fetch existing tags for this wallet
   useEffect(() => {
@@ -353,18 +228,6 @@ export function ClaimTagModule() {
     return () => clearTimeout(timer);
   }, [tag, checkTagAvailability]);
 
-  // Generate manual verification code (works for any platform)
-  const generateManualCode = () => {
-    const code = `BASEDARE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    setManualCode(code);
-  };
-
-  // Copy code to clipboard
-  const copyCode = async () => {
-    if (manualCode) {
-      await navigator.clipboard.writeText(manualCode);
-    }
-  };
   // Claim the tag
   const handleClaimTag = async () => {
     if (!activeWallet) {
@@ -381,23 +244,25 @@ export function ClaimTagModule() {
 
     if (!tag) return;
 
-    // For manual verification, need username and code
-    if (isManualMode && (!manualUsername || !manualCode)) return;
-
-    if (!selectedPlatform || !manualUsername || !manualCode) return;
-
     setClaiming(true);
     setError(null);
     setSuccess(null);
 
     try {
       const normalizedTag = tag.startsWith('@') ? tag : `@${tag}`;
+      const cleanTag = normalizedTag.replace(/^@+/, '');
+      // The review rail still expects a handle + proof code; the tag itself is
+      // the handle now, and the code is generated silently.
+      const manualCode = `BASEDARE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       const endpoint = '/api/tags';
 
       const runClaimRequest = async (forceFreshSignature = false) => {
         const body: Record<string, string> = {
           walletAddress: activeWallet,
           tag: normalizedTag,
+          identityPlatform: 'other',
+          manualUsername: cleanTag,
+          manualCode,
         };
 
         const authHeaders = await buildWalletActionAuthHeaders({
@@ -415,12 +280,6 @@ export function ClaimTagModule() {
         if (!hasMatchingBearer && !hasWalletSignature) {
           throw new Error('Wallet authorization missing. Reconnect your wallet and try again.');
         }
-
-        // Keep the legacy platform field populated while the tag rail still expects it.
-        body.platform = 'twitter';
-        body.identityPlatform = selectedPlatform;
-        body.manualUsername = manualUsername;
-        body.manualCode = manualCode!;
 
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -457,10 +316,6 @@ export function ClaimTagModule() {
         setSuccess(message);
         setTag('');
         setTagAvailable(null);
-        setManualCode(null);
-        setManualUsername('');
-        setSelectedPlatform(null);
-        setUseManualVerification(false);
         toast({
           title: 'Tag Claimed',
           description: message,
@@ -490,31 +345,14 @@ export function ClaimTagModule() {
     }
   };
 
-  const getPlatformConfig = (id: Platform) => PLATFORMS.find((p) => p.id === id)!;
-
-  // Handle platform selection
-  const handlePlatformSelect = useCallback((platform: Platform) => {
-    setSelectedPlatform(platform);
-    setError(null);
-    setUseManualVerification(true);
-    setManualUsername('');
-    generateManualCode();
-  }, []);
-
   const claimDisabledReason = !walletReady
     ? 'Connect your wallet first.'
-    : !selectedPlatform
-      ? 'Choose where people know you.'
-      : !manualUsername
-        ? 'Add your public handle.'
-        : !tag
-          ? 'Choose your BaseDare tag.'
-          : tagAvailable === false && !tagOwnedByCurrentWallet
-            ? 'That tag is already taken.'
-            : null;
+    : !tag
+      ? 'Choose your BaseDare tag.'
+      : tagAvailable === false && !tagOwnedByCurrentWallet
+        ? 'That tag is already taken.'
+        : null;
   const canSubmitClaim = !claimDisabledReason && !claiming;
-  const selectedPlatformConfig = selectedPlatform ? getPlatformConfig(selectedPlatform) : null;
-  const suggestedCleanTag = sanitizeTagCandidate(manualUsername);
 
   return (
     <div id="claim-tag-section" className="relative z-20 w-full max-w-xl mx-auto">
@@ -533,13 +371,12 @@ export function ClaimTagModule() {
                   Make your public @tag usable.
                 </h2>
                 <p className="mt-2 text-xs leading-5 text-white/52">
-                  Connect your wallet, point to the account people know, then send the tag for review.
+                  Connect your wallet, pick your tag, send it for review. Done.
                 </p>
               </div>
               <div className="grid min-w-[13rem] gap-2">
                 {[
                   { label: 'Wallet', done: walletStepDone },
-                  { label: 'Platform', done: platformStepDone },
                   { label: 'Tag', done: tagStepDone },
                 ].map((step, index) => (
                   <div
@@ -682,192 +519,12 @@ export function ClaimTagModule() {
             </div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.125 }}
-            className={`${raisedPanelClass} p-4 transition-all ${
-              isPlatformConnected
-                ? 'border-cyan-400/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.10)_0%,rgba(8,11,22,0.94)_100%)]'
-                : 'border-cyan-400/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.06)_0%,rgba(7,9,18,0.92)_100%)]'
-            } ${!walletReady ? 'opacity-70' : ''}`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3 sm:gap-4">
-                <div
-                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                    isPlatformConnected
-                      ? 'bg-cyan-400/15 border border-cyan-400/30'
-                      : 'bg-white/5 border border-white/10'
-                  }`}
-                >
-                  <Share2 className={`w-5 h-5 ${isPlatformConnected ? 'text-cyan-200' : 'text-gray-400'}`} />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-white">Choose platform</h3>
-                  <p className="text-xs text-gray-500 font-mono">
-                    Tell BaseDare where people already know this handle.
-                  </p>
-                </div>
-              </div>
-              {isPlatformConnected ? (
-                <div className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-cyan-100">
-                  Connected
-                </div>
-              ) : (
-                <span className="text-[10px] text-cyan-200/80 font-mono shrink-0">Next</span>
-              )}
-            </div>
-
-            {!isPlatformConnected && !isManualMode && (
-              <div className={`mt-4 p-4 ${insetWellClass}`}>
-                <div className="flex items-center justify-between gap-3 mb-4">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Where is your audience?</p>
-                    <p className="mt-1 text-xs text-white/52">
-                      Pick one account to review for this tag.
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-cyan-200/80">Step 2</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-3">
-                  {PLATFORMS.map((platform) => (
-                    <button
-                      type="button"
-                      key={platform.id}
-                      onClick={() => handlePlatformSelect(platform.id)}
-                      disabled={!walletReady}
-                      className={`p-3 sm:p-4 rounded-xl border transition-all flex flex-col items-center gap-1.5 sm:gap-2 ${selectedPlatform === platform.id ? 'ring-2 ring-cyan-300/40' : ''} ${platform.bgColor} ${platform.borderColor} hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      <platform.Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${platform.color}`} />
-                      <span className={`text-xs sm:text-sm font-bold ${platform.color}`}>{platform.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {isManualMode && manualCode && selectedPlatform && (
-              <div className={`mt-4 p-4 ${insetWellClass}`}>
-                <div className="flex items-center justify-between gap-3 mb-4">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42">Account to review</p>
-                    <p className="mt-1 text-xs text-white/52">
-                      Add the handle. Use the code if we need to confirm ownership.
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-green-300">Almost done</span>
-                </div>
-
-              <div className="space-y-3 sm:space-y-4">
-                {(() => {
-                  const config = getPlatformConfig(selectedPlatform);
-                  const profileUrlMap: Record<Platform, string | null> = {
-                    instagram: `https://instagram.com/${manualUsername || ''}`,
-                    tiktok: `https://www.tiktok.com/@${manualUsername || ''}`,
-                    youtube: `https://youtube.com/@${manualUsername || ''}`,
-                    twitter: `https://twitter.com/${manualUsername || ''}`,
-                    other: null,
-                  };
-                  const profileUrl = profileUrlMap[selectedPlatform];
-                  return (
-                    <div className={`p-3 sm:p-4 ${config.bgColor} border ${config.borderColor} rounded-xl space-y-3`}>
-                      <div className="flex items-center gap-2">
-                        <config.Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${config.color}`} />
-                        <span className={`text-sm font-bold ${config.color}`}>{config.name}</span>
-                      </div>
-
-                      <p className="text-xs leading-5 text-gray-300">
-                        This is the account reviewers will check before your BaseDare tag goes live.
-                      </p>
-
-                      {/* Username Input */}
-                      <div>
-                        <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">Public handle</label>
-                        <input
-                          type="text"
-                          value={manualUsername}
-                          onChange={(e) => setManualUsername(e.target.value.replace(/^@+/, '').trim())}
-                          placeholder={`your_${selectedPlatform}_handle`}
-                          className={`w-full px-3 sm:px-4 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:border-opacity-50 focus:outline-none font-mono`}
-                        />
-                        {suggestedCleanTag && tag.toLowerCase() !== suggestedCleanTag.toLowerCase() ? (
-                          <button
-                            type="button"
-                            onClick={() => setTag(suggestedCleanTag)}
-                            className="mt-2 inline-flex min-h-8 items-center rounded-full border border-cyan-300/18 bg-cyan-300/[0.08] px-3 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-200/34"
-                          >
-                            Use @{suggestedCleanTag} as tag
-                          </button>
-                        ) : null}
-                        {manualUsername && sanitizeTagCandidate(manualUsername) !== manualUsername.replace(/^@+/, '').trim() ? (
-                          <p className="mt-2 text-[11px] leading-5 text-white/45">
-                            BaseDare tags only use letters, numbers, and underscores. We will suggest a cleaned tag after you enter your handle.
-                          </p>
-                        ) : null}
-                      </div>
-
-                      {/* Verification Code */}
-                      <div>
-                        <label className="text-[10px] sm:text-xs text-gray-400 block mb-1">Proof code</label>
-                        <div className="flex items-center gap-2">
-                          <code className={`flex-1 px-3 sm:px-4 py-2 bg-black/60 border ${config.borderColor} rounded-lg font-mono text-sm ${config.color} truncate`}>
-                            {manualCode}
-                          </code>
-                          <button
-                            type="button"
-                            onClick={copyCode}
-                            aria-label="Copy proof code"
-                            className={`p-2 ${config.bgColor} hover:opacity-80 rounded-lg transition-colors shrink-0`}
-                          >
-                            <Copy className={`w-4 h-4 sm:w-5 sm:h-5 ${config.color}`} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {profileUrl ? (
-                        <a
-                          href={profileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`inline-flex items-center gap-2 text-xs sm:text-sm ${config.color} hover:underline`}
-                        >
-                          <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          Open your {config.name} profile
-                        </a>
-                      ) : (
-                        <p className="text-xs sm:text-sm text-white/45">
-                          Use the exact handle you want BaseDare to route payouts, matching, and creator history through.
-                        </p>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPlatform(null);
-                    setManualCode(null);
-                    setManualUsername('');
-                    setUseManualVerification(false);
-                  }}
-                  className="text-xs text-gray-500 hover:text-white transition-colors"
-                >
-                  ← Back to platform selection
-                </button>
-              </div>
-              </div>
-            )}
-          </motion.div>
-
-          {/* Step 3: Claim Tag */}
+          {/* Step 2: Claim Tag */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className={`${raisedPanelClass} p-4 transition-all ${walletReady && (isPlatformConnected || isManualMode)
+            className={`${raisedPanelClass} p-4 transition-all ${walletReady
               ? 'border-purple-500/30 bg-[linear-gradient(180deg,rgba(168,85,247,0.08)_0%,rgba(11,9,20,0.96)_100%)]'
               : 'opacity-50'
               }`}
@@ -877,36 +534,12 @@ export function ClaimTagModule() {
                 <Tag className="w-5 h-5 text-purple-400" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm font-bold text-white">Choose public tag</h3>
+                <h3 className="text-sm font-bold text-white">Choose your tag</h3>
                 <p className="text-xs text-gray-500 font-mono">This is how dares, payouts, and profiles find you.</p>
               </div>
             </div>
 
             <div className="space-y-3 sm:space-y-4">
-              {selectedPlatformConfig ? (
-                <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-black/24 px-3 py-2.5">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <selectedPlatformConfig.Icon className={`h-4 w-4 shrink-0 ${selectedPlatformConfig.color}`} />
-                    <span className="truncate text-xs font-bold text-white/72">
-                      {selectedPlatformConfig.name}
-                      {manualUsername ? ` @${manualUsername}` : ''}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedPlatform(null);
-                      setManualCode(null);
-                      setManualUsername('');
-                      setUseManualVerification(false);
-                    }}
-                    className="shrink-0 text-[10px] font-mono uppercase tracking-[0.14em] text-white/36 transition hover:text-white/70"
-                  >
-                    Change
-                  </button>
-                </div>
-              ) : null}
-
               <div className="relative">
                 <span className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-sm">
                   @
@@ -915,10 +548,8 @@ export function ClaimTagModule() {
                   type="text"
                   value={tag}
                   onChange={(e) => setTag(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                  placeholder={platformHandle || manualUsername || 'your_tag'}
-                  disabled={
-                    !walletReady || (!isPlatformConnected && !isManualMode)
-                  }
+                  placeholder="your_tag"
+                  disabled={!walletReady}
                   className="w-full pl-7 sm:pl-8 pr-10 sm:pr-12 py-2.5 sm:py-3 bg-black/40 border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:border-purple-500/50 focus:outline-none font-mono disabled:opacity-50 shadow-[inset_0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.04)]"
                   maxLength={20}
                 />
@@ -939,20 +570,17 @@ export function ClaimTagModule() {
 
               {tagOwnedByCurrentWallet && (
                 <p className="text-[10px] sm:text-xs text-cyan-300 font-mono">
-                  This tag is already yours. You can re-submit proof anytime.
+                  This tag is already yours. You can re-submit it anytime.
                 </p>
               )}
 
-              {platformHandle &&
-                tag &&
-                tag.toLowerCase() !== platformHandle.toLowerCase() && (
-                  <div className="flex items-start gap-2 p-2.5 sm:p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                    <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 shrink-0 mt-0.5" />
-                    <p className="text-[10px] sm:text-xs text-yellow-400">
-                      Your tag (@{tag}) does not match your handle (@{platformHandle}). Matching them keeps things cleaner.
-                    </p>
-                  </div>
-                )}
+              <div className="flex items-start gap-2 p-2.5 sm:p-3 bg-cyan-500/[0.06] border border-cyan-400/20 rounded-lg">
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-300 shrink-0 mt-0.5" />
+                <p className="text-[10px] sm:text-xs leading-5 text-cyan-100/80">
+                  Pick any tag you want — it works best when it matches the username people already
+                  know you by on your other platforms, so backers can find you.
+                </p>
+              </div>
 
               {error && (
                 <div className="flex items-center gap-2 p-2.5 sm:p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -1013,7 +641,6 @@ export function ClaimTagModule() {
               <div className="max-h-[23rem] space-y-2 overflow-y-auto pr-1">
                 {orderedExistingTags.map((t) => {
                   const statusMeta = getTagStatusMeta(t.status);
-                  const platformLabel = getPlatformLabel(t.identityPlatform || t.verificationMethod);
 
                   return (
                     <div
@@ -1029,9 +656,6 @@ export function ClaimTagModule() {
                             </span>
                           ) : null}
                         </div>
-                        <p className="mt-1 truncate text-[10px] font-mono uppercase tracking-[0.14em] text-white/34">
-                          {platformLabel}
-                        </p>
                       </div>
                       <span
                         className={`justify-self-start rounded-full border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] sm:justify-self-end ${statusMeta.className}`}

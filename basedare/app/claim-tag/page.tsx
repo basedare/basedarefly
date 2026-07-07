@@ -33,7 +33,7 @@ export default function ClaimTagPage() {
                 Claim your @tag
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/62 sm:text-base">
-                Connect your wallet, choose the public account people know, and send the tag for review.
+                Connect your wallet, pick your @tag, and send it for review.
               </p>
             </div>
           </div>

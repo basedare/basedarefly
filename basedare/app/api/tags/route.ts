@@ -586,7 +586,9 @@ export async function POST(request: NextRequest) {
 
     // Build response message
     let message: string;
-    if (isManualVerification) {
+    if (isManualVerification && claimPlatform === 'other') {
+      message = `Tag submitted for review! ${normalizedTag} goes live once an admin approves it (usually within 24 hours).`;
+    } else if (isManualVerification) {
       message = `Tag submitted for review! An admin will verify your ${formatPlatformLabel(claimPlatform)} handle (${effectiveManualUsername}) within 24 hours.`;
     } else if (activatedDares > 0) {
       message = `Tag claimed and verified! ${activatedDares} pending dare${activatedDares > 1 ? 's' : ''} worth $${totalActivatedBounty.toLocaleString()} USDC are now active.`;

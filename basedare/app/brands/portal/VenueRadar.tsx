@@ -2,7 +2,7 @@
 // All state lives in the page shell; props are threaded with their original names.
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import Link from 'next/link';
-import { CreditCard, MapPin, MessageSquare, PlayCircle, Target, Users } from 'lucide-react';
+import { CreditCard, MapPin, MessageSquare, PlayCircle, Target, Users, X } from 'lucide-react';
 import {
   buildVenueCreatorChatHref,
   formatCompactAudience,
@@ -14,6 +14,7 @@ import {
 } from './activation-packages';
 
 type VenueRadarProps = {
+  closeVenueRadarInspect: () => void;
   filteredVenueRadar: BrandVenueRadarItem[];
   inspectVenueRadar: (venue: BrandVenueRadarItem) => void;
   openCampaignComposerForVenue: (venue: BrandVenueRadarItem, prefillInput?: string | null | ComposerPrefill) => void;
@@ -24,6 +25,7 @@ type VenueRadarProps = {
 };
 
 export default function VenueRadar({
+  closeVenueRadarInspect,
   filteredVenueRadar,
   inspectVenueRadar,
   openCampaignComposerForVenue,
@@ -113,51 +115,6 @@ export default function VenueRadar({
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-purple-300/[0.24] bg-purple-500/[0.12] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-purple-100">
-                      {venue.priorityLabel}
-                    </span>
-                    <span className="rounded-full border border-cyan-300/[0.24] bg-cyan-400/[0.12] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">
-                      {venue.strategyLabel}
-                    </span>
-                  </div>
-
-                  <p className="mt-4 hidden text-sm leading-6 text-zinc-300/[0.72] md:block">{venue.summary}</p>
-
-                  <div className="mt-4 hidden flex-wrap gap-2 md:flex">
-                    {venue.rankReasons.slice(0, 2).map((reason) => (
-                      <span
-                        key={reason}
-                        className="rounded-full border border-white/10 bg-black/[0.24] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-300"
-                      >
-                        {reason}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 hidden grid-cols-2 gap-2 md:grid">
-                    <div className="activation-inset rounded-xl border border-white/10 px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Visitors today</div>
-                      <div className="mt-1 text-lg font-black text-white">{venue.activity.uniqueVisitorsToday}</div>
-                      <div className="text-[11px] text-zinc-400">{venue.activity.scansLastHour} scans last hour</div>
-                    </div>
-                    <div className="activation-inset rounded-xl border border-white/10 px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Live funding</div>
-                      <div className="mt-1 text-lg font-black text-white">${venue.activity.totalLiveFundingUsd.toLocaleString()}</div>
-                      <div className="text-[11px] text-zinc-400">{venue.activity.activeChallenges} live challenges</div>
-                    </div>
-                    <div className="activation-inset rounded-xl border border-white/10 px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Past activations</div>
-                      <div className="mt-1 text-lg font-black text-white">{venue.brandHistory.campaigns}</div>
-                      <div className="text-[11px] text-zinc-400">${venue.brandHistory.totalSpendUsd.toLocaleString()} spent here</div>
-                    </div>
-                    <div className="activation-inset rounded-xl border border-white/10 px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Verified signal</div>
-                      <div className="mt-1 text-lg font-black text-white">{venue.activity.approvedMarks}</div>
-                      <div className="text-[11px] text-zinc-400">{venue.activity.recentCompletedCount} recent completions</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => inspectVenueRadar(venue)}
@@ -181,10 +138,18 @@ export default function VenueRadar({
           )}
 
           {selectedVenueRadar ? (
-            <div className="activation-shell mt-5 rounded-[28px] border px-4 py-5 text-white">
+            <div className="activation-shell relative mt-5 rounded-[28px] border px-4 py-5 text-white">
+              <button
+                type="button"
+                onClick={closeVenueRadarInspect}
+                aria-label="Close venue details"
+                className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.15] bg-white/[0.06] text-zinc-300 transition hover:border-white/25 hover:bg-white/[0.1] hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="max-w-3xl">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 pr-10">
                     <span className="rounded-full border border-white/[0.15] bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-200">
                       {selectedVenueRadar.priorityLabel}
                     </span>

@@ -1600,15 +1600,27 @@ export async function sendTagClaimSubmissionAlert(data: {
   }
 
   const wallet = `${data.walletAddress.slice(0, 6)}...${data.walletAddress.slice(-4)}`;
-  const message = [
-    '🆕 <b>TAG CLAIM SUBMITTED</b>',
-    '',
-    `🏷️ Tag: <code>${data.tag}</code>`,
-    `📺 Platform: <b>${data.platform === 'twitter' ? 'X' : data.platform.toUpperCase()}</b>`,
-    `👤 Handle: <code>${data.handle}</code>`,
-    `👛 Wallet: <code>${wallet}</code>`,
-    `🆔 Claim ID: <code>${data.tagClaimId}</code>`,
-  ].join('\n');
+  // The simplified claim flow submits platform 'other' with handle === tag;
+  // showing "Platform: OTHER" there is an implementation leak, not admin info.
+  const isPlainManualClaim = data.platform === 'other';
+  const message = (isPlainManualClaim
+    ? [
+        '🆕 <b>MANUAL TAG CLAIM</b>',
+        '',
+        `🏷️ Requested tag: <code>${data.tag}</code>`,
+        `👛 Wallet: <code>${wallet}</code>`,
+        `🆔 Claim ID: <code>${data.tagClaimId}</code>`,
+      ]
+    : [
+        '🆕 <b>TAG CLAIM SUBMITTED</b>',
+        '',
+        `🏷️ Tag: <code>${data.tag}</code>`,
+        `📺 Platform: <b>${data.platform === 'twitter' ? 'X' : data.platform.toUpperCase()}</b>`,
+        `👤 Handle: <code>${data.handle}</code>`,
+        `👛 Wallet: <code>${wallet}</code>`,
+        `🆔 Claim ID: <code>${data.tagClaimId}</code>`,
+      ]
+  ).join('\n');
 
   await sendMessage(TELEGRAM_ADMIN_CHAT_ID, message, {
     parseMode: 'HTML',

@@ -153,11 +153,11 @@ export default function BrandPortalPage() {
 
     return true;
   });
-  const selectedVenueRadar =
-    filteredVenueRadar.find((venue) => venue.id === selectedVenueRadarId) ??
-    filteredVenueRadar[0] ??
-    venueRadar[0] ??
-    null;
+  // Inspect panel opens only on explicit selection (card tap or deep link) —
+  // auto-opening the first venue buried the page under an uninvited dashboard.
+  const selectedVenueRadar = selectedVenueRadarId
+    ? filteredVenueRadar.find((venue) => venue.id === selectedVenueRadarId) ?? null
+    : null;
   const selectedActivationPackage = getActivationPackage(selectedActivationPackageId);
   const selectedCheckoutCreator =
     formData.type === 'PLACE'
@@ -339,10 +339,6 @@ export default function BrandPortalPage() {
       checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }, [openCampaignComposerForVenue, selectedVenueRadar]);
-
-  const focusVenueRadar = useCallback(() => {
-    venueRadarSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
 
   // Mark as mounted after hydration
   useEffect(() => {
@@ -1224,9 +1220,6 @@ export default function BrandPortalPage() {
                 Sponsor and venue mission control
               </div>
             </div>
-            <div className="hidden rounded-full border border-[#f5c518]/[0.35] bg-[#f5c518]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#ffe785] md:block">
-              ACTIVATION PORTAL
-            </div>
           </div>
 
           <div className="flex items-center justify-between gap-2 md:justify-end md:gap-4">
@@ -1334,54 +1327,31 @@ export default function BrandPortalPage() {
         ) : (
           <>
         <div className="activation-shell mb-6 overflow-hidden rounded-[28px] border p-4 backdrop-blur-xl md:mb-8 md:p-6">
-          <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
-            <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">
-                For venues, local businesses, and sponsors
-              </div>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-white md:text-5xl">
-                Launch a paid venue activation
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-200/[0.74] md:text-base">
-                Pick the venue, choose the mission budget, route a creator, and get proof back into venue memory.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={openActivationBuilder}
-                  className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Start activation
-                </button>
-                <Link
-                  href="/map"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-cyan-300/[0.24] bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_28px_rgba(0,0,0,0.2)] transition hover:border-cyan-200/40 hover:bg-cyan-400/[0.14]"
-                >
-                  <MapPin className="h-4 w-4" />
-                  Venue map
-                </Link>
-              </div>
-            </div>
-
-            <div className="hidden grid-cols-2 gap-2 text-sm md:grid">
-              {[
-                { label: '1. Venue', detail: 'Choose the place', action: focusVenueRadar },
-                { label: '2. Budget', detail: 'Pick a package', action: openActivationBuilder },
-                { label: '3. Creator', detail: 'Route the best fit', action: openActivationBuilder },
-                { label: '4. Recap', detail: 'Proof, payout, repeat', action: openActivationBuilder },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={item.action}
-                  className="activation-inset rounded-2xl border border-white/10 px-3 py-3 text-left shadow-[0_12px_28px_rgba(0,0,0,0.22)] transition hover:border-[#f5c518]/30 hover:bg-white/[0.06]"
-                >
-                  <div className="font-black text-white">{item.label}</div>
-                  <div className="mt-1 text-xs text-zinc-400">{item.detail}</div>
-                </button>
-              ))}
-            </div>
+          <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">
+            For venues, local businesses, and sponsors
+          </div>
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-white md:text-5xl">
+            Launch a paid venue activation
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-200/[0.74] md:text-base">
+            Pick the venue, choose the mission budget, route a creator, and get proof back into venue memory.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={openActivationBuilder}
+              className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
+            >
+              <Sparkles className="h-4 w-4" />
+              Start activation
+            </button>
+            <Link
+              href="/map"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-cyan-300/[0.24] bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_28px_rgba(0,0,0,0.2)] transition hover:border-cyan-200/40 hover:bg-cyan-400/[0.14]"
+            >
+              <MapPin className="h-4 w-4" />
+              Venue map
+            </Link>
           </div>
         </div>
 
@@ -1398,6 +1368,7 @@ export default function BrandPortalPage() {
         />
 
         <VenueRadar
+          closeVenueRadarInspect={() => setSelectedVenueRadarId(null)}
           filteredVenueRadar={filteredVenueRadar}
           inspectVenueRadar={inspectVenueRadar}
           openCampaignComposerForVenue={openCampaignComposerForVenue}
