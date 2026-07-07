@@ -135,11 +135,22 @@ function signalForVenue(venue: NearbyVenue) {
 }
 
 function mapNearbyVenuesToPoints(venues: NearbyVenue[], origin: { lat: number; lng: number }): RadarPoint[] {
-  const radiusMeters = 5000;
-  const latRange = radiusMeters / 111_000;
-  const lngRange = latRange / Math.max(0.22, Math.cos((origin.lat * Math.PI) / 180));
+  const shown = venues.slice(0, 7);
+  const metersPerLat = 111_000;
+  const metersPerLng = metersPerLat * Math.max(0.22, Math.cos((origin.lat * Math.PI) / 180));
 
-  return venues.slice(0, 7).map((venue, index) => {
+  // Fit the dial to the venues actually on it. A fixed 5km scale collapsed a
+  // dense town (everything within a few hundred meters) into one center blob.
+  const maxDistanceMeters = shown.reduce((max, venue) => {
+    const dx = (venue.longitude - origin.lng) * metersPerLng;
+    const dy = (venue.latitude - origin.lat) * metersPerLat;
+    return Math.max(max, Math.hypot(dx, dy));
+  }, 0);
+  const radiusMeters = clamp(maxDistanceMeters * 1.15, 250, 5000);
+  const latRange = radiusMeters / metersPerLat;
+  const lngRange = radiusMeters / metersPerLng;
+
+  return shown.map((venue, index) => {
     const x = clamp(50 + ((venue.longitude - origin.lng) / lngRange) * 34, 18, 82);
     const y = clamp(50 - ((venue.latitude - origin.lat) / latRange) * 34, 18, 82);
 
