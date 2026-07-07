@@ -375,12 +375,37 @@ async function resolveRecipient(input: {
     recipientTag = recipientTag ?? campaign.slots[0]?.creatorHandle ?? null;
   }
 
+  // A context binding (venue/dare/campaign) exempts a DM from the crossed-paths
+  // gate — but ONLY when the recipient is genuinely a party to that context.
+  // Otherwise a stranger could attach any real venue slug / dare id to a DM aimed
+  // at an unrelated tag-holder (resolved from recipientTag/recipientWallet above)
+  // and skip the crossing check entirely. Drop any context the recipient isn't
+  // part of so the send path treats it as the DIRECT message it actually is.
+  const isVenueParty = Boolean(
+    recipientWallet &&
+      venue &&
+      (normalizeWallet(venue.claimedBy) === recipientWallet ||
+        normalizeWallet(venue.claimRequestWallet) === recipientWallet)
+  );
+  const isDareParty = Boolean(
+    recipientWallet &&
+      dare &&
+      (normalizeWallet(dare.targetWalletAddress) === recipientWallet ||
+        normalizeWallet(dare.stakerAddress) === recipientWallet)
+  );
+  const isCampaignParty = Boolean(
+    recipientWallet &&
+      campaign &&
+      (normalizeWallet(campaign.brand?.walletAddress) === recipientWallet ||
+        normalizeWallet(campaign.slots[0]?.creatorAddress) === recipientWallet)
+  );
+
   return {
     recipientWallet,
     recipientTag: recipientTag ?? taggedCreator?.tag ?? campaign?.slots[0]?.creatorHandle ?? null,
-    venue,
-    dare,
-    campaign,
+    venue: isVenueParty ? venue : null,
+    dare: isDareParty ? dare : null,
+    campaign: isCampaignParty ? campaign : null,
   };
 }
 

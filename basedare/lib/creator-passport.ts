@@ -27,12 +27,21 @@ function normalizeWallet(wallet: string): string {
   return wallet.trim().toLowerCase();
 }
 
-/** Consecutive UTC days (ending today or yesterday) with >=1 verified proof.
- * Verified-only streaks can't be botted with posts — proof or it didn't count. */
+// A streak is a human "did I show up today" concept, so it must bucket by the
+// user's LOCAL day, not UTC. The product operates in Siargao (UTC+8); a check-in
+// at, say, 07:00 local would fall into the previous UTC day and systematically
+// mis-count the streak for the entire target market — and it's shown on the
+// shareable receipt. When the app spans multiple timezones, derive this offset
+// from the venue's timezone instead of a fixed constant.
+const STREAK_TZ_OFFSET_MS = 8 * 60 * 60 * 1000; // UTC+8 (Philippines)
+
+/** Consecutive local (UTC+8) days (ending today or yesterday) with >=1 verified
+ * proof. Verified-only streaks can't be botted with posts — proof or it didn't count. */
 function computeStreakDays(dates: Date[]): number {
   if (dates.length === 0) return 0;
-  const days = new Set(dates.map((date) => Math.floor(date.getTime() / 86_400_000)));
-  const today = Math.floor(Date.now() / 86_400_000);
+  const localDay = (ms: number) => Math.floor((ms + STREAK_TZ_OFFSET_MS) / 86_400_000);
+  const days = new Set(dates.map((date) => localDay(date.getTime())));
+  const today = localDay(Date.now());
   const anchor = days.has(today) ? today : days.has(today - 1) ? today - 1 : null;
   if (anchor === null) return 0;
   let streak = 0;
