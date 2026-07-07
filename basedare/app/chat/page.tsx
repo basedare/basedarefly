@@ -493,7 +493,7 @@ function ChatInbox() {
               <input
                 value={subject}
                 onChange={(event) => setSubject(event.target.value)}
-                placeholder="Subject, venue, mission, or deal"
+                placeholder="Subject, venue, dare, or deal"
                 className="mt-2 w-full rounded-2xl border border-white/12 bg-black/55 px-3 py-3 text-sm font-bold text-white outline-none placeholder:text-white/28 shadow-[inset_0_2px_12px_rgba(0,0,0,0.62),inset_0_-1px_0_rgba(255,255,255,0.05)] focus:border-purple-300/40 focus:shadow-[inset_0_2px_12px_rgba(0,0,0,0.6),0_0_0_1px_rgba(168,85,247,0.14)]"
               />
             </div>

@@ -286,10 +286,10 @@ function HomeContent() {
                   Show up. Prove it. <span className="text-[#f5c518]">Get paid.</span>
                 </p>
                 <p className="mt-2 text-sm font-bold leading-6 text-white/60 sm:text-base">
-                  Real-world missions, verified by being there — paid out instantly.
+                  Real-world dares, verified by being there — paid out instantly.
                 </p>
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/38">
-                  {['Fund a mission', 'Someone shows up', 'QR + GPS proves it', 'They get paid', 'Venue gets signal'].map((beat, index) => (
+                  {['Fund a dare', 'Someone shows up', 'QR + GPS proves it', 'They get paid', 'Venue gets the receipt'].map((beat, index) => (
                     <span key={beat} className="inline-flex items-center gap-2">
                       {index > 0 ? <span className="text-[#f5c518]/55">→</span> : null}
                       {beat}
@@ -703,10 +703,10 @@ function HomeFallback() {
           BaseDare
         </div>
         <h1 className="mt-5 text-4xl font-black uppercase italic leading-[0.9] tracking-[-0.06em] sm:text-5xl">
-          Real missions. Real proof.
+          Real dares. Real proof.
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-sm font-bold leading-6 text-white/66 sm:text-base">
-          Get paid to complete real-world missions. Show up, prove it with QR + GPS, and get paid in USDC.
+          Get paid to complete real-world dares. Show up, prove it with QR + GPS, and get paid in USDC.
         </p>
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <Link

@@ -27,6 +27,7 @@ import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import LiquidBackground from "@/components/LiquidBackground";
 import CosmicButton from "@/components/ui/CosmicButton";
+import WhyClaimTagStrip from "@/components/WhyClaimTagStrip";
 
 /* ── design tokens (shared with FAQ) ── */
 
@@ -284,6 +285,15 @@ export default function HowItWorksPage() {
                 </p>
               </div>
             ))}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.17 }}
+            className="mb-10"
+          >
+            <WhyClaimTagStrip />
           </motion.div>
 
           <motion.div

@@ -7,11 +7,11 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'BaseDare Map — Find Live Dares Near You',
   description:
-    'Explore the BaseDare map for live IRL missions, active sparks, recent marks, and place memory near you.',
+    'Explore the BaseDare map for live IRL dares, active sparks, recent marks, and place memory near you.',
   openGraph: {
     title: 'BaseDare Map — Find Live Dares Near You',
     description:
-      'Explore the BaseDare map for live IRL missions, active sparks, recent marks, and place memory near you.',
+      'Explore the BaseDare map for live IRL dares, active sparks, recent marks, and place memory near you.',
     url: 'https://www.basedare.xyz/map',
     siteName: 'BaseDare',
     type: 'website',
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'BaseDare Map — Find Live Dares Near You',
     description:
-      'Explore the BaseDare map for live IRL missions, active sparks, recent marks, and place memory near you.',
+      'Explore the BaseDare map for live IRL dares, active sparks, recent marks, and place memory near you.',
   },
   alternates: {
     canonical: '/map',

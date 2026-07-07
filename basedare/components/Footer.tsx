@@ -59,9 +59,9 @@ export default function Footer() {
                   }}
                 />
                 <p className="text-[11px] sm:text-xs text-gray-500 font-mono leading-relaxed max-w-sm text-center md:text-left">
-                  Real venues. Online dares. On-chain proof.
+                  Real venues. Real dares. Verified outcomes.
                   <br />
-                  <span className="text-purple-500/60">Code is Law. Dares are Forever.</span>
+                  <span className="text-purple-500/60">Receipts that can&apos;t be faked — not even by AI.</span>
                 </p>
               </div>
 
@@ -73,7 +73,7 @@ export default function Footer() {
                   boxShadow: '0 0 20px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.3)',
                 }}
               >
-                <span>Enter the Grid</span>
+                <span>Open the Map</span>
                 <span className="text-purple-600">→</span>
               </Link>
             </div>

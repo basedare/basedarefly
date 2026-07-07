@@ -78,7 +78,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What's the difference between IRL and STREAM dares?",
-    a: "**IRL** dares happen in the physical world: places, movement, nearby missions, venue check-ins, real-life nonsense. **STREAM** dares are tied to a creator, stream context, and proof from that world. Same protocol. Different battlefield."
+    a: "**IRL** dares happen in the physical world: places, movement, nearby dares, venue check-ins, real-life nonsense. **STREAM** dares are tied to a creator, stream context, and proof from that world. Same protocol. Different battlefield."
   },
   {
     q: "What is a venue on BaseDare?",
@@ -130,7 +130,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Does BaseDare generate venue-aware dares?",
-    a: "Yes. When a dare is launched from a venue route, the AI assist reads the venue context and suggests missions that fit the place: surf bar, beach club, cafe, gym, street spot, nightlife venue, or local landmark. The goal is not random chaos. The goal is creator prompts that match the venue story and produce useful proof."
+    a: "Yes. When a dare is launched from a venue route, the AI assist reads the venue context and suggests dares that fit the place: surf bar, beach club, cafe, gym, street spot, nightlife venue, or local landmark. The goal is not random chaos. The goal is creator prompts that match the venue story and produce useful proof."
   },
   {
     q: "What is Creator Radar?",

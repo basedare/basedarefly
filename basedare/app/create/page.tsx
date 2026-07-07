@@ -940,11 +940,25 @@ function CreateDareContent() {
           </h1>
           <p className="text-gray-400 font-mono tracking-widest uppercase text-[10px] md:text-sm px-4">
             {isVenueSignalCheckout
-              ? 'Turn this venue into a funded proof mission'
+              ? 'Turn this venue into a funded proof dare'
               : isCommunitySpark
-              ? 'Launch a free local proof mission'
-              : 'Set the mission, reward, proof, and deadline'}
+              ? 'Launch a free local proof dare'
+              : 'Set the dare, reward, proof, and deadline'}
           </p>
+
+          <div className="mx-auto mt-5 max-w-2xl rounded-[22px] border border-white/[0.08] bg-white/[0.03] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_14px_28px_rgba(0,0,0,0.18)] md:mt-6">
+            <p className="text-center text-[9px] font-black uppercase tracking-[0.26em] text-white/38 md:text-[10px]">
+              What you&apos;re funding
+            </p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/55">
+              {['Fund a dare', 'Someone shows up', 'QR + GPS proves it', 'They get paid', 'You get the receipt'].map((beat, index) => (
+                <span key={beat} className="inline-flex items-center gap-2">
+                  {index > 0 ? <span className="text-[#f5c518]/55">→</span> : null}
+                  {beat}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
 
         {venuePrefill && (
@@ -1201,7 +1215,7 @@ function CreateDareContent() {
                       title: isVenueSignalCheckout ? 'Funded Drop' : 'Paid Dare',
                       body: isVenueSignalCheckout
                         ? 'Put USDC behind this venue so someone shows up and proves it.'
-                        : 'Fund a creator mission with a real payout.',
+                        : 'Fund a dare with a real payout.',
                     },
                     {
                       key: 'COMMUNITY' as const,
@@ -1271,7 +1285,7 @@ function CreateDareContent() {
               <div className="space-y-3">
                 <div className="flex justify-between items-end gap-2">
                   <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-purple-400 uppercase tracking-widest">
-                    <Zap className="w-3.5 h-3.5 md:w-4 md:h-4" /> Mission Objective
+                    <Zap className="w-3.5 h-3.5 md:w-4 md:h-4" /> Dare Objective
                   </label>
                   <span className="text-[9px] md:text-[10px] text-gray-500 font-mono whitespace-nowrap">IDEAS ↓</span>
                 </div>

@@ -7,10 +7,10 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'The Board | BaseDare',
-  description: 'What is verified-happening near you — live missions, venue nights, and proof. If BaseDare can drive attendance or produce a receipt, it is on The Board.',
+  description: 'What is verified-happening near you — live dares, venue nights, and proof. If BaseDare can drive attendance or produce a receipt, it is on The Board.',
   openGraph: {
     title: 'The Board | BaseDare',
-    description: 'Live missions, venue nights, and verified presence — the local board for what is actually happening.',
+    description: 'Live dares, venue nights, and verified presence — the local board for what is actually happening.',
     url: 'https://www.basedare.xyz/board',
     siteName: 'BaseDare',
     type: 'website',
@@ -80,7 +80,7 @@ function FlyerCard({ flyer, index, tone }: { flyer: Flyer; index: number; tone: 
 
         <div className="relative flex items-center justify-between">
           <span className="text-[9px] font-black uppercase tracking-[0.24em] text-white/45">
-            {flyer.kind === 'MISSION' ? 'Mission' : flyer.kind === 'RECEIPT' ? 'Receipt' : 'Venue'}
+            {flyer.kind === 'MISSION' ? 'Dare' : flyer.kind === 'RECEIPT' ? 'Receipt' : 'Venue'}
           </span>
           {flyer.metricValue ? (
             <span className="text-right">
@@ -171,7 +171,7 @@ export default async function BoardPage() {
             <span className="text-[#f5c518]">the Board</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm font-bold leading-6 text-white/55">
-            Live missions, venue nights, and verified presence. If BaseDare can drive attendance or produce a receipt, it&apos;s on The Board.
+            Live dares, venue nights, and verified presence. If BaseDare can drive attendance or produce a receipt, it&apos;s on The Board.
           </p>
         </div>
 
@@ -185,7 +185,7 @@ export default async function BoardPage() {
         ) : (
           <>
             <BoardSection title="Tonight" subtitle="Live now" flyers={sections.tonight} tone="cyan" />
-            <BoardSection title="Rewards" subtitle="Open paid missions" flyers={sections.rewards} tone="gold" />
+            <BoardSection title="Rewards" subtitle="Open paid dares" flyers={sections.rewards} tone="gold" />
             <BoardSection title="Receipts" subtitle="Verified proof" flyers={sections.receipts} tone="emerald" />
             <BoardSection title="Places lit up" subtitle="Recent verified activity" flyers={sections.placesLitUp} tone="violet" />
           </>

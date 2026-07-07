@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
+import WhyClaimTagStrip from '@/components/WhyClaimTagStrip';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -162,6 +163,10 @@ export default function TrustPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="relative z-20 mx-auto max-w-6xl px-6 pb-16">
+        <WhyClaimTagStrip />
       </section>
 
       <section className="relative z-20 mx-auto max-w-6xl px-6 pb-16">

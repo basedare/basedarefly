@@ -296,7 +296,7 @@ function getCreatorAvailability(profile: CreatorProfile | null): AvailabilitySig
     if (approvedCount > 0 || venueReach > 0) {
         return {
             label: 'Available tonight',
-            detail: 'Invite window open for venue missions',
+            detail: 'Invite window open for venue dares',
             radius: venueReach > 0 ? `${venueReach} venue ${venueReach === 1 ? 'signal' : 'signals'}` : 'Area shared after invite',
             dotClass: 'bg-cyan-300 shadow-[0_0_16px_rgba(103,232,249,0.7)]',
             badgeClass: 'border-cyan-300/30 bg-cyan-400/10 text-cyan-100',
@@ -460,7 +460,7 @@ export default function CreatorProfilePage() {
                         followerCount: null,
                         tags: [],
                         stats: { total: 0, approved: 0, completed: 0, live: 0, payoutQueued: 0, acceptRate: 0, totalPool: 0, totalEarned: 0, minBounty: 0, averageBounty: 0 },
-                        trust: { level: 0, label: 'Fresh', score: 0, summary: 'No approved missions yet. Trust starts compounding after the first cleared dare.' },
+                        trust: { level: 0, label: 'Fresh', score: 0, summary: 'No approved dares yet. Trust starts compounding after the first cleared dare.' },
                         businessMetrics: { venueReach: 0, firstSparkRate: 0, averageEarnedPerWin: 0 },
                         reviews: { count: 0, averageRating: null, recent: [] },
                         contribution: { totalMarks: 0, firstMarks: 0, uniqueVenues: 0, lastMarkedAt: null, topVenue: null },
@@ -996,7 +996,7 @@ export default function CreatorProfilePage() {
                             <div className={`${softCardClass} p-4 sm:p-5`}>
                                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                                 <div className="flex items-center justify-between gap-3">
-                                    <p className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-black">Mission Snapshot</p>
+                                    <p className="text-[10px] uppercase tracking-[0.28em] text-white/35 font-black">Dare Snapshot</p>
                                     <span className={`h-2.5 w-2.5 rounded-full ${availability.dotClass}`} />
                                 </div>
                                 <p className="mt-3 text-2xl font-black text-white">{availability.label}</p>
@@ -1005,7 +1005,7 @@ export default function CreatorProfilePage() {
                                 </p>
                                 <div className="mt-4 grid grid-cols-3 gap-2">
                                     {[
-                                        { label: 'Missions', value: stats?.completed ?? 0, tone: 'text-emerald-300' },
+                                        { label: 'Dares', value: stats?.completed ?? 0, tone: 'text-emerald-300' },
                                         { label: 'Proofs', value: stats?.approved ?? 0, tone: 'text-[#f9e27a]' },
                                         { label: 'Venues', value: businessMetrics?.venueReach ?? 0, tone: 'text-cyan-200' },
                                     ].map((item) => (
@@ -1079,7 +1079,7 @@ export default function CreatorProfilePage() {
                             </div>
 
                             <div className="mt-4">
-                                <p className="text-[10px] uppercase tracking-[0.22em] text-white/32 font-black">Mission skills</p>
+                                <p className="text-[10px] uppercase tracking-[0.22em] text-white/32 font-black">Dare skills</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                     {missionSkills.map((skill) => (
                                         <span
@@ -1208,12 +1208,12 @@ export default function CreatorProfilePage() {
                                 )}
 
                                 <div className="rounded-[18px] border border-white/[0.07] bg-white/[0.035] px-3 py-3">
-                                    <p className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-black">Latest mission</p>
+                                    <p className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-black">Latest dare</p>
                                     <p className="mt-2 line-clamp-3 text-sm font-black leading-5 text-white">
-                                        {latestDare?.title || 'Mission slot open'}
+                                        {latestDare?.title || 'Dare slot open'}
                                     </p>
                                     <p className="mt-2 text-[11px] leading-5 text-white/45">
-                                        {latestDare ? `${latestDare.status.toLowerCase()} proof` : 'Launch a mission to start a new proof trail.'}
+                                        {latestDare ? `${latestDare.status.toLowerCase()} proof` : 'Launch a dare to start a new proof trail.'}
                                     </p>
                                 </div>
 
@@ -1222,7 +1222,7 @@ export default function CreatorProfilePage() {
                                     className="flex min-h-[7.5rem] flex-col justify-between rounded-[18px] border border-[#f5c518]/20 bg-[#f5c518]/10 px-3 py-3 transition hover:border-[#f5c518]/35"
                                 >
                                     <p className="text-[9px] uppercase tracking-[0.18em] text-[#f9e27a]/80 font-black">Next slot</p>
-                                    <p className="text-sm font-black leading-5 text-white">Launch a paid mission</p>
+                                    <p className="text-sm font-black leading-5 text-white">Launch a paid dare</p>
                                     <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#f9e27a]">Launch</p>
                                 </Link>
                             </div>
@@ -1240,7 +1240,7 @@ export default function CreatorProfilePage() {
                             </div>
                             <h2 className="mt-4 text-lg font-black text-white">Business-readable proof</h2>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
-                                The trust signal brands can actually use: approved mission delivery, venue range, and how often this creator sparks a place first.
+                                The trust signal brands can actually use: approved dare delivery, venue range, and how often this creator sparks a place first.
                             </p>
                         </div>
                         <div className={`${pillClass} text-[10px] tracking-[0.2em] text-[#f9e27a]`}>
@@ -1255,7 +1255,7 @@ export default function CreatorProfilePage() {
                             <p className="mt-1 text-[11px] text-white/46">{trust?.summary || 'No trust signal yet.'}</p>
                         </div>
                         <div className={`${insetCardClass} px-4 py-4`}>
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Approved Missions</p>
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/30 font-black">Approved Dares</p>
                             <p className="mt-2 text-2xl font-black text-emerald-300">{stats?.approved ?? 0}</p>
                             <p className="mt-1 text-[11px] text-white/46">Approved proof, including payouts still clearing on-chain.</p>
                         </div>

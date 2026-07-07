@@ -57,7 +57,7 @@ const MISSION_SUGGESTIONS: Record<CreatorCaptainCategory, string[]> = {
     "Capture a 15-second 'why verified proof matters here' explainer",
   ],
   digital: [
-    'Post the mission link and drive signups or RSVPs you can track',
+    'Post the dare link and drive signups or RSVPs you can track',
     'Run a story with the link and report the clicks it produced',
     'Share the route/claim link and count who actually claimed it',
     'Post a clear call-to-action and track the verified conversions',
@@ -379,7 +379,7 @@ export default function DareGenerator({
     <div className="mb-5 rounded-[24px] border border-purple-500/22 bg-purple-900/10 p-4 shadow-[0_18px_42px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.06)] md:mb-8 md:p-6">
       <div className="flex flex-col gap-4 mb-4">
         <h3 className="text-purple-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[#FFD700]" /> Mission Type
+          <Sparkles className="w-4 h-4 text-[#FFD700]" /> Dare Type
         </h3>
 
         <div className="relative">
@@ -387,7 +387,7 @@ export default function DareGenerator({
             <button
               type="button"
               onClick={() => pageRail(-1)}
-              aria-label="Scroll mission types left"
+              aria-label="Scroll dare types left"
               className="absolute -left-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/14 bg-[#0c0a16]/95 text-white/75 shadow-[0_10px_22px_rgba(0,0,0,0.5)] transition hover:text-white md:flex"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -397,7 +397,7 @@ export default function DareGenerator({
             <button
               type="button"
               onClick={() => pageRail(1)}
-              aria-label="Scroll mission types right"
+              aria-label="Scroll dare types right"
               className="absolute -right-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/14 bg-[#0c0a16]/95 text-white/75 shadow-[0_10px_22px_rgba(0,0,0,0.5)] transition hover:text-white md:flex"
             >
               <ChevronRight className="h-4 w-4" />
@@ -499,9 +499,9 @@ export default function DareGenerator({
             </>
           ) : (
             <div className="relative z-10">
-              <p className="text-sm font-bold text-white md:text-base">Choose a mission type</p>
+              <p className="text-sm font-bold text-white md:text-base">Choose a dare type</p>
               <p className="mt-1 text-xs font-normal leading-5 text-white/50 md:text-sm">
-                Pick the lane that best fits this mission. We&apos;ll suggest safer templates after you choose.
+                Pick the lane that best fits this dare. We&apos;ll suggest safer templates after you choose.
               </p>
             </div>
           )}
@@ -529,7 +529,7 @@ export default function DareGenerator({
 
       {category === 'digital' ? (
         <p className="mt-3 text-[11px] font-bold leading-4 text-emerald-200/70">
-          Digital Missions = tracked online action (signups, RSVPs, link clicks, route claims, verified campaign actions) — not stunts.
+          Digital Dares = tracked online action (signups, RSVPs, link clicks, route claims, verified campaign actions) — not stunts.
         </p>
       ) : null}
 
