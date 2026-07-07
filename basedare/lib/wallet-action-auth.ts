@@ -1,5 +1,12 @@
 export const WALLET_ACTION_AUTH_WINDOW_MS = 10 * 60 * 1000;
-export const WALLET_SESSION_AUTH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+// Session-scope bearer signature. Cut from 7 days to 24h: it authorizes
+// social/identity actions (inbox, profile, reviews, check-ins, push) and an
+// XSS-exfiltrated signature is replayable for this entire window, so keep it
+// short. Tunable — raise if the daily re-sign is too much friction, lower for
+// more safety. The proper long-term fix is single-use server nonces.
+export const WALLET_SESSION_AUTH_WINDOW_MS = 24 * 60 * 60 * 1000;
+// Tolerance for client/server clock drift when validating issuedAt.
+export const WALLET_AUTH_CLOCK_SKEW_MS = 2 * 60 * 1000;
 
 type WalletActionMessageParams = {
   walletAddress: string;
@@ -71,14 +78,20 @@ export function isWalletActionFresh(issuedAt: string, now = Date.now()): boolean
   const parsed = Date.parse(issuedAt);
   if (!Number.isFinite(parsed)) return false;
 
-  return Math.abs(now - parsed) <= WALLET_ACTION_AUTH_WINDOW_MS;
+  const age = now - parsed;
+  // Reject future-dated signatures beyond clock skew — otherwise a client can
+  // post-date issuedAt to extend the effective validity window.
+  if (age < -WALLET_AUTH_CLOCK_SKEW_MS) return false;
+  return age <= WALLET_ACTION_AUTH_WINDOW_MS;
 }
 
 export function isWalletSessionFresh(issuedAt: string, now = Date.now()): boolean {
   const parsed = Date.parse(issuedAt);
   if (!Number.isFinite(parsed)) return false;
 
-  return Math.abs(now - parsed) <= WALLET_SESSION_AUTH_WINDOW_MS;
+  const age = now - parsed;
+  if (age < -WALLET_AUTH_CLOCK_SKEW_MS) return false;
+  return age <= WALLET_SESSION_AUTH_WINDOW_MS;
 }
 
 function buildStorageKey(walletAddress: string, action: string, resource: string) {
@@ -116,7 +129,17 @@ function readStoredWalletSession(walletAddress: string): StoredWalletSessionAuth
 
 function persistStoredWalletSession(payload: StoredWalletSessionAuth) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(buildWalletSessionStorageKey(payload.walletAddress), JSON.stringify(payload));
+  const key = buildWalletSessionStorageKey(payload.walletAddress);
+  // sessionStorage, NOT localStorage: this signature is a bearer credential for
+  // social/identity actions. Keeping it out of localStorage means it never
+  // persists across tab close and shrinks the XSS-exfiltration blast radius.
+  // Also proactively evict any legacy localStorage copy so users migrate off it.
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // ignore storage access errors
+  }
+  window.sessionStorage.setItem(key, JSON.stringify(payload));
 }
 
 function readStoredAuth(walletAddress: string, action: string, resource: string): StoredWalletActionAuth | null {
