@@ -74,6 +74,16 @@ export default function PortalGates({
             >
               See First Spark
             </Link>
+            <p className="text-xs font-bold leading-6 text-white/44">
+              No wallet? No crypto?{' '}
+              <Link
+                href="/first-spark?source=fund-without-crypto#pilot-request"
+                className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
+              >
+                Fund by invoice
+              </Link>{' '}
+              — we handle the on-chain part.
+            </p>
           </div>
         </div>
       )}

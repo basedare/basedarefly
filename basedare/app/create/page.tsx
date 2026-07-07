@@ -3,6 +3,7 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Zap, Wallet, Clock, Users, Loader2, CheckCircle, Copy, AlertTriangle, MessageCircle, MapPin, Navigation, ImagePlus, X, Info, ShieldCheck, RotateCcw } from "lucide-react";
@@ -957,6 +958,15 @@ function CreateDareContent() {
                   {beat}
                 </span>
               ))}
+            </div>
+            <div className="mt-3 border-t border-white/[0.06] pt-3 text-center">
+              <Link
+                href="/first-spark?source=fund-without-crypto#pilot-request"
+                className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#f5c518]/75 transition hover:text-[#ffe785]"
+              >
+                Business without crypto? Fund by invoice
+                <span aria-hidden="true">→</span>
+              </Link>
             </div>
           </div>
         </div>
