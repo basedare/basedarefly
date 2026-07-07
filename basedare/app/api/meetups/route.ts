@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 import { MEETUP_TYPES, MEETUP_LIVE_WINDOW_MS, isHappeningNow, isStartTimeInBounds, roundCoord } from '@/lib/meetups';
-import { resolveSessionBaretag, resolveViewerBaretag, getBlockedBaretagIds } from '@/lib/meetups-server';
+import { isAddress } from 'viem';
+import { resolveHostBaretag, resolveViewerBaretag, getBlockedBaretagIds } from '@/lib/meetups-server';
 
 // ============================================================================
 // FREE MEETUP LAYER — read + create. No settlement, payouts, or value, ever.
@@ -73,6 +74,10 @@ const CreateMeetupSchema = z.object({
   placeLabel: z.string().min(2).max(140),
   venueId: z.string().max(60).optional(),
   venueSlug: z.string().max(80).optional(),
+  walletAddress: z
+    .string()
+    .refine((value) => isAddress(value), 'Valid walletAddress required')
+    .optional(),
   approxLat: z.number().min(-90).max(90),
   approxLng: z.number().min(-180).max(180),
   startTime: z.string().datetime(),
@@ -93,15 +98,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Ownership gate: derive the Baretag from the session — never trust a client id.
-  const baretag = await resolveSessionBaretag(request);
-  if (!baretag) {
-    return NextResponse.json(
-      { success: false, error: 'Claim and verify a Baretag to post a meetup.' },
-      { status: 401 }
-    );
-  }
-
   try {
     const parsed = CreateMeetupSchema.safeParse(await request.json());
     if (!parsed.success) {
@@ -111,6 +107,17 @@ export async function POST(request: NextRequest) {
       );
     }
     const input = parsed.data;
+
+    // Ownership gate: session OR signed wallet-action (same auth as proofs
+    // and verdicts) — either way the Baretag is derived server-side, never
+    // trusted from the client.
+    const baretag = await resolveHostBaretag(request, input.walletAddress ?? null);
+    if (!baretag) {
+      return NextResponse.json(
+        { success: false, error: 'No claimed Baretag on this wallet yet — claim your @tag to host meetups.' },
+        { status: 401 }
+      );
+    }
 
     const startTime = new Date(input.startTime);
     if (!isStartTimeInBounds(startTime)) {

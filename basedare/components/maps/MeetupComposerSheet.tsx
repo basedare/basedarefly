@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { useAccount } from 'wagmi';
+import { useAccount, useSignMessage } from 'wagmi';
 import { X } from 'lucide-react';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { MEETUP_TYPES, MEETUP_TYPE_LABELS, type MeetupType } from '@/lib/meetups';
 
 type HostSessionShape = {
@@ -67,7 +68,8 @@ export default function MeetupComposerSheet({
   onCreated: () => void;
 }) {
   const { data: session, status: sessionStatus } = useSession();
-  const { isConnected: walletConnected } = useAccount();
+  const { address, isConnected: walletConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const [fallbackSession, setFallbackSession] = useState<HostSessionShape | null>(null);
   const [sessionChecking, setSessionChecking] = useState(false);
   const primaryToken = (session as HostSessionShape | null)?.token ?? null;
@@ -132,7 +134,10 @@ export default function MeetupComposerSheet({
     return { min: toDatetimeLocal(min), max: toDatetimeLocal(max) };
   }, []);
 
-  const canHost = Boolean(sessionToken);
+  // Session OR connected wallet: the API accepts signed wallet-actions (same
+  // auth as proofs/verdicts), so wallet users host without any session dance —
+  // at most one signature prompt at submit.
+  const canHost = Boolean(sessionToken) || (walletConnected && Boolean(address));
   const authResolving = sessionStatus === 'loading' || sessionChecking;
 
   const handleSubmit = async () => {
@@ -153,12 +158,29 @@ export default function MeetupComposerSheet({
 
     setSubmitting(true);
     try {
+      // Session bearer when we have one; otherwise the standard signed
+      // wallet-action (one signature prompt, same as taking proof).
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      let bodyWallet: string | null = null;
+      if (sessionToken) {
+        headers.Authorization = `Bearer ${sessionToken}`;
+      } else if (address) {
+        const sessionShape = session as HostSessionShape | null;
+        const authHeaders = await buildWalletActionAuthHeaders({
+          walletAddress: address,
+          sessionToken: sessionShape?.token ?? null,
+          sessionWallet: sessionShape?.walletAddress ?? sessionShape?.user?.walletAddress ?? null,
+          action: 'meetups:host',
+          resource: 'meetups:host',
+          signMessageAsync,
+        });
+        Object.assign(headers, authHeaders);
+        bodyWallet = address;
+      }
+
       const response = await fetch('/api/meetups', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-        },
+        headers,
         body: JSON.stringify({
           title: title.trim(),
           type,
@@ -168,11 +190,12 @@ export default function MeetupComposerSheet({
           approxLng: longitude,
           startTime: startTime.toISOString(),
           ...(note.trim() ? { note: note.trim() } : {}),
+          ...(bodyWallet ? { walletAddress: bodyWallet } : {}),
         }),
       });
       const payload = await response.json().catch(() => null);
       if (response.status === 401) {
-        setError('Claim and verify a Baretag to host meetups.');
+        setError('No claimed Baretag on this wallet yet — claim your @tag first.');
         return;
       }
       if (response.status === 429) {
@@ -223,20 +246,6 @@ export default function MeetupComposerSheet({
         ) : !canHost && authResolving ? (
           <div className="mt-6 rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white/55">
             Checking your hosting session…
-          </div>
-        ) : !canHost && walletConnected ? (
-          <div className="mt-6 rounded-[18px] border border-amber-400/22 bg-amber-500/[0.08] px-4 py-4">
-            <p className="text-sm font-semibold text-amber-100">Quick session check needed.</p>
-            <p className="mt-1 text-sm text-amber-100/70">
-              Your wallet is connected but the hosting session expired. One quick verify and you can post — your
-              @tag is untouched.
-            </p>
-            <Link
-              href="/claim-tag"
-              className="mt-3 inline-flex rounded-full border border-amber-300/28 bg-amber-500/[0.12] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-amber-100"
-            >
-              Verify session
-            </Link>
           </div>
         ) : !canHost ? (
           <div className="mt-6 rounded-[18px] border border-amber-400/22 bg-amber-500/[0.08] px-4 py-4">

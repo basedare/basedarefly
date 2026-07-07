@@ -6,6 +6,7 @@ import { isAddress } from 'viem';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 type SessionShape = {
   token?: string;
@@ -44,6 +45,30 @@ export async function resolveSessionBaretag(
   const wallet = await getSessionWallet(request);
   if (!wallet) return null;
   const primary = await findPrimaryCreatorTagForWallet(wallet);
+  return primary ? { id: primary.id, tag: primary.tag } : null;
+}
+
+/**
+ * Hosting auth, aligned with the rest of the map's mutations: a NextAuth
+ * session works, but so does the standard signed wallet-action (the same
+ * auth proofs, verdicts, and room messages use). Either way the Baretag is
+ * derived server-side — never a client-supplied id.
+ */
+export async function resolveHostBaretag(
+  request: NextRequest,
+  claimedWallet?: string | null
+): Promise<{ id: string; tag: string } | null> {
+  const sessionBaretag = await resolveSessionBaretag(request);
+  if (sessionBaretag) return sessionBaretag;
+
+  if (!claimedWallet || !isAddress(claimedWallet)) return null;
+  const authorizedWallet = await getAuthorizedWalletForRequest(request, {
+    walletAddress: claimedWallet,
+    action: 'meetups:host',
+    resource: 'meetups:host',
+  });
+  if (!authorizedWallet) return null;
+  const primary = await findPrimaryCreatorTagForWallet(authorizedWallet);
   return primary ? { id: primary.id, tag: primary.tag } : null;
 }
 
