@@ -501,20 +501,6 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                 )}
                             </div>
 
-                            <div className="mt-3 grid grid-cols-3 gap-2">
-                                <div className="rounded-[1.05rem] border border-cyan-200/14 bg-cyan-300/[0.06] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_18px_rgba(0,0,0,0.16)]">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-cyan-100/48">Push</p>
-                                    <p className="mt-1 truncate text-sm font-black text-cyan-50">{pushHeadline}</p>
-                                </div>
-                                <div className="rounded-[1.05rem] border border-emerald-200/14 bg-emerald-300/[0.06] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_18px_rgba(0,0,0,0.16)]">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/48">Chats</p>
-                                    <p className="mt-1 text-sm font-black text-white">{inboxUnreadCount}</p>
-                                </div>
-                                <div className="rounded-[1.05rem] border border-yellow-200/14 bg-yellow-300/[0.06] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_18px_rgba(0,0,0,0.16)]">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.16em] text-yellow-100/48">Queue</p>
-                                    <p className="mt-1 text-sm font-black text-white">{actionCount}</p>
-                                </div>
-                            </div>
                         </div>
 
                         <div className="bd-notification-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain touch-pan-y [-webkit-overflow-scrolling:touch]">
@@ -759,9 +745,6 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                                         </span>
                                                     ) : null}
                                                 </div>
-                                                <p className="mt-2 text-xs leading-relaxed text-gray-400 line-clamp-1">
-                                                    {item.detail}
-                                                </p>
                                             </Link>
                                         ))}
                                     </div>
@@ -774,7 +757,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                     <div className="flex min-h-[9rem] flex-col items-center justify-center p-6 text-center">
                                         <BellRing className="w-8 h-8 text-white/20 mb-3" />
                                         <p className="text-sm text-gray-400">
-                                            {actionItems.length > 0 ? 'No extra alerts.' : 'All caught up.'}
+                                            {actionItems.length > 0 ? 'Nothing else needs you.' : 'All caught up.'}
                                         </p>
                                     </div>
                                 ) : (
