@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import ChromeText from '@/components/ChromeText';
 import CosmicButton from '@/components/ui/CosmicButton';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
@@ -163,7 +162,7 @@ export default function WaitlistClient({
         <div className="pointer-events-none absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-purple-500/12 blur-3xl" />
 
         <div className="relative grid gap-4 lg:grid-cols-[0.92fr_1.08fr] lg:items-stretch">
-          <section className="relative overflow-hidden rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.08)_0%,rgba(7,8,16,0.88)_42%,rgba(5,6,12,0.98)_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-18px_34px_rgba(0,0,0,0.28)] md:p-7">
+          <section className="relative flex flex-col overflow-hidden rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.08)_0%,rgba(7,8,16,0.88)_42%,rgba(5,6,12,0.98)_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-18px_34px_rgba(0,0,0,0.28)] md:p-7">
             <div className="pointer-events-none absolute inset-x-6 top-5 h-10 rounded-full bg-gradient-to-r from-transparent via-white/[0.035] to-transparent blur-sm" />
             <div className="relative flex items-start justify-between gap-4">
               <div className={`${dentWellClass} w-fit px-4 py-3`}>
@@ -181,7 +180,7 @@ export default function WaitlistClient({
               </div>
             </div>
 
-            <div className="relative mt-8 max-w-2xl space-y-5">
+            <div className="relative mt-6 max-w-2xl space-y-5">
               <div className="sm:hidden">
                 <img
                   src="/assets/peebear-head.webp"
@@ -196,17 +195,30 @@ export default function WaitlistClient({
                 </h1>
               </div>
               <div className="hidden md:block">
-                <ChromeText
-                  text="SIGNAL THE GRID"
-                  className="text-6xl leading-[0.86] tracking-[-0.06em] lg:text-7xl xl:text-8xl"
-                />
+                {/* ChromeText hardcodes its own (huge) sizes — inline the same
+                    chrome gradient at a scale that fits this column. */}
+                <h1
+                  className="select-none font-display text-5xl font-black italic leading-[0.95] tracking-tighter text-transparent bg-clip-text drop-shadow-2xl lg:text-6xl xl:text-7xl"
+                  style={{
+                    backgroundImage:
+                      'conic-gradient(from 180deg at 50% 50%, #ffffff 0deg, #c0c8d8 30deg, #64748b 50deg, #e2e8f0 70deg, #ffffff 100deg, #94a3b8 180deg, #ffffff 360deg)',
+                    backgroundSize: '200% 200%',
+                    animation: 'chromeFlow 16s ease-in-out infinite',
+                    WebkitBackgroundClip: 'text',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  SIGNAL
+                  <br />
+                  THE GRID
+                </h1>
               </div>
               <p className="max-w-xl text-base leading-relaxed text-white/72 md:text-lg">
                 {heroCopy}
               </p>
             </div>
 
-            <div className="relative mt-7 grid gap-3 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+            <div className="relative mt-auto grid gap-3 pt-7 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
               {routeCards.map((card) => (
                 <div key={card.label} className={`${dentWellClass} px-4 py-4`}>
                   <p className={`font-mono text-[10px] uppercase tracking-[0.24em] ${card.accent}`}>
@@ -221,7 +233,7 @@ export default function WaitlistClient({
             </div>
           </section>
 
-          <section className="relative rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_20%_0%,rgba(168,85,247,0.14),transparent_38%),linear-gradient(180deg,rgba(10,11,22,0.92),rgba(3,4,10,0.98))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.1)] md:p-6">
+          <section className="relative flex flex-col rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_20%_0%,rgba(168,85,247,0.14),transparent_38%),linear-gradient(180deg,rgba(10,11,22,0.92),rgba(3,4,10,0.98))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.1)] md:p-6">
             <div className="mb-5 grid gap-3 sm:grid-cols-3">
               {[
                 ['Route', initialTopic === 'venue-claim' ? 'Claim' : initialTopic === 'venue-partnership' ? 'Partner' : 'Open'],
@@ -236,7 +248,7 @@ export default function WaitlistClient({
             </div>
 
             {!submitted ? (
-              <div className="space-y-5">
+              <div className="flex flex-1 flex-col space-y-5">
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-purple-200/85">
                     Open signal line
@@ -246,7 +258,7 @@ export default function WaitlistClient({
                   </h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="w-full space-y-4">
+                <form onSubmit={handleSubmit} className="flex w-full flex-1 flex-col space-y-4">
                   <div className={`${dentWellClass} px-2 py-2`}>
                     <input
                       type="email"
@@ -258,7 +270,7 @@ export default function WaitlistClient({
                     />
                   </div>
 
-                  <div className={`${dentWellClass} px-2 py-2`}>
+                  <div className={`${dentWellClass} flex flex-1 px-2 py-2`}>
                     <textarea
                       placeholder="DROP YOUR SIGNAL"
                       className="min-h-[210px] w-full resize-none rounded-[1rem] border border-white/8 bg-transparent px-4 py-4 font-mono text-sm leading-relaxed tracking-[0.06em] text-white outline-none transition-all placeholder:text-gray-400 focus:border-purple-400/40"
@@ -273,7 +285,7 @@ export default function WaitlistClient({
                 </form>
               </div>
             ) : (
-              <div className={`animate-in fade-in zoom-in p-8 text-center duration-500 ${dentWellClass}`}>
+              <div className={`animate-in fade-in zoom-in flex flex-1 flex-col items-center justify-center p-8 text-center duration-500 ${dentWellClass}`}>
                 <h3 className="mb-2 text-3xl font-black italic uppercase tracking-tighter text-white">
                   Signal Received
                 </h3>
