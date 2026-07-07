@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
+import { withReceiptSerial } from '@/lib/receipt-serial';
 
 export const PLACE_REVIEW_ACTIONS = ['APPROVE', 'REJECT', 'FLAG'] as const;
 export type PlaceReviewAction = (typeof PLACE_REVIEW_ACTIONS)[number];
@@ -105,6 +106,7 @@ export async function reviewTelegramPlaceTag(input: {
       walletAddress: true,
       creatorTag: true,
       status: true,
+      serialNumber: true,
       venue: {
         select: {
           slug: true,
@@ -121,23 +123,27 @@ export async function reviewTelegramPlaceTag(input: {
   const now = new Date();
 
   if (input.action === 'APPROVE') {
-    const approvedCount = await prisma.placeTag.count({
-      where: {
-        venueId: existingTag.venueId,
-        status: 'APPROVED',
-        NOT: { id: existingTag.id },
-      },
-    });
+    const updatedTag = await withReceiptSerial(async (serial, tx) => {
+      const approvedCount = await tx.placeTag.count({
+        where: {
+          venueId: existingTag.venueId,
+          status: 'APPROVED',
+          NOT: { id: existingTag.id },
+        },
+      });
 
-    const updatedTag = await prisma.placeTag.update({
-      where: { id: existingTag.id },
-      data: {
-        status: 'APPROVED',
-        reviewedAt: now,
-        reviewerWallet,
-        reviewReason: input.reason || null,
-        firstMark: approvedCount === 0,
-      },
+      return tx.placeTag.update({
+        where: { id: existingTag.id },
+        data: {
+          status: 'APPROVED',
+          reviewedAt: now,
+          reviewerWallet,
+          reviewReason: input.reason || null,
+          firstMark: approvedCount === 0,
+          // A serial is issued once and never overwritten on re-approval.
+          ...(existingTag.serialNumber == null ? { serialNumber: serial } : {}),
+        },
+      });
     });
 
     await createWalletNotification({

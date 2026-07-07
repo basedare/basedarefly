@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
+import { withReceiptSerial } from '@/lib/receipt-serial';
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
 import { isPlaceTagTableMissingError } from '@/lib/place-tags';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
@@ -404,48 +405,58 @@ export async function POST(
       console.error('[PLACE_TAGS_POST] Presence lookup failed; defaulting to PENDING:', presenceError);
     }
 
-    const tag = await prisma.placeTag.create({
-      data: {
-        venueId: id,
-        walletAddress,
-        creatorTag: creatorProfile?.tag ?? null,
-        status: presenceBacked ? 'APPROVED' : 'PENDING',
-        reviewedAt: presenceBacked ? new Date() : null,
-        reviewerWallet: presenceBacked ? 'system:presence' : null,
-        reviewReason: presenceBacked
-          ? 'Auto-approved: confirmed venue check-in (QR + GPS)'
-          : null,
-        caption,
-        vibeTags,
-        proofMediaUrl: upload.url,
-        proofCid: upload.cid,
-        proofHash,
-        proofType: upload.proofType,
-        source: linkedDareId ? 'DARE_LINKED_TAG' : 'DIRECT_TAG',
-        linkedDareId,
-        latitude: lat,
-        longitude: lng,
-        geoDistanceMeters,
-        heatContribution: linkedDareId ? 15 : 10,
-        firstMark: approvedTagCount === 0,
-        metadataJson: {
-          fileName: file.name,
-          mimeType: file.type,
-          fileSize: file.size,
-          // Audit trail: which presence event cleared this proof (fraud/reputation).
-          ...(presenceBacked && presenceCheckInId
-            ? { presenceCheckInId, presenceVerifiedAt: new Date().toISOString() }
-            : {}),
-        },
+    const tagData = {
+      venueId: id,
+      walletAddress,
+      creatorTag: creatorProfile?.tag ?? null,
+      status: presenceBacked ? 'APPROVED' : 'PENDING',
+      reviewedAt: presenceBacked ? new Date() : null,
+      reviewerWallet: presenceBacked ? 'system:presence' : null,
+      reviewReason: presenceBacked
+        ? 'Auto-approved: confirmed venue check-in (QR + GPS)'
+        : null,
+      caption,
+      vibeTags,
+      proofMediaUrl: upload.url,
+      proofCid: upload.cid,
+      proofHash,
+      proofType: upload.proofType,
+      source: linkedDareId ? 'DARE_LINKED_TAG' : 'DIRECT_TAG',
+      linkedDareId,
+      latitude: lat,
+      longitude: lng,
+      geoDistanceMeters,
+      heatContribution: linkedDareId ? 15 : 10,
+      firstMark: approvedTagCount === 0,
+      metadataJson: {
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+        // Audit trail: which presence event cleared this proof (fraud/reputation).
+        ...(presenceBacked && presenceCheckInId
+          ? { presenceCheckInId, presenceVerifiedAt: new Date().toISOString() }
+          : {}),
       },
-      select: {
-        id: true,
-        status: true,
-        proofMediaUrl: true,
-        creatorTag: true,
-        firstMark: true,
-      },
-    });
+    };
+    const tagSelect = {
+      id: true,
+      status: true,
+      proofMediaUrl: true,
+      creatorTag: true,
+      firstMark: true,
+    } as const;
+
+    // Auto-approved tags are issued their receipt serial in the same
+    // transaction that creates them APPROVED; pending tags get theirs at
+    // review time instead.
+    const tag = presenceBacked
+      ? await withReceiptSerial((serial, tx) =>
+          tx.placeTag.create({
+            data: { ...tagData, serialNumber: serial },
+            select: tagSelect,
+          })
+        )
+      : await prisma.placeTag.create({ data: tagData, select: tagSelect });
 
     const actorLabel = tag.creatorTag || `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
     let alertDelivered = false;

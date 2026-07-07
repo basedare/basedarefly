@@ -19,6 +19,7 @@ import { isBountySimulationMode } from '@/lib/bounty-mode';
 import { buildCreatorHandleVariants } from '@/lib/creator-stats';
 import { recordDareFounderEventSafe } from '@/lib/founder-events';
 import { isPlaceTagTableMissingError } from '@/lib/place-tags';
+import { nextReceiptSerial } from '@/lib/receipt-serial';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import { trackServerEvent } from '@/lib/server-analytics';
 import { getSentinelAnalyticsSource, getSentinelRecommendation, getSentinelReasonForSelection } from '@/lib/sentinel';
@@ -333,12 +334,17 @@ async function ensureApprovedPlaceTagForVerifiedDare(
       },
     });
 
+    // Already inside the dare-approval transaction, so the serial is issued
+    // atomically with the APPROVED tag it belongs to.
+    const serialNumber = await nextReceiptSerial(tx);
+
     await tx.placeTag.create({
       data: {
         venueId: dare.venueId,
         walletAddress,
         creatorTag: dare.streamerHandle ?? null,
         status: 'APPROVED',
+        serialNumber,
         caption: `Completed: ${dare.title}`,
         vibeTags: [],
         proofMediaUrl: proofMedia,

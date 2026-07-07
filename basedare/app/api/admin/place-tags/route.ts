@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
+import { withReceiptSerial } from '@/lib/receipt-serial';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
 
 const ALLOWED_PLACE_TAG_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'FLAGGED'] as const;
@@ -130,6 +131,7 @@ export async function PUT(request: NextRequest) {
         walletAddress: true,
         creatorTag: true,
         status: true,
+        serialNumber: true,
         venue: {
           select: {
             slug: true,
@@ -146,23 +148,27 @@ export async function PUT(request: NextRequest) {
     const now = new Date();
 
     if (action === 'APPROVE') {
-      const approvedCount = await prisma.placeTag.count({
-        where: {
-          venueId: existingTag.venueId,
-          status: 'APPROVED',
-          NOT: { id: existingTag.id },
-        },
-      });
+      const updatedTag = await withReceiptSerial(async (serial, tx) => {
+        const approvedCount = await tx.placeTag.count({
+          where: {
+            venueId: existingTag.venueId,
+            status: 'APPROVED',
+            NOT: { id: existingTag.id },
+          },
+        });
 
-      const updatedTag = await prisma.placeTag.update({
-        where: { id: existingTag.id },
-        data: {
-          status: 'APPROVED',
-          reviewedAt: now,
-          reviewerWallet,
-          reviewReason: reason || null,
-          firstMark: approvedCount === 0,
-        },
+        return tx.placeTag.update({
+          where: { id: existingTag.id },
+          data: {
+            status: 'APPROVED',
+            reviewedAt: now,
+            reviewerWallet,
+            reviewReason: reason || null,
+            firstMark: approvedCount === 0,
+            // A serial is issued once and never overwritten on re-approval.
+            ...(existingTag.serialNumber == null ? { serialNumber: serial } : {}),
+          },
+        });
       });
 
       await createWalletNotification({

@@ -311,6 +311,9 @@ model PlaceTag {
   geoDistanceMeters Int?
   heatContribution  Int      @default(10)
   firstMark         Boolean  @default(false)
+  // Immutable global receipt serial — assigned exactly once, inside the same
+  // transaction that makes the tag APPROVED. Never recomputed, never reused.
+  serialNumber      Int?     @unique
   submittedAt       DateTime @default(now())
   reviewedAt        DateTime?
   reviewerWallet    String?
