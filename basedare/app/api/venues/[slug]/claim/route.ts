@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import { recordVenueReportEvent } from '@/lib/venue-report-pipeline';
 import { notifyVenueClaimSubmitted } from '@/lib/venue-notifications';
+import { alertVenueClaimSubmission } from '@/lib/telegram';
 
 type ClaimSession = {
   token?: string;
@@ -152,6 +153,17 @@ export async function POST(
       wallet: walletAddress,
       venueSlug: updatedVenue.slug,
       venueName: updatedVenue.name,
+    });
+
+    // Admin ping so a moderator can approve/reject straight from Telegram.
+    void alertVenueClaimSubmission({
+      venueId: updatedVenue.id,
+      venueName: updatedVenue.name,
+      venueSlug: updatedVenue.slug,
+      claimantTag: primaryTag.tag,
+      walletAddress,
+    }).catch((error) => {
+      console.error('[VENUE_CLAIM] Telegram admin alert failed:', error);
     });
 
     if (reportSource === 'venue-report') {

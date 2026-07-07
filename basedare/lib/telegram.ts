@@ -10,7 +10,7 @@
  */
 
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
-import { sendDareCreatedAlert, sendDareReviewAlert, sendTagClaimSubmissionAlert } from '@/lib/telegram-bot';
+import { sendDareCreatedAlert, sendDareReviewAlert, sendTagClaimSubmissionAlert, sendVenueClaimSubmissionAlert } from '@/lib/telegram-bot';
 import type { ActivationBrandMemoryInput, ActivationStoryBrief } from '@/lib/activation-brand-memory';
 import {
   CREATOR_CAPTAIN_AUDIENCE_LABELS,
@@ -1282,6 +1282,19 @@ export async function alertTagClaimSubmission(data: {
   walletAddress: string;
 }): Promise<void> {
   await sendTagClaimSubmissionAlert(data);
+}
+
+/**
+ * Alert: Venue-claim submission (admin), with inline Approve/Reject buttons.
+ */
+export async function alertVenueClaimSubmission(data: {
+  venueId: string;
+  venueName: string;
+  venueSlug: string;
+  claimantTag: string;
+  walletAddress: string;
+}): Promise<void> {
+  await sendVenueClaimSubmissionAlert(data);
 }
 
 /**

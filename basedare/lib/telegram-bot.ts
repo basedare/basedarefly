@@ -2,6 +2,7 @@ import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { findDareForModeration, moderateDareDecision } from '@/lib/dare-moderation';
+import { notifyVenueClaimApproved, notifyVenueClaimRejected } from '@/lib/venue-notifications';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -162,7 +163,7 @@ function hasInternalApiConfig(): boolean {
 }
 
 function buildCallbackData(
-  action: 'approve_dare' | 'reject_dare' | 'approve_tag' | 'reject_tag',
+  action: 'approve_dare' | 'reject_dare' | 'approve_tag' | 'reject_tag' | 'approve_venue' | 'reject_venue',
   ref: string
 ): string {
   const normalizedRef = ref.slice(0, 48);
@@ -678,6 +679,95 @@ async function handleTagClaimModerationCallback(
   };
 }
 
+// Telegram HTML parse mode breaks on raw & < > — venue names (unlike constrained
+// tags/handles) can contain them, so escape before interpolating.
+function escapeTelegramHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function handleVenueClaimModerationCallback(
+  action: 'approve_venue' | 'reject_venue',
+  venueRef: string
+): Promise<{ success: boolean; venueName?: string; slug?: string; tag?: string; status?: string }> {
+  const venue = await prisma.venue.findFirst({
+    where: {
+      OR: [{ id: venueRef }, { id: { startsWith: venueRef } }],
+    },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      claimRequestWallet: true,
+      claimRequestTag: true,
+      claimRequestStatus: true,
+    },
+  });
+
+  if (!venue) {
+    return { success: false };
+  }
+
+  if (venue.claimRequestStatus !== 'PENDING') {
+    return {
+      success: false,
+      venueName: venue.name,
+      slug: venue.slug,
+      tag: venue.claimRequestTag ?? undefined,
+      status: venue.claimRequestStatus ?? undefined,
+    };
+  }
+
+  if (!venue.claimRequestWallet || !venue.claimRequestTag) {
+    return { success: false, venueName: venue.name, slug: venue.slug };
+  }
+
+  const approved = action === 'approve_venue';
+  const moderatorAddress = BOT_STAKER_ADDRESS || 'telegram-inline';
+
+  if (approved) {
+    await prisma.venue.update({
+      where: { id: venue.id },
+      data: {
+        claimedBy: venue.claimRequestWallet,
+        claimedAt: new Date(),
+        claimRequestStatus: 'APPROVED',
+        moderatorAddress,
+        moderatedAt: new Date(),
+        moderatorNote: 'Approved via Telegram inline moderation',
+      },
+    });
+    void notifyVenueClaimApproved({
+      wallet: venue.claimRequestWallet,
+      venueSlug: venue.slug,
+      venueName: venue.name,
+    });
+  } else {
+    await prisma.venue.update({
+      where: { id: venue.id },
+      data: {
+        claimRequestStatus: 'REJECTED',
+        moderatorAddress,
+        moderatedAt: new Date(),
+        moderatorNote: 'Rejected via Telegram inline moderation',
+      },
+    });
+    void notifyVenueClaimRejected({
+      wallet: venue.claimRequestWallet,
+      venueSlug: venue.slug,
+      venueName: venue.name,
+      reason: 'Rejected via Telegram inline moderation',
+    });
+  }
+
+  return {
+    success: true,
+    venueName: venue.name,
+    slug: venue.slug,
+    tag: venue.claimRequestTag,
+    status: approved ? 'APPROVED' : 'REJECTED',
+  };
+}
+
 async function handleCreateFlowMessage(chatId: number, message: NonNullable<TelegramUpdate['message']>, state: CreateFlowState): Promise<boolean> {
   const text = (message.text || '').trim();
 
@@ -1024,6 +1114,50 @@ async function handleCallback(update: TelegramUpdate): Promise<boolean> {
       console.log(`[TELEGRAM] Inline tag moderation ${action} for ${tagClaimRef}`);
     } catch (error) {
       console.error('[TELEGRAM] Callback tag moderation error:', error);
+      await sendMessage(chatId, 'Oops, something broke — try again!').catch(() => {});
+    }
+
+    return true;
+  }
+
+  if (callback.data.startsWith('approve_venue:') || callback.data.startsWith('reject_venue:')) {
+    if (!isAdminChat(chatId)) {
+      await sendMessage(chatId, 'Not authorized for moderation actions.').catch(() => {});
+      return true;
+    }
+
+    const [actionRaw, venueRef] = callback.data.split(':');
+    const action = actionRaw as 'approve_venue' | 'reject_venue';
+
+    if (!venueRef || (action !== 'approve_venue' && action !== 'reject_venue')) {
+      await sendMessage(chatId, 'Could not parse venue moderation action.').catch(() => {});
+      return true;
+    }
+
+    try {
+      const result = await handleVenueClaimModerationCallback(action, venueRef);
+      if (!result.success) {
+        if (result.venueName && result.status) {
+          await sendMessage(
+            chatId,
+            `⚠️ Venue <b>${escapeTelegramHtml(result.venueName)}</b> claim is already <b>${result.status}</b>.`
+          ).catch(() => {});
+        } else {
+          await sendMessage(chatId, `Venue claim ${venueRef} not found or invalid.`).catch(() => {});
+        }
+        return true;
+      }
+
+      const decision = action === 'approve_venue' ? 'approved ✅' : 'rejected ❌';
+      const details = [
+        `📍 Venue <b>${escapeTelegramHtml(result.venueName || venueRef)}</b> claim ${decision}`,
+        result.tag ? `👤 <code>${escapeTelegramHtml(result.tag)}</code>` : '',
+      ].filter(Boolean).join('\n');
+
+      await sendMessage(chatId, details).catch(() => {});
+      console.log(`[TELEGRAM] Inline venue moderation ${action} for ${venueRef}`);
+    } catch (error) {
+      console.error('[TELEGRAM] Callback venue moderation error:', error);
       await sendMessage(chatId, 'Oops, something broke — try again!').catch(() => {});
     }
 
@@ -1482,6 +1616,42 @@ export async function sendTagClaimSubmissionAlert(data: {
       inline_keyboard: [[
         { text: '✅ Approve Tag', callback_data: buildCallbackData('approve_tag', data.tagClaimId) },
         { text: '❌ Reject Tag', callback_data: buildCallbackData('reject_tag', data.tagClaimId) },
+      ]],
+    },
+  });
+}
+
+export async function sendVenueClaimSubmissionAlert(data: {
+  venueId: string;
+  venueName: string;
+  venueSlug: string;
+  claimantTag: string;
+  walletAddress: string;
+}): Promise<void> {
+  if (!TELEGRAM_ADMIN_CHAT_ID) {
+    console.error(
+      `[TELEGRAM] venue-claim alert skipped for ${data.venueName} (${data.venueId}) — TELEGRAM_ADMIN_CHAT_ID is not set`
+    );
+    return;
+  }
+
+  const wallet = `${data.walletAddress.slice(0, 6)}...${data.walletAddress.slice(-4)}`;
+  const message = [
+    '📍 <b>VENUE CLAIM SUBMITTED</b>',
+    '',
+    `🏛️ Venue: <b>${escapeTelegramHtml(data.venueName)}</b>`,
+    `🔗 Slug: <code>${escapeTelegramHtml(data.venueSlug)}</code>`,
+    `👤 Claimant: <code>${escapeTelegramHtml(data.claimantTag)}</code>`,
+    `👛 Wallet: <code>${wallet}</code>`,
+    `🆔 Venue ID: <code>${data.venueId}</code>`,
+  ].join('\n');
+
+  await sendMessage(TELEGRAM_ADMIN_CHAT_ID, message, {
+    parseMode: 'HTML',
+    replyMarkup: {
+      inline_keyboard: [[
+        { text: '✅ Approve Venue', callback_data: buildCallbackData('approve_venue', data.venueId) },
+        { text: '❌ Reject Venue', callback_data: buildCallbackData('reject_venue', data.venueId) },
       ]],
     },
   });
