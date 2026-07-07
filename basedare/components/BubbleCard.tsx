@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useId, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import GradientText from './GradientText';
 import './BubbleCard.css';
 
@@ -32,8 +32,6 @@ export default function BubbleCard({
   color = '#A855F7',
   className = ''
 }: BubbleCardProps) {
-  const id = useId().replace(/:/g, '');
-
   const gradientColors = useMemo(() => generateGradientColors(color), [color]);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -55,22 +53,6 @@ export default function BubbleCard({
 
   return (
     <div className={`bubble-card-wrapper ${className}`}>
-      {/* SVG Goo Filter */}
-      <svg className="goo-filter" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id={`goo-${id}`}>
-            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
-            <feColorMatrix
-              in="blur"
-              mode="matrix"
-              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"
-              result="goo"
-            />
-            <feBlend in="SourceGraphic" in2="goo" />
-          </filter>
-        </defs>
-      </svg>
-
       <div className="bubble-card-container">
         {/* The hoverable button area */}
         <button
@@ -98,21 +80,6 @@ export default function BubbleCard({
             </span>
           </span>
         </button>
-
-        {/* Goo effect container - sits behind button */}
-        <div
-          className="bubble-effect-container"
-          style={{
-            filter: `url(#goo-${id})`,
-            '--bubble-color': color
-          } as React.CSSProperties}
-        >
-          <span className="effect-button" />
-          <span className="circle top-left" />
-          <span className="circle bottom-right" />
-          <span className="circle top-right" />
-          <span className="circle bottom-left" />
-        </div>
       </div>
     </div>
   );
