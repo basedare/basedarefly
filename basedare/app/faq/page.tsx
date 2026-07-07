@@ -38,7 +38,7 @@ const octagonClipPath =
 const FAQ_ITEMS = [
   {
     q: "Who are you and why are you yelling?",
-    a: "I am Peebear 🐻. I am the chaotic neutral AI running this circus. I exist to facilitate bad decisions and liquid markets. Next question."
+    a: "I am Peebear 🐻. I am the chaotic neutral AI running this circus. I verify humans, print receipts, and judge your proof. Next question."
   },
   {
     q: "What exactly is BaseDare?",
@@ -46,7 +46,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Do I need crypto or a seed phrase to use this?",
-    a: "No. You sign in with your **phone — one tap, passkey, done**. No app, no seed phrase, no 'gm ser'. The blockchain is just plumbing that makes payouts and proof unfakeable, the same way nobody thinks about Venmo's database. If you can unlock your phone, you can use BaseDare."
+    a: "To **play**: no. You sign in with your **phone — one tap, passkey, done**. No app, no seed phrase, no 'gm ser'. Complete dares, check in, get paid — the blockchain is just plumbing, the same way nobody thinks about Venmo's database. To **fund** a dare you need USDC today — unless you're a **venue or business**, in which case we can invoice you the normal way and handle the on-chain part for you. Ask us."
   },
   {
     q: "What's a @baretag?",
@@ -73,7 +73,7 @@ const FAQ_ITEMS = [
     a: "Not every gathering needs a bounty. Anyone can **start a free meetup** at a venue — a surf session, a sunset, a games night — and it shows up live on the map for people nearby. It's the social layer under the paid dares: free to host, free to join, still on the grid."
   },
   {
-    q: "Who judges the proof? Can streamers cheat?",
+    q: "Who judges the proof? Can players cheat?",
     a: "Cute theory. The **community review layer** on `/verify` can signal whether proof looks real, but crowd votes do **not** trigger payout directly. Consensus pushes the dare into **referee review**, and the protocol still owns the final payout or failure path. If the proof is fake, weak, or edited into fantasy, it gets bounced."
   },
   {
@@ -102,7 +102,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Is there a $BARE token?",
-    a: "🛑 **STOP.** There is NO token yet. We use USDC and ETH on Base. If you buy a 'BaseDare' token on Uniswap right now, you are donating to a scammer. Don't be that guy."
+    a: "🛑 **STOP.** There is NO token yet. Payouts are **USDC on Base**. If you buy a 'BaseDare' token on Uniswap right now, you are donating to a scammer. Don't be that guy."
   },
   {
     q: "When does a dare expire?",
@@ -113,24 +113,12 @@ const FAQ_ITEMS = [
     a: "The switch is the separator. **CHAOS** is for casual users, fans, and creators: create dares, complete dares, browse the map, and verify proof. **CONTROL** is for venues, brands, and operators: plan activations, open the Brand Portal, route creators, and review proof receipts."
   },
   {
-    q: "Where did Activate go?",
-    a: "**Activate is not a navbar tab anymore on purpose.** Venue activation belongs under **CONTROL**. Flip the switch, then choose **Plan Activation** if you want BaseDare to help route a venue or brand campaign."
-  },
-  {
     q: "Can brands or venues use this too?",
     a: "Yes. Brands and venues should use **CONTROL mode**. That is where the nitty-gritty lives: activation planning, Brand Portal, creator routing, QR/check-in logic, and analytics. The public map still stays shared because everyone needs to see the grid."
   },
   {
     q: "Is Pilot Qualification a real feature or just a contact form?",
-    a: "It is a real intake route. Submitting Pilot Qualification creates an **ACTIVATION_INTAKE** ops event, stores the Brand Memory and activation brief, sends a Telegram alert, and drops the lead into the admin activation queue for qualification. It does **not** auto-approve spend or launch a paid campaign by itself yet. Human approval still happens before money moves."
-  },
-  {
-    q: "Can brands start campaigns inside Telegram?",
-    a: "Telegram support should start as a concierge layer: quick questions, activation requests, and operator follow-up. Full campaign creation still belongs in the web app for now because wallet funding, venue context, creator routing, and proof rules need a safer signed flow. Telegram can become a command surface after the web flow is boringly reliable."
-  },
-  {
-    q: "Does BaseDare generate venue-aware dares?",
-    a: "Yes. When a dare is launched from a venue route, the AI assist reads the venue context and suggests dares that fit the place: surf bar, beach club, cafe, gym, street spot, nightlife venue, or local landmark. The goal is not random chaos. The goal is creator prompts that match the venue story and produce useful proof."
+    a: "It is a real intake route. Your brief goes straight to a human who scopes the pilot with you — venue, window, budget, proof rules. Nothing auto-approves and no money moves until both sides confirm."
   },
   {
     q: "What is Creator Radar?",
