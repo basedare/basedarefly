@@ -42,7 +42,35 @@ const FAQ_ITEMS = [
   },
   {
     q: "What exactly is BaseDare?",
-    a: "It's a **bounty platform** for creator challenges. You fund a dare with USDC, a creator completes it, and the protocol handles the payout. If it expires or fails review, contributors go through the refund path. Think crowdfunded chaos with receipts."
+    a: "A map of **real nights out** where everything is proven by an actual human showing up. Fund a dare with USDC, someone completes it in the real world, checks in with QR + GPS, and the protocol pays out. Every proof prints a **receipt that cannot be faked — not even by AI**. In 2026 that #HumanOnly signal is the rarest thing on the internet. Think Snap Map meets Pokémon GO, but the receipts are real."
+  },
+  {
+    q: "Do I need crypto or a seed phrase to use this?",
+    a: "No. You sign in with your **phone — one tap, passkey, done**. No app, no seed phrase, no 'gm ser'. The blockchain is just plumbing that makes payouts and proof unfakeable, the same way nobody thinks about Venmo's database. If you can unlock your phone, you can use BaseDare."
+  },
+  {
+    q: "What's a @baretag?",
+    a: "Your **handle on the grid** — the name that shows up next to your check-ins, proofs, and dares. Claim yours on `/claim-tag`. Short, clean handles go first and they go **forever**, so the founding cohort of a city gets the good ones. Nobody who joins in six months can take yours."
+  },
+  {
+    q: "What's a FIRST PROOF badge?",
+    a: "The **first verified human** to prove presence at a venue owns that FIRST PROOF **permanently**. There are a finite number of venues on any island — whoever checks in first plants the flag. It is a genuine land grab and it only happens once per place. Get there first."
+  },
+  {
+    q: "What's the receipt everyone keeps flexing?",
+    a: "When your proof clears, BaseDare prints a **thermal-style receipt** — serial number, venue, timestamp, and `TOTAL HUMANS VERIFIED: 1`. It ends with `THIS RECEIPT CANNOT BE FAKED. NOT EVEN BY AI.` Share it as an image anywhere. It's the reward, the flex, and the sales pitch to the next venue all at once."
+  },
+  {
+    q: "Can I message people from the map?",
+    a: "Only people you've **actually crossed paths with** — meaning you both had verified check-ins at the same venue in the same window. No cold DMs, no bots, no randoms. It's the **anti-Tinder**: you can only talk to humans you provably shared a real place with."
+  },
+  {
+    q: "What's a Mayor 👑?",
+    a: "The **top prover at a venue** over the last 30 days wears the crown. Show up, prove presence, out-prove everyone else, and the venue's Mayor badge is yours until someone knocks you off. Pure status, earned only by being there."
+  },
+  {
+    q: "What's a free meetup?",
+    a: "Not every gathering needs a bounty. Anyone can **start a free meetup** at a venue — a surf session, a sunset, a games night — and it shows up live on the map for people nearby. It's the social layer under the paid dares: free to host, free to join, still on the grid."
   },
   {
     q: "Who judges the proof? Can streamers cheat?",
@@ -70,7 +98,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "I have zero creativity. Can you help?",
-    a: "Typical human. Yes, use the **'AI Suggest'** button in the Create menu. I analyze the streamer's psychological profile and suggest dares they will hate (but have to accept). You're welcome."
+    a: "Typical human. Yes, use the **'AI Suggest'** button in the Create menu. I read the venue — surf bar, beach club, cafe, night market — and suggest dares that actually fit the place and make good proof. You're welcome."
   },
   {
     q: "Is there a $BARE token?",
