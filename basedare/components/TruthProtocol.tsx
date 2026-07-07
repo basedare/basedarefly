@@ -12,14 +12,14 @@ export default function TruthProtocol() {
       id: 'verification',
       badge: '01 // PROOF',
       title: 'VERIFICATION',
-      description: 'zkML Sentinel analyzes stream frames to provide mathematically certain proof of completion.',
+      description: 'QR + GPS check-ins prove a real human showed up. The referee layer reviews every proof before anything pays.',
       color: '#A855F7'
     },
     {
       id: 'settlement',
       badge: '02 // ESCROW',
       title: 'SETTLEMENT',
-      description: 'Funds released instantly via smart contracts upon verification. Code is law.',
+      description: 'USDC locks in escrow when a dare is funded and releases by smart contract the moment proof clears.',
       color: '#FACC15'
     },
     {
@@ -33,7 +33,7 @@ export default function TruthProtocol() {
       id: 'location',
       badge: '04 // PLACE',
       title: 'LOCATION',
-      description: 'Venue anchors and nearby proof turn dares into place-bound missions with real-world context.',
+      description: 'Every dare is anchored to a real venue — proof lives on the map, tied to the place it happened.',
       color: '#22D3EE'
     }
   ];
@@ -76,7 +76,7 @@ export default function TruthProtocol() {
                 <span className="inline-block text-[#A855F7]">PROTOCOL</span>
               </h2>
               <p className="inline-flex max-w-fit items-center justify-center bd-dent-surface bd-dent-surface--soft rounded-full border border-white/[0.08] px-5 py-3 text-gray-400 font-mono text-sm uppercase tracking-widest">
-                Zero-Knowledge Verification • On-Chain Settlement • Base L2
+                Verified Presence • On-Chain Settlement • Base L2
               </p>
             </>
           )}
