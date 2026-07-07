@@ -9,7 +9,7 @@ export function Toaster() {
 
   return (
     <div 
-      className="fixed left-1/2 -translate-x-1/2 flex flex-col gap-2 p-4 w-full md:w-auto md:min-w-[320px] max-w-[92vw]"
+      className="pointer-events-none fixed left-1/2 -translate-x-1/2 flex flex-col gap-2 p-4 w-full md:w-auto md:min-w-[320px] max-w-[92vw]"
       style={{
         top: '5.5rem', // Positioned below the navbar
         zIndex: 9999,
