@@ -206,6 +206,9 @@ async function callTelegramApi<T = unknown>(
   payload: Record<string, unknown>
 ): Promise<TelegramApiResponse<T>> {
   if (!TELEGRAM_BOT_TOKEN) {
+    // Loud on purpose: a missing token silently no-ops every alert (tag claims,
+    // dare reviews, etc.). Without this log the failure is invisible in prod.
+    console.error(`[TELEGRAM] ${method} skipped — TELEGRAM_BOT_TOKEN is not set`);
     return { ok: false, description: 'Bot token missing' };
   }
 
@@ -1454,6 +1457,11 @@ export async function sendTagClaimSubmissionAlert(data: {
   walletAddress: string;
 }): Promise<void> {
   if (!TELEGRAM_ADMIN_CHAT_ID) {
+    // A pending tag claim with no admin ping is a dead-end for the claimer.
+    // Make the misconfiguration visible instead of silently dropping the alert.
+    console.error(
+      `[TELEGRAM] tag-claim alert skipped for ${data.tag} (${data.tagClaimId}) — TELEGRAM_ADMIN_CHAT_ID is not set`
+    );
     return;
   }
 
