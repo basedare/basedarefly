@@ -22,6 +22,12 @@
   z-index: 2;
   width: 100%;
   aspect-ratio: 4 / 4;
+  /* overflow:hidden disables the automatic content-based minimum, so the
+     aspect-ratio square clips taller text (Safari's font metrics wrap the
+     description one line further than Chrome's). An explicit content
+     minimum lets the card grow past square instead of chopping. */
+  min-height: -webkit-fit-content;
+  min-height: fit-content;
   padding: 16px;
   border: none;
   border-radius: 20px;
