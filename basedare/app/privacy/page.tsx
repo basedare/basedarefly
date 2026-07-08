@@ -133,11 +133,9 @@ export default function PrivacyPolicy() {
                 </div>
                 <div className={`${dentWellClass} px-5 py-4`}>
                     <p className="font-mono text-sm opacity-80">
-                        Privacy requests, deletion requests, questions:{' '}
-                        <a href="mailto:hello@basedare.xyz" className="text-cyan-300 underline-offset-2 hover:underline">
-                            hello@basedare.xyz
-                        </a>{' '}
-                        or the <Link href="/contact" className="text-cyan-300 underline-offset-2 hover:underline">contact page</Link>. A human reads both.
+                        Privacy requests, deletion requests, questions: use the{' '}
+                        <Link href="/contact" className="text-cyan-300 underline-offset-2 hover:underline">contact page</Link>.
+                        A human reads it.
                     </p>
                 </div>
             </section>
