@@ -6733,7 +6733,7 @@ export default function RealWorldMap() {
         distanceLabel: dare.distanceDisplay,
         rewardLabel: dare.isCommunitySpark ? 'Community' : `${formatMapUsd(dare.bounty)} USDC`,
         actionLabel: 'Open dare',
-        href: dare.shortId ? `/dare/${dare.shortId}` : '/dares',
+        href: dare.shortId ? `/dare/${dare.shortId}` : '/board',
         place,
         tone: dare.isCommunitySpark ? 'green' : dare.bounty >= 100 ? 'gold' : 'cyan',
       });
@@ -10163,7 +10163,9 @@ export default function RealWorldMap() {
                   })}
                 </div>
                 )}
-                <div className="hidden flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-black/45 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur md:flex">
+                {/* Legend shows on mobile too — pin colors are the trust
+                    vocabulary and phones are where the map actually gets used. */}
+                <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-2xl border border-white/10 bg-black/45 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur md:justify-start md:py-2">
                   <span className="inline-flex items-center gap-1.5">
                     <span className="inline-block h-2.5 w-2.5 rounded-full bg-[linear-gradient(180deg,#fff0a8,#f5c518)]" aria-hidden="true" />
                     Verified dare

@@ -17,7 +17,7 @@ export default function MarketsSection() {
           Choose your scene
         </h2>
         <p className="mx-auto mt-3 max-w-md text-sm font-bold leading-6 text-white/56">
-          Creators earn and venues launch missions, city by city.
+          Creators earn and venues fund dares, city by city.
         </p>
       </div>
 
@@ -72,7 +72,7 @@ export default function MarketsSection() {
                       prefetch={false}
                       className="inline-flex min-h-10 items-center gap-2 rounded-full border border-cyan-200/24 bg-cyan-300/[0.07] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100/88 transition hover:bg-cyan-300/[0.12] hover:text-white"
                     >
-                      Run a Venue Mission
+                      Run a Venue Dare
                     </Link>
                   ) : null}
                 </div>

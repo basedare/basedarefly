@@ -111,7 +111,7 @@ function getCreatorAvailability(creator: Creator): {
   if ((creator.stats?.approved ?? creator.completedDares) > 0 || (creator.businessMetrics?.venueReach ?? 0) > 0) {
     return {
       label: "Available tonight",
-      detail: "Good for venue missions",
+      detail: "Good for venue dares",
       dotClass: "bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,0.7)]",
       badgeClass: "border-cyan-300/30 bg-cyan-400/10 text-cyan-100",
     };
@@ -119,7 +119,7 @@ function getCreatorAvailability(creator: Creator): {
 
   return {
     label: "Open this week",
-    detail: "Mission window open",
+    detail: "Dare window open",
     dotClass: "bg-[#f5c518] shadow-[0_0_14px_rgba(245,197,24,0.6)]",
     badgeClass: "border-[#f5c518]/30 bg-[#f5c518]/10 text-[#f9e27a]",
   };
@@ -211,7 +211,7 @@ export default function CreatorsPage() {
   const verificationSteps = [
     { icon: Tag, title: "Claim Your Tag", description: "Choose a unique @tag linked to your wallet" },
     { icon: Shield, title: "Verify Identity", description: "Link your handle and submit proof" },
-    { icon: CheckCircle, title: "Start Earning", description: "Receive 89% of every bounty you complete" },
+    { icon: CheckCircle, title: "Start Earning", description: "Receive 89% of every dare you complete" },
   ];
 
   const filteredCreators = React.useMemo(() => {
@@ -289,7 +289,7 @@ export default function CreatorsPage() {
               </h1>
 
               <p className="mt-4 text-gray-400 font-mono text-sm max-w-xl mx-auto mb-8">
-                Claim your tag, complete live missions, and build verified momentum on the grid.
+                Claim your tag, complete live dares, and build verified momentum on the grid.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-2xl mx-auto">
@@ -354,7 +354,7 @@ export default function CreatorsPage() {
                   className={`${goldButtonClass} min-h-[2.75rem] gap-2 px-4 text-[11px]`}
                 >
                   <Briefcase className="h-3.5 w-3.5" />
-                  Launch mission
+                  Launch dare
                 </Link>
               </div>
 
@@ -468,7 +468,7 @@ export default function CreatorsPage() {
                             {creatorFetchFailed ? "Creator rail is loading slowly." : "No creator availability signal yet."}
                           </p>
                           <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-white/52">
-                            The host intake still works. Route founding creators here first, then missions can use live availability once the backend responds.
+                            No live availability yet. Claim your tag or become a host and this rail fills itself in.
                           </p>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2 md:w-[22rem]">

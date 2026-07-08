@@ -449,13 +449,13 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
         <div className="w-full max-w-[1400px] px-6 mb-8">
           <div className="bd-dent-surface bd-dent-surface--soft flex flex-col items-center gap-3 rounded-2xl border border-white/[0.06] p-8 text-center">
             <MapPin className="h-10 w-10 text-white/40" />
-            <p className="text-lg font-black text-white">First missions are forming in Siargao</p>
+            <p className="text-lg font-black text-white">First dares are forming in Siargao</p>
             <p className="max-w-md text-sm text-white/50">
-              Run a venue mission or join as a founding creator — verified arrivals, real proof, paid out.
+              Run a venue dare or join as a founding creator — verified arrivals, real proof, paid out.
             </p>
             <div className="mt-2 flex flex-wrap justify-center gap-2">
               <Link href="/first-spark" prefetch={false} className="inline-flex min-h-10 items-center rounded-full border border-yellow-300/30 bg-yellow-300 px-4 text-[11px] font-black uppercase tracking-[0.14em] text-black transition hover:bg-yellow-200">
-                Run a venue mission
+                Run a venue dare
               </Link>
               <Link href="/creators/signup" prefetch={false} className="inline-flex min-h-10 items-center rounded-full border border-white/14 bg-white/[0.05] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/76 transition hover:bg-white/[0.09] hover:text-white">
                 Join as a creator

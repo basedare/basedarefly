@@ -475,7 +475,7 @@ function ChatInbox() {
                 </p>
               </div>
               <p className="mt-2 text-xs font-bold leading-5 text-white/50">
-                Emails, phone numbers, and contact links are redacted before storage. Route the mission, not the user off-platform.
+                Emails, phone numbers, and contact links are redacted before storage. Route the dare, not the user off-platform.
               </p>
             </div>
 

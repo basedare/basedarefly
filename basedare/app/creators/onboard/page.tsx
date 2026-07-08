@@ -34,7 +34,7 @@ import {
  */
 
 const RADIUS_OPTIONS = [2, 5, 10, 25];
-const STEPS = ['Claim Signal', 'Tune Radar', 'Availability', 'Unlock Missions'] as const;
+const STEPS = ['Claim Your Tag', 'Dare Styles', 'Availability', 'Go Live'] as const;
 
 function toggle<T>(list: T[], value: T, max?: number): T[] {
   if (list.includes(value)) return list.filter((item) => item !== value);
@@ -241,7 +241,7 @@ export default function CreatorOnboardPage() {
 
             {step === 0 ? (
               <div className="mt-3">
-                <h1 className="text-3xl font-black uppercase italic tracking-[-0.05em] text-white">Claim your signal</h1>
+                <h1 className="text-3xl font-black uppercase italic tracking-[-0.05em] text-white">Claim your tag</h1>
                 <p className="mt-2 text-sm font-bold leading-6 text-white/58">
                   Handle, avatar, base zone. This is how venues and brands find you.
                 </p>
@@ -264,9 +264,9 @@ export default function CreatorOnboardPage() {
 
             {step === 1 ? (
               <div className="mt-3">
-                <h1 className="text-3xl font-black uppercase italic tracking-[-0.05em] text-white">Tune your radar</h1>
+                <h1 className="text-3xl font-black uppercase italic tracking-[-0.05em] text-white">Pick your dare styles</h1>
                 <p className="mt-2 text-sm font-bold leading-6 text-white/58">
-                  Pick {MIN_MISSION_STYLES}–{MAX_MISSION_STYLES} mission styles and a radius. This sets your Dare DNA.
+                  Pick {MIN_MISSION_STYLES}–{MAX_MISSION_STYLES} dare styles and a radius. This is how venues and dares find you.
                 </p>
 
                 <div className="mt-5 flex flex-wrap gap-2">
@@ -297,7 +297,7 @@ export default function CreatorOnboardPage() {
                   <input
                     value={vibeLine}
                     onChange={(event) => setVibeLine(event.target.value)}
-                    placeholder="Vibe line (e.g. Night routes · beach chaos)"
+                    placeholder="One-liner (e.g. Night routes · beach chaos)"
                     className={`${controlInset} px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-white/34`}
                   />
                 </div>
@@ -306,8 +306,8 @@ export default function CreatorOnboardPage() {
 
             {step === 2 ? (
               <div className="mt-3">
-                <h1 className="text-3xl font-black uppercase italic tracking-[-0.05em] text-white">Set availability</h1>
-                <p className="mt-2 text-sm font-bold leading-6 text-white/58">When and how are you reachable for missions?</p>
+                <h1 className="text-3xl font-black uppercase italic tracking-[-0.05em] text-white">When you're around</h1>
+                <p className="mt-2 text-sm font-bold leading-6 text-white/58">When and how are you reachable for dares?</p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {AVAILABILITY_OPTIONS.map((slot) => (
                     <ControlChip
@@ -323,9 +323,9 @@ export default function CreatorOnboardPage() {
 
             {step === 3 ? (
               <div className="mt-3">
-                <h1 className="text-3xl font-black uppercase italic tracking-[-0.05em] text-white">Unlock first missions</h1>
+                <h1 className="text-3xl font-black uppercase italic tracking-[-0.05em] text-white">Go live</h1>
                 <p className="mt-2 text-sm font-bold leading-6 text-white/58">
-                  Each one makes you more discoverable, reachable, or route-ready. Signal is reputation only.
+                  Each one makes you easier to find, reach, and pay. Points are reputation only.
                 </p>
 
                 <div className="mt-5 flex flex-wrap gap-2">
@@ -334,7 +334,7 @@ export default function CreatorOnboardPage() {
                     onClick={togglePings}
                     className={`rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition ${pingsEnabled ? 'border-emerald-300/40 bg-emerald-400/[0.12] text-emerald-100' : 'border-white/12 bg-white/[0.05] text-white/60 hover:text-white'}`}
                   >
-                    {pingsEnabled ? <Check className="mr-1 inline h-3 w-3" /> : null}Mission Pings
+                    {pingsEnabled ? <Check className="mr-1 inline h-3 w-3" /> : null}Dare pings
                   </button>
                   {!connected ? (
                     <button

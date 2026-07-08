@@ -81,7 +81,7 @@ export default function HowItWorks() {
                 </p>
                 <h4 className="mt-2 text-2xl font-black uppercase italic text-white">Stay in Chaos</h4>
                 <p className="mt-2 text-sm leading-6 text-white/58">
-                  Browse dares, create missions, complete proof, verify outcomes, and move around the map.
+                  Browse dares, create dares, complete proof, verify outcomes, and move around the map.
                 </p>
               </div>
 

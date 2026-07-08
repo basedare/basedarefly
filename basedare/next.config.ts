@@ -57,6 +57,28 @@ const nextConfig: NextConfig = {
         destination: '/hosts',
         permanent: true,
       },
+      {
+        // Pre-pivot bounty feed ("Degen Colosseum") — off the grid for good.
+        source: '/dares',
+        destination: '/board',
+        permanent: true,
+      },
+      // Nav labels people type as URLs.
+      {
+        source: '/fund',
+        destination: '/create',
+        permanent: true,
+      },
+      {
+        source: '/earn',
+        destination: '/creators',
+        permanent: true,
+      },
+      {
+        source: '/passport',
+        destination: '/dashboard',
+        permanent: true,
+      },
     ];
   },
   images: {

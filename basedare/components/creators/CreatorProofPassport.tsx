@@ -157,7 +157,7 @@ export default function CreatorProofPassport({
               <p className="mt-1 text-xs font-bold text-white/46">
                 {topVenue
                   ? `${topVenue.count} verified ${topVenue.count === 1 ? 'mark' : 'marks'}${topVenue.city ? ` in ${topVenue.city}` : ''}`
-                  : 'Launch a venue mission to start the trail.'}
+                  : 'Launch a venue dare to start the trail.'}
               </p>
             </Link>
 
@@ -178,7 +178,7 @@ export default function CreatorProofPassport({
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(255,225,87,0.26)_0%,rgba(122,73,0,0.24)_100%)] px-5 text-xs font-black uppercase tracking-[0.16em] text-[#f8dd72] shadow-[0_16px_28px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-5px_0_rgba(0,0,0,0.2)] transition hover:-translate-y-[1px] hover:border-[#f8dd72]/46"
           >
             <Trophy className="h-4 w-4" />
-            Route paid mission
+            Route a paid dare
             <Sparkles className="h-4 w-4" />
           </Link>
         </div>

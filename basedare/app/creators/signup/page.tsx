@@ -35,7 +35,7 @@ const PERKS = [
   {
     icon: MapPin,
     title: 'Put your scene on the map',
-    body: 'Your missions become the signal others follow. You own the scene, not a feed.',
+    body: 'Your dares become the signal others follow. You own the scene, not a feed.',
   },
   {
     icon: Star,
@@ -46,7 +46,7 @@ const PERKS = [
 
 const STEPS = [
   'Claim your tag and tune your radar.',
-  'Take a mission — show up and post it.',
+  'Take a dare — show up and post it.',
   'We verify who came from you. You get paid.',
 ];
 

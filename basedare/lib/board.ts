@@ -167,7 +167,7 @@ export async function getBoardSections(opts: { city?: string } = {}): Promise<Bo
         stamps: ['REWARD', 'CHECK_IN_OPEN'],
         metricValue: formatAmount(dare.bounty),
         metricLabel: 'USDC bounty',
-        href: dare.shortId ? `/dare/${encodeURIComponent(dare.shortId)}` : '/dares',
+        href: dare.shortId ? `/dare/${encodeURIComponent(dare.shortId)}` : '/map',
         tone: 'gold',
         sortWeight: 500 + Math.min(dare.bounty, 5000),
       }));
@@ -185,7 +185,7 @@ export async function getBoardSections(opts: { city?: string } = {}): Promise<Bo
         stamps: ['VERIFIED'],
         metricValue: formatAmount(dare.bounty),
         metricLabel: 'USDC paid out',
-        href: dare.shortId ? `/dare/${encodeURIComponent(dare.shortId)}` : '/dares',
+        href: dare.shortId ? `/dare/${encodeURIComponent(dare.shortId)}` : '/map',
         tone: 'emerald',
         sortWeight: completedDares.length - index,
       }));
