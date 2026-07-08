@@ -2,7 +2,7 @@ import type { Session } from 'next-auth';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
-import { ArrowRight, BarChart3, CheckCircle2, Clock3, CreditCard, Flame, MapPin, ShieldCheck, Sparkles, Users, Waves } from 'lucide-react';
+import { ArrowRight, BarChart3, CheckCircle2, Clock3, CreditCard, Flame, MapPin, ShieldCheck, Sparkles, Users, Waves, Zap } from 'lucide-react';
 import { authOptions } from '@/lib/auth-options';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import {
@@ -20,7 +20,6 @@ import SparkRunCard from '@/components/venues/SparkRunCard';
 import VenueMarkButton from '@/components/venues/VenueMarkButton';
 import VenueHostPanel from '@/components/venues/VenueHostPanel';
 import SquircleLink from '@/components/ui/SquircleLink';
-import FirstSparkPilotQuickStart from './FirstSparkPilotQuickStart';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -177,20 +176,6 @@ function getMetricDeltaClass(value: number) {
   if (value > 0) return 'border-emerald-400/18 bg-emerald-500/[0.08] text-emerald-100';
   if (value < 0) return 'border-rose-400/18 bg-rose-500/[0.08] text-rose-100';
   return 'border-white/10 bg-white/[0.04] text-white/48';
-}
-
-function getVenueSignalToneClass(tone: 'gold' | 'cyan' | 'purple' | 'rose') {
-  switch (tone) {
-    case 'cyan':
-      return 'border-cyan-300/18 bg-cyan-500/[0.075] text-cyan-100';
-    case 'purple':
-      return 'border-fuchsia-300/18 bg-fuchsia-500/[0.075] text-fuchsia-100';
-    case 'rose':
-      return 'border-rose-300/18 bg-rose-500/[0.075] text-rose-100';
-    case 'gold':
-    default:
-      return 'border-[#f5c518]/20 bg-[#f5c518]/[0.08] text-[#f8dd72]';
-  }
 }
 
 export default async function VenueDetailPage(
@@ -366,76 +351,6 @@ export default async function VenueDetailPage(
     venue.timelineMoments.find((moment) => moment.badges.includes('first spark')) ?? null;
   const latestProofRelic =
     venue.timelineMoments.find((moment) => moment.kind === 'DARE_COMPLETION' || Boolean(moment.mediaUrl)) ?? null;
-  const venueSignalLayerCards: Array<{
-    label: string;
-    value: string;
-    detail: string;
-    tone: 'gold' | 'cyan' | 'purple' | 'rose';
-    href: string | null;
-    actionLabel: string | null;
-  }> = [
-    {
-      label: 'Live Signal',
-      value:
-        venue.liveSession?.status === 'LIVE'
-          ? 'On-air'
-          : venue.activeDares.length > 0
-            ? 'Money live'
-            : currentPulseState.label,
-      detail:
-        venue.liveSession?.status === 'LIVE'
-          ? `QR is live inside ${venue.checkInRadiusMeters}m. Scan in and leave proof.`
-          : venue.activeDares.length > 0
-            ? `${venue.activeDares.length} reward challenge${venue.activeDares.length === 1 ? '' : 's'} live now.`
-            : 'Visible, waiting for proof or a reward.',
-      tone: 'cyan',
-      href: mapHref,
-      actionLabel: 'Open map',
-    },
-    {
-      label: 'Reward',
-      value:
-        venue.activeDares.length > 0
-          ? `$${totalActiveChallengeFunding.toFixed(0)} live`
-          : 'Open slot',
-      detail: primaryLiveDrop
-        ? `${primaryLiveDrop.title} is live here.`
-        : 'No reward is live yet.',
-      tone: 'gold',
-      href: primaryLiveDrop?.shortId ? `/dare/${primaryLiveDrop.shortId}` : fundChallengeHref,
-      actionLabel: primaryLiveDrop ? 'Open' : 'Sponsor',
-    },
-    {
-      label: 'First Mark',
-      value: firstMarkMoment
-        ? firstMarkMoment.creatorLabel
-        : hasPendingOwnVenueMark
-          ? 'In review'
-          : 'Unclaimed',
-      detail: firstMarkMoment
-        ? `${firstMarkMoment.creatorLabel} opened this place.`
-        : hasPendingOwnVenueMark
-          ? 'First mark is in review.'
-          : 'First approved mark owns the opening story.',
-      tone: 'purple',
-      href: null,
-      actionLabel: null,
-    },
-    {
-      label: 'Proof Relic',
-      value: latestProofRelic
-        ? latestProofRelic.kind === 'DARE_COMPLETION'
-          ? 'Reward proof'
-          : 'Place proof'
-        : 'Waiting',
-      detail: latestProofRelic
-        ? `${latestProofRelic.creatorLabel} left proof ${formatVenueLogbookDate(latestProofRelic.occurredAt)}.`
-        : 'No proof receipt yet.',
-      tone: 'rose',
-      href: latestProofRelic?.shortId ? `/dare/${latestProofRelic.shortId}` : null,
-      actionLabel: latestProofRelic?.shortId ? 'Open proof' : null,
-    },
-  ];
   const receiptCheckIns = Math.max(
     venue.firstSparkWindow?.checkIns ?? 0,
     last7DayWindow.checkIns,
@@ -580,6 +495,17 @@ export default async function VenueDetailPage(
                         buttonVariant="jelly"
                       />
                       <SquircleLink
+                        href={fundChallengeHref}
+                        label="Fund dare"
+                        tone="blue"
+                        fullWidth
+                        height={44}
+                        labelClassName="text-[0.72rem] tracking-[0.08em] sm:text-[0.8rem]"
+                      >
+                        Fund dare
+                        <Zap className="h-4 w-4" />
+                      </SquircleLink>
+                      <SquircleLink
                         href={guestMissionPageHref}
                         label="Guest mission"
                         tone="teal"
@@ -590,6 +516,21 @@ export default async function VenueDetailPage(
                         Guest mission
                         <Users className="h-4 w-4" />
                       </SquircleLink>
+                      {/* Same feature set as the map pin popup — the venue page is the
+                          ergonomic, full-screen version of that bottom sheet. */}
+                      <Link
+                        href={`${mapHref}&meetup=1`}
+                        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 transition hover:border-white/22 hover:text-white/85"
+                      >
+                        🤙 Start a free meetup here
+                      </Link>
+                      <Link
+                        href={mapHref}
+                        className="inline-flex min-h-9 w-full items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/40 transition hover:text-white/70"
+                      >
+                        Who&apos;s here
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
                     </div>
                   </div>
                   <div className={`${softCardClass} px-5 py-4`}>
@@ -688,7 +629,7 @@ export default async function VenueDetailPage(
               totalActiveChallengeFunding > 0 ||
               venue.tagSummary.heatScore > 0 ||
               venue.tagSummary.approvedCount > 0 ? (
-                <div className="mt-6 hidden grid-cols-2 gap-3 sm:grid lg:grid-cols-4">
+                <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
                   <div className={`${insetCardClass} px-4 py-4`}>
                     <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Challenges</p>
                     <p className="mt-2 text-2xl font-black">{venue.activeDares.length}</p>
@@ -778,97 +719,6 @@ export default async function VenueDetailPage(
                   </SquircleLink>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div className={`${raisedPanelClass} px-5 py-5 sm:px-7`}>
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_9%_0%,rgba(34,211,238,0.12),transparent_34%),radial-gradient(circle_at_92%_18%,rgba(245,197,24,0.12),transparent_32%),radial-gradient(circle_at_70%_100%,rgba(168,85,247,0.11),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_42%,rgba(0,0,0,0.22)_100%)]" />
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/34 to-transparent" />
-            <div className="relative">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/58">
-                    Signal Layer
-                  </p>
-                  <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-white sm:text-3xl">
-                    Something can happen here.
-                  </h2>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#f8dd72]">
-                    Drops
-                  </span>
-                  <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-100">
-                    Firsts
-                  </span>
-                  <span className="rounded-full border border-rose-300/18 bg-rose-500/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-rose-100">
-                    Relics
-                  </span>
-                </div>
-              </div>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {venueSignalLayerCards.map((card) => (
-                  <div key={card.label} className={`${insetCardClass} flex min-h-[12rem] flex-col px-4 py-4`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${getVenueSignalToneClass(card.tone)}`}>
-                        {card.label}
-                      </span>
-                      <Sparkles className="h-4 w-4 text-white/34" />
-                    </div>
-                    <p className="mt-4 text-2xl font-black text-white">{card.value}</p>
-                    <p className="mt-2 flex-1 text-sm leading-relaxed text-white/58">{card.detail}</p>
-                    {card.href && card.actionLabel ? (
-                      <Link
-                        href={card.href}
-                        className="mt-4 inline-flex min-h-10 w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
-                      >
-                        {card.actionLabel}
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className={`${raisedPanelClass} px-5 py-6 sm:px-7`}>
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(245,197,24,0.13),transparent_34%),radial-gradient(circle_at_92%_12%,rgba(168,85,247,0.12),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.045)_0%,transparent_42%,rgba(0,0,0,0.24)_100%)]" />
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-yellow-100/35 to-transparent" />
-            <div className="relative grid gap-5 lg:grid-cols-[1fr_1.05fr_0.66fr] lg:items-center">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#f8dd72]">
-                  <Sparkles className="h-4 w-4" />
-                  First Spark Pilot
-                </div>
-                <h2 className="mt-4 text-3xl font-black tracking-[-0.045em] text-white">
-                  We run the first venue activation.
-                </h2>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/62">
-                  BaseDare sets up the venue page, creator or guest route, QR proof, and recap. The venue provides one simple perk.
-                </p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {[
-                  ['People', 'Creators have a funded reason to show up.'],
-                  ['Content', 'Proof clips and marks become reusable venue memory.'],
-                  ['Receipt', 'The buyer sees what happened before repeating spend.'],
-                ].map(([label, detail]) => (
-                  <div key={label} className={`${insetCardClass} px-4 py-4`}>
-                    <CheckCircle2 className="h-4 w-4 text-emerald-200" />
-                    <p className="mt-3 text-sm font-black text-white">{label}</p>
-                    <p className="mt-2 text-xs leading-5 text-white/50">{detail}</p>
-                  </div>
-                ))}
-              </div>
-              <FirstSparkPilotQuickStart
-                venueId={venue.id}
-                venueSlug={venue.slug}
-                venueName={venue.name}
-                city={venue.city}
-                fullIntakeHref={activateVenueHref}
-                className={insetCardClass}
-              />
             </div>
           </div>
 
@@ -1377,37 +1227,6 @@ export default async function VenueDetailPage(
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
-
-              <div className={`${softCardClass} hidden p-6 md:block`}>
-                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Venue Memory</p>
-                    <h2 className="mt-2 text-2xl font-bold">Today’s signal at this venue</h2>
-                  </div>
-                  <div className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                    {venue.memorySummary?.bucketType ?? 'DAY'}
-                  </div>
-                </div>
-                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <div className={`${insetCardClass} px-4 py-4`}>
-                    <p className="text-xs uppercase tracking-[0.24em] text-white/35">Check-Ins</p>
-                    <p className="mt-2 text-2xl font-black">{venue.memorySummary?.checkInCount ?? 0}</p>
-                  </div>
-                  <div className={`${insetCardClass} px-4 py-4`}>
-                    <p className="text-xs uppercase tracking-[0.24em] text-white/35">Unique Visitors</p>
-                    <p className="mt-2 text-2xl font-black">{venue.memorySummary?.uniqueVisitorCount ?? 0}</p>
-                  </div>
-                  <div className={`${insetCardClass} px-4 py-4`}>
-                    <p className="text-xs uppercase tracking-[0.24em] text-white/35">Venue Dares</p>
-                    <p className="mt-2 text-2xl font-black">{venue.memorySummary?.dareCount ?? 0}</p>
-                  </div>
-                  <div className={`${insetCardClass} px-4 py-4`}>
-                    <p className="text-xs uppercase tracking-[0.24em] text-white/35">Top Creator</p>
-                    <p className="mt-2 text-lg font-bold">{venue.memorySummary?.topCreatorTag ?? 'Waiting...'}</p>
-                  </div>
                 </div>
               </div>
 

@@ -3481,6 +3481,7 @@ export default function RealWorldMap() {
   const deepLinkedPlaceSlug = searchParams.get('place');
   const deepLinkedSearchQuery = searchParams.get('q') || searchParams.get('search') || searchParams.get('intent');
   const deepLinkedRoomOpen = searchParams.get('room') === '1' || searchParams.get('open') === 'room';
+  const deepLinkedMeetupOpen = searchParams.get('meetup') === '1';
   const controlSource = searchParams.get('source');
   const deepLinkedCampaignId = searchParams.get('campaignId');
   const deepLinkedDareShortId = searchParams.get('dare');
@@ -3769,6 +3770,13 @@ export default function RealWorldMap() {
 
     setVenueRoomExpanded(deepLinkedRoomOpen);
   }, [deepLinkedRoomOpen, selectedPlaceIdentity]);
+
+  // Venue-page parity: /map?place=x&meetup=1 lands with the meetup composer
+  // open — the venue page's "Start a free meetup here" matches the pin popup.
+  useEffect(() => {
+    if (!selectedPlaceIdentity || !deepLinkedMeetupOpen) return;
+    setMeetupComposerOpen(true);
+  }, [deepLinkedMeetupOpen, selectedPlaceIdentity]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
