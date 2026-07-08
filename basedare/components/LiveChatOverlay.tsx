@@ -224,7 +224,7 @@ export default function LiveChatOverlay({ target, onClose }: ChatOverlayProps) {
               {/* Trust Badge */}
               <div className="mt-auto flex items-center gap-2 text-[10px] text-gray-600 font-mono">
                  <AlertTriangle className="w-3 h-3" />
-                 <span>VERIFIED BY PROTOCOL LABS ORACLE</span>
+                 <span>VERIFIED BY THE BASEDARE REFEREE</span>
               </div>
            </div>
         )}

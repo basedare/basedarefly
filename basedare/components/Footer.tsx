@@ -157,7 +157,7 @@ export default function Footer() {
           {/* COPYRIGHT — COMPACT ON MOBILE */}
           <div className="mt-10 md:mt-16 pt-6 md:pt-8 border-t border-white/5 text-center">
             <p className="text-gray-600 text-[11px] sm:text-sm">
-              © 2026 BaseDare Protocol Labs
+              © 2026 BaseDare
             </p>
 
             {/* Quick links row */}
