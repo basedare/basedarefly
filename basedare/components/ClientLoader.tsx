@@ -2,10 +2,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import ProtocolLoader from './ProtocolLoader';
-import { getClientPerformanceHints, shouldPreferLightweightClient } from '@/lib/client-performance';
 
 let hasProtocolLoadedInMemory = false;
-const LOADER_FAILSAFE_MS = 1800;
+const LOADER_FAILSAFE_MS = 2000;
 
 function shouldShowProtocolLoader() {
   if (typeof window === 'undefined') {
@@ -16,8 +15,10 @@ function shouldShowProtocolLoader() {
     return false;
   }
 
-  const hints = getClientPerformanceHints();
-  if (hints.isConstrainedViewport || shouldPreferLightweightClient()) {
+  // The loader is lightweight CSS (no WebGL), so run it on mobile too — it was
+  // previously gated to desktop, so phones only ever saw the suspense fallback.
+  // It also masks the mobile hydration jank. Reduced-motion opts out.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return false;
   }
 

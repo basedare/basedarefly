@@ -14,7 +14,11 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
   const completionStartedRef = React.useRef(false);
   const completionTimeoutRef = React.useRef<number | null>(null);
   const isOverlay = variant === 'overlay';
-  const durationMs = isOverlay ? 1100 : 1800;
+  // Snappier on phones (narrow viewport), full run on desktop.
+  const durationMs = useMemo(
+    () => (isOverlay ? 1100 : typeof window !== 'undefined' && window.innerWidth < 768 ? 1400 : 1800),
+    [isOverlay],
+  );
   const fullscreenMotion = isShattering
     ? { opacity: 0, scale: 1.018 }
     : { opacity: 1, scale: 1 };
