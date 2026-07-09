@@ -699,43 +699,38 @@ function HomeContent() {
   );
 }
 
+// Seamless branded loading frame — matches ProtocolLoader's palette so the
+// hand-off (first-visit loader → this suspense fallback → hydrated home) reads
+// as one continuous load instead of flashing a different marketing card.
 function HomeFallback() {
   return (
-    <main className="flex min-h-[calc(100vh-6rem)] items-center justify-center bg-[#030305] px-5 py-16 text-white">
-      <section className="w-full max-w-2xl rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(30,22,52,0.38),rgba(5,7,14,0.94))] px-5 py-8 text-center shadow-[0_22px_60px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)]">
-        <div className="mx-auto inline-flex rounded-full border border-yellow-300/20 bg-yellow-300/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100">
-          BaseDare
+    <main
+      className="relative flex min-h-[calc(100vh-6rem)] items-center justify-center overflow-hidden bg-[#020103] px-5 py-16"
+      aria-busy="true"
+    >
+      <span className="sr-only">Loading BaseDare…</span>
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-600/14 blur-[100px]" />
+      <div className="relative flex flex-col items-center gap-6">
+        <div className="relative flex h-20 w-20 items-center justify-center rounded-full border border-[#FFD700]/30 bg-[radial-gradient(circle_at_50%_32%,rgba(255,215,0,0.16)_0%,rgba(255,215,0,0.03)_44%,rgba(0,0,0,0.2)_100%)] shadow-[0_0_32px_rgba(255,215,0,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]">
+          <div className="absolute inset-0 animate-ping rounded-full bg-[#FFD700]/[0.06]" />
+          <svg
+            viewBox="0 0 24 24"
+            className="h-9 w-9 text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.42)]"
+            fill="rgba(255,215,0,0.15)"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
         </div>
-        <h1 className="mt-5 text-4xl font-black uppercase italic leading-[0.9] tracking-[-0.06em] sm:text-5xl">
-          Real dares. Real proof.
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-sm font-bold leading-6 text-white/66 sm:text-base">
-          Get paid to complete real-world dares. Show up, prove it with QR + GPS, and get paid in USDC.
-        </p>
-        <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link
-            href="/creators/onboard"
-            prefetch={false}
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-yellow-300/30 bg-yellow-300/[0.12] px-5 text-xs font-black uppercase tracking-[0.14em] text-yellow-100"
-          >
-            Join as creator
-          </Link>
-          <Link
-            href="/first-spark"
-            prefetch={false}
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] px-5 text-xs font-black uppercase tracking-[0.14em] text-white/72"
-          >
-            Run First Spark
-          </Link>
-          <Link
-            href="/map"
-            prefetch={false}
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-cyan-200/18 bg-cyan-300/[0.06] px-5 text-xs font-black uppercase tracking-[0.14em] text-cyan-100/76"
-          >
-            Open map
-          </Link>
+        <div className="text-[11px] font-black uppercase tracking-[0.42em] text-white/45">BaseDare</div>
+        <div className="h-[3px] w-40 overflow-hidden rounded-full bg-white/[0.07]">
+          <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-purple-500 via-cyan-400 to-[#FFD700]" />
         </div>
-      </section>
+      </div>
     </main>
   );
 }
