@@ -4,31 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useIgnition } from '@/app/context/IgnitionContext';
 
-// Origin of the burst — roughly where the FUND button sits on a phone, high
-// enough that the energy reads as radiating up and out across the whole screen.
+// Roughly where the FUND button sits on a phone — the immersion rises from here.
 const ORIGIN_TOP = '44%';
-
-// Deterministic (no Math.random → SSR-safe) radial warp streaks. Uneven lengths
-// keep it organic instead of a mechanical starburst.
-const STREAKS = Array.from({ length: 16 }, (_, i) => {
-  const angle = (360 / 16) * i;
-  const len = 52 + ((i * 37) % 22); // 52–74vh
-  const delay = (i % 4) * 0.015;
-  return { angle, len, delay };
-});
-
-// Embers flung outward — precomputed vectors so render stays pure.
-const EMBERS = Array.from({ length: 12 }, (_, i) => {
-  const angle = (360 / 12) * i + (i % 2 === 0 ? 11 : -8);
-  const dist = 120 + ((i * 53) % 90); // px
-  const rad = (angle * Math.PI) / 180;
-  return {
-    x: Math.cos(rad) * dist,
-    y: Math.sin(rad) * dist,
-    delay: (i % 3) * 0.04,
-    size: 5 + (i % 3) * 2,
-  };
-});
 
 export default function MobileIgnitionField() {
   const { ignitionActive, ignitionId, charging, ignitionIntensity } = useIgnition();
@@ -57,18 +34,19 @@ export default function MobileIgnitionField() {
   }, [ignitionActive, ignitionId, reduced]);
 
   const show = ignitionActive && !reduced;
-  // Melt is present during the hold AND through the release burst.
+  // Melt is present during the hold AND through the release.
   const melt = (charging || ignitionActive) && !reduced;
-  // Quick tap = softer burst; a full hold = full burst.
+  // Quick tap = softer bloom; a full hold = fuller bloom.
   const burstK = 0.55 + 0.45 * ignitionIntensity;
 
   return (
     <>
       {/* Environment melt — driven continuously by --bd-charge as you hold. The
           page content saturates under the backdrop, a gold immersion rises from
-          the button, and a vignette closes inward. Blended, not a starburst. */}
+          the button, a vignette closes inward, and faint VHS scanlines bleed in.
+          Blended into the environment, not a starburst on top of it. */}
       {melt ? (
-        <div className="pointer-events-none fixed inset-0 z-[93] md:hidden" aria-hidden="true">
+        <div className="pointer-events-none fixed inset-0 z-[92] md:hidden" aria-hidden="true">
           <div
             className="absolute inset-0"
             style={{
@@ -79,20 +57,38 @@ export default function MobileIgnitionField() {
             }}
           />
           <div
-            className="absolute inset-0 mix-blend-screen bg-[radial-gradient(circle_at_50%_44%,rgba(255,236,153,0.5)_0%,rgba(245,197,24,0.22)_28%,rgba(249,115,22,0.08)_52%,transparent_74%)]"
+            className="absolute inset-0 mix-blend-screen bg-[radial-gradient(circle_at_50%_44%,rgba(255,236,153,0.5)_0%,rgba(245,197,24,0.2)_28%,rgba(249,115,22,0.07)_52%,transparent_74%)]"
             style={{ opacity: 'var(--bd-charge, 0)' }}
           />
+          {/* Retro VHS scanlines — subtle horizontal bleed that intensifies with the hold. */}
+          <div
+            className="absolute inset-0 mix-blend-soft-light bg-[repeating-linear-gradient(0deg,rgba(0,0,0,0.2)_0px,rgba(0,0,0,0.2)_1px,transparent_1px,transparent_3px)]"
+            style={{ opacity: 'calc(var(--bd-charge, 0) * 0.55)' }}
+          />
+          {/* Film grain — the grit, shifting every few frames. */}
+          <div
+            className="bd-ignition-grain absolute inset-0 mix-blend-overlay"
+            style={{
+              opacity: 'calc(var(--bd-charge, 0) * 0.5)',
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+              backgroundSize: '140px 140px',
+            }}
+          />
+          {/* Cyan-tinged vignette closing inward — futuristic edge over gritty dark. */}
           <div
             className="absolute inset-0"
             style={{
               opacity: 'var(--bd-charge, 0)',
               boxShadow:
-                'inset 0 0 120px 30px rgba(245,197,24,0.4), inset 0 0 240px 90px rgba(120,53,15,0.28)',
+                'inset 0 0 90px 22px rgba(80,232,255,0.14), inset 0 0 150px 40px rgba(245,197,24,0.26), inset 0 0 240px 90px rgba(8,7,18,0.5)',
             }}
           />
         </div>
       ) : null}
 
+      {/* Release = a soft light bloom rising from the button. No streaks, rings,
+          or confetti — the glitter field carries the particles. */}
       <AnimatePresence>
         {show ? (
           <motion.div
@@ -101,94 +97,15 @@ export default function MobileIgnitionField() {
             initial={{ opacity: 0 }}
             animate={{ opacity: burstK }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.14, ease: 'easeOut' }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
             aria-hidden="true"
           >
-            {/* Full-screen energy veil — the whole screen briefly charges gold. */}
             <motion.div
-              className="absolute inset-0 bg-[radial-gradient(circle_at_50%_44%,rgba(255,244,186,0.24)_0%,rgba(245,197,24,0.12)_22%,rgba(249,115,22,0.05)_44%,transparent_66%)] mix-blend-screen"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 1, 0] }}
-              transition={{ duration: 0.72, times: [0, 0.3, 1], ease: 'easeOut' }}
-            />
-
-            {/* Core bloom rising from the button. Centering goes through motion
-                (x/y -50%) because motion owns the transform — Tailwind translate
-                utilities would be clobbered by the animated scale. */}
-            <motion.div
-              className="absolute left-1/2 h-[46vh] w-[46vh] rounded-full bg-[radial-gradient(circle,rgba(255,244,186,0.5)_0%,rgba(245,197,24,0.28)_30%,rgba(249,115,22,0.1)_52%,transparent_70%)] blur-xl mix-blend-screen"
+              className="absolute left-1/2 h-[52vh] w-[52vh] rounded-full bg-[radial-gradient(circle,rgba(255,244,186,0.4)_0%,rgba(245,197,24,0.18)_32%,rgba(80,232,255,0.1)_52%,transparent_72%)] blur-2xl mix-blend-screen"
               style={{ top: ORIGIN_TOP }}
-              initial={{ scale: 0.4, opacity: 0, x: '-50%', y: '-50%' }}
-              animate={{ scale: 1.75, opacity: [0, 0.95, 0], x: '-50%', y: '-50%' }}
-              transition={{ duration: 1.05, times: [0, 0.26, 1], ease: 'easeOut' }}
-            />
-
-            {/* Warp-speed streaks radiating outward = the "speeding up" feel.
-                rotate is held constant in motion props (not a raw CSS transform)
-                so it composes with the animated scaleY instead of being lost. */}
-            <div className="absolute left-1/2 h-0 w-0" style={{ top: ORIGIN_TOP }}>
-              {STREAKS.map((s) => (
-                <motion.span
-                  key={s.angle}
-                  className="absolute w-[2px] rounded-full"
-                  style={{
-                    height: `${s.len}vh`,
-                    bottom: 0,
-                    left: -1,
-                    transformOrigin: '50% 100%',
-                    background:
-                      'linear-gradient(to top, rgba(245,197,24,0) 0%, rgba(255,232,140,0.9) 34%, rgba(245,197,24,0) 100%)',
-                  }}
-                  initial={{ scaleY: 0.12, opacity: 0, rotate: s.angle }}
-                  animate={{ scaleY: 1, opacity: [0, 0.9, 0], rotate: s.angle }}
-                  transition={{
-                    duration: 0.58,
-                    delay: s.delay,
-                    times: [0, 0.35, 1],
-                    ease: [0.16, 0.9, 0.24, 1],
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* Shockwave rings. */}
-            {[0, 0.11, 0.22].map((delay, index) => (
-              <motion.span
-                key={delay}
-                className="absolute left-1/2 h-28 w-28 rounded-full border-2 border-[#f5c518]/50 shadow-[0_0_30px_rgba(245,197,24,0.4),inset_0_0_22px_rgba(245,197,24,0.14)]"
-                style={{ top: ORIGIN_TOP }}
-                initial={{ scale: 0.4, opacity: 0.85, x: '-50%', y: '-50%' }}
-                animate={{ scale: 3.9 + index * 0.9, opacity: 0, x: '-50%', y: '-50%' }}
-                transition={{ duration: 1.02, delay, ease: [0.18, 0.9, 0.18, 1] }}
-              />
-            ))}
-
-            {/* Embers flung outward. */}
-            <div className="absolute left-1/2 h-0 w-0" style={{ top: ORIGIN_TOP }}>
-              {EMBERS.map((e, i) => (
-                <motion.span
-                  key={i}
-                  className="absolute rounded-full bg-[#ffe98c] shadow-[0_0_10px_rgba(245,197,24,0.8)]"
-                  style={{ width: e.size, height: e.size, left: -e.size / 2, top: -e.size / 2 }}
-                  initial={{ x: 0, y: 0, opacity: 0, scale: 0.6 }}
-                  animate={{ x: e.x, y: e.y, opacity: [0, 1, 0], scale: [0.6, 1, 0.3] }}
-                  transition={{
-                    duration: 0.9,
-                    delay: e.delay,
-                    times: [0, 0.2, 1],
-                    ease: 'easeOut',
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* Horizontal light lance across the origin. */}
-            <motion.div
-              className="absolute inset-x-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,232,140,0.95),transparent)] mix-blend-screen"
-              style={{ top: ORIGIN_TOP }}
-              initial={{ scaleX: 0, opacity: 0 }}
-              animate={{ scaleX: 1, opacity: [0, 1, 0] }}
-              transition={{ duration: 0.4, delay: 0.05, ease: 'easeOut' }}
+              initial={{ scale: 0.5, opacity: 0, x: '-50%', y: '-50%' }}
+              animate={{ scale: 1.7, opacity: [0, 0.85, 0], x: '-50%', y: '-50%' }}
+              transition={{ duration: 1.15, times: [0, 0.3, 1], ease: 'easeOut' }}
             />
           </motion.div>
         ) : null}
@@ -209,20 +126,36 @@ export default function MobileIgnitionField() {
           }
         }
 
+        /* Film-grain jitter — shifts the noise so it flickers like signal grit. */
+        .bd-ignition-grain {
+          animation: bd-grain-shift 0.5s steps(3) infinite;
+        }
+        @keyframes bd-grain-shift {
+          0% {
+            background-position: 0 0;
+          }
+          33% {
+            background-position: -47px 31px;
+          }
+          66% {
+            background-position: 29px -43px;
+          }
+          100% {
+            background-position: 0 0;
+          }
+        }
+
         /* A single decisive zoom-punch — an energy "thump" outward from the
-           button — reads as expensive, where the old tremor read as nervous. */
+           button, softer than a shake. */
         @keyframes bd-mobile-ignition-punch {
           0% {
             transform: scale(1);
           }
-          20% {
-            transform: scale(1.022);
+          22% {
+            transform: scale(1.016);
           }
-          46% {
-            transform: scale(0.994);
-          }
-          70% {
-            transform: scale(1.004);
+          50% {
+            transform: scale(0.996);
           }
           100% {
             transform: scale(1);

@@ -20,6 +20,7 @@ import MobileLightningFlash from "@/components/MobileLightningFlash";
 import PwaRegistrar from "@/components/PwaRegistrar";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import MobileIgnitionField from "@/components/MobileIgnitionField";
+import NebulaFlowField from "@/components/NebulaFlowField";
 import AppStabilityGuard from "@/components/AppStabilityGuard";
 
 // FIXED PATH
@@ -164,6 +165,7 @@ export default function RootLayout({
               <ViewProvider>
                 <IgnitionProvider>
                   <MobileIgnitionField />
+                  <NebulaFlowField />
                   <div className="bd-app-shell relative z-10 flex min-h-screen flex-col">
                     <Navbar />
                     <main className="pt-24">
