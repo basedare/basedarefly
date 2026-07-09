@@ -1,9 +1,13 @@
 /**
  * Sound effect definitions for BaseDare
  *
- * Add your sound files to /public/sounds/
- * Recommended formats: .mp3 (best compatibility) or .webm (smaller size)
+ * Primary playback is the synthesized {@link playVoice} engine (see
+ * lib/audio-engine.ts) — it sounds produced/expensive where the old sub-4KB
+ * samples sounded like toy beeps. The /public/sounds/*.mp3 files remain only as
+ * a fallback for the rare browser without Web Audio support.
  */
+
+import { playVoice, type Voice } from './audio-engine';
 
 export type SoundEffect =
   | 'click'
@@ -78,6 +82,12 @@ export function playSound(sound: SoundEffect, volume?: number): void {
 
   // Respect reduced motion preference (also applies to sounds for some users)
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+
+  // Primary path: synthesized voice. Falls through to the sample only if the
+  // Web Audio engine is unavailable (older browsers).
+  if (playVoice(sound as Voice)) {
     return;
   }
 
