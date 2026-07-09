@@ -44,7 +44,7 @@ function ContactButton() {
 
   return (
     <a
-      href="https://x.com/lizardlarry7"
+      href="https://x.com/basedare_xyz"
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => trigger('click')}
@@ -1211,7 +1211,7 @@ function CreateDareContent() {
               <div className="space-y-3">
                 <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                   <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-[#FACC15] uppercase tracking-widest">
-                    <Zap className="w-3.5 h-3.5 md:w-4 md:h-4" /> Mission Type
+                    <Zap className="w-3.5 h-3.5 md:w-4 md:h-4" /> Reward Type
                   </label>
                   <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-white/35">
                     Paid or free
