@@ -5,7 +5,7 @@ import { useIgnition } from '@/app/context/IgnitionContext';
 import { useFeedback } from '@/hooks/useFeedback';
 import { cn } from '@/lib/utils';
 import SquircleButton from '@/components/ui/SquircleButton';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 interface InitProtocolButtonProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'children'> {
@@ -37,24 +37,65 @@ export default function InitProtocolButton({
   disabled,
   type = 'button',
 }: InitProtocolButtonProps) {
-  const { ignitionActive, triggerIgnition } = useIgnition();
+  const { ignitionActive, startCharge, releaseCharge, cancelCharge } = useIgnition();
   const { sound } = useFeedback();
   const isActive = !disabled && (active ?? ignitionActive);
   const liquidRadius = height / 2;
+  const pressedRef = useRef(false);
+  const committedRef = useRef(0);
 
-  const handleAction = () => {
+  // Commit = release the hold into the burst. The synthesized `fund` voice owns
+  // the sound; releaseCharge fires the launch haptic + energy field, scaled by
+  // how long the button was held.
+  const commit = () => {
     if (disabled) return;
-    // The synthesized `fund` voice is a self-contained riser → impact → shimmer,
-    // so it owns the whole moment. triggerIgnition fires the launch haptic + the
-    // full-screen energy field (no duplicate haptic, no stacked beeps).
+    committedRef.current = typeof performance !== 'undefined' ? performance.now() : 0;
     sound('fund');
-    triggerIgnition();
+    releaseCharge();
     if (onClick) onClick();
   };
+
+  const handlePointerDown = () => {
+    if (disabled) return;
+    pressedRef.current = true;
+    startCharge();
+  };
+  const handlePointerUp = () => {
+    if (!pressedRef.current) return;
+    pressedRef.current = false;
+    commit();
+  };
+  const handlePointerLeave = () => {
+    if (!pressedRef.current) return;
+    pressedRef.current = false;
+    cancelCharge();
+  };
+  // Fallback for keyboard (Enter/Space) — no pointer sequence precedes it.
+  const handleClick = () => {
+    const now = typeof performance !== 'undefined' ? performance.now() : 0;
+    // Swallow the synthetic click that trails a touch pointerup (already committed).
+    if (now - committedRef.current < 600) return;
+    commit();
+  };
+
+  // A gold aura that swells with the hold charge (reads the live --bd-charge).
+  // DOM order (aura before the button) keeps it behind the face; the halo shows
+  // around the edges and grows as you hold.
+  const chargeAura = !disabled ? (
+    <span
+      className="pointer-events-none absolute inset-[-10px] rounded-full bg-[radial-gradient(circle,rgba(245,197,24,0.55)_0%,rgba(249,115,22,0.22)_45%,transparent_72%)] blur-md"
+      style={{ opacity: 'var(--bd-charge, 0)', transform: 'scale(calc(1 + var(--bd-charge, 0) * 0.35))' }}
+      aria-hidden="true"
+    />
+  ) : null;
 
   if (variant === 'liquid') {
     return (
       <div
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+        onPointerCancel={handlePointerLeave}
         className={cn(
           'relative isolate group overflow-hidden p-[1.5px] transition-all duration-500',
           disabled && 'opacity-60 saturate-50',
@@ -87,7 +128,7 @@ export default function InitProtocolButton({
 
         <motion.button
           whileTap={{ scale: disabled ? 1 : 0.985 }}
-          onClick={handleAction}
+          onClick={handleClick}
           type={type}
           disabled={disabled}
           className={cn(
@@ -146,7 +187,14 @@ export default function InitProtocolButton({
   }
 
   return (
-    <div className={cn('relative overflow-visible', disabled && 'saturate-50', className)}>
+    <div
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerLeave}
+      onPointerCancel={handlePointerLeave}
+      className={cn('relative overflow-visible', disabled && 'saturate-50', className)}
+    >
+      {chargeAura}
       <SquircleButton
         tone="yellow"
         label={isActive ? activeLabel : idleLabel}
@@ -155,7 +203,7 @@ export default function InitProtocolButton({
         active={isActive}
         stableHover={stableHover}
         disabled={disabled}
-        onClick={handleAction}
+        onClick={handleClick}
         type={type}
         className="w-full"
         buttonClassName={buttonClassName}

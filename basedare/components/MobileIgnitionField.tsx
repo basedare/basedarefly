@@ -31,7 +31,7 @@ const EMBERS = Array.from({ length: 12 }, (_, i) => {
 });
 
 export default function MobileIgnitionField() {
-  const { ignitionActive, ignitionId } = useIgnition();
+  const { ignitionActive, ignitionId, charging, ignitionIntensity } = useIgnition();
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
@@ -57,16 +57,49 @@ export default function MobileIgnitionField() {
   }, [ignitionActive, ignitionId, reduced]);
 
   const show = ignitionActive && !reduced;
+  // Melt is present during the hold AND through the release burst.
+  const melt = (charging || ignitionActive) && !reduced;
+  // Quick tap = softer burst; a full hold = full burst.
+  const burstK = 0.55 + 0.45 * ignitionIntensity;
 
   return (
     <>
+      {/* Environment melt — driven continuously by --bd-charge as you hold. The
+          page content saturates under the backdrop, a gold immersion rises from
+          the button, and a vignette closes inward. Blended, not a starburst. */}
+      {melt ? (
+        <div className="pointer-events-none fixed inset-0 z-[93] md:hidden" aria-hidden="true">
+          <div
+            className="absolute inset-0"
+            style={{
+              backdropFilter:
+                'saturate(calc(1 + var(--bd-charge, 0) * 1.7)) brightness(calc(1 + var(--bd-charge, 0) * 0.1)) contrast(calc(1 + var(--bd-charge, 0) * 0.06))',
+              WebkitBackdropFilter:
+                'saturate(calc(1 + var(--bd-charge, 0) * 1.7)) brightness(calc(1 + var(--bd-charge, 0) * 0.1)) contrast(calc(1 + var(--bd-charge, 0) * 0.06))',
+            }}
+          />
+          <div
+            className="absolute inset-0 mix-blend-screen bg-[radial-gradient(circle_at_50%_44%,rgba(255,236,153,0.5)_0%,rgba(245,197,24,0.22)_28%,rgba(249,115,22,0.08)_52%,transparent_74%)]"
+            style={{ opacity: 'var(--bd-charge, 0)' }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              opacity: 'var(--bd-charge, 0)',
+              boxShadow:
+                'inset 0 0 120px 30px rgba(245,197,24,0.4), inset 0 0 240px 90px rgba(120,53,15,0.28)',
+            }}
+          />
+        </div>
+      ) : null}
+
       <AnimatePresence>
         {show ? (
           <motion.div
             key={ignitionId}
             className="pointer-events-none fixed inset-0 z-[94] overflow-hidden md:hidden"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ opacity: burstK }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.14, ease: 'easeOut' }}
             aria-hidden="true"

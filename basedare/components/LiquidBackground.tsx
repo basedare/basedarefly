@@ -24,14 +24,13 @@ export default function LiquidBackground({ veilOpacity = 0.65, performanceMode =
     <div
       className="fixed inset-0 z-[-50] bg-transparent pointer-events-none overflow-hidden [transform:translateZ(0)] will-change-transform"
       style={{
+        // The environment melts with the hold charge: saturation swells, it
+        // warms toward gold and brightens — a continuous reaction, not a binary
+        // flip. --bd-charge (0..1) is driven by the ignition/hold engine.
         filter: quietMode
           ? 'none'
-          : ignitionActive
-          ? 'saturate(1.8) brightness(1.2)'
-          : 'saturate(1) brightness(1)',
-        transition: quietMode || ignitionActive
-          ? 'none'
-          : 'filter 0.8s ease-out'
+          : 'saturate(calc(1 + var(--bd-charge, 0) * 1.5)) brightness(calc(1 + var(--bd-charge, 0) * 0.3)) hue-rotate(calc(var(--bd-charge, 0) * -22deg))',
+        transition: quietMode ? 'none' : 'filter 0.12s linear',
       }}
     >
 
