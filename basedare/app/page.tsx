@@ -74,6 +74,8 @@ function HomeContent() {
   const [showViewToggle, setShowViewToggle] = useState(false);
   const [showBelowFoldSections, setShowBelowFoldSections] = useState(false);
   const [useLightweightHome, setUseLightweightHome] = useState(false);
+  // Internal residue on a public surface — only visible with ?dossier=1.
+  const showInvestorDossier = searchParams.get('dossier') === '1';
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setShowViewToggle(true), 320);
@@ -660,31 +662,34 @@ function HomeContent() {
               </div>
             </div>
 
-            {/* Investor Dossier Link */}
-            <div className="mt-12 relative z-10">
-              <button
-                onClick={() => setShowDossier(!showDossier)}
-                className="text-zinc-500 hover:text-zinc-800 text-sm flex items-center gap-2 transition"
-              >
-                <span>📊</span>
-                <span>{showDossier ? 'Hide Investor Dossier' : 'View Investor Dossier'}</span>
-                <span className={`transition-transform ${showDossier ? 'rotate-180' : ''}`}>▼</span>
-              </button>
-            </div>
+            {/* Investor Dossier - internal, gated behind ?dossier=1 */}
+            {showInvestorDossier ? (
+              <>
+                <div className="mt-12 relative z-10">
+                  <button
+                    onClick={() => setShowDossier(!showDossier)}
+                    className="text-zinc-500 hover:text-zinc-800 text-sm flex items-center gap-2 transition"
+                  >
+                    <span>📊</span>
+                    <span>{showDossier ? 'Hide Investor Dossier' : 'View Investor Dossier'}</span>
+                    <span className={`transition-transform ${showDossier ? 'rotate-180' : ''}`}>▼</span>
+                  </button>
+                </div>
 
-            {/* Business Dossier - Numbers breakdown */}
-            <AnimatePresence>
-              {showDossier && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="w-full mt-8 overflow-hidden relative z-10"
-                >
-                  <BusinessDossier />
-                </motion.div>
-              )}
-            </AnimatePresence>
+                <AnimatePresence>
+                  {showDossier && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="w-full mt-8 overflow-hidden relative z-10"
+                    >
+                      <BusinessDossier />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            ) : null}
           </motion.div>
         )}
       </AnimatePresence>
