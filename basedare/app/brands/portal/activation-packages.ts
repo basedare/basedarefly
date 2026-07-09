@@ -363,7 +363,7 @@ export const ACTIVATION_PACKAGES: ActivationPackage[] = [
     tier: 'APEX',
     payout: 1000,
     bestFor: 'Launches, parties, and sponsor moments',
-    outcome: 'One premium creator mission with a tighter time window and stronger payout signal.',
+    outcome: 'One premium creator dare with a tighter time window and stronger payout signal.',
     proof: 'Creator makes the place feel like the event people should have attended.',
     buyerCopy: 'Use this when the night itself matters and the proof needs to feel like a receipt.',
   },

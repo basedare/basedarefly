@@ -50,13 +50,13 @@ export default function PortalGates({
           <div className="max-w-md text-center space-y-5">
             <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
               <Sparkles className="h-4 w-4" />
-              Activation Portal
+              Brand Portal
             </div>
             <h1 className="text-4xl font-black uppercase italic tracking-[-0.06em] text-white sm:text-5xl">
-              Control Mode
+              Brand Portal
             </h1>
             <p className="mx-auto max-w-md text-base font-bold leading-7 text-white/62">
-              Fund live venue activations, route creators, and track proof. Connect your wallet to open the activation portal.
+              Fund dares at real venues, route creators, and track proof. Connect your wallet to open the portal.
             </p>
             <button
               onClick={() => {
@@ -83,6 +83,23 @@ export default function PortalGates({
                 Fund by invoice
               </Link>{' '}
               — we handle the on-chain part.
+            </p>
+            <p className="text-xs font-bold leading-6 text-white/44">
+              Own a venue? Your console lives on your venue page, not here —{' '}
+              <Link
+                href="/claim-tag"
+                className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
+              >
+                verify your @baretag
+              </Link>
+              , then claim the venue from{' '}
+              <Link
+                href="/map"
+                className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
+              >
+                its page on the map
+              </Link>
+              .
             </p>
           </div>
         </div>

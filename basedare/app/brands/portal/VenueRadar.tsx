@@ -315,7 +315,7 @@ export default function VenueRadar({
                       {selectedVenueRadar.strategyLabel}
                     </div>
                     <p className="mt-2 text-sm leading-6 text-zinc-300">
-                      Fund one mission while the signal is fresh. BaseDare routes the creator and tracks the proof.
+                      Fund one dare while the signal is fresh. BaseDare routes the creator and tracks the proof.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button

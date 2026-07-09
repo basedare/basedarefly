@@ -1214,10 +1214,10 @@ export default function BrandPortalPage() {
             </Link>
             <div>
               <div className="text-[1.05rem] font-black leading-none tracking-[-0.03em] text-white antialiased md:text-2xl">
-                ACTIVATION OPS
+                BRAND PORTAL
               </div>
               <div className="mt-1 hidden text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200/70 md:block">
-                Sponsor and venue mission control
+                Fund dares · route creators · track proof
               </div>
             </div>
           </div>
@@ -1264,7 +1264,7 @@ export default function BrandPortalPage() {
                   Start with one verified arrival loop.
                 </h1>
                 <p className="mt-4 max-w-2xl text-base font-bold leading-7 text-white/66">
-                  Fund verified foot-traffic missions for your venue. Pay only for proven arrivals.
+                  Fund verified foot-traffic dares for your venue. Pay only for proven arrivals.
                 </p>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                   <Link
@@ -1293,7 +1293,7 @@ export default function BrandPortalPage() {
                   },
                   {
                     icon: <CreditCard className="h-4 w-4" />,
-                    label: '2. Fund the mission',
+                    label: '2. Fund the dare',
                     detail: 'Set one clear payout.',
                   },
                   {
@@ -1323,6 +1323,31 @@ export default function BrandPortalPage() {
                 ))}
               </div>
             </div>
+
+            {/* Venue owners land here from the home card too — route them to the
+                claim path instead of burying them in sponsor tooling. */}
+            <div className="relative mt-6 rounded-2xl border border-white/10 bg-black/30 px-4 py-4 md:px-5">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#ffe785]">
+                Own the venue itself?
+              </div>
+              <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-white/64">
+                Your stats console — check-ins, proofs, dares, visitors — lives on your venue page, not in this portal.{' '}
+                <Link
+                  href="/claim-tag"
+                  className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
+                >
+                  Verify your @baretag
+                </Link>
+                , open{' '}
+                <Link
+                  href="/map"
+                  className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
+                >
+                  your venue on the map
+                </Link>
+                , and tap “Claim venue”. Once approved, “Open console” appears on your venue page.
+              </p>
+            </div>
           </section>
         ) : (
           <>
@@ -1334,7 +1359,7 @@ export default function BrandPortalPage() {
             Launch a paid venue activation
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-200/[0.74] md:text-base">
-            Pick the venue, choose the mission budget, route a creator, and get proof back into venue memory.
+            Pick the venue, choose the dare budget, route a creator, and get proof back into venue memory.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <button
@@ -1353,6 +1378,9 @@ export default function BrandPortalPage() {
               Venue map
             </Link>
           </div>
+          <p className="mt-4 text-xs font-bold leading-5 text-white/40">
+            Own a venue? Claim it from its page on the map to unlock your stats console.
+          </p>
         </div>
 
         <PortalStats
@@ -1365,6 +1393,27 @@ export default function BrandPortalPage() {
           paidOutCount={paidOutCount}
           payoutQueuedCount={payoutQueuedCount}
           proofsSubmittedCount={proofsSubmittedCount}
+        />
+
+        {/* A returning buyer's first question is "what happened with my money" —
+            their live campaigns come before venue discovery. */}
+        <ResponseRail
+          campaigns={campaigns}
+          claimRequestsPendingCount={claimRequestsPendingCount}
+          creatorsAttachedCount={creatorsAttachedCount}
+          expandedMatchesCampaignId={expandedMatchesCampaignId}
+          inReviewCount={inReviewCount}
+          matchesByCampaign={matchesByCampaign}
+          openActivationBuilder={openActivationBuilder}
+          openCampaignComposerForCampaign={openCampaignComposerForCampaign}
+          paidOutCount={paidOutCount}
+          payoutQueuedCount={payoutQueuedCount}
+          proofsSubmittedCount={proofsSubmittedCount}
+          responsesTabByCampaign={responsesTabByCampaign}
+          setResponsesTabByCampaign={setResponsesTabByCampaign}
+          shortlistedCreators={shortlistedCreators}
+          toggleCampaignMatches={toggleCampaignMatches}
+          toggleShortlistCreator={toggleShortlistCreator}
         />
 
         <VenueRadar
@@ -1416,24 +1465,6 @@ export default function BrandPortalPage() {
           togglePreferredPlatform={togglePreferredPlatform}
         />
 
-        <ResponseRail
-          campaigns={campaigns}
-          claimRequestsPendingCount={claimRequestsPendingCount}
-          creatorsAttachedCount={creatorsAttachedCount}
-          expandedMatchesCampaignId={expandedMatchesCampaignId}
-          inReviewCount={inReviewCount}
-          matchesByCampaign={matchesByCampaign}
-          openActivationBuilder={openActivationBuilder}
-          openCampaignComposerForCampaign={openCampaignComposerForCampaign}
-          paidOutCount={paidOutCount}
-          payoutQueuedCount={payoutQueuedCount}
-          proofsSubmittedCount={proofsSubmittedCount}
-          responsesTabByCampaign={responsesTabByCampaign}
-          setResponsesTabByCampaign={setResponsesTabByCampaign}
-          shortlistedCreators={shortlistedCreators}
-          toggleCampaignMatches={toggleCampaignMatches}
-          toggleShortlistCreator={toggleShortlistCreator}
-        />
           </>
         )}
       </main>

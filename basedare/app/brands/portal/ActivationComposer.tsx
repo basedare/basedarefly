@@ -120,7 +120,7 @@ export default function ActivationComposer({
                     </span>
                   </div>
                   <h2 className="mt-3 text-2xl font-black tracking-tight text-white md:text-3xl">
-                    Launch one mission
+                    Launch one dare
                   </h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
                     Choose the venue, package, and creator fit. BaseDare tracks proof back to the venue.
@@ -337,7 +337,7 @@ export default function ActivationComposer({
                       className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
                     />
                     <div className="mt-2 text-xs text-zinc-500">
-                      Choose where you want the activation to happen. We will attach the live mission to that venue on the map.
+                      Choose where you want the activation to happen. We will attach the live dare to that venue on the map.
                     </div>
                     {placeLoading ? (
                       <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
@@ -469,7 +469,7 @@ export default function ActivationComposer({
                   <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
                     <div className="text-sm font-semibold text-zinc-900">How venue activations work</div>
                     <div className="mt-2 text-sm text-zinc-600">
-                      This funds one venue mission, routes one recommended creator, shows it on the map, and records the result back into venue memory.
+                      This funds one venue dare, routes one recommended creator, shows it on the map, and records the result back into venue memory.
                     </div>
                   </div>
                 )}
