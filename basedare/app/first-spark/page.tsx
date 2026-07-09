@@ -12,7 +12,7 @@ import ActivationIntakeForm from '../activations/ActivationIntakeForm';
 export const metadata: Metadata = {
   title: 'Run First Spark | BaseDare',
   description:
-    'Pick a slow venue window, add one perk, route people through QR proof, and get a Spark Receipt.',
+    'Launch a verified creator dare at your venue. BaseDare brings the creator, the dare, the QR check-in, and the receipt.',
 };
 
 type FirstSparkVenueRoute = {
@@ -218,10 +218,10 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
                   First Spark pilot — for venues with one quiet slot
                 </div>
                 <h1 className="mt-2 max-w-3xl text-3xl font-black leading-[0.95] tracking-[-0.045em] text-white sm:text-5xl">
-                  Run First Spark
+                  Launch a verified creator dare at your venue.
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/62 sm:text-base">
-                  Pick any quiet slot — a slow lunch, a sunset, a game day, a weekday night. Add one perk. BaseDare routes people, proves arrivals, and sends the Spark Receipt.
+                  You pick the night. BaseDare brings the creator, the dare, the QR check-in, and the receipt — you pay only for proven arrivals.
                 </p>
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <div className="w-full sm:w-[260px]" data-activation-track="first-spark-primary" data-activation-channel="first-spark-page">
