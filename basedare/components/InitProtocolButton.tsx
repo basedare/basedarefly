@@ -38,15 +38,16 @@ export default function InitProtocolButton({
   type = 'button',
 }: InitProtocolButtonProps) {
   const { ignitionActive, triggerIgnition } = useIgnition();
-  const { trigger, sound } = useFeedback();
+  const { sound } = useFeedback();
   const isActive = !disabled && (active ?? ignitionActive);
   const liquidRadius = height / 2;
 
   const handleAction = () => {
     if (disabled) return;
-    trigger('ignite');
-    window.setTimeout(() => sound('whoosh'), 90);
-    window.setTimeout(() => sound('pop'), 310);
+    // The synthesized `fund` voice is a self-contained riser → impact → shimmer,
+    // so it owns the whole moment. triggerIgnition fires the launch haptic + the
+    // full-screen energy field (no duplicate haptic, no stacked beeps).
+    sound('fund');
     triggerIgnition();
     if (onClick) onClick();
   };
@@ -176,20 +177,37 @@ export default function InitProtocolButton({
       <AnimatePresence>
         {isActive && (
           <>
+            {/* Core flash — a hot bloom punching out from the button face. */}
             <motion.span
-              initial={{ scale: 0.7, opacity: 0.76 }}
-              animate={{ scale: 2.1, opacity: 0 }}
+              initial={{ scale: 0.6, opacity: 0.9 }}
+              animate={{ scale: 1.9, opacity: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.72, ease: 'easeOut' }}
-              className="pointer-events-none absolute inset-[-8px] rounded-full border border-[#f5c518]/50 shadow-[0_0_26px_rgba(245,197,24,0.35)]"
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="pointer-events-none absolute inset-[-6px] rounded-full bg-[radial-gradient(circle,rgba(255,244,186,0.85)_0%,rgba(245,197,24,0.4)_38%,transparent_70%)] mix-blend-screen"
               aria-hidden="true"
             />
             <motion.span
-              initial={{ scale: 0.82, opacity: 0.44 }}
-              animate={{ scale: 2.85, opacity: 0 }}
+              initial={{ scale: 0.7, opacity: 0.8 }}
+              animate={{ scale: 2.1, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.72, ease: 'easeOut' }}
+              className="pointer-events-none absolute inset-[-8px] rounded-full border-2 border-[#f5c518]/60 shadow-[0_0_30px_rgba(245,197,24,0.45)]"
+              aria-hidden="true"
+            />
+            <motion.span
+              initial={{ scale: 0.82, opacity: 0.5 }}
+              animate={{ scale: 2.9, opacity: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.92, delay: 0.08, ease: 'easeOut' }}
-              className="pointer-events-none absolute inset-[-14px] rounded-full border border-[#f8dd72]/35"
+              className="pointer-events-none absolute inset-[-14px] rounded-full border border-[#f8dd72]/40"
+              aria-hidden="true"
+            />
+            <motion.span
+              initial={{ scale: 0.9, opacity: 0.32 }}
+              animate={{ scale: 3.7, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.08, delay: 0.16, ease: 'easeOut' }}
+              className="pointer-events-none absolute inset-[-20px] rounded-full border border-[#f8dd72]/25"
               aria-hidden="true"
             />
           </>

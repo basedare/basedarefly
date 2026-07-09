@@ -5,7 +5,8 @@ const PATTERNS: Record<HapticPattern, number | number[]> = {
   impact: 24,
   success: [18, 36, 18],
   warning: [28, 42, 28],
-  launch: [16, 28, 18, 46, 26],
+  // Charge-up crescendo → decisive slam, timed to the ignition riser + impact.
+  launch: [10, 24, 14, 22, 18, 20, 55],
   spark: [8, 18, 8],
 };
 
