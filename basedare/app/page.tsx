@@ -144,7 +144,17 @@ function HomeContent() {
     const params = new URLSearchParams();
     if (streamerTag) params.set('streamer', streamerTag);
     if (title) params.set('title', title);
-    router.push(`/create${params.toString() ? '?' + params.toString() : ''}`);
+    const href = `/create${params.toString() ? '?' + params.toString() : ''}`;
+    // The ignition FX fires synchronously on press; defer the route hand-off one
+    // beat so the burst lands on the stable home page, then navigate inside a
+    // transition so React holds this page until /create is ready. Without this,
+    // the heavy page swaps underneath the mid-animation zoom-punch layer and
+    // flickers on mobile.
+    window.setTimeout(() => {
+      React.startTransition(() => {
+        router.push(href);
+      });
+    }, 250);
   };
 
   useEffect(() => {
