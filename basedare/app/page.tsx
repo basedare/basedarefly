@@ -192,15 +192,13 @@ function HomeContent() {
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.30)_0%,rgba(0,0,0,0.22)_34%,rgba(0,0,0,0.40)_100%)]" />
         </div>
       ) : null}
+      {/* Control mode gets NO blur overlay: it soft-focused the copy mid-viewport
+          and read as murk on the light theme. Atmosphere blur is a fan-mode effect. */}
       {view === 'FAN' ? (
         <div className="fixed inset-0 z-10 pointer-events-none">
           <GradualBlurOverlay intensity={useLightweightHome ? 'none' : 'full'} />
         </div>
-      ) : (
-        <div className="fixed inset-0 z-10 hidden pointer-events-none lg:block">
-          <GradualBlurOverlay intensity="light" />
-        </div>
-      )}
+      ) : null}
       {showViewToggle ? <ViewToggle view={view} setView={handleViewChange} /> : null}
 
       {/* Reality Shift - Sin City lightning from Control to Chaos */}
@@ -449,27 +447,84 @@ function HomeContent() {
 
             {/* Control Mode Selection */}
             <div className="text-center mb-8 relative z-10">
-              <div className="hidden w-full max-w-7xl mx-auto lg:block lg:h-[600px]">
+              <div className="hidden w-full max-w-7xl mx-auto lg:block lg:h-[420px]">
                 <MetallicText text="CONTROL MODE" className="w-full h-full" />
               </div>
               <h1 className="px-6 pt-32 text-5xl font-black uppercase italic leading-[0.9] tracking-[-0.08em] text-zinc-900 lg:hidden">
                 Control Mode
               </h1>
-              <p className="mx-auto mt-5 max-w-md px-6 text-base font-semibold leading-7 text-zinc-600 md:-mt-32 md:px-0 md:text-lg lg:-mt-40">
-                Real people, real places, real proof. Venues, creators, fans, and brands on one activation grid.
+              <p className="mx-auto mt-5 max-w-md px-6 text-base font-bold leading-7 text-zinc-800 md:max-w-lg md:px-0 md:text-lg lg:-mt-16">
+                The venue side of BaseDare: fund a dare, people show up and prove it, you get the receipt.
               </p>
             </div>
 
             <div className="relative z-10 mx-auto mb-6 max-w-3xl px-6 text-center">
-              <div className="inline-flex rounded-full border border-zinc-300/70 bg-white/70 px-4 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur">
+              <div className="inline-flex rounded-full border border-zinc-400/70 bg-white/80 px-4 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
                 Start with one move
               </div>
-              <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-zinc-600">
-                If you are unsure, run one First Spark first. If you already have a buyer wallet, open the Brand Portal.
+              <p className="mx-auto mt-3 max-w-2xl text-sm font-bold leading-6 text-zinc-700">
+                New here? Run one First Spark. Already funding activations? Open the Brand Portal.
               </p>
             </div>
 
             <div className="grid max-w-7xl items-stretch gap-5 px-6 md:grid-cols-2 lg:grid-cols-3 mx-auto relative z-10">
+              {/* First Spark - the 'Start here' move leads the grid */}
+              <div
+                onClick={() => router.push('/first-spark')}
+                className="control-card-shell group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 md:hover:-translate-y-1"
+              >
+                <div
+                  className="absolute inset-0 rounded-[28px] opacity-100 transition-all duration-700 group-hover:opacity-100"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(245,197,24,0.58), rgba(255,255,255,0.44), rgba(0,0,0,0.82), rgba(245,197,24,0.32))',
+                    backgroundSize: '320% 320%',
+                    animation: 'ferrofluidShift 4s ease infinite',
+                  }}
+                />
+                <div
+                  className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                  style={{
+                    background: 'conic-gradient(from 90deg at 50% 50%, transparent 0deg, rgba(245,197,24,0.18) 70deg, transparent 140deg, rgba(255,255,255,0.13) 220deg, transparent 360deg)',
+                    animation: 'spin 7s linear infinite',
+                  }}
+                />
+
+                <div className="relative flex h-full min-h-[316px] flex-col p-8 rounded-[26px] text-left overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(165deg, #101012 0%, #050506 42%, #09090b 72%, #111113 100%)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 12px rgba(0,0,0,0.78), 0 28px 52px -18px rgba(0,0,0,0.52)',
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 pointer-events-none opacity-70 group-hover:opacity-100 transition-opacity duration-700"
+                    style={{
+                      background: 'radial-gradient(circle at 12% 0%, rgba(245,197,24,0.18), transparent 34%), linear-gradient(125deg, transparent 0%, rgba(255,255,255,0.04) 28%, transparent 58%, rgba(245,197,24,0.08) 100%)',
+                    }}
+                  />
+                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-yellow-200/40 to-transparent" />
+
+                  <div className="relative z-10 flex h-full flex-col">
+                    <div className="text-4xl mb-4">⚡</div>
+                    <div className="mb-3 inline-flex rounded-full border border-yellow-200/18 bg-yellow-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100">
+                      Start here
+                    </div>
+                    <h2 className="text-2xl font-bold mb-2 text-white">Run First Spark</h2>
+                    <p className="text-zinc-400 mb-4">
+                      One paid venue pilot: approve the place, one perk, QR proof path, and recap. No console setup required.
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="px-2 py-1 bg-black/50 border border-yellow-200/20 text-yellow-100/80 rounded">Venue</span>
+                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Perk</span>
+                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Recap</span>
+                    </div>
+                    <div className="mt-auto pt-6 flex items-center gap-2 text-yellow-100 font-semibold group-hover:text-white transition-colors duration-500">
+                      Run First Spark
+                      <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Brand Portal Card - Ferrofluid/Venom Black */}
               <div
                 onClick={() => router.push('/brands/portal')}
@@ -531,63 +586,6 @@ function HomeContent() {
                     </div>
                     <div className="mt-auto pt-6 flex items-center gap-2 text-zinc-300 font-semibold group-hover:text-white transition-colors duration-500">
                       Open Brand Portal
-                      <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Grid Activation OS - public intake / sales path */}
-              <div
-                onClick={() => router.push('/first-spark')}
-                className="control-card-shell group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 md:hover:-translate-y-1"
-              >
-                <div
-                  className="absolute inset-0 rounded-[28px] opacity-100 transition-all duration-700 group-hover:opacity-100"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(245,197,24,0.58), rgba(255,255,255,0.44), rgba(0,0,0,0.82), rgba(245,197,24,0.32))',
-                    backgroundSize: '320% 320%',
-                    animation: 'ferrofluidShift 4s ease infinite',
-                  }}
-                />
-                <div
-                  className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{
-                    background: 'conic-gradient(from 90deg at 50% 50%, transparent 0deg, rgba(245,197,24,0.18) 70deg, transparent 140deg, rgba(255,255,255,0.13) 220deg, transparent 360deg)',
-                    animation: 'spin 7s linear infinite',
-                  }}
-                />
-
-                <div className="relative flex h-full min-h-[316px] flex-col p-8 rounded-[26px] text-left overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(165deg, #101012 0%, #050506 42%, #09090b 72%, #111113 100%)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 12px rgba(0,0,0,0.78), 0 28px 52px -18px rgba(0,0,0,0.52)',
-                  }}
-                >
-                  <div
-                    className="absolute inset-0 pointer-events-none opacity-70 group-hover:opacity-100 transition-opacity duration-700"
-                    style={{
-                      background: 'radial-gradient(circle at 12% 0%, rgba(245,197,24,0.18), transparent 34%), linear-gradient(125deg, transparent 0%, rgba(255,255,255,0.04) 28%, transparent 58%, rgba(245,197,24,0.08) 100%)',
-                    }}
-                  />
-                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-yellow-200/40 to-transparent" />
-
-                  <div className="relative z-10 flex h-full flex-col">
-                    <div className="text-4xl mb-4">⚡</div>
-                    <div className="mb-3 inline-flex rounded-full border border-yellow-200/18 bg-yellow-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100">
-                      Start here
-                    </div>
-                    <h2 className="text-2xl font-bold mb-2 text-white">Run First Spark</h2>
-                    <p className="text-zinc-400 mb-4">
-                      One paid venue pilot: approve the place, one perk, QR proof path, and recap. No console setup required.
-                    </p>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-black/50 border border-yellow-200/20 text-yellow-100/80 rounded">Venue</span>
-                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Perk</span>
-                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Recap</span>
-                    </div>
-                    <div className="mt-auto pt-6 flex items-center gap-2 text-yellow-100 font-semibold group-hover:text-white transition-colors duration-500">
-                      Run First Spark
                       <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
                     </div>
                   </div>
