@@ -280,6 +280,9 @@ export default function LeaderboardPage() {
                 </p>
               </div>
 
+              {/* Global stats only once there is real activity — a wall of zeros
+                  reads as a dead product, not a young one. */}
+              {leaderboard.length > 0 ? (
               <div className="mt-4 flex gap-2 overflow-x-auto pb-1 sm:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className={`${dentWellClass} min-w-[8.4rem] px-3 py-3 text-left`}>
                   <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/42">Creators</div>
@@ -294,7 +297,9 @@ export default function LeaderboardPage() {
                   <div className="mt-1 text-xl font-black text-cyan-300">{totalCompletions}</div>
                 </div>
               </div>
+              ) : null}
 
+              {leaderboard.length > 0 ? (
               <div className="mt-5 hidden grid-cols-2 gap-3 sm:grid md:grid-cols-4">
                 <div className={`${dentWellClass} px-4 py-4 text-left`}>
                   <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/45">Ranked</div>
@@ -317,6 +322,7 @@ export default function LeaderboardPage() {
                   <div className="text-[11px] font-mono uppercase tracking-[0.16em] text-white/35">B2B {formatVolume(totalB2B)}</div>
                 </div>
               </div>
+              ) : null}
             </div>
           </div>
         </motion.div>
@@ -352,11 +358,17 @@ export default function LeaderboardPage() {
           >
             <div className={`${softCardClass} p-8 text-center`}>
               <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-              <Trophy className="text-gray-600 mb-4 mx-auto" size={48} />
-              <h2 className="text-xl font-bold text-white mb-2">No Rankings Yet</h2>
+              <Trophy className="text-yellow-400/70 mb-4 mx-auto" size={48} />
+              <h2 className="text-xl font-bold text-white mb-2">Founding spots open</h2>
               <p className="text-gray-400 text-sm font-mono">
-                Complete dares to appear on the leaderboard!
+                The first 10 verified creators on this board are permanent.
               </p>
+              <Link
+                href="/#active-bounties"
+                className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-400/25 bg-yellow-500/10 px-5 py-2 text-xs font-black uppercase tracking-[0.16em] text-yellow-100 transition-colors hover:bg-yellow-500/[0.16]"
+              >
+                Complete the first verified dare <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
           </motion.div>
         ) : (
