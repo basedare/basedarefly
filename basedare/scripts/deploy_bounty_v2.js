@@ -34,6 +34,17 @@ function getRefereeAddress(fallbackAddress) {
 }
 
 async function main() {
+  // Footgun guard: hardhat loads .env.local (Sepolia-oriented). Running this on
+  // mainnet would inherit Sepolia USDC and deploy a dead escrow. Force the
+  // safe, explicit-parameter path for production.
+  const network = await hre.ethers.provider.getNetwork();
+  if (network.chainId === 8453n) {
+    throw new Error(
+      "Refusing mainnet deploy from this script — it inherits USDC from .env.local. " +
+        "Use: npx hardhat run scripts/deploy_mainnet_v2.js --network base-mainnet",
+    );
+  }
+
   const privateKey = process.env.DEPLOYER_PRIVATE_KEY || process.env.REFEREE_HOT_WALLET_PRIVATE_KEY || process.env.REFEREE_PRIVATE_KEY;
   if (!privateKey) {
     throw new Error("No private key found. Set DEPLOYER_PRIVATE_KEY or REFEREE_HOT_WALLET_PRIVATE_KEY in .env.local");
