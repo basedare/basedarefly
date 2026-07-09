@@ -11,6 +11,7 @@ import ViewToggle from "@/components/ViewToggle";
 import GlitchText from "@/components/GlitchText";
 import { LiquidInput } from "@/components/LiquidInput";
 import InitProtocolButton from "@/components/InitProtocolButton";
+import ProtocolLoader from "@/components/ProtocolLoader";
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import HomeGridRadar from "@/components/home/HomeGridRadar";
 import RoleChoiceCards from "@/components/home/RoleChoiceCards";
@@ -709,40 +710,10 @@ function HomeContent() {
   );
 }
 
-// Seamless branded loading frame — matches ProtocolLoader's palette so the
-// hand-off (first-visit loader → this suspense fallback → hydrated home) reads
-// as one continuous load instead of flashing a different marketing card.
+// Use the same orbital loader (looping) as the suspense fallback, so there's
+// only ever ONE loader — never a second, different placeholder flashing.
 function HomeFallback() {
-  return (
-    <main
-      className="relative flex min-h-[calc(100vh-6rem)] items-center justify-center overflow-hidden bg-[#020103] px-5 py-16"
-      aria-busy="true"
-    >
-      <span className="sr-only">Loading BaseDare…</span>
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-600/14 blur-[100px]" />
-      <div className="relative flex flex-col items-center gap-6">
-        <div className="relative flex h-20 w-20 items-center justify-center rounded-full border border-[#FFD700]/30 bg-[radial-gradient(circle_at_50%_32%,rgba(255,215,0,0.16)_0%,rgba(255,215,0,0.03)_44%,rgba(0,0,0,0.2)_100%)] shadow-[0_0_32px_rgba(255,215,0,0.16),inset_0_1px_0_rgba(255,255,255,0.12)]">
-          <div className="absolute inset-0 animate-ping rounded-full bg-[#FFD700]/[0.06]" />
-          <svg
-            viewBox="0 0 24 24"
-            className="h-9 w-9 text-[#FFD700] drop-shadow-[0_0_12px_rgba(255,215,0,0.42)]"
-            fill="rgba(255,215,0,0.15)"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-          </svg>
-        </div>
-        <div className="text-[11px] font-black uppercase tracking-[0.42em] text-white/45">BaseDare</div>
-        <div className="h-[3px] w-40 overflow-hidden rounded-full bg-white/[0.07]">
-          <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-purple-500 via-cyan-400 to-[#FFD700]" />
-        </div>
-      </div>
-    </main>
-  );
+  return <ProtocolLoader onComplete={() => {}} loop />;
 }
 
 export default function Home() {

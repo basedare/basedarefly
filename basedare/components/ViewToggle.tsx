@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import { triggerHaptic } from '@/lib/mobile-haptics';
 
 interface ViewToggleProps {
   view: 'FAN' | 'BUSINESS';
@@ -10,29 +11,11 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
   const isControl = view === 'BUSINESS';
   const [isPressed, setIsPressed] = useState(false);
 
-  // Haptic feedback helper
-  const triggerHaptic = () => {
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      navigator.vibrate(15);
-    }
-  };
-
-  // Mobile switch handler - uses prop setView for consistency with desktop
-  const handleMobileSwitch = () => {
-    try {
-      const newView = isControl ? 'FAN' : 'BUSINESS';
-      console.log('[ViewToggle] MOBILE CLICK DETECTED - switching to', newView);
-      console.log('[ViewToggle] Current isControl:', isControl, 'view prop:', view);
-
-      // Click confirmed working - removed debug alert
-
-      // Use the same setView as desktop (handleViewChange from page.tsx)
-      setView(newView);
-      console.log('[ViewToggle] setView called with', newView);
-      triggerHaptic();
-    } catch (error) {
-      console.error('[ViewToggle] ERROR in handleMobileSwitch:', error);
-    }
+  // Flip Chaos <-> Control with a crisp shared haptic. The old local
+  // navigator.vibrate(15) was too weak to feel next to the rest of the app.
+  const flip = () => {
+    triggerHaptic('impact');
+    setView(isControl ? 'FAN' : 'BUSINESS');
   };
 
   return (
@@ -51,7 +34,7 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
 
           {/* The Switch Track */}
           <button
-            onClick={() => setView(isControl ? 'FAN' : 'BUSINESS')}
+            onClick={flip}
             className="relative cursor-pointer flex items-center w-[180px] h-[72px] rounded-full focus:outline-none"
             style={{
               background: 'linear-gradient(145deg, #0a0a0f, #15151f)',
@@ -154,10 +137,7 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
           margin: '-8px -8px -24px -12px',
           WebkitTapHighlightColor: 'transparent',
         }}
-        onClick={() => {
-          triggerHaptic();
-          handleMobileSwitch();
-        }}
+        onClick={flip}
         onMouseDown={() => setIsPressed(true)}
         onMouseUp={() => setIsPressed(false)}
         onMouseLeave={() => setIsPressed(false)}

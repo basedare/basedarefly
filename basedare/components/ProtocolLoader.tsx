@@ -6,9 +6,12 @@ import { Zap } from "lucide-react";
 interface LoaderProps {
   onComplete: () => void;
   variant?: 'fullscreen' | 'overlay';
+  /** When true, the fill holds at 100% and never shatters/completes — used as
+   *  the Suspense fallback so it reads as the same loader, not a second one. */
+  loop?: boolean;
 }
 
-export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: LoaderProps) {
+export default function ProtocolLoader({ onComplete, variant = 'fullscreen', loop = false }: LoaderProps) {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isShattering, setIsShattering] = useState(false);
   const completionStartedRef = React.useRef(false);
@@ -53,6 +56,11 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
       setLoadingProgress(next);
 
       if (progress >= 1) {
+        // As a Suspense fallback, hold at 100% with the orbits still spinning
+        // (Suspense unmounts us when the page is ready) instead of shattering.
+        if (loop) {
+          return;
+        }
         handleCompletion();
         return;
       }
@@ -63,7 +71,7 @@ export default function ProtocolLoader({ onComplete, variant = 'fullscreen' }: L
     rafId = window.requestAnimationFrame(tick);
 
     return () => window.cancelAnimationFrame(rafId);
-  }, [durationMs, handleCompletion]);
+  }, [durationMs, handleCompletion, loop]);
 
   useEffect(() => {
     return () => {
