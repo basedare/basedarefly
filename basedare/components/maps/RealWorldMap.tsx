@@ -8893,6 +8893,9 @@ export default function RealWorldMap() {
           });
         }}
         buttonVariant="default"
+        buttonLabel={
+          !selectedPlaceHasLiveDare && !selectedPlaceBaseCashHref ? 'Fund the first dare' : 'Fund dare'
+        }
         buttonClassName="map-primary-action-button map-primary-action-button--fund"
       />
     ) : null;
@@ -8945,6 +8948,25 @@ export default function RealWorldMap() {
     ? selectedPlaceJoinDareButton
     : selectedPlaceTakeProofButton;
 
+  // The utility rail is a grid, so its column class must match the child count —
+  // a hardcoded --four left a lone Fund button sitting in one narrow cell.
+  const selectedPlaceUtilityButtonCount =
+    (selectedPlaceHasLiveDare && selectedPlaceTakeProofButton ? 1 : 0) +
+    (selectedPlaceFundDareButton ? 1 : 0) +
+    (selectedPlaceBaseCashButton ? 1 : 0);
+  // Verified spot with no live dare and no BaseCash: funding the first dare IS
+  // the activation move, so the lone Fund button gets lead-tier prominence.
+  const selectedPlaceFundIsActivationCta =
+    !selectedPlaceHasLiveDare &&
+    selectedPlaceUtilityButtonCount === 1 &&
+    Boolean(selectedPlaceFundDareButton);
+  const selectedPlaceUtilityRailColumns =
+    selectedPlaceUtilityButtonCount >= 3
+      ? 'venue-action-rail--three'
+      : selectedPlaceUtilityButtonCount === 2
+        ? 'venue-action-rail--two'
+        : 'venue-action-rail--one';
+
   const selectedPlaceActionRail =
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <div
@@ -8964,9 +8986,9 @@ export default function RealWorldMap() {
           <p className="venue-cta-hint">Check in with GPS + QR to leave verified proof.</p>
         )}
         <div
-          className={`venue-action-rail venue-action-rail--primary venue-action-rail--utility venue-action-rail--four grid ${
-            showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''
-          }`}
+          className={`venue-action-rail venue-action-rail--primary venue-action-rail--utility ${selectedPlaceUtilityRailColumns} ${
+            selectedPlaceFundIsActivationCta ? 'venue-action-rail--utility-solo' : ''
+          } grid ${showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''}`}
         >
           {selectedPlaceHasLiveDare ? selectedPlaceTakeProofButton : null}
           {selectedPlaceFundDareButton}
@@ -14807,6 +14829,31 @@ export default function RealWorldMap() {
 
           :global(.venue-action-rail--primary .map-primary-action-button > span) {
             font-size: clamp(0.58rem, 3.3vw, 0.68rem) !important;
+          }
+        }
+
+        .venue-action-rail--primary.venue-action-rail--one,
+        :global(.venue-action-rail--primary.venue-action-rail--one) {
+          grid-template-columns: minmax(0, 1fr) !important;
+        }
+
+        /* Fund-first activation state: the lone Fund button reads at lead tier. */
+        .venue-action-rail--utility-solo :global(.map-primary-action-button) {
+          min-height: 60px !important;
+        }
+
+        .venue-action-rail--utility-solo :global(.map-primary-action-button > span) {
+          font-size: clamp(0.72rem, 0.95vw, 0.86rem) !important;
+          letter-spacing: 0.09em !important;
+        }
+
+        @media (max-width: 767px) {
+          .venue-action-rail--utility-solo :global(.map-primary-action-button) {
+            min-height: 56px !important;
+          }
+
+          .venue-action-rail--utility-solo :global(.map-primary-action-button > span) {
+            font-size: clamp(0.68rem, 3.1vw, 0.8rem) !important;
           }
         }
 

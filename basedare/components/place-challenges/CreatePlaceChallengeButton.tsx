@@ -41,6 +41,7 @@ type CreatePlaceChallengeButtonProps = {
   placeSource?: string | null;
   externalPlaceId?: string | null;
   buttonClassName?: string;
+  buttonLabel?: string;
   buttonVariant?: 'default' | 'jelly';
   onPlaceResolved?: (place: {
     id: string;
@@ -72,6 +73,7 @@ export default function CreatePlaceChallengeButton({
   placeSource,
   externalPlaceId,
   buttonClassName,
+  buttonLabel = 'Fund dare',
   buttonVariant = 'default',
   onPlaceResolved,
   onChallengeCreated,
@@ -405,7 +407,7 @@ export default function CreatePlaceChallengeButton({
       {buttonVariant === 'jelly' ? (
         <SquircleButton
           tone="yellow"
-          label="Fund dare"
+          label={buttonLabel}
           fullWidth
           height={44}
           onClick={openComposer}
@@ -413,7 +415,7 @@ export default function CreatePlaceChallengeButton({
         >
           <span className="map-jelly-action-label flex items-center justify-center gap-1.5 whitespace-nowrap text-[0.62rem] font-black uppercase tracking-[0.08em] text-[#15120c] sm:text-[0.78rem]">
             <Zap className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
-            Fund dare
+            {buttonLabel}
           </span>
         </SquircleButton>
       ) : (
@@ -427,7 +429,7 @@ export default function CreatePlaceChallengeButton({
         >
           <Zap className="hidden h-4 w-4 sm:block" aria-hidden="true" />
           <span className="max-w-[7.35rem] text-balance leading-[1.03] sm:max-w-none">
-            Fund dare
+            {buttonLabel}
           </span>
         </button>
       )}
