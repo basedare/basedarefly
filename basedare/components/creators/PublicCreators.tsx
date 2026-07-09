@@ -62,10 +62,10 @@ const creatorChipClass =
   "rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_100%)] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/60 shadow-[0_6px_10px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-5px_8px_rgba(0,0,0,0.18)]";
 
 const ghostButtonClass =
-  "bd-tactile-button inline-flex min-h-[2.5rem] items-center justify-center rounded-full border px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em]";
+  "bd-tactile-button inline-flex min-h-11 items-center justify-center rounded-full border px-3 py-2 text-center text-[11px] font-black uppercase tracking-[0.14em]";
 
 const goldButtonClass =
-  "bd-tactile-button bd-tactile-button--gold inline-flex min-h-[2.5rem] items-center justify-center rounded-full border px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.14em]";
+  "bd-tactile-button bd-tactile-button--gold inline-flex min-h-11 items-center justify-center rounded-full border px-3 py-2 text-center text-[11px] font-black uppercase tracking-[0.14em]";
 
 const sectionLabelClass =
   "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
@@ -508,7 +508,7 @@ export default function CreatorsPage() {
                 <h2 className="text-2xl font-black text-white tracking-tight italic">
                   CREATORS
                 </h2>
-                <Link href="/leaderboard" className="inline-flex min-h-10 items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-3 py-2 text-[10px] font-black text-purple-300 hover:text-purple-200 transition-colors uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <Link href="/leaderboard" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-3.5 py-2 text-[11px] font-black text-purple-300 hover:text-purple-200 transition-colors uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                   Hall of Fame <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
@@ -529,7 +529,7 @@ export default function CreatorsPage() {
                     <button
                       key={option.value}
                       onClick={() => setFilterMode(option.value)}
-                      className={`bd-dent-pill min-h-10 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                      className={`bd-dent-pill min-h-11 rounded-full border px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition ${
                         filterMode === option.value
                           ? "border-cyan-400/30 bg-cyan-400/12 text-cyan-100"
                           : "border-white/10 bg-white/[0.04] text-gray-400 hover:text-white"
@@ -549,7 +549,7 @@ export default function CreatorsPage() {
                     <button
                       key={option.value}
                       onClick={() => setSortMode(option.value)}
-                      className={`bd-dent-pill min-h-10 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                      className={`bd-dent-pill min-h-11 rounded-full border px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition ${
                         sortMode === option.value
                           ? "border-purple-400/30 bg-purple-500/[0.12] text-purple-100"
                           : "border-white/10 bg-white/[0.04] text-gray-400 hover:text-white"
@@ -562,7 +562,7 @@ export default function CreatorsPage() {
               </div>
 
               {loadingCreators ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:grid-cols-4">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className={`h-44 animate-pulse ${softCardClass}`} />
                   ))}
@@ -600,7 +600,9 @@ export default function CreatorsPage() {
                       <span>{filteredCreators.length} visible</span>
                       <span>{filterMode === "verified" ? "verified only" : "all creators"}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                    {/* Single column below sm: two-up creator cards at 375px truncate
+                        tags and shrink the tap target below comfortable thumb size. */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4">
                       {filteredCreators.map((creator, index) => {
                         const plainTag = creator.tag.replace("@", "").toLowerCase();
                         const profileAvatar = creator.pfpUrl?.trim() || null;
