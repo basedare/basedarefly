@@ -59,6 +59,9 @@ model Dare {
   targetWalletAddress String?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+  // Self-expiring lease so only ONE retry-payouts worker processes a
+  // PENDING_PAYOUT row at a time (set atomically via CAS; ignored once stale).
+  payoutLeaseAt       DateTime?
   discoveryRadiusKm   Float?    @default(5)
   geohash             String?
   isNearbyDare        Boolean   @default(false)
@@ -94,6 +97,7 @@ model Dare {
   comments            Comment[]
   creatorReview       CreatorReview?
   inboxThreads        InboxThread[]
+  proofAttempts       DareProofAttempt[]
 
   @@index([inviteToken])
   @@index([streamerHandle, status])
@@ -105,6 +109,55 @@ model Dare {
   @@index([tag])
   @@index([geo_bucket])
   @@index([venueId, status])
+}
+
+// Append-only evidence ledger for proof attempts. One row per submission
+// (web / internal / telegram / retry / appeal); rows are NEVER updated or
+// overwritten — retries and disputes add new rows. Dare caches the latest proof
+// state; THIS is the audit log. Exact submitted coordinates are private
+// (server-only); public receipts expose only the proximity outcome.
+model DareProofAttempt {
+  id                 String    @id @default(cuid())
+  dareId             String
+  submitterWallet    String?
+  beneficiaryWallet  String?
+  source             String    @default("web") // web | internal | telegram | retry | appeal
+  systemActor        String?
+  // Target snapshot at attempt time (never mutated after write).
+  targetLatitude     Float?
+  targetLongitude    Float?
+  allowedRadiusKm    Float?
+  // Device-reported evidence (private — never exposed at precise resolution).
+  submittedLatitude  Float?
+  submittedLongitude Float?
+  accuracyM          Float?
+  capturedAt         DateTime?
+  receivedAt         DateTime  @default(now())
+  // Computed proximity result.
+  distanceKm         Float?
+  proximityDecision  String? // INSIDE | REVIEW | REJECT
+  proximityCode      String?
+  // Media + overall attempt outcome.
+  mediaCid           String?
+  mediaHash          String?
+  verificationConfidence Float?
+  verificationReason String?
+  proximityReason    String?
+  decision           String? // e.g. AUTO_APPROVED | PENDING_REVIEW | REJECTED
+  reason             String?
+  decidedAt          DateTime?
+  // Stable per-(dare, media) idempotency key: `${dareId}:${proofCid||videoUrl}`.
+  // NULL when no media is attached (Postgres treats NULLs as distinct, so
+  // no-media rows never collide). The unique index blocks replaying the same
+  // media to the same dare with a fresh location.
+  submissionKey      String?
+  createdAt          DateTime  @default(now())
+
+  dare               Dare      @relation(fields: [dareId], references: [id], onDelete: Cascade)
+
+  @@unique([dareId, submissionKey])
+  @@index([dareId, createdAt])
+  @@index([submitterWallet])
 }
 
 model CreatorReview {

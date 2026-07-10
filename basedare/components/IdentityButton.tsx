@@ -312,7 +312,7 @@ export function IdentityButton() {
                 <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px rgba(74,222,128,0.8)' }} />
                 <span className="truncate">{truncatedAddress}</span>
               </>
-            ) : 'Enter Arena'}
+            ) : 'Sign in'}
           </span>
           <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none rounded-[12px] md:rounded-[15px]" />
         </button>

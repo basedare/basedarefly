@@ -3,14 +3,14 @@ type: agent_rules
 system: basedare-brain
 status: ACTIVE
 created_at: 2026-05-13
-updated_at: 2026-05-13
+updated_at: 2026-07-10
 ---
 
 # BaseDare Brain Vault Agent Rules
 
 When working in this vault:
 
-1. Read `00-control/today.md`, `00-control/scorecard.md`, and `00-control/open-loops.md` before proposing growth work.
+1. Read `../docs/PHILOSOPHY.md`, `00-control/vision.md`, `00-control/today.md`, `00-control/scorecard.md`, and `00-control/open-loops.md` before proposing growth work. `PHILOSOPHY.md` and `vision.md` are one aligned canon; if they conflict, reconcile them before continuing. Both supersede older city-specific notes.
 2. Check existing lead files before creating a new lead.
 3. Prefer updating a lead's `next_action`, `status`, `last_touched_at`, and `evidence` over creating duplicate notes.
 4. Outreach can be drafted automatically, but messages stay in `02-outreach/drafts/` until reviewed.
@@ -44,4 +44,3 @@ Human only:
 - deleting important records
 - granting credentials
 - live production admin decisions
-

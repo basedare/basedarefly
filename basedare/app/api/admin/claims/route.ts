@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
 import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
+import { resolveApprovalHandle, evaluateApproval, buildRejectCasWhere } from '@/lib/dare-claim-policy';
 
 // ============================================================================
 // ADMIN CLAIM REQUESTS API
@@ -126,74 +127,124 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    if (!dare.claimRequestWallet || !dare.claimRequestTag) {
+    // A tag is optional (money-first, wallet-only claims). Only the wallet is
+    // required — it becomes the assigned doer on approval.
+    if (!dare.claimRequestWallet) {
       return NextResponse.json(
-        { success: false, error: 'Invalid claim request data' },
+        { success: false, error: 'Invalid claim request data (no wallet)' },
         { status: 400 }
       );
     }
 
+    // Display label for logs/notifications — real tag if present, else short wallet.
+    const claimDisplay =
+      dare.claimRequestTag ?? `${dare.claimRequestWallet.slice(0, 6)}…${dare.claimRequestWallet.slice(-4)}`;
+    const now = new Date();
+    const notifyLink = `/dare/${dare.shortId || dare.id}`;
+
     if (decision === 'APPROVE') {
-      // Approve: Update streamerHandle to claimer's tag, set targetWalletAddress
-      const updatedDare = await prisma.dare.update({
-        where: { id: dareId },
+      // Revalidate at decision time: not expired/claimed/terminal, no
+      // self-dealing, and no real creator handle introduced after the request.
+      const approvalCheck = evaluateApproval(dare, now);
+      if (!approvalCheck.ok) {
+        return NextResponse.json(
+          { success: false, error: approvalCheck.message, code: approvalCheck.code },
+          { status: approvalCheck.status }
+        );
+      }
+
+      // Clear only open sentinel handles (@open/@everyone/null) so the receipt
+      // and proof actor fall back to the assigned wallet; a real claim tag wins;
+      // a real creator handle is preserved.
+      const resolvedHandle = resolveApprovalHandle(dare.streamerHandle, dare.claimRequestTag);
+
+      // Compare-and-set with the open-handle (exact observed) and unexpired
+      // predicates INSIDE the guard, so a concurrent handle change, assignment,
+      // or expiry between read and write loses (count 0 → 409).
+      const cas = await prisma.dare.updateMany({
+        where: {
+          id: dareId,
+          status: 'PENDING',
+          claimedBy: null,
+          targetWalletAddress: null,
+          claimRequestStatus: 'PENDING',
+          claimRequestWallet: dare.claimRequestWallet,
+          streamerHandle: dare.streamerHandle,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
         data: {
-          streamerHandle: dare.claimRequestTag,
+          streamerHandle: resolvedHandle,
           targetWalletAddress: dare.claimRequestWallet,
           claimedBy: dare.claimRequestWallet,
-          claimedAt: new Date(),
+          claimedAt: now,
           claimRequestStatus: 'APPROVED',
           moderatorAddress: auth.walletAddress,
-          moderatedAt: new Date(),
+          moderatedAt: now,
           moderatorNote: reason || 'Claim approved',
         },
       });
 
-      console.log(`[CLAIM APPROVED] Dare ${dareId} assigned to ${dare.claimRequestTag} by moderator ${auth.walletAddress}`);
+      if (cas.count === 0) {
+        return NextResponse.json(
+          { success: false, error: 'This claim was just updated by someone else. Refresh the queue.', code: 'STATE_CHANGED' },
+          { status: 409 }
+        );
+      }
+
+      console.log(`[CLAIM APPROVED] Dare ${dareId} assigned to ${claimDisplay} by moderator ${auth.walletAddress}`);
 
       await createWalletNotification({
         wallet: dare.claimRequestWallet,
         type: 'CLAIM_APPROVED',
         title: 'Claim Approved',
         message: `You now control "${dare.title}". Submit proof when you are ready.`,
-        link: `/dare/${updatedDare.shortId || updatedDare.id}`,
+        link: notifyLink,
         pushTopic: 'wallet',
       }).catch(() => {});
 
-      // TODO: Send notification to the claimer (email, push, etc.)
-
       return NextResponse.json({
         success: true,
-        message: `Claim approved! Dare assigned to ${dare.claimRequestTag}`,
+        message: `Claim approved! Dare assigned to ${claimDisplay}`,
         data: {
-          dareId: updatedDare.id,
-          streamerHandle: updatedDare.streamerHandle,
-          targetWalletAddress: updatedDare.targetWalletAddress,
+          dareId,
+          streamerHandle: resolvedHandle,
+          targetWalletAddress: dare.claimRequestWallet,
         },
       });
     } else {
-      // Reject: Clear claim request fields
-      await prisma.dare.update({
-        where: { id: dareId },
+      // Reject — atomic clear guarded on the same pending, un-assigned request so
+      // it cannot rewrite claim status on an already-assigned/terminal dare.
+      const cas = await prisma.dare.updateMany({
+        // Complete terminal-state guard (symmetric with approve): also blocks a
+        // targeted-conversion (targetWalletAddress set out-of-band) and any dare
+        // that left PENDING. See buildRejectCasWhere for the full rationale.
+        where: buildRejectCasWhere(dareId, { claimRequestWallet: dare.claimRequestWallet }),
         data: {
           claimRequestWallet: null,
           claimRequestTag: null,
           claimRequestedAt: null,
           claimRequestStatus: 'REJECTED',
           moderatorAddress: auth.walletAddress,
-          moderatedAt: new Date(),
+          moderatedAt: now,
           moderatorNote: reason || 'Claim rejected',
         },
       });
 
-      console.log(`[CLAIM REJECTED] Dare ${dareId} claim by ${dare.claimRequestTag} rejected by moderator ${auth.walletAddress}`);
+      if (cas.count === 0) {
+        return NextResponse.json(
+          { success: false, error: 'This claim was just updated by someone else. Refresh the queue.', code: 'STATE_CHANGED' },
+          { status: 409 }
+        );
+      }
+
+      console.log(`[CLAIM REJECTED] Dare ${dareId} claim by ${claimDisplay} rejected by moderator ${auth.walletAddress}`);
 
       await createWalletNotification({
         wallet: dare.claimRequestWallet,
         type: 'CLAIM_REJECTED',
         title: 'Claim Rejected',
         message: `Your claim request for "${dare.title}" was not approved.`,
-        link: `/dare/${dare.shortId || dare.id}`,
+        link: notifyLink,
         pushTopic: 'wallet',
       }).catch(() => {});
 

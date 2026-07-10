@@ -37,6 +37,7 @@
     "**/*.backup.ts",
     "**/*.backup.tsx",
     "**/*.bak.ts",
-    "**/*.bak.tsx"
+    "**/*.bak.tsx",
+    "**/*.test.ts"
   ]
 }

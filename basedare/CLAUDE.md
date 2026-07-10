@@ -5,7 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # IMPORTANT: Keep concise (under 200 lines). For deep logic, use `.claude/rules/`.
 
 ## Project Overview
-BaseDare: A decentralized bounty platform on Base L2. Verified human performance (challenges/dares) meets community funding via ZKML/Livepeer verification and on-chain USDC payouts. NOT gambling - backers fund specific challenges, creators earn rewards for completion.
+BaseDare is a remote, bounty-funded discovery network: safe dares pay contributors for verified place intelligence, which compounds into place memory and receipts. Base L2 and USDC provide settlement. Read `docs/PHILOSOPHY.md` and `brain-vault/00-control/vision.md` as one aligned canon before product work.
+
+## Active User Assignment
+Codex completed the remote-proof Phase 1–2 closure locally after Claude hit its usage limit. Read the closure entry in `AGENTS.md` before inspection; nothing is staged, committed, migrated, or deployed. Coordinate before editing the still-dirty handoff files. Phase 3 remains paused pending human legal review.
 
 ## Commands
 ```bash

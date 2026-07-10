@@ -29,6 +29,13 @@ interface SubmitEvidenceProps {
   shortId?: string;
   placeName?: string | null;
   existingProofUrl?: string | null;
+  /**
+   * Whether this dare is proximity-gated (nearby IRL, non-STREAM). Computed by the
+   * PARENT from trusted server dare data — only then do we prompt for GPS. For
+   * ungated dares we never request location, so STREAM/remote proofs aren't
+   * prompted and no coordinates are collected. Default false = never collect.
+   */
+  gatesLocation?: boolean;
   onVerificationComplete?: (result: { status: string; confidence?: number }) => void;
 }
 
@@ -49,6 +56,7 @@ export default function SubmitEvidence({
   shortId,
   placeName,
   existingProofUrl,
+  gatesLocation = false,
   onVerificationComplete,
 }: SubmitEvidenceProps) {
   const { data: session } = useSession();
@@ -174,6 +182,16 @@ export default function SubmitEvidence({
   const handleVerifyUploadedProof = async (videoUrl: string, proofAuthHeaders: Record<string, string>) => {
     setStatus('verifying');
 
+    // Capture device location ONLY for proximity-gated (nearby IRL) dares, per
+    // trusted parent-supplied metadata — STREAM/remote proofs are never prompted.
+    // Best-effort: denial/unavailable → null → the server routes to review, never
+    // a silent pass. The server independently drops location for ungated dares.
+    let location = null;
+    if (gatesLocation) {
+      const { captureProofLocation } = await import('@/lib/capture-proof-location');
+      location = await captureProofLocation();
+    }
+
     const verifyResponse = await fetch('/api/verify-proof', {
       method: 'POST',
       headers: {
@@ -186,6 +204,7 @@ export default function SubmitEvidence({
           videoUrl,
           timestamp: Date.now(),
         },
+        ...(location ? { location } : {}),
       }),
     });
 

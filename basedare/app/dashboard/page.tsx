@@ -20,6 +20,7 @@ import { buildDareResponseMessage, DARE_RESPONSE_WINDOW_MS } from '@/lib/dare-re
 import { DARE_STATUS_DECLINED, DARE_STATUS_PENDING_ACCEPTANCE } from '@/lib/dare-status';
 import { getPreferredWalletConnector } from '@/lib/wallet-connect';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import { isProximityGatedDare } from '@/lib/proof-proximity-policy';
 
 interface Dare {
   id: string;
@@ -46,6 +47,8 @@ interface Dare {
   claimDeadline?: string | null;
   locationLabel?: string | null;
   moderatorNote?: string | null;
+  isNearbyDare?: boolean;
+  missionMode?: string | null;
 }
 
 interface UserTag {
@@ -2093,6 +2096,10 @@ export default function Dashboard() {
                               shortId={dare.shortId}
                               placeName={dare.locationLabel}
                               existingProofUrl={dare.videoUrl ?? null}
+                              gatesLocation={isProximityGatedDare({
+                                isNearbyDare: dare.isNearbyDare,
+                                missionMode: dare.missionMode,
+                              })}
                               onVerificationComplete={(result: { status: string }) => {
                                 const updateDare = (entry: Dare) =>
                                   entry.id === dare.id

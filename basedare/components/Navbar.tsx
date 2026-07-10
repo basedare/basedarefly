@@ -13,16 +13,14 @@ import { DeferredNotificationBell } from './ui/DeferredNotificationBell';
 import { DeferredGlobalSearch } from './ui/DeferredGlobalSearch';
 import BackgroundToneToggle from './BackgroundToneToggle';
 
-// Primary nav = the daily-action surfaces for the three loops.
-// Learn (/how-it-works) and Verify (/verify) live in the footer; Control is
-// reached via the FAN/CONTROL toggle.
+// Primary nav uses ordinary consumer language. Product vocabulary can appear
+// inside the experience after the user understands the action it represents.
 const NAV_LINKS = [
-  // Label-only clarity pass: routes unchanged for stability.
   { name: "HOME", href: "/" },
-  { name: "MAP", href: "/map" },
-  { name: "FUND", href: "/create" },
-  { name: "PASSPORT", href: "/dashboard" },
-  { name: "EARN", href: "/creators" },
+  { name: "EXPLORE", href: "/map" },
+  { name: "CREATE", href: "/create" },
+  { name: "PROFILE", href: "/dashboard" },
+  { name: "PEOPLE", href: "/creators" },
 ];
 
 const NAV_LINK_PREFETCH = false;
@@ -76,14 +74,14 @@ export default function Navbar() {
         <MessageCircle className="h-4 w-4" />
       </Link>
 
-      {/* Creator Sign Up — distinct gold CTA (not a nav tab); shown when there's room */}
+      {/* Universal first-run path — distinct gold CTA, not a creator application. */}
       <Link
-        href="/creators/signup"
+        href="/join"
         prefetch={NAV_LINK_PREFETCH}
         className="relative z-10 ml-1 inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-yellow-300/35 bg-yellow-300/[0.14] px-4 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100 transition hover:bg-yellow-300/[0.22] hover:text-white"
       >
         <Sparkles className="h-3.5 w-3.5" />
-        Sign Up
+        Join
       </Link>
     </div>
   );
@@ -269,15 +267,15 @@ export default function Navbar() {
               })}
             </div>
 
-            {/* Creator Sign Up — prominent mobile CTA */}
+            {/* Universal first-run CTA. */}
             <Link
-              href="/creators/signup"
+              href="/join"
               prefetch={NAV_LINK_PREFETCH}
               onClick={() => setIsOpen(false)}
               className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-yellow-300/35 bg-yellow-300 px-5 text-sm font-black uppercase tracking-[0.16em] text-black transition active:scale-[0.98]"
             >
               <Sparkles className="h-4 w-4" />
-              Creator Sign Up
+              Join BaseDare
             </Link>
 
             {/* Mobile Search Button (Under FAQ) */}

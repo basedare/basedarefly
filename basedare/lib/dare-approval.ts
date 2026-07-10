@@ -458,22 +458,34 @@ async function markDarePendingPayout(
     proofHash?: string | null;
     appealStatus?: string | null;
   }
-) {
-  const existingDare = await prisma.dare.findUnique({
-    where: { id: dareId },
-  });
-
-  const queuedDare = await prisma.dare.update({
-    where: { id: dareId },
+): Promise<Dare | null> {
+  const claimedAt = new Date();
+  const claim = await prisma.dare.updateMany({
+    where: {
+      id: dareId,
+      status: { in: ['PENDING', 'PENDING_REVIEW', 'FAILED'] },
+    },
     data: {
       status: 'PENDING_PAYOUT',
       appealStatus: input.appealStatus ?? 'APPROVED',
       verifyConfidence: input.verifyConfidence ?? undefined,
       proofHash: input.proofHash ?? undefined,
       manualReviewNeeded: false,
-      sentinelVerified: existingDare?.requireSentinel ? true : existingDare?.sentinelVerified,
+      // The approving request owns the initial lease; retry-payouts may recover
+      // only after it expires, never race the request's chain broadcast.
+      payoutLeaseAt: claimedAt,
     },
   });
+  if (claim.count === 0) return null;
+
+  const queuedDare = await prisma.dare.findUniqueOrThrow({ where: { id: dareId } });
+
+  if (queuedDare.requireSentinel && !queuedDare.sentinelVerified) {
+    await prisma.dare.updateMany({
+      where: { id: dareId, status: 'PENDING_PAYOUT' },
+      data: { sentinelVerified: true },
+    });
+  }
 
   await recordDareFounderEventSafe({
     eventType: 'payout_queued',
@@ -486,6 +498,7 @@ async function markDarePendingPayout(
       proofHash: input.proofHash ?? null,
     },
   });
+  return prisma.dare.findUniqueOrThrow({ where: { id: dareId } });
 }
 
 export async function finalizeVerifiedDare(
@@ -512,8 +525,8 @@ export async function finalizeVerifiedDare(
   const persistedTag = existingDare.tag || (existingDare.isNearbyDare ? 'street' : 'stream');
   const payout = calculatePayouts(existingDare);
 
-  const updatedDare = await prisma.$transaction(async (tx) => {
-    const updateData: Prisma.DareUpdateInput = {
+  const finalization = await prisma.$transaction(async (tx) => {
+    const updateData: Prisma.DareUpdateManyMutationInput = {
       status: 'VERIFIED',
       verifiedAt,
       referrerPayout: payout.referrer > 0 ? payout.referrer : null,
@@ -525,6 +538,7 @@ export async function finalizeVerifiedDare(
       reaction_count: existingDare.reaction_count ?? 0,
       geo_bucket: toGeoBucket(existingDare.geohash),
       manualReviewNeeded: false,
+      payoutLeaseAt: null,
       sentinelVerified: existingDare.requireSentinel ? true : existingDare.sentinelVerified,
     };
 
@@ -537,10 +551,23 @@ export async function finalizeVerifiedDare(
     if (input.moderatedAt !== undefined) updateData.moderatedAt = input.moderatedAt;
     if (input.moderatorNote !== undefined) updateData.moderatorNote = input.moderatorNote;
 
-    const nextDare = await tx.dare.update({
-      where: { id: existingDare.id },
+    // Exactly one finalizer wins. Concurrent route/cron/admin callers may all
+    // observe a payable dare, but only the first transaction may flip it to
+    // VERIFIED and create the durable notification/receipt state below.
+    const claim = await tx.dare.updateMany({
+      where: {
+        id: existingDare.id,
+        status: { in: ['PENDING', 'PENDING_REVIEW', 'PENDING_PAYOUT', 'FAILED'] },
+      },
       data: updateData,
     });
+    const nextDare = await tx.dare.findUniqueOrThrow({ where: { id: existingDare.id } });
+    if (claim.count === 0) {
+      if (nextDare.status !== 'VERIFIED') {
+        throw new Error(`Dare cannot be finalized from status ${nextDare.status}`);
+      }
+      return { dare: nextDare, didFinalize: false };
+    }
 
     await ensureApprovedPlaceTagForVerifiedDare(
       tx,
@@ -570,8 +597,16 @@ export async function finalizeVerifiedDare(
       });
     }
 
-    return nextDare;
+    return { dare: nextDare, didFinalize: true };
   });
+  const updatedDare = finalization.dare;
+
+  // Idempotent loser: the winner already performed all durable and external
+  // finalization side effects. Return the authoritative row without duplicating
+  // notifications, venue receipts, Telegram alerts, pushes, or analytics.
+  if (!finalization.didFinalize) {
+    return { dare: updatedDare, payout };
+  }
 
   await recordDareFounderEventSafe({
     eventType: 'dare_settled',
@@ -691,11 +726,40 @@ export async function approveDareWithPayout(
   const needsOnChainPayout = isContractDeployed && !dare.isSimulated && !FORCE_SIMULATION;
 
   if (needsOnChainPayout) {
+    // Claim PENDING_PAYOUT before any chain work. This is the same CAS/lease rail
+    // used by proof auto-settlement, so two admin/appeal approvals cannot both
+    // broadcast and a late failure cannot downgrade a winner's VERIFIED row.
+    const queuedDare = await markDarePendingPayout(dare.id, input);
+    if (!queuedDare) {
+      const authoritative = await prisma.dare.findUniqueOrThrow({ where: { id: dare.id } });
+      if (authoritative.status === 'VERIFIED') {
+        const finalized = await finalizeVerifiedDare(input);
+        return {
+          status: 'VERIFIED',
+          dare: finalized.dare,
+          txHash: authoritative.verifyTxHash ?? null,
+          payout: finalized.payout,
+        };
+      }
+      if (authoritative.status === 'PENDING_PAYOUT') {
+        return {
+          status: 'PENDING_PAYOUT',
+          dare: authoritative,
+          pendingReason: 'Payout is already being processed by another request.',
+          payout: {
+            streamer: payout.streamer,
+            house: payout.house,
+            referrer: payout.referrer,
+          },
+        };
+      }
+      throw new Error(`Dare cannot enter payout from status ${authoritative.status}`);
+    }
+
     if (!dare.onChainDareId) {
-      await markDarePendingPayout(dare.id, input);
       return {
         status: 'PENDING_PAYOUT',
-        dare: await prisma.dare.findUniqueOrThrow({ where: { id: dare.id } }),
+        dare: queuedDare,
         pendingReason: 'Missing on-chain dare ID. Payout has been queued for retry.',
         payout: {
           streamer: payout.streamer,
@@ -713,10 +777,9 @@ export async function approveDareWithPayout(
     );
 
     if (!balanceCheck.allowed) {
-      await markDarePendingPayout(dare.id, input);
       return {
         status: 'PENDING_PAYOUT',
-        dare: await prisma.dare.findUniqueOrThrow({ where: { id: dare.id } }),
+        dare: queuedDare,
         pendingReason: `Referee balance cap exceeded (${balanceCheck.balanceEth} ETH). Payout has been queued for retry.`,
         payout: {
           streamer: payout.streamer,
@@ -754,7 +817,6 @@ export async function approveDareWithPayout(
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Contract call failed';
       console.error(`[DARE_APPROVAL] On-chain payout failed for ${dare.id}: ${message}`);
-      await markDarePendingPayout(dare.id, input);
       return {
         status: 'PENDING_PAYOUT',
         dare: await prisma.dare.findUniqueOrThrow({ where: { id: dare.id } }),

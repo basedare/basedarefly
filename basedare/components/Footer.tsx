@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Twitter, Shield, ShieldCheck, FileText, HelpCircle, Info, MessageSquare, Lightbulb } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useView } from '@/app/context/ViewContext';
 
@@ -45,9 +46,11 @@ export default function Footer() {
             <div className="col-span-1 md:col-span-2 flex flex-col items-center md:items-start">
               {/* BASEDARE LOGO - Centered on mobile */}
               <div className="mb-4 md:mb-6 flex flex-col items-center md:items-start">
-                <img
+                <Image
                   src="/assets/BASEDAREGOO.webp"
                   alt="BaseDare"
+                  width={620}
+                  height={161}
                   className={`h-8 sm:h-10 md:h-14 w-auto mb-3 md:mb-4 object-contain mx-auto md:mx-0 transition-all duration-500 ${
                     isControlMode
                       ? 'drop-shadow-[0_0_20px_rgba(100,100,100,0.4)]'
@@ -59,9 +62,9 @@ export default function Footer() {
                   }}
                 />
                 <p className="text-[11px] sm:text-xs text-gray-500 font-mono leading-relaxed max-w-sm text-center md:text-left">
-                  Real venues. Real dares. Verified outcomes.
+                  Discover places. Join challenges. Meet people.
                   <br />
-                  <span className="text-purple-500/60">Receipts that can&apos;t be faked — not even by AI.</span>
+                  <span className="text-purple-500/60">Play for fun, build local reputation, or earn a reward.</span>
                 </p>
               </div>
 

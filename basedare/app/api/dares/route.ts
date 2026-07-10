@@ -46,6 +46,8 @@ function toPublicDare(dare: {
   moderatorNote: string | null;
   requireSentinel: boolean;
   sentinelVerified: boolean;
+  isNearbyDare: boolean;
+  missionMode: string | null;
 }): {
   id: string;
   title: string;
@@ -73,6 +75,8 @@ function toPublicDare(dare: {
   moderatorNote: string | null;
   requireSentinel: boolean;
   sentinelVerified: boolean;
+  isNearbyDare: boolean;
+  missionMode: string | null;
 } {
   return {
     id: dare.id,
@@ -101,6 +105,8 @@ function toPublicDare(dare: {
     moderatorNote: dare.moderatorNote,
     requireSentinel: dare.requireSentinel,
     sentinelVerified: dare.sentinelVerified,
+    isNearbyDare: dare.isNearbyDare,
+    missionMode: dare.missionMode,
   };
 }
 

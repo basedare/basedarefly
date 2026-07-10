@@ -1,0 +1,10 @@
+{
+  "//": "Typechecks *.test.ts (run via `node --experimental-strip-types --test`). The app tsconfig excludes tests because it cannot allow .ts import extensions; this config typechecks them with allowImportingTsExtensions. Run: npx tsc -p tsconfig.test.json",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["**/*.test.ts"],
+  "exclude": ["node_modules", ".next"]
+}

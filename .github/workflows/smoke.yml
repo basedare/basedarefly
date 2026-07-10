@@ -6,7 +6,10 @@ name: Launch Smoke Loop
 # Required repo SECRETS (Settings → Secrets → Actions):
 #   DATABASE_URL        – Supabase pooled connection (table checks)
 #   PINATA_JWT          – proof media storage check
-# Optional secret: DIRECT_URL
+# Optional repo SECRETS:
+#   DIRECT_URL
+#   BASEDARE_APP_URL     – fallback smoke target if SMOKE_URL variable is unset
+#   BASEDARE_CRON_SECRET – passed through as CRON_SECRET for cron-route checks
 #
 # Required repo VARIABLES (Settings → Variables → Actions):
 #   SMOKE_URL                             – e.g. https://www.basedare.xyz
@@ -35,7 +38,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: basedare/package-lock.json
 
@@ -46,10 +49,11 @@ jobs:
         run: npm run smoke
         env:
           BASEDARE_SMOKE_ENV: ci
-          BASEDARE_SMOKE_URL: ${{ vars.SMOKE_URL || 'https://www.basedare.xyz' }}
+          BASEDARE_SMOKE_URL: ${{ vars.SMOKE_URL || secrets.BASEDARE_APP_URL || 'https://www.basedare.xyz' }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
           PINATA_JWT: ${{ secrets.PINATA_JWT }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET || secrets.BASEDARE_CRON_SECRET }}
           NEXT_PUBLIC_NETWORK: ${{ vars.NEXT_PUBLIC_NETWORK }}
           NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS: ${{ vars.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS }}
           NEXT_PUBLIC_USDC_ADDRESS: ${{ vars.NEXT_PUBLIC_USDC_ADDRESS }}
