@@ -22,7 +22,7 @@ const TELEGRAM_HTTPS_AGENT = new HttpsAgent({
   keepAlive: true,
 });
 
-interface TelegramApiResponse<T = unknown> {
+export interface TelegramApiResponse<T = unknown> {
   ok: boolean;
   result?: T;
   description?: string;
@@ -270,8 +270,8 @@ async function sendMessage(
   chatId: number | string,
   text: string,
   options?: { parseMode?: 'HTML' | 'Markdown'; replyMarkup?: TelegramReplyMarkup }
-): Promise<void> {
-  await callTelegramApi('sendMessage', {
+): Promise<TelegramApiResponse> {
+  return callTelegramApi('sendMessage', {
     chat_id: chatId,
     text,
     parse_mode: options?.parseMode ?? 'HTML',
@@ -1589,14 +1589,14 @@ export async function sendTagClaimSubmissionAlert(data: {
   platform: string;
   handle: string;
   walletAddress: string;
-}): Promise<void> {
+}): Promise<TelegramApiResponse> {
   if (!TELEGRAM_ADMIN_CHAT_ID) {
     // A pending tag claim with no admin ping is a dead-end for the claimer.
     // Make the misconfiguration visible instead of silently dropping the alert.
     console.error(
       `[TELEGRAM] tag-claim alert skipped for ${data.tag} (${data.tagClaimId}) — TELEGRAM_ADMIN_CHAT_ID is not set`
     );
-    return;
+    return { ok: false, description: 'TELEGRAM_ADMIN_CHAT_ID is not set' };
   }
 
   const wallet = `${data.walletAddress.slice(0, 6)}...${data.walletAddress.slice(-4)}`;
@@ -1622,7 +1622,7 @@ export async function sendTagClaimSubmissionAlert(data: {
       ]
   ).join('\n');
 
-  await sendMessage(TELEGRAM_ADMIN_CHAT_ID, message, {
+  return sendMessage(TELEGRAM_ADMIN_CHAT_ID, message, {
     parseMode: 'HTML',
     replyMarkup: {
       inline_keyboard: [[

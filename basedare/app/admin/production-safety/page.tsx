@@ -141,7 +141,7 @@ type PaidActivationSmokeSnapshot = {
   } | null;
 };
 
-type TelegramTestTarget = 'admin-alerts' | 'signal-room';
+type TelegramTestTarget = 'admin-alerts' | 'tag-claim-alert' | 'signal-room';
 
 type TelegramTestResult = {
   target: TelegramTestTarget;
@@ -779,6 +779,15 @@ export default function ProductionSafetyPage() {
               </button>
               <button
                 type="button"
+                onClick={() => void runTelegramTest('tag-claim-alert')}
+                disabled={!hasAdminAuth || telegramTestRunning !== null}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-fuchsia-200/25 bg-fuchsia-300/[0.12] px-4 text-[11px] font-black uppercase tracking-[0.16em] text-fuchsia-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_14px_34px_rgba(0,0,0,0.28)] transition hover:-translate-y-0.5 hover:bg-fuchsia-300/[0.18] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {telegramTestRunning === 'tag-claim-alert' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
+                Test Tag Review
+              </button>
+              <button
+                type="button"
                 onClick={() => void runTelegramTest('signal-room')}
                 disabled={!hasAdminAuth || telegramTestRunning !== null}
                 className="inline-flex min-h-11 items-center gap-2 rounded-full border border-cyan-200/25 bg-cyan-300/[0.12] px-4 text-[11px] font-black uppercase tracking-[0.16em] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_14px_34px_rgba(0,0,0,0.28)] transition hover:-translate-y-0.5 hover:bg-cyan-300/[0.18] disabled:cursor-not-allowed disabled:opacity-45"
@@ -788,13 +797,20 @@ export default function ProductionSafetyPage() {
               </button>
             </div>
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div className="rounded-2xl border border-white/8 bg-black/28 p-4">
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100/50">Private admin</p>
               <p className="mt-2 text-sm font-bold leading-relaxed text-white/55">
                 Uses <code className="text-yellow-100">TELEGRAM_BOT_TOKEN</code> +{' '}
                 <code className="text-yellow-100">TELEGRAM_ADMIN_CHAT_ID</code>. This is where support inbox and ops
                 alerts should land.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-black/28 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-fuchsia-100/50">Tag review</p>
+              <p className="mt-2 text-sm font-bold leading-relaxed text-white/55">
+                Sends the exact manual tag-claim alert shape with inline approve/reject buttons, without creating a
+                real claim row.
               </p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/28 p-4">

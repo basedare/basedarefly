@@ -1380,6 +1380,25 @@ export async function testBotConnection(): Promise<{ success: boolean; error?: s
   return { success: sent, error: sent ? undefined : 'Failed to send test message' };
 }
 
+export async function testTagClaimAlertConnection(): Promise<{ success: boolean; error?: string }> {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    return { success: false, error: 'TELEGRAM_BOT_TOKEN or TELEGRAM_ADMIN_CHAT_ID not set' };
+  }
+
+  const result = await sendTagClaimSubmissionAlert({
+    tagClaimId: `telegram-test-${Date.now()}`,
+    tag: '@telegram_test_do_not_approve',
+    platform: 'other',
+    handle: '@telegram_test_do_not_approve',
+    walletAddress: '0x000000000000000000000000000000000000dEaD',
+  });
+
+  return {
+    success: result.ok,
+    error: result.ok ? undefined : result.description || 'Failed to send tag-claim test alert',
+  };
+}
+
 export async function testSignalRoomConnection(): Promise<{ success: boolean; error?: string }> {
   if (!TELEGRAM_BOT_TOKEN) {
     return { success: false, error: 'TELEGRAM_BOT_TOKEN not set' };

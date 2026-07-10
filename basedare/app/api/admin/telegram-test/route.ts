@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { authorizeAdminRequest, unauthorizedAdminResponse } from '@/lib/admin-auth';
-import { testBotConnection, testSignalRoomConnection } from '@/lib/telegram';
+import { testBotConnection, testSignalRoomConnection, testTagClaimAlertConnection } from '@/lib/telegram';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const TelegramTestSchema = z.object({
-  target: z.enum(['admin-alerts', 'signal-room']),
+  target: z.enum(['admin-alerts', 'tag-claim-alert', 'signal-room']),
 });
 
 export async function POST(request: NextRequest) {
@@ -30,7 +30,9 @@ export async function POST(request: NextRequest) {
   const result =
     parsed.data.target === 'admin-alerts'
       ? await testBotConnection()
-      : await testSignalRoomConnection();
+      : parsed.data.target === 'tag-claim-alert'
+        ? await testTagClaimAlertConnection()
+        : await testSignalRoomConnection();
 
   if (!result.success) {
     return NextResponse.json(
@@ -49,6 +51,8 @@ export async function POST(request: NextRequest) {
     message:
       parsed.data.target === 'admin-alerts'
         ? 'Admin Telegram alert sent. Confirm it arrived in BaseDare_Alerts.'
-        : 'Signal Room broadcast sent. Confirm it arrived in the public channel.',
+        : parsed.data.target === 'tag-claim-alert'
+          ? 'Tag-claim Telegram alert sent with approve/reject buttons. Confirm it arrived in BaseDare_Alerts.'
+          : 'Signal Room broadcast sent. Confirm it arrived in the public channel.',
   });
 }
