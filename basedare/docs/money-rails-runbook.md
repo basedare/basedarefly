@@ -16,6 +16,9 @@ Related routes:
 - [`/api/cron/refund-expired`](/Users/mrrobot13/Desktop/basedarestar/basedare/app/api/cron/refund-expired/route.ts)
 - [`/api/refund/expired`](/Users/mrrobot13/Desktop/basedarestar/basedare/app/api/refund/expired/route.ts)
 
+Related cutover runbook:
+- [`docs/runbooks/mainnet-cutover.md`](/Users/mrrobot13/Desktop/basedarestar/basedare/docs/runbooks/mainnet-cutover.md)
+
 ## Required Environment Variables
 
 Minimum production env:
@@ -74,6 +77,7 @@ The workflow can also be run manually with `workflow_dispatch` for `all`, `retry
 4. Confirm the referee wallet has enough ETH for gas but stays under the configured balance cap.
 5. Confirm `CRON_SECRET` is set in the deployment environment before cron goes live.
 6. Confirm Telegram admin alerts are working.
+7. For Base mainnet cutover, run `MAINNET_REFEREE_ADDRESS=0x... npm run mainnet:preflight` before signing the deploy transaction.
 
 ## Post-Deploy Smoke Checks
 

@@ -16,6 +16,15 @@ const readline = require("readline");
 //   MAINNET_PLATFORM_WALLET   — receives the 4% platform fee
 //   MAINNET_REFEREE_ADDRESS   — signs verify/payout (address only; key stays off-repo)
 // Optional: BASE_MAINNET_RPC_URL, BASESCAN_API_KEY (for auto-verify)
+//
+// Recommended command:
+//   MAINNET_PLATFORM_WALLET=0x... \
+//   MAINNET_REFEREE_ADDRESS=0x... \
+//   NEXT_PUBLIC_USDC_ADDRESS=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
+//   npm run mainnet:deploy:v2
+//
+// The NEXT_PUBLIC_USDC_ADDRESS inline override is intentional: .env.local may
+// stay Sepolia-oriented until the deployed mainnet address exists.
 // =============================================================================
 
 // Circle USDC on Base mainnet — hardcoded so .env.local drift can't substitute
@@ -71,14 +80,17 @@ async function main() {
   if (envUsdc && hre.ethers.getAddress(envUsdc.trim()) !== USDC_MAINNET) {
     throw new Error(
       `NEXT_PUBLIC_USDC_ADDRESS (${envUsdc}) is not mainnet USDC. ` +
-        `.env.local is Sepolia-oriented; this deploy uses hardcoded mainnet USDC ` +
-        `${USDC_MAINNET}. Fix the env so the frontend matches BEFORE cutover.`,
+        `.env.local can remain Sepolia-oriented before cutover, but this deploy ` +
+        `must be run with NEXT_PUBLIC_USDC_ADDRESS=${USDC_MAINNET} in the shell.`,
     );
   }
 
   // Guard 3: explicit production wallets — no deployer fallback.
   const PLATFORM_WALLET = requireAddress("MAINNET_PLATFORM_WALLET", process.env.MAINNET_PLATFORM_WALLET);
   const REFEREE_ADDRESS = requireAddress("MAINNET_REFEREE_ADDRESS", process.env.MAINNET_REFEREE_ADDRESS);
+  if (PLATFORM_WALLET.toLowerCase() === REFEREE_ADDRESS.toLowerCase()) {
+    throw new Error("MAINNET_PLATFORM_WALLET and MAINNET_REFEREE_ADDRESS must be different wallets.");
+  }
 
   const [deployer] = await hre.ethers.getSigners();
   const balance = await hre.ethers.provider.getBalance(deployer.address);

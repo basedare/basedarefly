@@ -3,6 +3,13 @@
 Prepared contract:
 - `contracts/BaseDareBountyV2.sol`
 
+Current deployment state:
+- Base Sepolia V2: `0xF176ec205e5E5777F6B5964bfeD6DE5a57a911E3`
+- Base mainnet V2: not deployed yet
+
+Mainnet cutover runbook:
+- `docs/runbooks/mainnet-cutover.md`
+
 Intended fee split:
 - `96%` creator/completer
 - `4%` platform
