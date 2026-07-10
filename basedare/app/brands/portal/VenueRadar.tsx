@@ -42,17 +42,17 @@ export default function VenueRadar({
         >
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">Venue Radar</div>
-              <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">Best venues now</h2>
+              <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">Place signals</div>
+              <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">Places with recent activity</h2>
               <p className="mt-1 hidden max-w-2xl text-sm text-zinc-300/[0.72] md:block">
-                Start from a real place. Fund the next proof route where live signal already exists.
+                Use these signals only when they help you define a useful question. A mission can also start from search.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               {([
-                { id: 'hot', label: 'Hot now' },
+                { id: 'hot', label: 'Recent' },
                 { id: 'managed', label: 'My venues' },
-                { id: 'claimable', label: 'Needs activation' },
+                { id: 'claimable', label: 'Unclaimed' },
               ] as const).map((filter) => {
                 const active = venueRadarFilter === filter.id;
                 return (
@@ -75,7 +75,7 @@ export default function VenueRadar({
 
           {filteredVenueRadar.length === 0 ? (
             <div className="mt-4 rounded-2xl border border-dashed border-white/[0.15] bg-white/[0.04] px-4 py-5 text-sm text-zinc-300">
-              No venues match this view yet. Pick a venue from the map or launch the first activation to create signal.
+              No places match this view yet. Search for the place directly in the mission builder.
             </div>
           ) : (
             <div className="mt-5 grid gap-3 lg:grid-cols-3">
@@ -129,7 +129,7 @@ export default function VenueRadar({
                       className="activation-raised-gold inline-flex min-h-10 items-center gap-2 rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
                     >
                       <CreditCard className="h-3.5 w-3.5" />
-                      Fund here
+                      Ask here
                     </button>
                   </div>
                 </article>
@@ -189,9 +189,9 @@ export default function VenueRadar({
                   <div className="mt-1 text-xs text-zinc-400">{selectedVenueRadar.activity.activeChallenges} open challenges</div>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Past activations</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Past missions</div>
                   <div className="mt-2 text-2xl font-semibold">{selectedVenueRadar.brandHistory.campaigns}</div>
-                  <div className="mt-1 text-xs text-zinc-400">{selectedVenueRadar.brandHistory.liveCampaigns} live activations here</div>
+                  <div className="mt-1 text-xs text-zinc-400">{selectedVenueRadar.brandHistory.liveCampaigns} live missions here</div>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Verified memory</div>
@@ -202,23 +202,23 @@ export default function VenueRadar({
 
               <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
                 <div className="hidden rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 md:block">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Recent creator signal</div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Recent contributor signal</div>
                   {selectedVenueRadar.recentSignals.length === 0 ? (
                     <div className="mt-3 rounded-xl border border-dashed border-white/10 px-4 py-4 text-sm text-zinc-400">
-                      No approved creator memory has been logged here yet. This is still a good venue to seed if the foot traffic signal is rising.
+                      No approved contributor memory has been logged here yet. A focused field question can create the first useful record.
                     </div>
                   ) : (
                     <div className="mt-3 space-y-3">
                       {selectedVenueRadar.recentSignals.map((signal, index) => (
                         <div key={`${signal.creatorTag ?? 'anon'}-${signal.submittedAt}-${index}`} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
                           <div className="flex items-center justify-between gap-3">
-                            <div className="text-sm font-semibold text-white">{signal.creatorTag ?? 'Anonymous creator'}</div>
+                            <div className="text-sm font-semibold text-white">{signal.creatorTag ?? 'Anonymous contributor'}</div>
                             <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">
                               {signal.firstMark ? 'First spark' : 'Venue memory'}
                             </div>
                           </div>
                           <div className="mt-2 text-sm text-zinc-300">
-                            {signal.caption || 'Creator left a verified venue signal here.'}
+                            {signal.caption || 'A contributor left a verified place signal here.'}
                           </div>
                           {signal.vibeTags.length > 0 ? (
                             <div className="mt-3 flex flex-wrap gap-2">
@@ -240,10 +240,10 @@ export default function VenueRadar({
 
                 <div className="space-y-4">
                   <div className="hidden rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 md:block">
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Top creators for this venue</div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Contributors with place history</div>
                     {selectedVenueRadar.topCreators.length === 0 ? (
                       <div className="mt-3 rounded-xl border border-dashed border-white/10 px-4 py-4 text-sm text-zinc-400">
-                        No creator has built a strong public venue history here yet. This is still a good place to seed if the venue signal is hot.
+                        No contributor has built strong public history here yet. BaseDare can still route the best available local fit.
                       </div>
                     ) : (
                       <div className="mt-3 space-y-3">
@@ -293,7 +293,7 @@ export default function VenueRadar({
                                 className="inline-flex items-center gap-2 rounded-full border border-purple-400/25 bg-purple-500/10 px-3 py-2 text-xs font-semibold text-purple-100 transition hover:border-purple-300 hover:bg-purple-500/[0.15]"
                               >
                                 <PlayCircle className="h-3.5 w-3.5" />
-                                Route this creator
+                                Choose contributor
                               </button>
                               <Link
                                 href={buildVenueCreatorChatHref(selectedVenueRadar, creator)}
@@ -315,7 +315,7 @@ export default function VenueRadar({
                       {selectedVenueRadar.strategyLabel}
                     </div>
                     <p className="mt-2 text-sm leading-6 text-zinc-300">
-                      Fund one dare while the signal is fresh. BaseDare routes the creator and tracks the proof.
+                      Ask one useful question while the signal is fresh. BaseDare routes the contributor and verifies the proof.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button
@@ -324,7 +324,7 @@ export default function VenueRadar({
                         className="activation-raised-gold inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-black uppercase tracking-[0.1em] transition active:translate-y-[1px]"
                       >
                         <PlayCircle className="h-4 w-4" />
-                        Fund activation here
+                        Create mission here
                       </button>
                       <Link
                         href={`/venues/${selectedVenueRadar.slug}`}

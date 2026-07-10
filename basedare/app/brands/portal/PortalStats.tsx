@@ -26,7 +26,7 @@ export default function PortalStats({
   proofsSubmittedCount,
 }: PortalStatsProps) {
   // Hide the whole stat grid until there is something to report. A brand with
-  // no spend and no activations only sees $0/0/0/0 — noise, not a dashboard.
+  // A buyer with no missions should see the mission builder, not a wall of zeroes.
   const totalActivations = campaignSummary?.total ?? campaigns.length;
   const hasSignal =
     (brand?.totalSpend ?? 0) > 0 ||
@@ -45,7 +45,7 @@ export default function PortalStats({
             <div className="text-xs font-black uppercase tracking-[0.16em] text-[#ffe785] md:text-sm">Spend</div>
             <div className="text-xl font-black text-white md:text-2xl">${(brand?.totalSpend ?? 0).toLocaleString()}</div>
             <div className="mt-1 text-[11px] text-zinc-400 md:text-xs">
-              {campaignSummary?.total ?? campaigns.length} activations launched
+              {campaignSummary?.total ?? campaigns.length} missions funded
             </div>
           </div>
           <div className="rounded-2xl border border-cyan-300/[0.18] bg-cyan-400/[0.08] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(0,0,0,0.26)] backdrop-blur-xl md:p-4">
@@ -58,7 +58,7 @@ export default function PortalStats({
             </div>
           </div>
           <div className="rounded-2xl border border-purple-300/20 bg-purple-500/10 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_rgba(0,0,0,0.26)] backdrop-blur-xl md:p-4">
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-purple-100 md:text-sm">Creators</div>
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-purple-100 md:text-sm">Contributors</div>
             <div className="text-xl font-black text-white md:text-2xl">{creatorMovementCount}</div>
             <div className="mt-1 text-[11px] text-zinc-400 md:text-xs">
               {proofsSubmittedCount} proofs submitted

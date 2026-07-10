@@ -1,8 +1,6 @@
-// Extracted verbatim from page.tsx (Phase A structural split — no behavior changes).
-// All state lives in the page shell; props are threaded with their original names.
 import type { Dispatch, SetStateAction } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Building2, CreditCard, MapPin, Sparkles } from 'lucide-react';
 import type { Connector } from 'wagmi';
 import { getPreferredWalletConnector } from '@/lib/wallet-connect';
 
@@ -13,12 +11,16 @@ type PortalGatesProps = {
   controlBackHref: string;
   controlBackLabel: string;
   handleRegister: () => Promise<void>;
+  registerError: string | null;
   registerName: string;
   setRegisterName: Dispatch<SetStateAction<string>>;
   showLoading: boolean;
   showNotConnected: boolean;
   showRegisterView: boolean;
 };
+
+const backLinkClass =
+  'absolute left-4 top-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-4 py-2 text-xs font-black text-white/70 transition hover:border-white/24 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 sm:left-6 sm:top-6';
 
 export default function PortalGates({
   address,
@@ -27,150 +29,154 @@ export default function PortalGates({
   controlBackHref,
   controlBackLabel,
   handleRegister,
+  registerError,
   registerName,
   setRegisterName,
   showLoading,
   showNotConnected,
   showRegisterView,
 }: PortalGatesProps) {
+  const connectWallet = () => {
+    const preferredConnector = getPreferredWalletConnector(connectors);
+    if (preferredConnector) connect({ connector: preferredConnector });
+  };
+
   return (
     <>
-      {/* Not connected state */}
-      {showNotConnected && (
-        <div className="flex items-center justify-center h-full p-4 relative z-10">
-          <Link
-            href={controlBackHref}
-            className="absolute top-6 left-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/64 transition hover:bg-white/[0.08] hover:text-white"
-            aria-label={`Back to ${controlBackLabel}`}
-          >
+      {showNotConnected ? (
+        <main className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-24">
+          <Link href={controlBackHref} className={backLinkClass} aria-label={`Back to ${controlBackLabel}`}>
             <ArrowLeft className="h-4 w-4" />
             {controlBackLabel}
           </Link>
 
-          <div className="max-w-md text-center space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
+          <section className="activation-shell w-full max-w-3xl rounded-[30px] border p-5 text-center md:p-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300/[0.09] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-yellow-100">
               <Sparkles className="h-4 w-4" />
-              Brand Portal
+              Buyer Portal
             </div>
-            <h1 className="text-4xl font-black uppercase italic tracking-[-0.06em] text-white sm:text-5xl">
-              Brand Portal
+            <h1 className="mx-auto mt-5 max-w-2xl text-4xl font-black uppercase italic leading-[0.94] tracking-[-0.055em] text-white sm:text-6xl">
+              Send a verified mission into the real world.
             </h1>
-            <p className="mx-auto max-w-md text-base font-bold leading-7 text-white/62">
-              Fund dares at real venues, route creators, and track proof. Connect your wallet to open the portal.
+            <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/72 md:text-lg">
+              Choose a place or question, fund the reward, and BaseDare returns a verified answer, place memory, and receipt.
             </p>
-            <button
-              onClick={() => {
-                const preferredConnector = getPreferredWalletConnector(connectors);
-                if (preferredConnector) connect({ connector: preferredConnector });
-              }}
-              className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-yellow-300/30 bg-yellow-300 px-7 text-sm font-black uppercase tracking-[0.16em] text-black transition hover:bg-yellow-200 active:scale-95 touch-manipulation select-none cursor-pointer"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              Connect Wallet
-            </button>
-            <Link
-              href="/first-spark"
-              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.045] px-5 text-xs font-black uppercase tracking-[0.16em] text-white/62 transition hover:border-white/25 hover:bg-white/[0.08] hover:text-white"
-            >
-              See First Spark
-            </Link>
-            <p className="text-xs font-bold leading-6 text-white/44">
-              No wallet? No crypto?{' '}
+
+            <div className="mx-auto mt-7 grid max-w-xl gap-3 sm:grid-cols-2">
               <Link
-                href="/first-spark?source=fund-without-crypto#pilot-request"
-                className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
+                href="/activations?source=buyer-portal&missionType=field-mission"
+                className="activation-raised-gold inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-black uppercase tracking-[0.1em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70"
               >
-                Fund by invoice
-              </Link>{' '}
-              — we handle the on-chain part.
-            </p>
-            <p className="text-xs font-bold leading-6 text-white/44">
-              Own a venue? Your console lives on your venue page, not here —{' '}
-              <Link
-                href="/claim-tag"
-                className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
-              >
-                verify your @baretag
+                <CreditCard className="h-4 w-4" />
+                Start with invoice
               </Link>
-              , then claim the venue from{' '}
+              <button
+                type="button"
+                onClick={connectWallet}
+                className="activation-soft-button inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-white/14 px-5 text-sm font-black text-white/82 transition hover:border-white/26 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                Use wallet
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <Link
+              href="/board"
+              className="mt-4 inline-flex min-h-11 items-center justify-center px-4 text-sm font-black text-cyan-100/80 underline decoration-cyan-200/30 underline-offset-4 transition hover:text-cyan-100"
+            >
+              See verified results
+            </Link>
+
+            <div className="mx-auto mt-7 flex max-w-2xl flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 text-left sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-purple-300/20 bg-purple-400/10 text-purple-100">
+                  <Building2 className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="font-black text-white">Manage a place instead?</div>
+                  <p className="mt-1 text-sm leading-6 text-white/62">Claim and manage your venue from its page on the map.</p>
+                </div>
+              </div>
               <Link
                 href="/map"
-                className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-4 text-sm font-black text-white/75 transition hover:border-white/24 hover:text-white"
               >
-                its page on the map
+                <MapPin className="h-4 w-4" />
+                Find my place
               </Link>
-              .
-            </p>
-          </div>
-        </div>
-      )}
+            </div>
+          </section>
+        </main>
+      ) : null}
 
-      {/* Loading state */}
-      {showLoading && (
-        <div className="flex items-center justify-center h-full relative z-10">
-          <div className="animate-pulse text-zinc-500">Loading Control Mode...</div>
+      {showLoading ? (
+        <div className="relative z-10 flex min-h-dvh items-center justify-center">
+          <div className="animate-pulse text-base font-semibold text-white/65">Loading buyer portal…</div>
         </div>
-      )}
+      ) : null}
 
-      {/* Register brand state */}
-      {showRegisterView && (
-        <div className="flex items-center justify-center h-full p-4 relative z-10">
-          <Link
-            href={controlBackHref}
-            className="absolute top-6 left-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/64 transition hover:bg-white/[0.08] hover:text-white"
-            aria-label={`Back to ${controlBackLabel}`}
-          >
+      {showRegisterView ? (
+        <main className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-24">
+          <Link href={controlBackHref} className={backLinkClass} aria-label={`Back to ${controlBackLabel}`}>
             <ArrowLeft className="h-4 w-4" />
             {controlBackLabel}
           </Link>
 
-          <div className="max-w-md w-full space-y-6">
+          <section className="activation-shell w-full max-w-lg rounded-[30px] border p-5 sm:p-7">
             <div className="text-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
-                Register
+              <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300/[0.09] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-yellow-100">
+                Buyer profile
               </div>
-              <h1 className="mt-4 text-3xl font-black uppercase italic tracking-[-0.05em] text-white">Venue or brand</h1>
-              <p className="mt-3 text-sm font-bold leading-6 text-white/58">
-                Set up the buyer profile that will fund venue activations.
+              <h1 className="mt-5 text-4xl font-black uppercase italic tracking-[-0.05em] text-white">Who is funding the mission?</h1>
+              <p className="mt-3 text-base font-semibold leading-7 text-white/68">
+                This name appears on funded missions and receipts. It can be a company, project, community, or individual buyer.
               </p>
             </div>
 
-            <div className="space-y-4 rounded-[24px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]">
+            <div className="mt-6 space-y-4 rounded-[24px] border border-white/10 bg-black/30 p-5">
               <div>
-                <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-white/44">Venue / brand name</label>
+                <label htmlFor="buyer-name" className="mb-2 block text-sm font-black text-white/78">Buyer or organization name</label>
                 <input
+                  id="buyer-name"
                   type="text"
                   value={registerName}
-                  onChange={(e) => setRegisterName(e.target.value)}
-                  placeholder="e.g., Hideaway, Red Bull, Local Gym"
-                  className="w-full rounded-[14px] border border-white/12 bg-black/40 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/34 focus:border-yellow-400/60"
+                  onChange={(event) => setRegisterName(event.target.value)}
+                  placeholder="e.g. BaseDare Research, Red Bull, Alex"
+                  className="min-h-12 w-full rounded-2xl border border-white/12 bg-black/35 px-4 py-3 text-base font-semibold text-white outline-none transition placeholder:text-white/34 focus:border-yellow-300/55 focus:ring-2 focus:ring-yellow-300/15"
+                  autoComplete="organization"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-white/44">Wallet address</label>
-                <div className="rounded-[14px] border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-white/56">
-                  {address}
-                </div>
+                <div className="mb-2 text-sm font-black text-white/78">Funding wallet</div>
+                <div className="break-all rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-white/65">{address}</div>
               </div>
 
+              {registerError ? (
+                <div className="rounded-2xl border border-red-300/30 bg-red-400/[0.09] px-4 py-3 text-sm font-semibold leading-6 text-red-100" role="alert">
+                  {registerError}
+                </div>
+              ) : null}
+
               <button
+                type="button"
                 onClick={handleRegister}
                 disabled={!registerName.trim()}
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-yellow-300/30 bg-yellow-300 px-5 text-sm font-black uppercase tracking-[0.16em] text-black transition hover:bg-yellow-200 disabled:cursor-not-allowed disabled:opacity-40"
+                className="activation-raised-gold inline-flex min-h-12 w-full items-center justify-center rounded-2xl border px-5 text-sm font-black uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70"
               >
-                Create activation profile
+                Open mission builder
               </button>
-              <Link
-                href="/first-spark"
-                className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.055] px-5 text-xs font-black uppercase tracking-[0.14em] text-white/66 transition hover:border-white/25 hover:bg-white/[0.09] hover:text-white"
-              >
-                Run First Spark first
-              </Link>
             </div>
-          </div>
-        </div>
-      )}
+
+            <p className="mt-5 text-center text-sm leading-6 text-white/62">
+              Own or manage a venue?{' '}
+              <Link href="/map" className="font-black text-cyan-100 underline decoration-cyan-200/30 underline-offset-4">
+                Manage it from the map instead.
+              </Link>
+            </p>
+          </section>
+        </main>
+      ) : null}
     </>
   );
 }

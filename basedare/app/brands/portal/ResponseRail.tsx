@@ -55,7 +55,7 @@ const getCampaignIntent = (campaign: Campaign) => {
       actor,
       detail: dare.verifiedAt
         ? `verified ${new Date(dare.verifiedAt).toLocaleString()}`
-        : 'activation verified and payout completed',
+        : 'mission verified and payout completed',
     };
   }
 
@@ -97,7 +97,7 @@ const getCampaignIntent = (campaign: Campaign) => {
         ? `claimed ${new Date(dare.claimedAt).toLocaleString()}`
         : dare.status === 'PENDING'
           ? 'creator is attached and can submit proof now'
-          : 'creator is attached to this activation',
+          : 'contributor is attached to this mission',
     };
   }
 
@@ -146,8 +146,8 @@ const getCampaignOutcomeSummary = (campaign: Campaign) => {
   const dare = campaign.linkedDare;
   if (!dare) {
     return {
-      label: 'No linked activation yet',
-      detail: 'This activation has not produced a live creator result yet.',
+      label: 'Mission setup incomplete',
+      detail: 'This mission does not have a linked paid dare yet.',
     };
   }
 
@@ -184,12 +184,12 @@ const getCampaignOutcomeSummary = (campaign: Campaign) => {
   if (dare.claimedBy || dare.targetWalletAddress) {
     return {
       label: 'Creator attached',
-      detail: 'A creator is attached and the activation is waiting for proof.',
+      detail: 'A contributor is attached and the mission is waiting for proof.',
     };
   }
 
   return {
-    label: 'Open activation',
+    label: 'Open mission',
     detail: 'Live on the map and waiting for a creator to engage.',
   };
 };
@@ -199,7 +199,7 @@ const getCampaignRecentMovement = (campaign: Campaign) => {
   if (!dare) {
     return {
       label: 'No movement yet',
-      detail: 'The activation is live but no creator has engaged with it yet.',
+      detail: 'The mission is live but no contributor has engaged with it yet.',
     };
   }
 
@@ -252,7 +252,7 @@ const getCampaignRecentMovement = (campaign: Campaign) => {
       label: 'Live on the map',
       detail: dare.createdAt
         ? `linked ${new Date(dare.createdAt).toLocaleString()}`
-        : 'activation is waiting for creator activity',
+        : 'mission is waiting for contributor activity',
   };
 };
 
@@ -289,7 +289,7 @@ const getCampaignCompletionHistory = (campaign: Campaign) => {
       ? {
           key: 'moderated',
           label: dare.status === 'FAILED' ? 'Rejected' : 'Approved',
-          detail: dare.status === 'FAILED' ? 'Review closed this activation' : 'Review cleared the proof',
+          detail: dare.status === 'FAILED' ? 'Review closed this mission' : 'Review cleared the proof',
           at: dare.moderatedAt,
         }
       : null,
@@ -334,7 +334,7 @@ const getCampaignImpactSummary = (campaign: Campaign) => {
   if (!campaign.venue || !impact) {
     return {
       label: 'Venue impact pending',
-      detail: 'Attach this activation to a venue to track venue memory and momentum.',
+      detail: 'Attach this mission to a place to track verified place memory.',
     };
   }
 
@@ -398,17 +398,17 @@ export default function ResponseRail({
 }: ResponseRailProps) {
   return (
     <>
-        {/* Activations List */}
+        {/* Buyer mission history */}
         <div className="activation-shell rounded-[30px] border p-4 md:p-6">
           <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-[#ffe785]">
                 <Sparkles className="h-3.5 w-3.5" />
-                Operator board
+                Mission status
               </div>
-              <h2 className="mt-3 text-2xl font-black text-white md:text-3xl">Active venue routes</h2>
+              <h2 className="mt-3 text-2xl font-black text-white md:text-3xl">Your missions</h2>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-300">
-                Track the activation, route creators, inspect proof, and repeat the venues that are already moving.
+                See who is completing the work, what proof arrived, what cleared review, and what was paid.
               </p>
             </div>
             {/* Empty state owns the single launch CTA; the header button only
@@ -419,7 +419,7 @@ export default function ResponseRail({
                 onClick={openActivationBuilder}
                 className="activation-raised-gold inline-flex min-h-12 items-center justify-center rounded-full border px-5 text-xs font-black uppercase tracking-[0.14em] transition active:translate-y-[1px]"
               >
-                Launch new route
+                Create mission
               </button>
             ) : null}
           </div>
@@ -434,7 +434,7 @@ export default function ResponseRail({
             <div className="activation-inset rounded-2xl border border-cyan-300/20 px-4 py-3">
               <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">Creators</div>
               <div className="mt-1 text-2xl font-black text-white">{creatorsAttachedCount}</div>
-              <div className="text-xs text-zinc-400">attached to routes</div>
+              <div className="text-xs text-zinc-400">assigned to missions</div>
             </div>
             <div className="activation-inset rounded-2xl border border-purple-300/20 px-4 py-3">
               <div className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-200">Proofs</div>
@@ -451,16 +451,16 @@ export default function ResponseRail({
 
           {campaigns.length === 0 ? (
             <div className="activation-inset rounded-[24px] border border-white/10 px-5 py-10 text-center">
-              <div className="text-lg font-black text-white">No activations yet.</div>
+              <div className="text-lg font-black text-white">No missions yet.</div>
               <p className="mx-auto mt-2 max-w-md text-sm text-zinc-400">
-                Pick a hot venue from the radar and fund one clean proof route.
+                Ask one useful place question and fund one approved answer.
               </p>
               <button
                 type="button"
                 onClick={openActivationBuilder}
                 className="activation-raised-gold mt-5 inline-flex min-h-12 items-center justify-center rounded-full border px-6 text-xs font-black uppercase tracking-[0.14em] transition active:translate-y-[1px]"
               >
-                Start first activation
+                Create first mission
               </button>
             </div>
           ) : (
@@ -504,7 +504,7 @@ export default function ResponseRail({
                           ) : null}
                           {campaign.truth?.creatorRoutingDormant ? (
                             <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-amber-500">
-                              Creator routing parked
+                              Contributor routing paused
                             </div>
                           ) : null}
                           {targetingPreview.length > 0 ? (
@@ -573,7 +573,7 @@ export default function ResponseRail({
                           <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                             <div>
                               <div className="text-[11px] font-semibold uppercase tracking-[0.18em]">
-                                Activation State
+                                Mission state
                               </div>
                               <div className="mt-1 text-sm font-semibold">
                                 {creatorIntent.label} • {creatorIntent.actor}
@@ -651,7 +651,7 @@ export default function ResponseRail({
                                 <div className="mt-1 text-sm font-bold text-zinc-900">{campaign.venue.impact.memoriesNow}</div>
                               </div>
                               <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center">
-                                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">This activation</div>
+                                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">This mission</div>
                                 <div className="mt-1 text-sm font-bold text-zinc-900">
                                   {campaign.venue.impact.campaignVerifiedMemory
                                     ? `+${campaign.venue.impact.pulseContribution}`
@@ -802,7 +802,7 @@ export default function ResponseRail({
                             <div>
                               <div className="text-sm font-black text-white">Creator responses</div>
                               <div className="mt-1 text-xs text-zinc-400">
-                                Watch the activation move from shortlist to proof to paid outcome without leaving Control.
+                                Follow the mission from contributor routing to proof, review, and payout.
                               </div>
                             </div>
                             {matchesState?.loading ? (
@@ -972,7 +972,7 @@ export default function ResponseRail({
                                           ? `claimed ${new Date(campaign.linkedDare.claimRequestedAt).toLocaleString()}`
                                           : campaign.linkedDare?.claimedAt
                                             ? `attached ${new Date(campaign.linkedDare.claimedAt).toLocaleString()}`
-                                            : 'creator is moving on this activation'}
+                                            : 'contributor is working on this mission'}
                                       </div>
                                       <div className="mt-2 text-xs text-zinc-500">
                                         {campaign.linkedDare?.claimRequestStatus === 'PENDING'
@@ -1003,7 +1003,7 @@ export default function ResponseRail({
                               </div>
                             ) : (
                               <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-4 py-4 text-sm text-zinc-600">
-                                No creator has claimed this activation yet. Warm matches live in the Shortlisted rail.
+                                No contributor has claimed this mission yet. Available matches appear under Shortlisted.
                               </div>
                             )
                           ) : null}
@@ -1026,7 +1026,7 @@ export default function ResponseRail({
                                           : 'proof media landed for review'}
                                       </div>
                                       <div className="mt-2 text-xs text-zinc-500">
-                                        Media is attached to the linked activation and ready for operator review.
+                                        Evidence is attached to the mission and ready for review.
                                       </div>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
@@ -1122,7 +1122,7 @@ export default function ResponseRail({
                                       <div className="mt-2 text-xs text-zinc-500">
                                         {campaign.venue
                                           ? `This completion now sits in ${campaign.venue.name}'s place memory and strengthens the venue pulse.`
-                                          : 'This completion now counts as a verified cultural outcome for the activation.'}
+                                          : 'This completion now counts as verified place memory for the mission.'}
                                       </div>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
