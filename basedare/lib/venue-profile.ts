@@ -10,6 +10,9 @@ export type VenueLegendKey =
   | 'surf'
   | 'sport'
   | 'park'
+  | 'viewpoint'
+  | 'river'
+  | 'cave'
   | 'landmark'
   | 'shopping'
   | 'creator';
@@ -112,6 +115,27 @@ const VENUE_LEGENDS: Record<VenueLegendKey, VenueLegend & { keywords: string[]; 
     emoji: '🌿',
     keywords: ['park', 'garden', 'reserve', 'lookout', 'trail', 'outdoor'],
     story: 'walk-up moments, scenery, and public-space proof',
+  },
+  viewpoint: {
+    key: 'viewpoint',
+    label: 'Viewpoint',
+    emoji: '🌄',
+    keywords: ['viewpoint', 'sunset', 'sunrise', 'vista', 'ridge', 'palapa', 'panorama', 'hilltop'],
+    story: 'golden-hour gatherings, sunset rituals, and skyline proof',
+  },
+  river: {
+    key: 'river',
+    label: 'River',
+    emoji: '🏞️',
+    keywords: ['river', 'rope swing', 'mangrove', 'stream', 'creek', 'freshwater'],
+    story: 'jungle water, rope swings, and off-the-road proof',
+  },
+  cave: {
+    key: 'cave',
+    label: 'Cave pool',
+    emoji: '🕳️',
+    keywords: ['cave', 'cavern', 'grotto', 'cenote'],
+    story: 'hidden pools, cool escapes, and explorer proof',
   },
   landmark: {
     key: 'landmark',
