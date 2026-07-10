@@ -489,6 +489,11 @@ type AdminTab =
   | 'places'
   | 'push';
 
+type AdminNavItem =
+  | { kind: 'tab'; tab: AdminTab; icon: React.ElementType; label: string; count?: number }
+  | { kind: 'link'; href: string; icon: React.ElementType; label: string };
+type AdminNavGroup = { label: string; items: AdminNavItem[] };
+
 const ADMIN_TABS: AdminTab[] = [
   'moderation',
   'claims',
@@ -2050,165 +2055,94 @@ export default function AdminPage() {
           </div>
 
           {hasAdminAuth && isAuthorized && (
-            <div className="flex justify-center gap-2 mt-6 flex-wrap">
-              <button
-                onClick={() => selectAdminTab('moderation')}
-                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'moderation'
-                    ? 'bg-purple-500/20 border border-purple-500/50 text-purple-400'
-                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
-                }`}
-              >
-                <Users className="w-4 h-4 inline mr-2" />
-                Moderation ({dares.length})
-              </button>
-              <button
-                onClick={() => selectAdminTab('claims')}
-                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'claims'
-                    ? 'bg-yellow-500/20 border border-yellow-500/50 text-yellow-400'
-                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
-                }`}
-              >
-                <Hand className="w-4 h-4 inline mr-2" />
-                Claims {pendingClaims.length > 0 && `(${pendingClaims.length})`}
-              </button>
-              <button
-                onClick={() => selectAdminTab('venueClaims')}
-                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'venueClaims'
-                    ? 'bg-fuchsia-500/20 border border-fuchsia-500/50 text-fuchsia-300'
-                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
-                }`}
-              >
-                <MapPin className="w-4 h-4 inline mr-2" />
-                Venue Claims {pendingVenueClaims.length > 0 && `(${pendingVenueClaims.length})`}
-              </button>
-              <button
-                onClick={() => selectAdminTab('reportLeads')}
-                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'reportLeads'
-                    ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-300'
-                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
-                }`}
-              >
-                <Mail className="w-4 h-4 inline mr-2" />
-                Lead Inbox {reportLeadSummary.totalLeads > 0 && `(${reportLeadSummary.totalLeads})`}
-              </button>
-              <button
-                onClick={() => selectAdminTab('tags')}
-                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'tags'
-                    ? 'bg-purple-500/20 border border-purple-500/50 text-purple-400'
-                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
-                }`}
-              >
-                <Tag className="w-4 h-4 inline mr-2" />
-                Tags {pendingTags.length > 0 && `(${pendingTags.length})`}
-              </button>
-              <button
-                onClick={() => selectAdminTab('placeTags')}
-                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'placeTags'
-                    ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-300'
-                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
-                }`}
-              >
-                <Tag className="w-4 h-4 inline mr-2" />
-                Chaos Inbox {pendingPlaceTags.length > 0 && `(${pendingPlaceTags.length})`}
-              </button>
-              <button
-                onClick={() => selectAdminTab('places')}
-                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'places'
-                    ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300'
-                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
-                }`}
-              >
-                <MapPin className="w-4 h-4 inline mr-2" />
-                Places
-              </button>
-              <button
-                onClick={() => selectAdminTab('push')}
-                className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'push'
-                    ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-300'
-                    : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'
-                }`}
-              >
-                <Smartphone className="w-4 h-4 inline mr-2" />
-                Push Ops
-              </button>
-              <Link
-                href="/admin/production-safety"
-                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-yellow-500/10 border border-yellow-400/35 text-yellow-200 hover:bg-yellow-400/15"
-              >
-                <Shield className="w-4 h-4 inline mr-2" />
-                Production Safety
-              </Link>
-              <Link
-                href="/admin/founder-scoreboard"
-                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-emerald-500/10 border border-emerald-300/35 text-emerald-100 hover:bg-emerald-400/15"
-              >
-                <DollarSign className="w-4 h-4 inline mr-2" />
-                Founder Scoreboard
-              </Link>
-              <Link
-                href="/admin/mission-control"
-                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-yellow-500/10 border border-yellow-300/35 text-yellow-100 hover:bg-yellow-400/15"
-              >
-                <Play className="w-4 h-4 inline mr-2" />
-                Mission Control
-              </Link>
-              <Link
-                href="/admin/daily-command-loop"
-                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-cyan-500/10 border border-cyan-300/35 text-cyan-100 hover:bg-cyan-400/15"
-              >
-                <Clock className="w-4 h-4 inline mr-2" />
-                Daily Command Loop
-              </Link>
-              <Link
-                href="/admin/activation-intakes"
-                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-yellow-500/10 border border-yellow-300/35 text-yellow-100 hover:bg-yellow-400/15"
-              >
-                <DollarSign className="w-4 h-4 inline mr-2" />
-                Activation Intakes
-              </Link>
-              <Link
-                href="/admin/creator-captains"
-                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-cyan-500/10 border border-cyan-300/35 text-cyan-100 hover:bg-cyan-400/15"
-              >
-                <Users className="w-4 h-4 inline mr-2" />
-                Creator Captains
-              </Link>
-              <Link
-                href="/admin/scouts"
-                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-yellow-500/10 border border-yellow-300/35 text-yellow-100 hover:bg-yellow-400/15"
-              >
-                <Users className="w-4 h-4 inline mr-2" />
-                Scout Army
-              </Link>
-              <Link
-                href="/admin/local-signals"
-                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-cyan-500/10 border border-cyan-300/35 text-cyan-100 hover:bg-cyan-400/15"
-              >
-                <MapPin className="w-4 h-4 inline mr-2" />
-                Local Signals
-              </Link>
-              <Link
-                href="/admin/inbox"
-                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-emerald-500/10 border border-emerald-300/35 text-emerald-100 hover:bg-emerald-400/15"
-              >
-                <Mail className="w-4 h-4 inline mr-2" />
-                Support Inbox
-              </Link>
-              <Link
-                href="/admin/venue-scout-command"
-                className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-yellow-500/10 border border-yellow-300/35 text-yellow-100 hover:bg-yellow-400/15"
-              >
-                <MapPin className="w-4 h-4 inline mr-2" />
-                Venue Scout Command
-              </Link>
+            <div className="mt-6 space-y-4">
+              {([
+                {
+                  label: 'Needs action',
+                  items: [
+                    { kind: 'tab', tab: 'moderation', icon: Users, label: 'Moderation', count: dares.length },
+                    { kind: 'tab', tab: 'claims', icon: Hand, label: 'Claims', count: pendingClaims.length },
+                    { kind: 'tab', tab: 'venueClaims', icon: MapPin, label: 'Venue Claims', count: pendingVenueClaims.length },
+                    { kind: 'tab', tab: 'tags', icon: Tag, label: 'Tags', count: pendingTags.length },
+                    { kind: 'tab', tab: 'placeTags', icon: Tag, label: 'Chaos Inbox', count: pendingPlaceTags.length },
+                    { kind: 'tab', tab: 'reportLeads', icon: Mail, label: 'Lead Inbox', count: reportLeadSummary.totalLeads },
+                  ],
+                },
+                {
+                  label: 'Inboxes & signals',
+                  items: [
+                    { kind: 'link', href: '/admin/inbox', icon: Mail, label: 'Support Inbox' },
+                    { kind: 'link', href: '/admin/local-signals', icon: MapPin, label: 'Local Signals' },
+                    { kind: 'tab', tab: 'places', icon: MapPin, label: 'Places' },
+                  ],
+                },
+                {
+                  label: 'Pipelines',
+                  items: [
+                    { kind: 'link', href: '/admin/activation-intakes', icon: DollarSign, label: 'Activation Intakes' },
+                    { kind: 'link', href: '/admin/creator-captains', icon: Users, label: 'Creator Captains' },
+                    { kind: 'link', href: '/admin/scouts', icon: Users, label: 'Scout Army' },
+                    { kind: 'link', href: '/admin/venue-scout-command', icon: MapPin, label: 'Venue Scout Command' },
+                  ],
+                },
+                {
+                  label: 'Ops & money',
+                  items: [
+                    { kind: 'link', href: '/admin/daily-command-loop', icon: Clock, label: 'Daily Command Loop' },
+                    { kind: 'link', href: '/admin/mission-control', icon: Play, label: 'Mission Control' },
+                    { kind: 'link', href: '/admin/founder-scoreboard', icon: DollarSign, label: 'Founder Scoreboard' },
+                    { kind: 'link', href: '/admin/production-safety', icon: Shield, label: 'Production Safety' },
+                    { kind: 'tab', tab: 'push', icon: Smartphone, label: 'Push Ops' },
+                  ],
+                },
+              ] as AdminNavGroup[]).map((group) => (
+                <div key={group.label}>
+                  <div className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.3em] text-white/35">
+                    {group.label}
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      if (item.kind === 'tab') {
+                        const active = activeTab === item.tab;
+                        return (
+                          <button
+                            key={item.tab}
+                            onClick={() => selectAdminTab(item.tab)}
+                            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
+                              active
+                                ? 'border border-purple-400/50 bg-purple-500/20 text-purple-100'
+                                : 'border border-white/10 bg-white/[0.04] text-gray-400 hover:border-white/20 hover:text-white'
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            {item.label}
+                            {(item.count ?? 0) > 0 ? (
+                              <span
+                                className={`ml-0.5 rounded-full px-2 py-0.5 text-[10px] font-black ${
+                                  active ? 'bg-purple-400/25 text-purple-50' : 'bg-white/10 text-white/70'
+                                }`}
+                              >
+                                {item.count}
+                              </span>
+                            ) : null}
+                          </button>
+                        );
+                      }
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-bold text-gray-400 transition-all hover:border-white/20 hover:text-white"
+                        >
+                          <Icon className="h-4 w-4" />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
