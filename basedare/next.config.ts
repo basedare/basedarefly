@@ -91,6 +91,21 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async headers() {
+    // Coinbase Smart Wallet opens keys.coinbase.com as a popup and talks back
+    // through window.opener. Without an explicit COOP, that popup relationship
+    // gets severed on iOS Safari — the "This app doesn't support smart wallets"
+    // error. `same-origin-allow-popups` is Coinbase's documented fix and also
+    // keeps OAuth (tag-claim) popups working.
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
+        ],
+      },
+    ];
+  },
   webpack: (config) => {
     // 1. Fix for "Module not found: Can't resolve 'fs', 'net', 'tls'"
     config.resolve = config.resolve ?? {};

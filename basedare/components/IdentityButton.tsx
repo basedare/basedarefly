@@ -183,6 +183,10 @@ export function IdentityButton() {
         onError: (error) => {
           setConnectError(getWalletConnectErrorMessage(error, connector));
           setShowWalletPicker(true);
+          // If the smart-wallet passkey popup fails (common on iOS Safari / in-app
+          // browsers where window.opener is severed), surface the other wallets —
+          // WalletConnect deep-links to a real wallet app and works there.
+          setShowOtherWallets(true);
           setPendingConnectorUid(null);
         },
       }
