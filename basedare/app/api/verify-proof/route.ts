@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createPublicClient, createWalletClient, formatEther, http, isAddress, parseEther, type Address, keccak256, toBytes } from 'viem';
 import { Livepeer } from 'livepeer';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
 import { checkRateLimit, getClientIp, RateLimiters, createRateLimitHeaders } from '@/lib/rate-limit';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
@@ -12,6 +13,27 @@ import { verifyInternalApiKey } from '@/lib/api-auth';
 import { waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 import { isPaidMission } from '@/lib/paid-mission';
+import { calculateDistance, isValidCoordinates } from '@/lib/geo';
+import {
+  evaluateProximity,
+  isProximityGatedDare,
+  hasEvaluableTarget,
+  targetCoordsReview,
+  deriveAttemptDecision,
+  resolveRadiusKm,
+  applyProximityGate,
+  type ProximityResult,
+} from '@/lib/proof-proximity-policy';
+import {
+  buildSubmissionKey,
+  preSettleStates,
+  SETTLEMENT_LOCK_STATUS,
+  REVIEW_STATUS,
+  FALLBACK_CAS_STATES,
+  deriveProofRouteOutcome,
+  type ProofRouteOutcome,
+} from '@/lib/settlement-transition';
+import { composeReviewReason } from '@/lib/proof-review-reason';
 import { recordDareFounderEventSafe, type FounderDareEventLike } from '@/lib/founder-events';
 import { createWalletNotification } from '@/lib/notifications';
 import { getRefereeAccount } from '@/lib/referee-wallet';
@@ -74,6 +96,14 @@ const VerifyProofSchema = z.object({
     streamId: z.string().optional(),
     videoUrl: z.string().optional(),
     timestamp: z.number().optional(),
+  }).optional(),
+  // Device-reported location captured at proof submission (nearby IRL dares).
+  // Validated server-side; never trusted as spoof-proof truth.
+  location: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+    accuracy: z.number().nullable().optional(),
+    capturedAt: z.union([z.number(), z.string()]).nullable().optional(),
   }).optional(),
 });
 
@@ -348,6 +378,37 @@ async function validateProof(
   }
 }
 
+/**
+ * Idempotent response for a proof whose (dare, media) was already recorded and
+ * whose dare has already left PENDING — return the current settled state instead
+ * of a permanent error, so a retry / concurrent-loser never strands the proof.
+ */
+async function respondWithCurrentDareOutcome(dareId: string) {
+  const current = await prisma.dare.findUnique({ where: { id: dareId }, select: { status: true } });
+  if (!current) {
+    return NextResponse.json({ success: false, error: 'Dare not found', code: 'NOT_FOUND' }, { status: 404 });
+  }
+  // A committed proof attempt with a still-PENDING dare should be impossible:
+  // evidence + transition are one transaction. Fail closed if legacy/manual DB
+  // state violates that invariant; never re-run settlement from mutable retry
+  // input (especially a fresh GPS sample).
+  if (current.status === 'PENDING') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'This proof attempt is recorded but its state needs operator recovery.',
+        code: 'PROOF_STATE_INCONSISTENT',
+      },
+      { status: 409 },
+    );
+  }
+  return NextResponse.json({
+    success: true,
+    code: 'ALREADY_PROCESSED',
+    data: { dareId, status: current.status, alreadyProcessed: true },
+  });
+}
+
 async function markProofPendingPayoutFallback({
   dareId,
   dare,
@@ -365,9 +426,13 @@ async function markProofPendingPayoutFallback({
     proofHash: string;
   };
   proofVideoUrl?: string | null;
-}) {
-  const queuedDare = await prisma.dare.update({
-    where: { id: dareId },
+}): Promise<boolean> {
+  // CAS: only write while the dare is still in the in-flight lock. If it already
+  // left PENDING_PAYOUT (a winner finalized it VERIFIED, or the cron settled it),
+  // NEVER overwrite that terminal row back to PENDING_PAYOUT — that would let the
+  // retry cron fire a second payout (P0-C).
+  const fallbackClaim = await prisma.dare.updateMany({
+    where: { id: dareId, status: { in: [...FALLBACK_CAS_STATES] } },
     data: {
       status: 'PENDING_PAYOUT',
       videoUrl: proofVideoUrl ?? dare.videoUrl ?? undefined,
@@ -377,6 +442,11 @@ async function markProofPendingPayoutFallback({
       sentinelVerified: dare.requireSentinel ? true : dare.sentinelVerified ?? false,
     },
   });
+  if (fallbackClaim.count === 0) {
+    console.warn(`[VERIFY] Payout fallback skipped for ${dareId} — dare already left the settlement lock.`);
+    return false;
+  }
+  const queuedDare = await prisma.dare.findUniqueOrThrow({ where: { id: dareId } });
 
   await recordDareFounderEventSafe({
     eventType: 'payout_queued',
@@ -407,6 +477,7 @@ async function markProofPendingPayoutFallback({
       return null;
     });
   }
+  return true;
 }
 
 // ============================================================================
@@ -516,10 +587,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (dare.status === 'VERIFIED') {
-      return NextResponse.json(
-        { success: false, error: 'Dare already verified', code: 'ALREADY_VERIFIED' },
-        { status: 400 }
-      );
+      return respondWithCurrentDareOutcome(dareId);
     }
 
     if (dare.status === 'FAILED' && dare.appealStatus !== 'PENDING') {
@@ -550,7 +618,7 @@ export async function POST(req: NextRequest) {
     // -------------------------------------------------------------------------
     // 4. STEP 2: VALIDATE PROOF (Secure verification - no mock/random logic)
     // -------------------------------------------------------------------------
-    const verification = await validateProof(
+    let verification = await validateProof(
       {
         id: dare.id,
         title: dare.title,
@@ -564,36 +632,246 @@ export async function POST(req: NextRequest) {
       proofData
     );
 
+    // -------------------------------------------------------------------------
+    // PROXIMITY GATE (nearby IRL dares only; STREAM behavior preserved).
+    // Device GPS is evidence, not truth: INSIDE only PERMITS the existing
+    // verifier to continue; missing/invalid/stale/low-accuracy → force review
+    // (never auto-approve); clearly out-of-radius → reject. Every submission —
+    // web, internal, retry — writes one append-only DareProofAttempt row; the
+    // gate can only make the outcome stricter, never auto-settle.
+    // -------------------------------------------------------------------------
+    const proofNow = new Date();
+    const isIrlNearbyDare = isProximityGatedDare(dare);
+    // Ingest gate (P1-D): only a proximity-gated dare's submission may carry a
+    // device location. For STREAM / non-nearby dares we DROP any client-sent
+    // location — the client is untrusted and the policy never uses it, so it must
+    // never be persisted.
+    const submittedLocation = isIrlNearbyDare ? (validation.data.location ?? null) : null;
+    const radiusKm = resolveRadiusKm(dare.discoveryRadiusKm); // P2: sane, clamped radius
+
+    // Money-rail media enforcement (P1): every review/payout transition must use
+    // the EXACT proof already pinned to the dare by /api/upload. A Pinata-shaped
+    // client URL is not trust by itself. Internal callers may omit the echo, but
+    // if they send one it must equal the server record. This check applies to
+    // STREAM and non-nearby dares too: both can still reach review or payout.
+    const pinnedMedia = dare.proofCid ?? dare.videoUrl ?? null;
+    const clientMedia = proofData?.videoUrl ?? null;
+    const mediaMatchesPinned = !clientMedia || (dare.videoUrl != null && clientMedia === dare.videoUrl);
+    if (!pinnedMedia || !mediaMatchesPinned) {
+      console.warn(`[VERIFY] Rejected untrusted media for dare ${dareId} (pinned=${Boolean(pinnedMedia)}, matches=${mediaMatchesPinned})`);
+      return NextResponse.json(
+        { success: false, error: 'This dare can only be verified with the proof uploaded through the platform.', code: 'UNTRUSTED_MEDIA' },
+        { status: 400 }
+      );
+    }
+
+    let proximity: ProximityResult | null = null;
+    if (isIrlNearbyDare) {
+      if (!hasEvaluableTarget(dare, isValidCoordinates)) {
+        // Gated but the dare's OWN target coordinates are missing/invalid → fail
+        // closed to review (misconfiguration). Never skip the gate into auto-approve.
+        proximity = targetCoordsReview();
+      } else {
+        const coordsValid = submittedLocation
+          ? isValidCoordinates(submittedLocation.latitude, submittedLocation.longitude)
+          : false;
+        const distanceKm =
+          submittedLocation && coordsValid
+            ? calculateDistance(dare.latitude!, dare.longitude!, submittedLocation.latitude, submittedLocation.longitude)
+            : null;
+        proximity = evaluateProximity({
+          hasSubmittedLocation: Boolean(submittedLocation),
+          coordsValid,
+          distanceKm,
+          radiusKm,
+          accuracyM: submittedLocation?.accuracy ?? null,
+          capturedAt: submittedLocation?.capturedAt != null ? new Date(submittedLocation.capturedAt) : null,
+          receivedAt: proofNow,
+        });
+      }
+    }
+    // Declarative fold (P2): a REVIEW proximity result forces manual review
+    // without ad-hoc mutation of the verifier outcome. INSIDE/null are no-ops;
+    // REJECT is handled below as a terminal transition.
+    verification = { ...verification, ...applyProximityGate(verification, proximity) };
+    // Proximity co-flagged this proof for review (sole or joint cause) — surfaced
+    // in the persisted review reason so the referee sees the real cause.
+    const proximityForcedReview = proximity?.decision === 'REVIEW';
+
+    // Anti-replay key (P1-F): SERVER-PINNED media identity ONLY (proofCid CID
+    // preferred; else the server-set dare.videoUrl). Guaranteed non-null for gated
+    // dares (enforced above). Non-gated dares may have a null key (no dedup).
+    const submissionKey = buildSubmissionKey(dare.id, dare.proofCid ?? dare.videoUrl ?? null);
+    const paidMission = isPaidMission({ venueId: dare.venueId, tag: dare.tag });
+    const routeOutcome: ProofRouteOutcome = deriveProofRouteOutcome({
+      proximityDecision: proximity?.decision ?? null,
+      requiresManualReview: verification.requiresManualReview,
+      paidMission,
+      verificationSuccess: verification.success,
+      verificationConfidence: verification.confidence,
+      autoApproveConfidence: 0.80,
+    });
+    const attemptDecision = deriveAttemptDecision(
+      proximity?.decision ?? null,
+      routeOutcome === 'REVIEW',
+      routeOutcome === 'SETTLE',
+    );
+    const sentinelReviewRequested = Boolean(dare.requireSentinel);
+    const requestedInternalSource = req.headers.get('x-basedare-proof-source')?.trim().toLowerCase();
+    const attemptSource = isInternalAuthorized
+      ? requestedInternalSource === 'telegram' ? 'telegram' : 'internal'
+      : 'web';
+    const reviewReason = routeOutcome === 'REVIEW'
+      ? composeReviewReason({
+          proximityForcedReview,
+          proximityCode: proximity?.code ?? null,
+          proximityReason: proximity?.reason ?? null,
+          sentinelRequested: sentinelReviewRequested,
+          paidMission,
+          highValue: dare.bounty >= AUTO_APPROVE_THRESHOLD,
+        })
+      : null;
+    const proofMedia = proofData?.videoUrl || dare.videoUrl || streamUrl || null;
+
+    // P0 idempotency boundary: append the immutable evidence row AND claim the
+    // dare's one legal next state in the SAME transaction. Therefore a crash can
+    // leave neither write or both writes, never a recorded attempt with a PENDING
+    // dare. The chain call and notifications happen only after this commit.
+    let transitionClaimed = false;
+    try {
+      transitionClaimed = await prisma.$transaction(async (tx) => {
+        await tx.dareProofAttempt.create({
+          data: {
+            dareId: dare.id,
+            // Actor attribution (P2): the authenticated submitter, or the assigned
+            // actor for trusted internal submissions. Never attribute to the IP.
+            submitterWallet: authorizedWallet ?? dare.claimedBy ?? dare.targetWalletAddress ?? null,
+            beneficiaryWallet: dare.claimedBy ?? dare.targetWalletAddress ?? null,
+            source: attemptSource,
+            systemActor: isInternalAuthorized
+              ? attemptSource === 'telegram' ? 'telegram-bot' : 'internal-api'
+              : null,
+            targetLatitude: dare.latitude ?? null,
+            targetLongitude: dare.longitude ?? null,
+            allowedRadiusKm: isIrlNearbyDare ? radiusKm : null,
+            submittedLatitude: submittedLocation?.latitude ?? null,
+            submittedLongitude: submittedLocation?.longitude ?? null,
+            accuracyM: submittedLocation?.accuracy ?? null,
+            capturedAt: submittedLocation?.capturedAt != null ? new Date(submittedLocation.capturedAt) : null,
+            receivedAt: proofNow,
+            distanceKm: proximity?.distanceKm ?? null,
+            proximityDecision: proximity?.decision ?? null,
+            proximityCode: proximity?.code ?? null,
+            mediaCid: dare.proofCid ?? null,
+            mediaHash: verification.proofHash,
+            verificationConfidence: verification.confidence,
+            verificationReason: verification.reason,
+            proximityReason: proximity?.reason ?? null,
+            decision: attemptDecision,
+            reason: verification.reason,
+            decidedAt: proofNow,
+            submissionKey,
+          },
+        });
+
+        const where = { id: dareId, status: { in: preSettleStates(dare) } };
+        if (routeOutcome === 'REVIEW') {
+          const claim = await tx.dare.updateMany({
+            where,
+            data: {
+              status: REVIEW_STATUS,
+              videoUrl: proofMedia,
+              proofHash: verification.proofHash,
+              verifyConfidence: verification.confidence,
+              manualReviewNeeded: sentinelReviewRequested,
+              appealStatus: 'PENDING',
+              appealReason: reviewReason,
+              appealedAt: proofNow,
+            },
+          });
+          return claim.count === 1;
+        }
+        if (routeOutcome === 'SETTLE') {
+          const claim = await tx.dare.updateMany({
+            where,
+            data: {
+              status: SETTLEMENT_LOCK_STATUS,
+              videoUrl: proofMedia,
+              proofHash: verification.proofHash,
+              verifyConfidence: verification.confidence,
+              manualReviewNeeded: false,
+              // The request itself owns the first payout lease. The retry cron
+              // can recover it after TTL, but cannot race a slow chain receipt.
+              payoutLeaseAt: proofNow,
+            },
+          });
+          return claim.count === 1;
+        }
+
+        // Both a clear proximity rejection and a verifier failure are appealable
+        // FAILED outcomes. The response code below still preserves which one.
+        const claim = await tx.dare.updateMany({
+          where,
+          data: {
+            status: 'FAILED',
+            appealStatus: 'NONE',
+            verifiedAt: proofNow,
+            verifyConfidence: verification.confidence,
+            proofHash: verification.proofHash,
+            manualReviewNeeded: false,
+          },
+        });
+        return claim.count === 1;
+      });
+    } catch (ledgerErr) {
+      if (ledgerErr instanceof Prisma.PrismaClientKnownRequestError && ledgerErr.code === 'P2002') {
+        // The winner committed evidence + state together. Return its current state;
+        // never re-evaluate this media using a retry's new GPS/timestamp.
+        return respondWithCurrentDareOutcome(dareId);
+      } else {
+        console.error('[LEDGER] atomic proof-attempt transition failed:', ledgerErr);
+        return NextResponse.json(
+          { success: false, error: 'Proof state is temporarily unavailable. Please retry.', code: 'LEDGER_UNAVAILABLE' },
+          { status: 503 }
+        );
+      }
+    }
+
+    if (!transitionClaimed) {
+      // A different submission won the state CAS. Its state is authoritative;
+      // this attempt remains in the append-only ledger for dispute/audit history.
+      return respondWithCurrentDareOutcome(dareId);
+    }
+
+    if (routeOutcome === 'REJECT') {
+      await syncLinkedCampaignForDareState({ dareId, status: 'FAILED' }).catch((err) =>
+        console.error('[CAMPAIGN] out-of-radius reject sync failed:', err),
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          error: proximity?.reason ?? 'Proof was submitted outside the allowed radius.',
+          code: proximity?.code ?? 'OUT_OF_RADIUS',
+          data: { dareId, status: 'FAILED', appealable: true },
+        },
+        { status: 400 }
+      );
+    }
+
     console.log(`[REFEREE] Verification result: ${verification.success ? 'APPROVED' : 'PENDING/FAILED'}`);
     console.log(`[REFEREE] Confidence: ${(verification.confidence * 100).toFixed(1)}%`);
     console.log(`[REFEREE] Reason: ${verification.reason}`);
     console.log(`[REFEREE] Requires manual review: ${verification.requiresManualReview}`);
     console.log(`[REFEREE] Proof hash: ${verification.proofHash}`);
+    if (proximity) console.log(`[REFEREE] Proximity: ${proximity.decision} (${proximity.code})`);
 
     // -------------------------------------------------------------------------
     // 5. HANDLE VERIFICATION RESULT
     // -------------------------------------------------------------------------
-    // Handle manual review flow for high-value dares
-    if (verification.requiresManualReview) {
-      const sentinelReviewRequested = Boolean(dare.requireSentinel);
-      const reviewReason = sentinelReviewRequested
-        ? 'Sentinel verification requested. Proof requires referee review.'
-        : 'High-value bounty requires manual verification';
-
-      // Update dare with proof info, set to PENDING_REVIEW status
-      const queuedDare = await prisma.dare.update({
-        where: { id: dareId },
-        data: {
-          status: 'PENDING_REVIEW',
-          videoUrl: proofData?.videoUrl || dare.videoUrl,
-          proofHash: verification.proofHash,
-          verifyConfidence: verification.confidence,
-          manualReviewNeeded: sentinelReviewRequested,
-          appealStatus: 'PENDING', // Use appeal system for manual review
-          appealReason: reviewReason,
-          appealedAt: new Date(),
-        },
-      });
+    // The database transition is already committed atomically with the ledger;
+    // this branch performs only recoverable side effects and the response.
+    if (routeOutcome === 'REVIEW') {
+      const queuedDare = await prisma.dare.findUniqueOrThrow({ where: { id: dareId } });
 
       await recordDareFounderEventSafe({
         eventType: 'proof_submitted',
@@ -687,59 +965,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // For low-value dares, check if passed
-    const passedVerification = verification.success && verification.confidence > 0.80;
-
-    if (passedVerification) {
-      // Defense-in-depth: a paid venue/brand mission must never auto-settle on
-      // generic proof. The review gate above already diverts these; this guard
-      // guarantees finalizeVerifiedDare is never reached for a paid mission even
-      // if that gate is ever changed.
-      if (isPaidMission({ venueId: dare.venueId, tag: dare.tag })) {
-        console.error(`[SECURITY] Paid mission ${dareId} reached the auto-approve path — routing to referee review instead of finalizing.`);
-        const divertedDare = await prisma.dare.update({
-          where: { id: dareId },
-          data: {
-            status: 'PENDING_REVIEW',
-            videoUrl: proofData?.videoUrl || dare.videoUrl,
-            proofHash: verification.proofHash,
-            verifyConfidence: verification.confidence,
-            appealStatus: 'PENDING',
-            appealReason: 'Paid venue/brand mission requires referee review (not auto-approved).',
-            appealedAt: new Date(),
-          },
-        });
-        await recordDareFounderEventSafe({
-          eventType: 'proof_submitted',
-          source: 'verify-proof',
-          dare: divertedDare,
-          status: 'PENDING_REVIEW',
-          actor: authorizedWallet,
-          metadata: {
-            confidence: verification.confidence,
-            proofHash: verification.proofHash,
-            paidMissionGuard: true,
-          },
-        });
-        return NextResponse.json({
-          success: true,
-          data: {
-            dareId,
-            status: 'PENDING_REVIEW',
-            verification: {
-              confidence: verification.confidence,
-              reason: 'Paid venue/brand mission requires referee review.',
-              proofHash: verification.proofHash,
-            },
-          },
-        });
-      }
-
-      // SUCCESS PATH: Trigger on-chain payout
+    if (routeOutcome === 'SETTLE') {
+      // SUCCESS PATH: PENDING_PAYOUT was acquired in the ledger transaction.
       let txHash: string | null = null;
       let blockNumber: string | null = null;
       const completedAt = new Date();
-      const proofMedia = proofData?.videoUrl || dare.videoUrl || streamUrl || null;
       const isCommunitySpark = dare.bounty <= 0 && dare.tag === 'community';
 
       await recordDareFounderEventSafe({
@@ -776,12 +1006,13 @@ export async function POST(req: NextRequest) {
           );
 
           if (!balanceCheck.allowed) {
-            await markProofPendingPayoutFallback({
+            const fallbackQueued = await markProofPendingPayoutFallback({
               dareId,
               dare,
               verification,
               proofVideoUrl: proofMedia,
             });
+            if (!fallbackQueued) return respondWithCurrentDareOutcome(dareId);
 
             return NextResponse.json({
               success: true,
@@ -824,12 +1055,13 @@ export async function POST(req: NextRequest) {
             const contractMsg = contractError instanceof Error ? contractError.message : 'Contract call failed';
             console.error(`[REFEREE] Contract payout failed: ${contractMsg}`);
             // On-chain failed — mark as PENDING_PAYOUT so it can be retried
-            await markProofPendingPayoutFallback({
+            const fallbackQueued = await markProofPendingPayoutFallback({
               dareId,
               dare,
               verification,
               proofVideoUrl: proofMedia,
             });
+            if (!fallbackQueued) return respondWithCurrentDareOutcome(dareId);
 
             return NextResponse.json({
               success: true,
@@ -871,12 +1103,13 @@ export async function POST(req: NextRequest) {
           successPathError instanceof Error ? successPathError.message : 'Unknown settlement error';
         console.error(`[REFEREE] Post-verification settlement fallback for ${dareId}: ${successPathMessage}`);
 
-        await markProofPendingPayoutFallback({
+        const fallbackQueued = await markProofPendingPayoutFallback({
           dareId,
           dare,
           verification,
           proofVideoUrl: proofMedia,
         });
+        if (!fallbackQueued) return respondWithCurrentDareOutcome(dareId);
 
         return NextResponse.json({
           success: true,
@@ -925,17 +1158,8 @@ export async function POST(req: NextRequest) {
         mockSunderReputation(dare.streamerHandle);
       }
 
-      const failedDare = await prisma.dare.update({
-        where: { id: dareId },
-        data: {
-          status: 'FAILED',
-          appealStatus: 'NONE', // Can be appealed
-          verifiedAt: new Date(),
-          verifyConfidence: verification.confidence,
-          proofHash: verification.proofHash,
-          manualReviewNeeded: false,
-        },
-      });
+      // FAILED was already committed atomically with its evidence row.
+      const failedDare = await prisma.dare.findUniqueOrThrow({ where: { id: dareId } });
       await syncLinkedCampaignForDareState({
         dareId,
         status: 'FAILED',

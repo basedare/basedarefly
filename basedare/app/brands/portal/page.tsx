@@ -11,7 +11,6 @@ import {
   MapPin,
   ReceiptText,
   Sparkles,
-  Users,
 } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
 import { useBountyMode } from '@/hooks/useBountyMode';
@@ -19,8 +18,8 @@ import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-fl
 import { NETWORK_CONFIG } from '@/lib/contracts';
 
 // ============================================================================
-// CONTROL MODE - BRAND PORTAL
-// B2B dashboard for programmatic attention marketing
+// CONTROL MODE - BUYER PORTAL
+// Fund useful real-world questions, verify the answers, keep the receipt.
 // ============================================================================
 
 import {
@@ -36,11 +35,11 @@ import {
   type ReportAttribution,
   type PlaceSearchResult,
   type ActivationPackageId,
+  ACTIVATION_PACKAGES,
   TIER_INFO,
   DEFAULT_ACTIVATION_PACKAGE_ID,
   getActivationPackage,
   getActivationPackageForTier,
-  buildActivationPackageTitle,
   buildActivationPackageDescription,
   formatUsdAmount,
   isCampaignTier,
@@ -69,9 +68,10 @@ export default function BrandPortalPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
-  const [showFirstRunConsole, setShowFirstRunConsole] = useState(false);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [registerName, setRegisterName] = useState('');
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [composerError, setComposerError] = useState<string | null>(null);
   const [selectedActivationPackageId, setSelectedActivationPackageId] =
     useState<ActivationPackageId>(DEFAULT_ACTIVATION_PACKAGE_ID);
   const [venueRadarFilter, setVenueRadarFilter] = useState<VenueRadarFilter>('hot');
@@ -98,7 +98,6 @@ export default function BrandPortalPage() {
       minDurationSeconds: 30,
     },
   });
-  const [hashtagInput, setHashtagInput] = useState('');
   const [placeQuery, setPlaceQuery] = useState('');
   const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
   const [placeLoading, setPlaceLoading] = useState(false);
@@ -187,12 +186,21 @@ export default function BrandPortalPage() {
     const venueName = selectedPlace?.name ?? selectedVenueRadar?.name ?? null;
 
     setSelectedActivationPackageId(packageId);
+    setComposerError(null);
     setFormData((current) => ({
       ...current,
       type: 'PLACE',
       tier: activationPackage.tier,
-      title: buildActivationPackageTitle(activationPackage, venueName),
-      description: buildActivationPackageDescription(activationPackage, venueName),
+      // A template can shape proof, but it must never substitute for the
+      // buyer's actual real-world question.
+      title: current.title,
+      description:
+        !current.description.trim() ||
+        ACTIVATION_PACKAGES.some(
+          (template) => current.description.trim() === buildActivationPackageDescription(template, venueName),
+        )
+          ? buildActivationPackageDescription(activationPackage, venueName)
+          : current.description,
       creatorCountTarget: 1,
       payoutPerCreator: Math.max(activationPackage.payout, activeMinPayout),
       targetingCriteria: {
@@ -230,7 +238,7 @@ export default function BrandPortalPage() {
       ...current,
       type: 'PLACE',
       tier: nextTier,
-      title: prefill.title?.trim() || buildActivationPackageTitle(activationPackage, venue.name),
+      title: prefill.title?.trim() || '',
       description:
         prefill.description?.trim() ||
         buildActivationPackageDescription(activationPackage, venue.name),
@@ -243,6 +251,7 @@ export default function BrandPortalPage() {
       },
     }));
     setPreferredCreatorTag(prefill.creatorTag?.trim() || null);
+    setComposerError(null);
     setReportAttribution(
       prefill.reportSource === 'venue-report'
         ? {
@@ -271,10 +280,10 @@ export default function BrandPortalPage() {
       openCampaignComposerForVenue(matchingVenue, {
         tier: campaignTier,
         payoutPerCreator: campaign.payoutPerCreator,
-        title: `${campaign.venue.name} repeat activation`,
+        title: `${campaign.venue.name} re-verification`,
         description:
           campaign.description?.trim() ||
-          `Run another creator activation at ${campaign.venue.name} while the venue already has BaseDare signal.`,
+          `Re-verify the useful place information at ${campaign.venue.name} while the existing signal is still fresh.`,
         reportIntent: 'repeat',
       });
       return;
@@ -304,7 +313,7 @@ export default function BrandPortalPage() {
       ...current,
       type: 'PLACE',
       tier: nextTier,
-      title: `${campaign.venue?.name ?? 'Venue'} repeat activation`,
+      title: `${campaign.venue?.name ?? 'Place'} re-verification`,
       description:
         campaign.description?.trim() ||
         buildActivationPackageDescription(activationPackage, campaign.venue?.name),
@@ -316,6 +325,7 @@ export default function BrandPortalPage() {
       },
     }));
     setShowCreateCampaign(true);
+    setComposerError(null);
     setTimeout(() => {
       checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
@@ -344,6 +354,14 @@ export default function BrandPortalPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    setRegisterError(null);
+  }, [registerName]);
+
+  useEffect(() => {
+    setComposerError(null);
+  }, [formData.title, formData.description, formData.payoutPerCreator, formData.tier, selectedPlace?.id, selectedCreatorId]);
 
   useEffect(() => {
     if (!mounted || typeof window === 'undefined') return;
@@ -622,6 +640,7 @@ export default function BrandPortalPage() {
     if (!address || !registerName.trim()) return;
 
     try {
+      setRegisterError(null);
       const res = await fetch('/api/brands', {
         method: 'POST',
         headers: {
@@ -640,10 +659,11 @@ export default function BrandPortalPage() {
         setBrand(data.data);
         setShowRegister(false);
       } else {
-        alert(data.error);
+        setRegisterError(data.error || 'Unable to create the buyer profile. Please try again.');
       }
     } catch (error) {
       console.error('Failed to register brand:', error);
+      setRegisterError(error instanceof Error ? error.message : 'Unable to create the buyer profile. Please try again.');
     }
   };
 
@@ -653,11 +673,12 @@ export default function BrandPortalPage() {
     try {
       setCreatingCampaign(true);
       setApprovalStatus('idle');
+      setComposerError(null);
       const tierConfig = TIER_INFO[formData.tier];
       const activeMinPayout = NETWORK_CONFIG.isMainnet ? tierConfig.minPayout : 1;
       
       if (formData.payoutPerCreator < activeMinPayout) {
-        alert(`Minimum payout for ${tierConfig.name} is $${activeMinPayout}`);
+        setComposerError(`The minimum reward for ${tierConfig.name} is $${activeMinPayout}.`);
         return;
       }
 
@@ -667,7 +688,7 @@ export default function BrandPortalPage() {
           typeof selectedPlace.latitude !== 'number' ||
           typeof selectedPlace.longitude !== 'number'
         ) {
-          alert('Choose a valid place for this activation.');
+          setComposerError('Choose a valid place for this mission.');
           return;
         }
       }
@@ -711,7 +732,7 @@ export default function BrandPortalPage() {
       }
 
       if (formData.type === 'PLACE' && !selectedCreatorId) {
-        alert('Pick a recommended creator before launching this campaign.');
+        setComposerError('BaseDare could not route a contributor yet. Try another place or request invoice setup.');
         return;
       }
 
@@ -721,7 +742,7 @@ export default function BrandPortalPage() {
           : null;
 
       if (formData.type === 'PLACE' && !chosenCreator) {
-        alert('The selected creator recommendation is no longer available. Refresh and try again.');
+        setComposerError('The routed contributor is no longer available. Refresh the place selection and try again.');
         return;
       }
 
@@ -785,6 +806,7 @@ export default function BrandPortalPage() {
 
       if (data.success) {
         setCampaigns([data.data, ...campaigns]);
+        setComposerError(null);
         setShowCreateCampaign(false);
         setFormData({
           type: 'PLACE',
@@ -808,51 +830,22 @@ export default function BrandPortalPage() {
         setRecommendedCreatorsLoading(false);
         setSelectedCreatorId(null);
       } else if (data.code === 'CREATOR_CAMPAIGNS_DORMANT') {
-        alert(data.error);
+        setComposerError(data.error || 'This mission type is not available yet.');
       } else {
-        if (linkedDareId) {
-          alert(`${data.error}\n\nEscrowed dare: ${linkedDareId}`);
-        } else {
-          alert(data.error);
-        }
+        setComposerError(
+          linkedDareId
+            ? `${data.error || 'Mission registration failed.'} Your funded dare is ${linkedDareId}; support can recover it without another payment.`
+            : data.error || 'Mission registration failed. Please try again.',
+        );
       }
     } catch (error) {
       console.error('Failed to create campaign:', error);
       const message = error instanceof Error ? error.message : 'Failed to create campaign';
-      alert(message);
+      setComposerError(message);
     } finally {
       setCreatingCampaign(false);
       setApprovalStatus('idle');
     }
-  };
-
-  const addHashtag = () => {
-    if (hashtagInput.trim()) {
-      const tag = hashtagInput.startsWith('#') ? hashtagInput : `#${hashtagInput}`;
-      setFormData({
-        ...formData,
-        verificationCriteria: {
-          ...formData.verificationCriteria,
-          hashtagsRequired: [...formData.verificationCriteria.hashtagsRequired, tag],
-        },
-      });
-      setHashtagInput('');
-    }
-  };
-
-  const togglePreferredPlatform = (platform: string) => {
-    setFormData((current) => {
-      const hasPlatform = current.targetingCriteria.platforms.includes(platform);
-      return {
-        ...current,
-        targetingCriteria: {
-          ...current.targetingCriteria,
-          platforms: hasPlatform
-            ? current.targetingCriteria.platforms.filter((entry) => entry !== platform)
-            : [...current.targetingCriteria.platforms, platform],
-        },
-      };
-    });
   };
 
   const fetchMatchesForCampaign = async (campaignId: string) => {
@@ -941,13 +934,6 @@ export default function BrandPortalPage() {
   };
 
   const budget = calculateBudget();
-  const selectedCreatorLabel =
-    selectedCheckoutCreator?.creator.tag ??
-    (recommendedCreatorsLoading
-      ? 'Ranking creators'
-      : selectedPlace
-        ? 'Pick creator'
-        : 'Venue first');
   const canLaunchActivation =
     !creatingCampaign &&
     Boolean(formData.title.trim()) &&
@@ -957,19 +943,19 @@ export default function BrandPortalPage() {
     Boolean(selectedCreatorId);
   const checkoutSteps = [
     {
-      label: 'Venue',
+      label: 'Question',
+      detail: formData.title.trim() || selectedActivationPackage.name,
+      complete: Boolean(formData.title.trim()),
+    },
+    {
+      label: 'Place',
       detail: selectedPlace?.name ?? 'Choose place',
       complete: Boolean(selectedPlace),
     },
     {
-      label: 'Package',
-      detail: selectedActivationPackage.name,
-      complete: Boolean(selectedActivationPackage),
-    },
-    {
-      label: 'Creator',
-      detail: selectedCreatorLabel,
-      complete: Boolean(selectedCreatorId),
+      label: 'Reward',
+      detail: `$${formatUsdAmount(formData.payoutPerCreator)}`,
+      complete: formData.payoutPerCreator > 0,
     },
     {
       label: 'Fund',
@@ -984,7 +970,7 @@ export default function BrandPortalPage() {
   const showRegisterView = mounted && isConnected && !loading && showRegister;
   const showDashboard = mounted && isConnected && !loading && !showRegister;
   const showFirstRunOnRamp =
-    showDashboard && !hasBrandActivity && !showFirstRunConsole && !showCreateCampaign;
+    showDashboard && !hasBrandActivity && !showCreateCampaign;
 
   return (
     <div className="control-glass-room fixed inset-0 z-[100] overflow-auto bg-[#030305] text-white">
@@ -1167,9 +1153,9 @@ export default function BrandPortalPage() {
         }}
       />
 
-      {/* Control mode particle background - rendered once, persists across all states */}
-      <div className="fixed inset-0 z-0">
-        <ParticleNetwork particleCount={86} minDist={122} particleColor="rgba(194, 133, 255, 0.46)" lineColor="rgba(255, 211, 86, 0.18)" speed={0.22} />
+      {/* Keep mobile quiet and legible; the animated layer is desktop ambience only. */}
+      <div className="fixed inset-0 z-0 hidden md:block">
+        <ParticleNetwork particleCount={48} minDist={132} particleColor="rgba(194, 133, 255, 0.4)" lineColor="rgba(255, 211, 86, 0.14)" speed={0.18} />
       </div>
 
       {/* Pre-hydration skeleton */}
@@ -1186,6 +1172,7 @@ export default function BrandPortalPage() {
         controlBackHref={controlBackHref}
         controlBackLabel={controlBackLabel}
         handleRegister={handleRegister}
+        registerError={registerError}
         registerName={registerName}
         setRegisterName={setRegisterName}
         showLoading={showLoading}
@@ -1214,10 +1201,10 @@ export default function BrandPortalPage() {
             </Link>
             <div>
               <div className="text-[1.05rem] font-black leading-none tracking-[-0.03em] text-white antialiased md:text-2xl">
-                BRAND PORTAL
+                BUYER PORTAL
               </div>
               <div className="mt-1 hidden text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200/70 md:block">
-                Fund dares · route creators · track proof
+                Fund questions · verify answers · keep receipts
               </div>
             </div>
           </div>
@@ -1235,14 +1222,14 @@ export default function BrandPortalPage() {
               </div>
             )}
 
-            {/* Mode Switch - Go to Chaos with Reality Shift */}
+            {/* Return to the public discovery side. */}
             <div className="touch-manipulation" style={{ padding: '8px 8px 16px 8px', margin: '-8px -8px -16px -8px', WebkitTapHighlightColor: 'transparent' }}>
               <Link
                 href="/?from=control"
                 className="activation-raised-purple inline-flex items-center gap-1 rounded-xl border px-4 py-3 text-xs font-black uppercase tracking-[0.16em] transition active:translate-y-[1px] md:gap-2 md:px-4 md:py-2 md:text-sm"
                 style={{ minHeight: '44px' }}
               >
-                <span>CHAOS</span>
+                <span>EXPLORE</span>
                 <span>→</span>
               </Link>
             </div>
@@ -1258,53 +1245,53 @@ export default function BrandPortalPage() {
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
                   <Sparkles className="h-4 w-4" />
-                  First run
+                  Start here
                 </div>
                 <h1 className="mt-5 max-w-3xl text-3xl font-black uppercase italic leading-[0.94] tracking-[-0.055em] text-white sm:text-5xl">
-                  Start with one verified arrival loop.
+                  Send one useful question into the real world.
                 </h1>
-                <p className="mt-4 max-w-2xl text-base font-bold leading-7 text-white/66">
-                  Fund verified foot-traffic dares for your venue. Pay only for proven arrivals.
+                <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/72">
+                  Choose a place or question, fund the reward, and BaseDare returns a verified answer, timestamped place memory, and receipt.
                 </p>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                  <Link
-                    href="/first-spark"
+                  <button
+                    type="button"
+                    onClick={openActivationBuilder}
                     className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
                   >
                     <Sparkles className="h-4 w-4" />
-                    Run your First Spark
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setShowFirstRunConsole(true)}
+                    Create a mission
+                  </button>
+                  <Link
+                    href="/board"
                     className="activation-soft-button inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/[0.13] px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-white/68 transition hover:border-white/24 hover:text-white"
                   >
-                    Open console
-                  </button>
+                    See verified results
+                  </Link>
                 </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
                   {
+                    icon: <ReceiptText className="h-4 w-4" />,
+                    label: '1. Ask',
+                    detail: 'One bounded real-world question.',
+                  },
+                  {
                     icon: <MapPin className="h-4 w-4" />,
-                    label: '1. Pick the place',
-                    detail: 'Choose the slow window.',
+                    label: '2. Place',
+                    detail: 'Attach it to somewhere real.',
                   },
                   {
                     icon: <CreditCard className="h-4 w-4" />,
-                    label: '2. Fund the dare',
-                    detail: 'Set one clear payout.',
+                    label: '3. Reward',
+                    detail: 'Pay for an approved answer.',
                   },
                   {
-                    icon: <Users className="h-4 w-4" />,
-                    label: '3. Route creators',
-                    detail: 'BaseDare sends the fit.',
-                  },
-                  {
-                    icon: <ReceiptText className="h-4 w-4" />,
-                    label: '4. Get proof',
-                    detail: 'QR arrival plus receipt.',
+                    icon: <CheckCircle2 className="h-4 w-4" />,
+                    label: '4. Receipt',
+                    detail: 'Verified proof and place memory.',
                   },
                 ].map((item) => (
                   <div
@@ -1313,12 +1300,10 @@ export default function BrandPortalPage() {
                   >
                     <div className="flex items-center gap-2 text-cyan-100/72">
                       {item.icon}
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/68">
-                        Pilot step
-                      </div>
+                      <div className="text-xs font-black text-cyan-100/75">How it works</div>
                     </div>
                     <div className="mt-3 text-sm font-black text-white">{item.label}</div>
-                    <div className="mt-1 text-xs font-bold text-white/48">{item.detail}</div>
+                    <div className="mt-1 text-sm font-semibold leading-6 text-white/64">{item.detail}</div>
                   </div>
                 ))}
               </div>
@@ -1331,21 +1316,14 @@ export default function BrandPortalPage() {
                 Own the venue itself?
               </div>
               <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-white/64">
-                Your stats console — check-ins, proofs, dares, visitors — lives on your venue page, not in this portal.{' '}
-                <Link
-                  href="/claim-tag"
-                  className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
-                >
-                  Verify your @baretag
-                </Link>
-                , open{' '}
+                This portal is for funding missions. Your place profile, corrections and venue console live on the map. Open{' '}
                 <Link
                   href="/map"
                   className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
                 >
                   your venue on the map
                 </Link>
-                , and tap “Claim venue”. Once approved, “Open console” appears on your venue page.
+                {' '}and choose “Claim venue”.
               </p>
             </div>
           </section>
@@ -1353,13 +1331,13 @@ export default function BrandPortalPage() {
           <>
         <div className="activation-shell mb-6 overflow-hidden rounded-[28px] border p-4 backdrop-blur-xl md:mb-8 md:p-6">
           <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">
-            For venues, local businesses, and sponsors
+            Proof-backed fieldwork
           </div>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-white md:text-5xl">
-            Launch a paid venue activation
+            Send a verified mission into the real world
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-200/[0.74] md:text-base">
-            Pick the venue, choose the dare budget, route a creator, and get proof back into venue memory.
+          <p className="mt-3 max-w-3xl text-base leading-7 text-white/70">
+            Ask one useful place question, fund the reward, and receive verified evidence, place memory, and a durable receipt. BaseDare handles contributor routing.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <button
@@ -1368,21 +1346,55 @@ export default function BrandPortalPage() {
               className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
             >
               <Sparkles className="h-4 w-4" />
-              Start activation
+              Create mission
             </button>
             <Link
-              href="/map"
+              href="/board"
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-cyan-300/[0.24] bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_28px_rgba(0,0,0,0.2)] transition hover:border-cyan-200/40 hover:bg-cyan-400/[0.14]"
             >
-              <MapPin className="h-4 w-4" />
-              Venue map
+              <ReceiptText className="h-4 w-4" />
+              See verified results
             </Link>
           </div>
-          <p className="mt-4 text-xs font-bold leading-5 text-white/40">
-            Own a venue? Claim it from its page on the map to unlock your stats console.
+          <p className="mt-4 text-sm font-semibold leading-6 text-white/58">
+            Managing a venue? Claim it from its page on the map; buyer missions stay here.
           </p>
         </div>
 
+        <ActivationComposer
+          approvalStatus={approvalStatus}
+          budget={budget}
+          canLaunchActivation={canLaunchActivation}
+          checkoutSectionRef={checkoutSectionRef}
+          checkoutSteps={checkoutSteps}
+          creatingCampaign={creatingCampaign}
+          formData={formData}
+          formError={composerError}
+          handleCreateCampaign={handleCreateCampaign}
+          placeLoading={placeLoading}
+          placeQuery={placeQuery}
+          placeResults={placeResults}
+          recommendedCreators={recommendedCreators}
+          recommendedCreatorsError={recommendedCreatorsError}
+          recommendedCreatorsLoading={recommendedCreatorsLoading}
+          selectActivationPackage={selectActivationPackage}
+          selectedActivationPackage={selectedActivationPackage}
+          selectedActivationPackageId={selectedActivationPackageId}
+          selectedCheckoutCreator={selectedCheckoutCreator}
+          selectedCreatorId={selectedCreatorId}
+          selectedPlace={selectedPlace}
+          setFormData={setFormData}
+          setPlaceQuery={setPlaceQuery}
+          setPlaceResults={setPlaceResults}
+          setPreferredCreatorTag={setPreferredCreatorTag}
+          setSelectedCreatorId={setSelectedCreatorId}
+          setSelectedPlace={setSelectedPlace}
+          setShowCreateCampaign={setShowCreateCampaign}
+          showCreateCampaign={showCreateCampaign}
+        />
+
+        {hasBrandActivity ? (
+          <>
         <PortalStats
           brand={brand}
           campaignSummary={campaignSummary}
@@ -1416,54 +1428,27 @@ export default function BrandPortalPage() {
           toggleShortlistCreator={toggleShortlistCreator}
         />
 
-        <VenueRadar
-          closeVenueRadarInspect={() => setSelectedVenueRadarId(null)}
-          filteredVenueRadar={filteredVenueRadar}
-          inspectVenueRadar={inspectVenueRadar}
-          openCampaignComposerForVenue={openCampaignComposerForVenue}
-          selectedVenueRadar={selectedVenueRadar}
-          setVenueRadarFilter={setVenueRadarFilter}
-          venueRadarFilter={venueRadarFilter}
-          venueRadarSectionRef={venueRadarSectionRef}
-        />
-
-        <ActivationComposer
-          addHashtag={addHashtag}
-          approvalStatus={approvalStatus}
-          budget={budget}
-          canLaunchActivation={canLaunchActivation}
-          checkoutSectionRef={checkoutSectionRef}
-          checkoutSteps={checkoutSteps}
-          creatingCampaign={creatingCampaign}
-          formData={formData}
-          handleCreateCampaign={handleCreateCampaign}
-          hashtagInput={hashtagInput}
-          placeLoading={placeLoading}
-          placeQuery={placeQuery}
-          placeResults={placeResults}
-          preferredCreatorTag={preferredCreatorTag}
-          recommendedCreators={recommendedCreators}
-          recommendedCreatorsError={recommendedCreatorsError}
-          recommendedCreatorsLoading={recommendedCreatorsLoading}
-          selectActivationPackage={selectActivationPackage}
-          selectedActivationPackage={selectedActivationPackage}
-          selectedActivationPackageId={selectedActivationPackageId}
-          selectedCheckoutCreator={selectedCheckoutCreator}
-          selectedCreatorId={selectedCreatorId}
-          selectedCreatorLabel={selectedCreatorLabel}
-          selectedPlace={selectedPlace}
-          selectedVenueRadar={selectedVenueRadar}
-          setFormData={setFormData}
-          setHashtagInput={setHashtagInput}
-          setPlaceQuery={setPlaceQuery}
-          setPlaceResults={setPlaceResults}
-          setPreferredCreatorTag={setPreferredCreatorTag}
-          setSelectedCreatorId={setSelectedCreatorId}
-          setSelectedPlace={setSelectedPlace}
-          setShowCreateCampaign={setShowCreateCampaign}
-          showCreateCampaign={showCreateCampaign}
-          togglePreferredPlatform={togglePreferredPlatform}
-        />
+        <details className="activation-shell mt-6 rounded-[26px] border p-3 md:p-4" open={Boolean(selectedVenueRadar)}>
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
+            <div>
+              <div className="text-base font-black text-white">Need place ideas?</div>
+              <div className="mt-1 text-sm text-white/58">Browse existing place signals only when they help define the next mission.</div>
+            </div>
+            <MapPin className="h-5 w-5 shrink-0 text-cyan-200" />
+          </summary>
+          <VenueRadar
+            closeVenueRadarInspect={() => setSelectedVenueRadarId(null)}
+            filteredVenueRadar={filteredVenueRadar}
+            inspectVenueRadar={inspectVenueRadar}
+            openCampaignComposerForVenue={openCampaignComposerForVenue}
+            selectedVenueRadar={selectedVenueRadar}
+            setVenueRadarFilter={setVenueRadarFilter}
+            venueRadarFilter={venueRadarFilter}
+            venueRadarSectionRef={venueRadarSectionRef}
+          />
+        </details>
+          </>
+        ) : null}
 
           </>
         )}

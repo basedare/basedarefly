@@ -1005,13 +1005,13 @@ export default function DareDetailPage() {
           </div>
         )}
 
-        {dare.awaitingClaim && dare.claimRequestStatus === 'PENDING' && dare.claimRequestTag && (
+        {dare.awaitingClaim && dare.claimRequestStatus === 'PENDING' && dare.claimRequestWallet && (
           <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl">
             <h3 className="text-sm font-black text-cyan-300 mb-2">Activation claim pending</h3>
             <p className="text-xs text-white/55">
               {dare.claimRequestWallet?.toLowerCase() === address?.toLowerCase()
                 ? 'Your claim request is in. A moderator will review it before this activation is assigned.'
-                : `${dare.claimRequestTag} has already requested this activation. Check back soon or browse another live brief.`}
+                : `${dare.claimRequestTag ?? 'Someone'} has already requested this activation. Check back soon or browse another live brief.`}
             </p>
           </div>
         )}

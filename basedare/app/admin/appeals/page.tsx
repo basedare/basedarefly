@@ -6,6 +6,20 @@ import LiquidBackground from '@/components/LiquidBackground';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
 
+interface ProximityEvidence {
+  distanceKm: number | null;
+  allowedRadiusKm: number | null;
+  accuracyM: number | null;
+  capturedAt: string | null;
+  receivedAt: string | null;
+  proximityDecision: string | null;
+  proximityCode: string | null;
+  source: string | null;
+  reason: string | null;
+  targetLatitude: number | null;
+  targetLongitude: number | null;
+}
+
 interface Appeal {
   id: string;
   shortId: string | null;
@@ -22,6 +36,7 @@ interface Appeal {
   stakerAddress: string | null;
   createdAt: string;
   isSimulated: boolean;
+  proximity?: ProximityEvidence | null;
 }
 
 interface AppealCounts {
@@ -377,6 +392,49 @@ export default function AdminAppealsPage() {
                     <p className="text-sm text-gray-300">{selectedAppeal.appealReason || 'No reason provided'}</p>
                   </div>
                 </div>
+
+                {/* Proximity Evidence (nearby IRL dares only) */}
+                {selectedAppeal.proximity && (
+                  <div>
+                    <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider">Proximity Evidence</span>
+                    <div className="mt-2 p-3 bg-black/40 border border-white/10 rounded-lg space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
+                            selectedAppeal.proximity.proximityDecision === 'INSIDE'
+                              ? 'bg-emerald-500/15 text-emerald-400'
+                              : selectedAppeal.proximity.proximityDecision === 'REJECT'
+                                ? 'bg-red-500/15 text-red-400'
+                                : 'bg-amber-500/15 text-amber-400'
+                          }`}
+                        >
+                          {selectedAppeal.proximity.proximityDecision || 'REVIEW'}
+                        </span>
+                        <span className="font-mono text-gray-400 text-xs">{selectedAppeal.proximity.proximityCode || '—'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Distance</span>
+                        <span className="text-gray-200 font-mono">
+                          {selectedAppeal.proximity.distanceKm != null ? `${selectedAppeal.proximity.distanceKm.toFixed(2)} km` : '—'}
+                          {selectedAppeal.proximity.allowedRadiusKm != null ? ` · radius ${selectedAppeal.proximity.allowedRadiusKm} km` : ''}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Accuracy</span>
+                        <span className="text-gray-200 font-mono">
+                          {selectedAppeal.proximity.accuracyM != null ? `±${Math.round(selectedAppeal.proximity.accuracyM)} m` : '—'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Captured</span>
+                        <span className="text-gray-200 font-mono">{formatDate(selectedAppeal.proximity.capturedAt)}</span>
+                      </div>
+                      {selectedAppeal.proximity.reason && (
+                        <p className="text-xs text-gray-400 pt-1 border-t border-white/5">{selectedAppeal.proximity.reason}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Video Proof */}
                 {selectedAppeal.videoUrl && (

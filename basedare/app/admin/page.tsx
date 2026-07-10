@@ -2819,7 +2819,9 @@ export default function AdminPage() {
                       </div>
 
                       <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-yellow-400">{claim.claimRequestTag}</span>
+                        <span className="text-yellow-400">
+                          {claim.claimRequestTag || (claim.claimRequestWallet ? formatAddress(claim.claimRequestWallet) : 'wallet')}
+                        </span>
                         <span className="text-gray-500">
                           {claim.claimRequestedAt && new Date(claim.claimRequestedAt).toLocaleDateString()}
                         </span>
@@ -2869,7 +2871,9 @@ export default function AdminPage() {
 
                     <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                       <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Requested By</p>
-                      <p className="text-yellow-400 font-bold text-lg">{selectedClaim.claimRequestTag}</p>
+                      <p className="text-yellow-400 font-bold text-lg">
+                        {selectedClaim.claimRequestTag || 'Wallet-only claim'}
+                      </p>
                       <p className="text-gray-500 font-mono text-xs mt-1">
                         {selectedClaim.claimRequestWallet && formatAddress(selectedClaim.claimRequestWallet)}
                       </p>
@@ -2927,7 +2931,11 @@ export default function AdminPage() {
                   </div>
 
                   <p className="text-xs text-gray-500 text-center mt-4">
-                    Approving will assign this dare to {selectedClaim.claimRequestTag}
+                    Approving will assign this dare to{' '}
+                    {selectedClaim.claimRequestTag ||
+                      (selectedClaim.claimRequestWallet
+                        ? formatAddress(selectedClaim.claimRequestWallet)
+                        : 'this wallet')}
                   </p>
                 </>
               ) : (

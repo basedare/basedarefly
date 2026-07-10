@@ -1,4 +1,4 @@
-// Types, activation package catalog, and pure helpers for the Brand Portal.
+// Types, mission-template catalog, and pure helpers for the Buyer Portal.
 // Extracted verbatim from page.tsx (Phase A structural split — no behavior changes).
 
 export interface Brand {
@@ -275,10 +275,12 @@ export interface PlaceSearchResult {
   longitude?: number;
 }
 
+// Internal campaign tiers are retained for contract/API compatibility. Buyer-facing
+// language describes the real-world question and proof, not influencer jargon.
 export const TIER_INFO = {
   SIP_MENTION: {
-    name: 'Visit & Post',
-    description: 'Creator visits and posts about your venue',
+    name: 'Field Check',
+    description: 'Confirm one useful fact at a real place',
     minPayout: 50,
     window: '7 days',
     bonus: 'None',
@@ -287,8 +289,8 @@ export const TIER_INFO = {
     borderColor: 'border-zinc-500/30',
   },
   SIP_SHILL: {
-    name: 'Product Experience',
-    description: 'Creator tries your product and shows it',
+    name: 'Experience Check',
+    description: 'Document what an experience is actually like',
     minPayout: 100,
     window: '24 hours',
     bonus: 'None',
@@ -297,8 +299,8 @@ export const TIER_INFO = {
     borderColor: 'border-blue-500/30',
   },
   CHALLENGE: {
-    name: 'Branded Challenge',
-    description: 'Creator runs a challenge at your venue',
+    name: 'Discovery Drop',
+    description: 'Answer a richer place question with reusable proof',
     minPayout: 250,
     window: '2 hours',
     bonus: '1.3x Strike',
@@ -307,8 +309,8 @@ export const TIER_INFO = {
     borderColor: 'border-purple-500/30',
   },
   APEX: {
-    name: 'Headline Stunt',
-    description: 'Custom high-impact activation with your brief',
+    name: 'First Spark',
+    description: 'Run a higher-proof venue or destination mission',
     minPayout: 1000,
     window: '1 hour',
     bonus: '1.5x Strike',
@@ -336,36 +338,36 @@ export const DEFAULT_ACTIVATION_PACKAGE_ID: ActivationPackageId = 'venue-push';
 export const ACTIVATION_PACKAGES: ActivationPackage[] = [
   {
     id: 'scout-drop',
-    name: 'Scout Drop',
-    eyebrow: 'Fast test',
+    name: 'Verify a Place',
+    eyebrow: 'Simple field check',
     tier: 'SIP_MENTION',
     payout: 75,
-    bestFor: 'First signal at a venue',
-    outcome: 'One creator visit, venue proof, and a reusable social clip.',
-    proof: 'Creator captures the venue, why it is worth showing up, and one clean proof moment.',
-    buyerCopy: 'Low-friction starter package for validating whether a place can produce creator memory.',
+    bestFor: 'Hours, access, prices, atmosphere, menu or practical details',
+    outcome: 'One current, evidence-backed answer attached to a real place.',
+    proof: 'Visit the place, answer one bounded question, and capture clear evidence that supports the answer.',
+    buyerCopy: 'Use this when one fresh fact would help people make a better decision.',
   },
   {
     id: 'venue-push',
-    name: 'Venue Push',
+    name: 'Discovery Drop',
     eyebrow: 'Recommended',
     tier: 'CHALLENGE',
     payout: 250,
-    bestFor: 'Driving a specific night or offer',
-    outcome: 'One routed creator challenge with stronger urgency and review pressure.',
-    proof: 'Creator films the arrival, the venue energy, and the action you want repeated.',
-    buyerCopy: 'Best default for venues and local brands that want visible movement, not passive placement.',
+    bestFor: 'Travel, tourism, product discovery and richer place intelligence',
+    outcome: 'One useful field story with verified presence and reusable place memory.',
+    proof: 'Explore the place, answer the buyer question, and return a concise field note with supporting media.',
+    buyerCopy: 'The default when the answer needs context, not just a yes or no.',
   },
   {
     id: 'headline-night',
-    name: 'Headline Night',
-    eyebrow: 'High impact',
+    name: 'First Spark',
+    eyebrow: 'Higher proof',
     tier: 'APEX',
     payout: 1000,
-    bestFor: 'Launches, parties, and sponsor moments',
-    outcome: 'One premium creator dare with a tighter time window and stronger payout signal.',
-    proof: 'Creator makes the place feel like the event people should have attended.',
-    buyerCopy: 'Use this when the night itself matters and the proof needs to feel like a receipt.',
+    bestFor: 'Venue-backed arrivals, redemptions, launches or timed destination moments',
+    outcome: 'A tightly scoped mission with stronger confirmation and a buyer-ready receipt.',
+    proof: 'Complete the timed place mission and capture the agreed presence, action, and partner-confirmed evidence.',
+    buyerCopy: 'Use this only when the place or partner can support a stronger proof rung.',
   },
 ];
 
@@ -388,8 +390,8 @@ export function buildActivationPackageTitle(activationPackage: ActivationPackage
 }
 
 export function buildActivationPackageDescription(activationPackage: ActivationPackage, venueName?: string | null) {
-  const target = venueName?.trim() || 'the venue';
-  return `${activationPackage.proof} Target venue: ${target}.`;
+  const target = venueName?.trim() || 'the place';
+  return `${activationPackage.proof} Target place: ${target}.`;
 }
 
 export function formatUsdAmount(value: number) {
@@ -464,7 +466,7 @@ export function buildVenueCreatorChatHref(
     creator: creatorTag,
     venue: venue.slug,
     subject: `Activation route: ${venue.name} x ${creatorTag}`,
-    message: `Saw you on the ${venue.name} creator shortlist in BaseDare Control. Are you open to a paid venue activation at ${venue.name} (${location})? Send your availability, content angle, and rate expectations.`,
+    message: `BaseDare matched you to a paid field mission at ${venue.name} (${location}). Are you available to answer one place question with verified proof? Send your availability and any relevant local context.`,
     source: 'brand-portal-venue-radar',
   });
   return `/chat?${params.toString()}`;

@@ -1,32 +1,31 @@
-// Extracted verbatim from page.tsx (Phase A structural split — no behavior changes).
-// All state lives in the page shell; props are threaded with their original names.
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import { CheckCircle2, CreditCard, MapPin, ReceiptText, Sparkles, Target, Users } from 'lucide-react';
+import Link from 'next/link';
+import {
+  CheckCircle2,
+  ChevronDown,
+  CreditCard,
+  MapPin,
+  ReceiptText,
+  Route,
+  Sparkles,
+  UserRoundCheck,
+  X,
+} from 'lucide-react';
 import type { BountyApprovalStatus } from '@/lib/bounty-flow';
 import { NETWORK_CONFIG } from '@/lib/contracts';
 import {
   ACTIVATION_PACKAGES,
-  PLATFORM_OPTIONS,
   TIER_INFO,
   buildActivationPackageDescription,
-  buildActivationPackageTitle,
-  formatCompactAudience,
   formatUsdAmount,
-  formatVenueRadarLocation,
-  getCreatorInitial,
-  getCreatorReliabilityLabel,
-  getCreatorStrengthLabel,
-  getCreatorVenueFitLabel,
   type ActivationPackage,
   type ActivationPackageId,
-  type BrandVenueRadarItem,
   type CampaignFormData,
   type CampaignMatch,
   type PlaceSearchResult,
 } from './activation-packages';
 
-type ActivationComposerProps = {
-  addHashtag: () => void;
+type MissionComposerProps = {
   approvalStatus: BountyApprovalStatus;
   budget: { gross: number; rake: number; total: number; effectiveSlotCount: number };
   canLaunchActivation: boolean;
@@ -34,12 +33,11 @@ type ActivationComposerProps = {
   checkoutSteps: Array<{ label: string; detail: string; complete: boolean }>;
   creatingCampaign: boolean;
   formData: CampaignFormData;
+  formError: string | null;
   handleCreateCampaign: () => Promise<void>;
-  hashtagInput: string;
   placeLoading: boolean;
   placeQuery: string;
   placeResults: PlaceSearchResult[];
-  preferredCreatorTag: string | null;
   recommendedCreators: CampaignMatch[];
   recommendedCreatorsError: string | null;
   recommendedCreatorsLoading: boolean;
@@ -48,11 +46,8 @@ type ActivationComposerProps = {
   selectedActivationPackageId: ActivationPackageId;
   selectedCheckoutCreator: CampaignMatch | null;
   selectedCreatorId: string | null;
-  selectedCreatorLabel: string;
   selectedPlace: PlaceSearchResult | null;
-  selectedVenueRadar: BrandVenueRadarItem | null;
   setFormData: Dispatch<SetStateAction<CampaignFormData>>;
-  setHashtagInput: Dispatch<SetStateAction<string>>;
   setPlaceQuery: Dispatch<SetStateAction<string>>;
   setPlaceResults: Dispatch<SetStateAction<PlaceSearchResult[]>>;
   setPreferredCreatorTag: Dispatch<SetStateAction<string | null>>;
@@ -60,11 +55,15 @@ type ActivationComposerProps = {
   setSelectedPlace: Dispatch<SetStateAction<PlaceSearchResult | null>>;
   setShowCreateCampaign: Dispatch<SetStateAction<boolean>>;
   showCreateCampaign: boolean;
-  togglePreferredPlatform: (platform: string) => void;
 };
 
+const sectionClass =
+  'rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(4,5,10,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_44px_rgba(0,0,0,0.24)] sm:p-5';
+const labelClass = 'mb-2 block text-sm font-black text-white/78';
+const inputClass =
+  'min-h-12 w-full rounded-2xl border border-white/12 bg-black/35 px-4 py-3 text-base font-semibold text-white outline-none transition placeholder:text-white/34 focus:border-yellow-300/55 focus:ring-2 focus:ring-yellow-300/15';
+
 export default function ActivationComposer({
-  addHashtag,
   approvalStatus,
   budget,
   canLaunchActivation,
@@ -72,12 +71,11 @@ export default function ActivationComposer({
   checkoutSteps,
   creatingCampaign,
   formData,
+  formError,
   handleCreateCampaign,
-  hashtagInput,
   placeLoading,
   placeQuery,
   placeResults,
-  preferredCreatorTag,
   recommendedCreators,
   recommendedCreatorsError,
   recommendedCreatorsLoading,
@@ -86,11 +84,8 @@ export default function ActivationComposer({
   selectedActivationPackageId,
   selectedCheckoutCreator,
   selectedCreatorId,
-  selectedCreatorLabel,
   selectedPlace,
-  selectedVenueRadar,
   setFormData,
-  setHashtagInput,
   setPlaceQuery,
   setPlaceResults,
   setPreferredCreatorTag,
@@ -98,748 +93,405 @@ export default function ActivationComposer({
   setSelectedPlace,
   setShowCreateCampaign,
   showCreateCampaign,
-  togglePreferredPlatform,
-}: ActivationComposerProps) {
-  return (
-    <>
-        {/* Value Menu / Launch Activation */}
-        {showCreateCampaign ? (
-          <div
-            ref={checkoutSectionRef}
-            className="activation-shell mb-8 overflow-hidden rounded-[28px] border backdrop-blur-md md:backdrop-blur-xl"
-          >
-            <div className="border-b border-white/10 bg-black/30 px-4 py-4 text-white md:px-6 md:py-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-white/[0.15] bg-white/[0.06] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-300">
-                      Activation checkout
-                    </span>
-                    <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100">
-                      {selectedActivationPackage.eyebrow}
-                    </span>
-                  </div>
-                  <h2 className="mt-3 text-2xl font-black tracking-tight text-white md:text-3xl">
-                    Launch one dare
-                  </h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
-                    Choose the venue, package, and creator fit. BaseDare tracks proof back to the venue.
-                  </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateCampaign(false);
-                  setPreferredCreatorTag(null);
-                }}
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06] text-zinc-300 transition hover:border-white/20 hover:text-white"
-                  aria-label="Close activation checkout"
-              >
-                ✕
-              </button>
-              </div>
+}: MissionComposerProps) {
+  if (!showCreateCampaign) return null;
 
-              <div className="mt-5 grid grid-cols-4 gap-2">
-                {checkoutSteps.map((step, index) => (
-                  <div
-                    key={step.label}
-                    className={`rounded-xl border px-2 py-2 text-center md:px-3 md:py-3 ${
-                      step.complete
-                        ? 'border-emerald-300/25 bg-emerald-400/10'
-                        : index === 3
-                          ? 'border-[#f5c518]/25 bg-[#f5c518]/10'
-                          : 'border-white/10 bg-white/[0.04]'
-                    }`}
-                  >
-                    <div className="mx-auto flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.12] bg-black/20 text-[10px] font-black md:h-7 md:w-7">
-                      {step.complete ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-200" /> : index + 1}
-                    </div>
-                    <div className="mt-1 text-[9px] font-black uppercase tracking-[0.12em] text-white md:text-[10px]">
-                      {step.label}
-                    </div>
-                    <div className="mt-0.5 truncate text-[10px] text-zinc-400 md:text-xs">
-                      {step.detail}
-                    </div>
+  const closeComposer = () => {
+    setShowCreateCampaign(false);
+    setPreferredCreatorTag(null);
+  };
+
+  const selectPlace = (place: PlaceSearchResult) => {
+    setSelectedPlace(place);
+    setPreferredCreatorTag(null);
+    setPlaceQuery(place.displayName);
+    setPlaceResults([]);
+    setFormData((current) => {
+      const genericDescriptions = ACTIVATION_PACKAGES.map((template) => buildActivationPackageDescription(template));
+      const replaceDescription =
+        !current.description.trim() || genericDescriptions.includes(current.description.trim());
+
+      return {
+        ...current,
+        type: 'PLACE',
+        title: current.title,
+        description: replaceDescription
+          ? buildActivationPackageDescription(selectedActivationPackage, place.name)
+          : current.description,
+        creatorCountTarget: 1,
+        targetingCriteria: { ...current.targetingCriteria, location: 'near-venue' },
+      };
+    });
+  };
+
+  const routingLabel = !selectedPlace
+    ? 'Choose a place first'
+    : recommendedCreatorsLoading
+      ? 'Finding the best fit…'
+      : recommendedCreatorsError
+        ? 'Routing needs attention'
+        : selectedCheckoutCreator
+          ? 'Best-fit contributor ready'
+          : 'No contributor ready yet';
+
+  const disabledReason = !formData.title.trim()
+    ? 'Add the real-world question to continue.'
+    : !selectedPlace
+      ? 'Choose the place where the answer should be verified.'
+      : recommendedCreatorsLoading
+        ? 'BaseDare is finding the best available contributor.'
+        : !selectedCreatorId
+          ? recommendedCreatorsError || 'No suitable contributor is ready for this place yet.'
+          : null;
+
+  return (
+    <section
+      ref={checkoutSectionRef}
+      className="activation-shell mb-8 overflow-hidden rounded-[30px] border backdrop-blur-md md:backdrop-blur-xl"
+      aria-labelledby="mission-builder-title"
+    >
+      <div className="border-b border-white/10 bg-black/30 px-4 py-5 md:px-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300/[0.09] px-3 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-yellow-100">
+              <Sparkles className="h-4 w-4" />
+              New field mission
+            </div>
+            <h2 id="mission-builder-title" className="mt-4 text-3xl font-black tracking-tight text-white md:text-4xl">
+              Send one useful question into the real world.
+            </h2>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-white/70">
+              Choose what should be verified, where it should happen, and the reward. BaseDare routes the contributor, checks the proof, and returns a receipt.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={closeComposer}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white/72 transition hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-200/60"
+            aria-label="Close mission builder"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <ol className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Mission setup progress">
+          {checkoutSteps.map((step, index) => (
+            <li
+              key={step.label}
+              className={`rounded-2xl border px-3 py-3 ${
+                step.complete
+                  ? 'border-emerald-300/30 bg-emerald-400/10'
+                  : index === 3
+                    ? 'border-yellow-300/30 bg-yellow-300/[0.08]'
+                    : 'border-white/10 bg-white/[0.04]'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/25 text-xs font-black text-white">
+                  {step.complete ? <CheckCircle2 className="h-4 w-4 text-emerald-200" /> : index + 1}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-xs font-black text-white">{step.label}</div>
+                  <div className="truncate text-xs text-white/55">{step.detail}</div>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="space-y-4 p-4 md:p-6">
+        <section className={sectionClass} aria-labelledby="mission-question-heading">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-purple-300/25 bg-purple-400/10 text-purple-100">
+              <ReceiptText className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-purple-100/75">Step 1</p>
+              <h3 id="mission-question-heading" className="text-xl font-black text-white">What do you want verified?</h3>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {ACTIVATION_PACKAGES.map((template) => {
+              const selected = selectedActivationPackageId === template.id;
+              return (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => selectActivationPackage(template.id)}
+                  aria-pressed={selected}
+                  className={`min-h-[168px] rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-200/60 ${
+                    selected
+                      ? 'border-yellow-200/55 bg-[linear-gradient(180deg,rgba(245,197,24,0.18),rgba(8,7,12,0.88))] shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_16px_34px_rgba(0,0,0,0.28)]'
+                      : 'border-white/10 bg-black/25 hover:border-white/22 hover:bg-white/[0.055]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-xs font-black uppercase tracking-[0.14em] text-yellow-100/80">{template.eyebrow}</div>
+                    {selected ? <CheckCircle2 className="h-5 w-5 text-yellow-200" /> : null}
                   </div>
+                  <div className="mt-3 text-lg font-black text-white">{template.name}</div>
+                  <p className="mt-2 text-sm leading-6 text-white/65">{template.outcome}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div>
+              <label htmlFor="mission-title" className={labelClass}>The question</label>
+              <input
+                id="mission-title"
+                value={formData.title}
+                onChange={(event) => setFormData({ ...formData, title: event.target.value })}
+                placeholder="e.g. What is the best quiet-work café near Cloud 9 right now?"
+                className={inputClass}
+              />
+              <p className="mt-2 text-sm leading-6 text-white/55">Keep it bounded enough that one person can answer it honestly.</p>
+            </div>
+            <div>
+              <label htmlFor="mission-proof" className={labelClass}>What should the answer include?</label>
+              <textarea
+                id="mission-proof"
+                value={formData.description}
+                onChange={(event) => setFormData({ ...formData, description: event.target.value })}
+                placeholder="Ask for the useful fact, photo or clip, and any detail that must be current."
+                rows={4}
+                className={`${inputClass} resize-none leading-6`}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className={sectionClass} aria-labelledby="mission-place-heading">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100">
+              <MapPin className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100/75">Step 2</p>
+              <h3 id="mission-place-heading" className="text-xl font-black text-white">Where should it happen?</h3>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <label htmlFor="mission-place" className={labelClass}>Place, landmark or local area</label>
+            <input
+              id="mission-place"
+              value={selectedPlace ? selectedPlace.displayName : placeQuery}
+              onChange={(event) => {
+                setSelectedPlace(null);
+                setSelectedCreatorId(null);
+                setPreferredCreatorTag(null);
+                setPlaceQuery(event.target.value);
+              }}
+              placeholder="Search for a real place…"
+              className={inputClass}
+              autoComplete="off"
+            />
+            <p className="mt-2 text-sm leading-6 text-white/55">The approved answer becomes timestamped memory for this place.</p>
+
+            {placeLoading ? (
+              <div className="mt-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-4 text-sm text-white/65">Searching places…</div>
+            ) : !selectedPlace && placeResults.length > 0 ? (
+              <div className="mt-3 space-y-2 rounded-2xl border border-white/10 bg-black/35 p-2">
+                {placeResults.slice(0, 5).map((place) => (
+                  <button
+                    key={place.id}
+                    type="button"
+                    onClick={() => selectPlace(place)}
+                    className="min-h-14 w-full rounded-xl border border-transparent px-3 py-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-400/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"
+                  >
+                    <div className="font-black text-white">{place.name}</div>
+                    <div className="mt-1 text-sm text-white/58">{place.displayName}</div>
+                  </button>
                 ))}
               </div>
-            </div>
+            ) : placeQuery.trim().length >= 2 && !selectedPlace ? (
+              <div className="mt-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-4 text-sm text-white/65">
+                No match yet. Try a nearby landmark, venue or district.
+              </div>
+            ) : null}
 
-            <div className="p-4 md:p-6">
-            <div className="mb-6 grid gap-4 lg:grid-cols-[0.82fr_1.18fr]">
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
-                  <Target className="h-3.5 w-3.5" />
-                  Current route
-                </div>
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                      <MapPin className="h-3.5 w-3.5" />
-                      Venue
-                    </div>
-                    <div className="mt-1 truncate text-base font-black text-zinc-950">
-                      {selectedPlace?.name ?? selectedVenueRadar?.name ?? 'Choose a venue below'}
-                    </div>
-                    <div className="mt-1 truncate text-xs text-zinc-500">
-                      {selectedPlace?.displayName ?? (selectedVenueRadar ? formatVenueRadarLocation(selectedVenueRadar) : 'Required before launch')}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Package
-                    </div>
-                    <div className="mt-1 text-base font-black text-zinc-950">{selectedActivationPackage.name}</div>
-                    <div className="mt-1 text-xs leading-5 text-zinc-500">{selectedActivationPackage.buyerCopy}</div>
-                  </div>
-
-                  <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                      <Users className="h-3.5 w-3.5" />
-                      Creator
-                    </div>
-                    <div className="mt-1 truncate text-base font-black text-zinc-950">{selectedCreatorLabel}</div>
-                    <div className="mt-1 text-xs leading-5 text-zinc-500">
-                      {selectedCheckoutCreator
-                        ? selectedCheckoutCreator.reasons.slice(0, 2).join(' • ') || 'Best available venue fit'
-                        : 'Auto-ranked after the venue is selected'}
-                    </div>
-                  </div>
+            {selectedPlace ? (
+              <div className="mt-3 flex items-start gap-3 rounded-2xl border border-emerald-300/30 bg-emerald-400/[0.09] px-4 py-4">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-200" />
+                <div>
+                  <div className="font-black text-white">{selectedPlace.name}</div>
+                  <div className="mt-1 text-sm text-white/65">{selectedPlace.displayName}</div>
                 </div>
               </div>
+            ) : null}
+          </div>
+        </section>
 
-              <div>
-                <div className="mb-3 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
-                  <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500">
-                      Choose package
-                    </div>
-                    <div className="mt-1 text-sm text-zinc-600">
-                      Presets keep buyers out of blank-form mode. Details stay editable below.
-                    </div>
-                  </div>
-                  <div className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">
-                    1 creator route
-                  </div>
+        <section className={sectionClass} aria-labelledby="mission-reward-heading">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-300/25 bg-emerald-400/10 text-emerald-100">
+              <CreditCard className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-100/75">Step 3</p>
+              <h3 id="mission-reward-heading" className="text-xl font-black text-white">Set the reward</h3>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-[0.78fr_1.22fr]">
+            <div>
+              <label htmlFor="mission-reward" className={labelClass}>Reward for an approved answer</label>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-base font-black text-white/55">$</span>
+                <input
+                  id="mission-reward"
+                  type="number"
+                  value={formData.payoutPerCreator}
+                  onChange={(event) => setFormData({ ...formData, payoutPerCreator: Number.parseInt(event.target.value, 10) || 0 })}
+                  min={NETWORK_CONFIG.isMainnet ? TIER_INFO[formData.tier].minPayout : 1}
+                  inputMode="numeric"
+                  className={`${inputClass} pl-8`}
+                />
+              </div>
+              <p className="mt-2 text-sm leading-6 text-white/55">Payment releases only after the proof clears review.</p>
+            </div>
+
+            <div className="activation-inset grid grid-cols-3 gap-2 rounded-2xl border border-white/10 p-3">
+              {[
+                ['Reward', budget.gross],
+                ['BaseDare fee', budget.rake],
+                ['Total', budget.total],
+              ].map(([label, value]) => (
+                <div key={String(label)} className="rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-center">
+                  <div className="text-lg font-black tabular-nums text-white">${formatUsdAmount(Number(value))}</div>
+                  <div className="mt-1 text-xs font-semibold text-white/58">{label}</div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-                <div className="grid gap-3 md:grid-cols-3">
-                {ACTIVATION_PACKAGES.map((activationPackage) => {
-                  const info = TIER_INFO[activationPackage.tier];
-                  const activeMinPayout = NETWORK_CONFIG.isMainnet ? info.minPayout : 1;
-                  const packagePayout = Math.max(activationPackage.payout, activeMinPayout);
-                  const packageFee = packagePayout * (parseInt(info.rake) / 100);
-                  const packageTotal = packagePayout + packageFee;
-                  const isSelected = selectedActivationPackageId === activationPackage.id;
+        <section className={sectionClass} aria-labelledby="mission-review-heading">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-yellow-300/25 bg-yellow-300/[0.09] text-yellow-100">
+              <Route className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-100/75">Step 4</p>
+              <h3 id="mission-review-heading" className="text-xl font-black text-white">Review and fund</h3>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="activation-inset rounded-2xl border border-white/10 px-4 py-4">
+              <div className="text-xs font-black uppercase tracking-[0.14em] text-white/55">Mission</div>
+              <div className="mt-2 font-black text-white">{formData.title.trim() || 'Add your question'}</div>
+              <div className="mt-1 text-sm leading-6 text-white/58">{selectedActivationPackage.name}</div>
+            </div>
+            <div className="activation-inset rounded-2xl border border-white/10 px-4 py-4">
+              <div className="text-xs font-black uppercase tracking-[0.14em] text-white/55">Place</div>
+              <div className="mt-2 font-black text-white">{selectedPlace?.name ?? 'Choose a place'}</div>
+              <div className="mt-1 text-sm leading-6 text-white/58">Timestamped place memory</div>
+            </div>
+            <div className="activation-inset rounded-2xl border border-white/10 px-4 py-4">
+              <div className="text-xs font-black uppercase tracking-[0.14em] text-white/55">Routing</div>
+              <div className="mt-2 font-black text-white">{routingLabel}</div>
+              <div className="mt-1 text-sm leading-6 text-white/58">BaseDare chooses by local fit and proof history</div>
+            </div>
+          </div>
+
+          {recommendedCreatorsError ? (
+            <div className="mt-3 rounded-2xl border border-red-300/25 bg-red-400/[0.08] px-4 py-3 text-sm font-semibold text-red-100" role="alert">
+              {recommendedCreatorsError}
+            </div>
+          ) : null}
+
+          {recommendedCreators.length > 0 ? (
+            <details className="mt-3 rounded-2xl border border-white/10 bg-black/20">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-black text-white/78 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-200/60">
+                <span className="inline-flex items-center gap-2">
+                  <UserRoundCheck className="h-4 w-4 text-cyan-200" />
+                  Choose a specific contributor instead
+                </span>
+                <ChevronDown className="h-4 w-4" />
+              </summary>
+              <div className="grid gap-2 border-t border-white/10 p-3 md:grid-cols-3">
+                {recommendedCreators.slice(0, 3).map((match) => {
+                  const selected = selectedCreatorId === match.creator.id;
                   return (
                     <button
-                      key={activationPackage.id}
+                      key={match.creator.id}
                       type="button"
-                      onClick={() => selectActivationPackage(activationPackage.id)}
-                      className={`rounded-2xl border p-4 text-left transition-all ${
-                        isSelected
-                          ? `bg-gradient-to-br ${info.color} border-transparent text-white shadow-[0_18px_42px_rgba(0,0,0,0.18)]`
-                          : `bg-white ${info.borderColor} hover:border-zinc-400 text-zinc-900`
+                      onClick={() => {
+                        setSelectedCreatorId(match.creator.id);
+                        setPreferredCreatorTag(match.creator.tag);
+                      }}
+                      className={`min-h-14 rounded-xl border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60 ${
+                        selected
+                          ? 'border-cyan-300/45 bg-cyan-400/10'
+                          : 'border-white/10 bg-white/[0.035] hover:border-white/22'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isSelected ? 'text-white/70' : 'text-zinc-500'}`}>
-                            {activationPackage.eyebrow}
-                          </div>
-                          <div className="mt-1 text-lg font-black leading-tight">{activationPackage.name}</div>
-                        </div>
-                        {isSelected ? (
-                          <CheckCircle2 className="h-5 w-5 shrink-0 text-white" />
-                        ) : null}
-                      </div>
-                      <div className={`mt-2 text-xs leading-5 ${isSelected ? 'text-white/80' : 'text-zinc-500'}`}>
-                        {activationPackage.outcome}
-                      </div>
-                      <div className="mt-4 space-y-1.5 text-xs">
-                        <div className="flex justify-between">
-                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Creator escrow:</span>
-                          <span>${formatUsdAmount(packagePayout)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>BaseDare fee:</span>
-                          <span>${formatUsdAmount(packageFee)}</span>
-                        </div>
-                        <div className="flex justify-between border-t border-white/[0.15] pt-1.5">
-                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Total:</span>
-                          <span className="font-black">${formatUsdAmount(packageTotal)}</span>
-                        </div>
-                        <div className="hidden justify-between md:flex">
-                          <span className={isSelected ? 'text-white/70' : 'text-zinc-500'}>Window:</span>
-                          <span>{info.window}</span>
-                        </div>
-                      </div>
-                      <div className={`mt-4 rounded-xl border px-3 py-2 text-[11px] leading-4 ${isSelected ? 'border-white/[0.15] bg-white/10 text-white/[0.78]' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}>
-                        {activationPackage.bestFor}
-                      </div>
+                      <div className="font-black text-white">{match.creator.tag}</div>
+                      <div className="mt-1 text-sm text-white/58">{match.reasons.slice(0, 1).join('') || 'Available for this place'}</div>
                     </button>
                   );
                 })}
-                </div>
               </div>
+            </details>
+          ) : null}
+
+          <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-400/[0.07] px-4 py-4">
+            <div className="flex items-center gap-2 font-black text-emerald-100">
+              <CheckCircle2 className="h-5 w-5" />
+              What comes back
             </div>
-
-            {/* Campaign Details */}
-            <div className="mb-4 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
-              <div>
-                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500">
-                  Editable details
-                </div>
-                <div className="mt-1 text-sm text-zinc-600">
-                  The checkout is ready from the package. Adjust only what the buyer specifically cares about.
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-zinc-600 mb-2">Activation name</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="e.g., Hideaway Friday Foot-Traffic Push"
-                    className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm text-zinc-600 mb-2">What should the creator do?</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Describe the visit, product moment, or challenge you want filmed..."
-                    rows={3}
-                    className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400 resize-none"
-                  />
-                </div>
-
-                {formData.type === 'PLACE' ? (
-                  <div>
-                    <label className="block text-sm text-zinc-600 mb-2">Target venue</label>
-                    <input
-                      type="text"
-                      value={selectedPlace ? selectedPlace.displayName : placeQuery}
-                      onChange={(e) => {
-                        setSelectedPlace(null);
-                        setPreferredCreatorTag(null);
-                        setPlaceQuery(e.target.value);
-                      }}
-                      placeholder="Search for a venue, landmark, or district..."
-                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
-                    />
-                    <div className="mt-2 text-xs text-zinc-500">
-                      Choose where you want the activation to happen. We will attach the live dare to that venue on the map.
-                    </div>
-                    {placeLoading ? (
-                      <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
-                        Searching places...
-                      </div>
-                    ) : !selectedPlace && placeResults.length > 0 ? (
-                      <div className="mt-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-2">
-                        {placeResults.slice(0, 5).map((place) => (
-                          <button
-                            key={place.id}
-                            onClick={() => {
-                              setSelectedPlace(place);
-                              setPreferredCreatorTag(null);
-                              setPlaceQuery(place.displayName);
-                              setPlaceResults([]);
-                              setFormData((current) => {
-                                const genericPackageTitles = ACTIVATION_PACKAGES.map((activationPackage) =>
-                                  buildActivationPackageTitle(activationPackage)
-                                );
-                                const genericPackageDescriptions = ACTIVATION_PACKAGES.map((activationPackage) =>
-                                  buildActivationPackageDescription(activationPackage)
-                                );
-                                const shouldReplaceTitle =
-                                  !current.title.trim() ||
-                                  genericPackageTitles.includes(current.title.trim());
-                                const shouldReplaceDescription =
-                                  !current.description.trim() ||
-                                  genericPackageDescriptions.includes(current.description.trim());
-
-                                return {
-                                  ...current,
-                                  type: 'PLACE',
-                                  title: shouldReplaceTitle
-                                    ? buildActivationPackageTitle(selectedActivationPackage, place.name)
-                                    : current.title,
-                                  description: shouldReplaceDescription
-                                    ? buildActivationPackageDescription(selectedActivationPackage, place.name)
-                                    : current.description,
-                                  creatorCountTarget: 1,
-                                  targetingCriteria: {
-                                    ...current.targetingCriteria,
-                                    location: 'near-venue',
-                                  },
-                                };
-                              });
-                            }}
-                            className="w-full rounded-lg border border-transparent bg-white px-3 py-3 text-left transition hover:border-purple-300 hover:bg-purple-50"
-                          >
-                            <div className="font-medium text-zinc-900">{place.name}</div>
-                            <div className="text-xs text-zinc-500">{place.displayName}</div>
-                            <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-zinc-400">
-                              {place.placeId ? 'Existing venue' : 'New venue from search'}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    ) : placeQuery.trim().length >= 2 && !selectedPlace ? (
-                      <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
-                        No matching place yet. Try a nearby landmark, venue, or district name.
-                      </div>
-                    ) : null}
-                    {selectedPlace ? (
-                      <div className="mt-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3">
-                        <div className="text-sm font-semibold text-emerald-800">{selectedPlace.name}</div>
-                        <div className="text-xs text-emerald-700">{selectedPlace.displayName}</div>
-                        <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-emerald-700">
-                          {selectedPlace.placeId ? 'Venue ready' : 'Venue will be created on launch'}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <div className="grid grid-cols-2 gap-4">
-                  {formData.type === 'CREATOR' ? (
-                    <div>
-                      <label className="block text-sm text-zinc-600 mb-2">Number of creators</label>
-                      <input
-                        type="number"
-                        value={formData.creatorCountTarget}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            creatorCountTarget: parseInt(e.target.value) || 1,
-                          })
-                        }
-                        min={1}
-                        max={1000}
-                        className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
-                      />
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="block text-sm text-zinc-600 mb-2">Activation count</label>
-                      <div className="w-full rounded-lg border border-zinc-200 bg-zinc-100 px-4 py-3 text-zinc-700">
-                        1 live venue activation
-                      </div>
-                    </div>
-                  )}
-                  <div>
-                    <label className="block text-sm text-zinc-600 mb-2">
-                      {formData.type === 'PLACE' ? 'Creator escrow for this activation ($)' : 'Payout per creator ($)'}
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.payoutPerCreator}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          payoutPerCreator: parseInt(e.target.value) || 0,
-                        })
-                      }
-                      min={NETWORK_CONFIG.isMainnet ? TIER_INFO[formData.tier].minPayout : 1}
-                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {formData.type === 'CREATOR' ? (
-                  <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
-                    <div className="text-sm font-semibold text-amber-800">Creator-only campaigns are coming soon</div>
-                    <div className="mt-2 text-sm text-amber-700">
-                      New creator-only launches are not available yet. Venue activations are the live option today.
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-                    <div className="text-sm font-semibold text-zinc-900">How venue activations work</div>
-                    <div className="mt-2 text-sm text-zinc-600">
-                      This funds one venue dare, routes one recommended creator, shows it on the map, and records the result back into venue memory.
-                    </div>
-                  </div>
-                )}
-
-                {formData.type === 'PLACE' ? (
-                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 space-y-4">
-                    <div>
-                      <div className="text-sm font-semibold text-zinc-900">Creator speed dial</div>
-                      <div className="mt-1 hidden text-sm text-zinc-600 md:block">
-                        Best-fit creators for this venue, ranked by venue fit, proof history, and audience signal. Pick one instead of browsing.
-                      </div>
-                    </div>
-
-                    {!selectedPlace ? (
-                      <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-4 text-sm text-zinc-500">
-                        Choose a target venue first and BaseDare will surface the best-fit creators here.
-                      </div>
-                    ) : recommendedCreatorsLoading ? (
-                      <div className="rounded-xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-500">
-                        Ranking creators for this venue...
-                      </div>
-                    ) : recommendedCreatorsError ? (
-                      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
-                        {recommendedCreatorsError}
-                      </div>
-                    ) : recommendedCreators.length === 0 ? (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-                        No strong creator match is ready yet. Broaden the targeting or try another venue.
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {recommendedCreators.slice(0, 3).map((match) => {
-                          const isSelected = selectedCreatorId === match.creator.id;
-                          return (
-                            <div
-                              key={match.creator.id}
-                              className={`rounded-xl border p-3 transition ${
-                                isSelected
-                                  ? 'border-purple-500 bg-purple-500/[0.06]'
-                                  : preferredCreatorTag?.toLowerCase() === match.creator.tag.toLowerCase()
-                                    ? 'border-cyan-300 bg-cyan-50'
-                                  : 'border-zinc-200 bg-white'
-                              }`}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-br from-purple-500 via-fuchsia-500 to-amber-300">
-                                  {match.creator.pfpUrl ? (
-                                    <img
-                                      src={match.creator.pfpUrl}
-                                      alt={match.creator.tag}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
-                                      {getCreatorInitial(match.creator.tag)}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <div className="font-semibold text-zinc-900">{match.creator.tag}</div>
-                                    <div className="rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                                      {getCreatorStrengthLabel(match)}
-                                    </div>
-                                    {preferredCreatorTag?.toLowerCase() === match.creator.tag.toLowerCase() ? (
-                                      <div className="rounded-full border border-cyan-300 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-700">
-                                        venue favorite
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                  <div className="mt-1 hidden text-sm text-zinc-500 md:block">
-                                    {match.creator.bio || 'No bio yet. Identity and performance stats still make this creator selectable.'}
-                                  </div>
-                                  <div className="mt-3 hidden grid-cols-3 gap-2 md:grid">
-                                    {[
-                                      { label: 'Venue fit', value: getCreatorVenueFitLabel(match) },
-                                      { label: 'Reliability', value: getCreatorReliabilityLabel(match) },
-                                      { label: 'Audience', value: formatCompactAudience(match.creator.followerCount) },
-                                    ].map((item) => (
-                                      <div
-                                        key={`${match.creator.id}-${item.label}`}
-                                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2"
-                                      >
-                                        <div className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">{item.label}</div>
-                                        <div className="mt-1 text-xs font-semibold text-zinc-900">{item.value}</div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                  <div className="mt-2 hidden flex-wrap gap-2 md:flex">
-                                    {match.reasons.slice(0, 2).map((reason) => (
-                                      <span
-                                        key={`${match.creator.id}-${reason}`}
-                                        className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-zinc-600"
-                                      >
-                                        {reason}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedCreatorId(match.creator.id);
-                                    setPreferredCreatorTag(match.creator.tag);
-                                  }}
-                                  className={`shrink-0 rounded-lg border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition md:self-start ${
-                                    isSelected
-                                      ? 'border-purple-500 bg-purple-500/[0.12] text-zinc-950'
-                                      : 'border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400'
-                                  }`}
-                                >
-                                  {isSelected ? 'Selected' : 'Use creator'}
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ) : null}
-
-                <div className="hidden rounded-xl border border-zinc-200 bg-zinc-50 p-4 space-y-4 md:block">
-                  <div>
-                    <div className="text-sm font-semibold text-zinc-900">Optional targeting</div>
-                    <div className="mt-1 text-sm text-zinc-600">
-                      Use these if you want to guide creator fit. Most brands can leave them broad.
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-zinc-600 mb-2">Creator niche</label>
-                    <input
-                      type="text"
-                      value={formData.targetingCriteria.niche}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          targetingCriteria: { ...formData.targetingCriteria, niche: e.target.value },
-                        })
-                      }
-                      placeholder="e.g., Surf, Nightlife, Food"
-                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-zinc-600 mb-2">Minimum audience size</label>
-                    <input
-                      type="number"
-                      value={formData.targetingCriteria.minFollowers}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          targetingCriteria: {
-                            ...formData.targetingCriteria,
-                            minFollowers: parseInt(e.target.value) || 0,
-                          },
-                        })
-                      }
-                      min={0}
-                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-zinc-600 mb-2">Preferred platforms</label>
-                    <div className="flex flex-wrap gap-2">
-                      {PLATFORM_OPTIONS.map((platform) => {
-                        const active = formData.targetingCriteria.platforms.includes(platform.value);
-                        return (
-                          <button
-                            key={platform.value}
-                            type="button"
-                            onClick={() => togglePreferredPlatform(platform.value)}
-                            className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
-                              active
-                                ? 'border-purple-500 bg-purple-500/[0.08] text-zinc-950'
-                                : 'border-zinc-300 bg-white text-zinc-600 hover:border-zinc-400'
-                            }`}
-                          >
-                            {platform.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-zinc-600 mb-2">Location preference</label>
-                    <select
-                      value={formData.targetingCriteria.location}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          targetingCriteria: {
-                            ...formData.targetingCriteria,
-                            location: e.target.value as 'anywhere' | 'near-venue',
-                          },
-                        })
-                      }
-                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
-                    >
-                      <option value="anywhere">Open to creators anywhere</option>
-                      <option value="near-venue">Prefer creators already around this venue</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="hidden md:block">
-                  <label className="block text-sm text-zinc-600 mb-2">Required hashtags</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={hashtagInput}
-                      onChange={(e) => setHashtagInput(e.target.value)}
-                      placeholder="#BaseDare"
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addHashtag())}
-                      className="flex-1 px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900 placeholder:text-zinc-400"
-                    />
-                    <button
-                      onClick={addHashtag}
-                      className="px-4 py-3 bg-zinc-100 border border-zinc-300 rounded-lg hover:bg-zinc-200 text-zinc-700"
-                    >
-                      Add
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.verificationCriteria.hashtagsRequired.map((tag, i) => (
-                      <span
-                        key={i}
-                        className="px-2 py-1 bg-purple-100 border border-purple-300 rounded text-sm text-purple-700"
-                      >
-                        {tag}
-                        <button
-                          onClick={() =>
-                            setFormData({
-                              ...formData,
-                              verificationCriteria: {
-                                ...formData.verificationCriteria,
-                                hashtagsRequired:
-                                  formData.verificationCriteria.hashtagsRequired.filter(
-                                    (_, idx) => idx !== i
-                                  ),
-                              },
-                            })
-                          }
-                          className="ml-2 text-purple-600 hover:text-purple-900"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {(formData.tier === 'CHALLENGE' || formData.tier === 'APEX') && (
-                  <div>
-                    <label className="block text-sm text-zinc-600 mb-2">
-                      Preferred posting window
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={formData.syncTime}
-                      onChange={(e) => setFormData({ ...formData, syncTime: e.target.value })}
-                      className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-lg focus:border-purple-500 focus:outline-none text-zinc-900"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Checkout Summary */}
-            <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_0.78fr]">
-              <div className="activation-inset rounded-2xl border border-white/10 p-4">
-                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
-                  <ReceiptText className="h-3.5 w-3.5" />
-                  Checkout summary
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <div className="activation-inset rounded-xl border border-white/10 px-3 py-3 text-center">
-                    <div className="text-lg font-black text-white md:text-2xl">${formatUsdAmount(budget.gross)}</div>
-                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Creator escrow</div>
-                  </div>
-                  <div className="rounded-xl border border-purple-400/25 bg-purple-500/[0.08] px-3 py-3 text-center">
-                    <div className="text-lg font-black text-[#dba7ff] md:text-2xl">
-                      ${formatUsdAmount(budget.rake)}
-                    </div>
-                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-purple-200/70">
-                      BaseDare fee
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-emerald-300/25 bg-emerald-400/[0.08] px-3 py-3 text-center">
-                    <div className="text-lg font-black text-emerald-200 md:text-2xl">
-                      ${formatUsdAmount(budget.total)}
-                    </div>
-                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-100/70">Total budget</div>
-                  </div>
-                  <div className="activation-inset rounded-xl border border-white/10 px-3 py-3 text-center">
-                    <div className="text-lg font-black text-white md:text-2xl">{TIER_INFO[formData.tier].rake}</div>
-                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Platform rate</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-emerald-300/25 bg-gradient-to-br from-emerald-400/[0.12] to-cyan-500/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-200">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Buyer confidence
-                </div>
-                <div className="mt-3 text-sm font-semibold text-white">
-                  Proof is reviewed before completion.
-                </div>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">
-                  The receipt links the venue, creator, payout, proof status, and repeat signal in one place after launch.
-                </p>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="sticky bottom-[calc(0.85rem+env(safe-area-inset-bottom))] z-30 -mx-2 flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/80 p-2 shadow-[0_18px_46px_rgba(0,0,0,0.45)] backdrop-blur md:static md:mx-0 md:flex-row md:gap-4 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
-              <div className="activation-inset flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 md:hidden">
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">Total</div>
-                  <div className="text-lg font-black text-white">${formatUsdAmount(budget.total)} USDC</div>
-                </div>
-                <div className="text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                  {selectedActivationPackage.name}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleCreateCampaign}
-                disabled={!canLaunchActivation}
-                className="activation-raised-gold inline-flex flex-1 items-center justify-center gap-2 rounded-xl border py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px] disabled:opacity-50 md:py-4 md:text-lg"
-              >
-                {creatingCampaign
-                  ? approvalStatus === 'approving'
-                    ? 'Approve USDC in wallet...'
-                    : approvalStatus === 'funding'
-                      ? 'Funding activation...'
-                      : approvalStatus === 'verifying'
-                        ? 'Registering activation...'
-                        : 'Launching activation...'
-                  : formData.type === 'PLACE'
-                  ? (
-                    <>
-                      <CreditCard className="h-4 w-4" />
-                      <span className="md:hidden">Fund ${formatUsdAmount(budget.total)}</span>
-                      <span className="hidden md:inline">Fund Activation (${formatUsdAmount(budget.total)} USDC)</span>
-                    </>
-                  )
-                  : 'Creator-Only Coming Soon'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateCampaign(false);
-                  setPreferredCreatorTag(null);
-                }}
-                className="activation-soft-button rounded-xl border border-white/10 px-6 py-3 text-sm font-black uppercase tracking-[0.12em] text-zinc-200 transition hover:border-white/20 active:translate-y-[1px] md:py-4"
-              >
-                Cancel
-              </button>
-            </div>
-            </div>
+            <p className="mt-2 text-sm leading-6 text-white/68">
+              Verified execution, supporting media or field notes, a timestamped place record, payout status, and a durable receipt. GPS proves presence—not a purchase or guaranteed business result.
+            </p>
           </div>
-        ) : null}
-    </>
+
+          {formError ? (
+            <div className="mt-4 rounded-2xl border border-red-300/30 bg-red-400/[0.09] px-4 py-3 text-sm font-semibold leading-6 text-red-100" role="alert">
+              {formError}
+            </div>
+          ) : disabledReason ? (
+            <p className="mt-4 text-sm font-semibold text-white/60">{disabledReason}</p>
+          ) : null}
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={handleCreateCampaign}
+              disabled={!canLaunchActivation}
+              className="activation-raised-gold inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.1em] transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70"
+            >
+              <CreditCard className="h-4 w-4" />
+              {creatingCampaign
+                ? approvalStatus === 'approving'
+                  ? 'Approve USDC in wallet…'
+                  : approvalStatus === 'funding'
+                    ? 'Funding mission…'
+                    : approvalStatus === 'verifying'
+                      ? 'Registering mission…'
+                      : 'Creating mission…'
+                : `Fund mission · $${formatUsdAmount(budget.total)} USDC`}
+            </button>
+            <Link
+              href="/activations?source=buyer-portal&missionType=field-mission"
+              className="activation-soft-button inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/12 px-5 py-3 text-sm font-black text-white/78 transition hover:border-white/24 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+              Request invoice setup
+            </Link>
+            <button
+              type="button"
+              onClick={closeComposer}
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl px-4 py-3 text-sm font-black text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+              Cancel
+            </button>
+          </div>
+        </section>
+      </div>
+    </section>
   );
 }

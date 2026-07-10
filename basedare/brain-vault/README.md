@@ -3,7 +3,7 @@ type: vault_index
 system: basedare-brain
 status: ACTIVE
 created_at: 2026-05-13
-updated_at: 2026-05-13
+updated_at: 2026-07-10
 owner: BaseDare
 ---
 
@@ -15,6 +15,7 @@ Obsidian can open this folder as a vault, but BaseDare does not depend on Obsidi
 
 ## Start Here
 
+- [[00-control/vision|Vision]]
 - [[00-control/today|Today]]
 - [[00-control/scorecard|Scorecard]]
 - [[00-control/open-loops|Open Loops]]
@@ -35,3 +36,4 @@ Obsidian can open this folder as a vault, but BaseDare does not depend on Obsidi
 
 BaseDare Brain may research, dedupe, rank, draft, summarize, and update memory automatically. External sends, public posts, commercial promises, legal commitments, payments, and destructive actions require human review.
 
+The active strategic direction is defined in [[00-control/vision|Vision]]. If a city-specific plan, venue pilot, or event concept conflicts with that file, the vision wins: BaseDare must operate remotely as a bounty-funded discovery network, with events treated as optional local-partner products.

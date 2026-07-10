@@ -558,6 +558,7 @@ async function uploadProofFromTelegramFile(fileId: string, dareId: string): Prom
 async function submitProofVerification(dareId: string): Promise<boolean> {
   const response = await internalJsonRequest<{ success?: boolean }>('/api/verify-proof', {
     method: 'POST',
+    headers: { 'x-basedare-proof-source': 'telegram' },
     bodyJson: { dareId },
   });
 

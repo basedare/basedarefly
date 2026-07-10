@@ -1,0 +1,177 @@
+---
+type: strategic_vision
+system: basedare-brain
+status: ACTIVE
+created_at: 2026-07-10
+updated_at: 2026-07-10
+owner: BaseDare
+---
+
+# BaseDare Vision
+
+## The consumer destination
+
+**BaseDare is the playable social layer on the real-world map.** Anyone can open it to discover places, find something to do, join safe public activities, complete challenges, meet people by mutual opt-in, build local reputation, and sometimes earn points or money.
+
+The consumer promise is simple: **explore, play, meet, earn.** People do not need to identify as creators, understand crypto, or apply to a program before browsing and joining. They can explore first; wallet identity appears only when an action needs persistent progress, proof, creation, or payment.
+
+Verified Field Sprints are a revenue and seeding wedge, not the consumer identity of the product. Sponsors, venues, communities, and BaseDare treasury can fund useful activity, while free Community Sparks and social participation make the map fun when no payment is involved.
+
+The social graph is place-native: what someone completed, where they left trusted memory, which public activities they joined, and how they contributed to a place. It is not primarily a follower-count feed.
+
+## The decision
+
+**BaseDare is a remote, bounty-funded local discovery network that pays people to create verified place intelligence.**
+
+The company must be able to operate without the founder living in, visiting, or personally running any target market. A city is an interchangeable deployment zone, not the business. Siargao can be tested, skipped, paused, or revisited without changing the thesis.
+
+Events are no longer the required operating model. They are an optional product delivered only by properly authorized local partners when the evidence and economics justify them.
+
+## The autonomous loop
+
+**Treasury funds a safe geo-targeted dare -> a local contributor claims it -> BaseDare verifies the proof -> the contributor is paid -> the result becomes place memory -> the receipt recruits the next contributor, user, venue, or sponsor -> the system funds the next useful dare.**
+
+The founder funds and governs the mechanism. The founder does not need to host the experience.
+
+## What BaseDare is buying
+
+Every paid dare must create at least one durable asset:
+
+- verified presence at a real place
+- structured local information
+- a reusable photo, clip, field note, or correction with clear usage rights
+- a shareable proof receipt
+- reputation attached to the contributor and place
+- a referral or discovery path into the next dare
+
+If a payout creates only a disposable post, it is marketing spend without a network effect.
+
+Every result is timestamped and sold honestly as true **as of** a specific date. Place information decays; re-verification is not cleanup work but the bridge from one-off Field Sprints to recurring City Signal revenue.
+
+## First product shape
+
+Start with asynchronous discovery dares that do not require BaseDare to organize a gathering or direct venue staff.
+
+Preferred examples:
+
+- verify what is actually open, useful, accessible, affordable, or worth visiting now
+- document a signature item or overlooked place with presence proof
+- correct inaccurate place information
+- complete and publish a safe multi-stop discovery route
+- add a consent-safe local story, field note, or practical traveller signal
+- independently verify a public landmark, venue, route, or district detail
+
+Venue QR, staff confirmation, qualified-purchase proof, hosted routes, and events are stronger proof rungs that can be added when a venue or licensed local partner opts in.
+
+## The product and the moat
+
+- The **dare** remains the unit of action, proof, content, and payout.
+- The **map is the feed**: discovery is geographic, not a global engagement timeline.
+- The **place-memory graph** is the accumulating asset: what happened, who verified it, when it was true, and how trustworthy the contributor is.
+- The **proof ladder** remains the pricing logic: execution -> publication -> attention -> conversion -> qualified action.
+- The **receipt** is the output sold to the next sponsor, venue, tourism organization, travel platform, or data customer.
+
+QR and GPS are verification tools, not the whole moat. The moat being built is the growing network of verified place history, contributor reputation, fraud signals, sponsor demand, freshness history, and reusable local content. Today that network is early and must not be described as an already-owned advantage.
+
+## Verification hard gate
+
+Venue-less discovery structurally starts on the lower proof rungs. It cannot claim conversion or qualified action without a venue, merchant, transaction, booking, redemption, or equivalent co-sign.
+
+Do not scale venue-less reward spend until real paid strangers have proven that BaseDare can verify submission proximity, freshness, uniqueness, media/data rights, and acceptable fraud/review economics without founder presence. This verification model is both the product bet and the primary cost center.
+
+## Service to asset rule
+
+Verified Field Sprints are the revenue wedge, but bespoke field research can become an agency trap. Every Sprint must strengthen reusable templates, verification rules, timestamped place records, contributor reputation, refresh schedules, and the path to recurring City Signal revenue.
+
+Sprint #1 should be delivered to a friendly design partner at cost or free to manufacture the first honest receipt and establish verification cost. Sprint #2 is the first paid sale. The buyer paying again remains the PMF signal.
+
+## Buyer ladder
+
+The likely commercial sequence is:
+
+1. BaseDare treasury seeds discovery supply.
+2. Base / Coinbase / Optimism-style ecosystem funding is pursued to underwrite verifiable onchain real-world activity and the bounded market-selection experiment.
+3. Brands, travel products, hostels, mobility providers, wallets, and local business groups sponsor discovery routes or questions about the physical world.
+4. Recurring City Signal buyers fund re-verification and freshness.
+5. Venues fund or enhance their own place missions after the network proves useful demand.
+6. Tourism organizations and destination marketers buy verified destination campaigns after BaseDare has credible city receipts.
+7. Travel, map, and AI products license place intelligence or verification infrastructure after the dataset is dense and reliable.
+
+Do not wait for a venue contract before creating useful place memory. Do not claim a venue partnership without explicit authorization.
+
+## Remote operating model
+
+BaseDare should be capable of running through bounded automation:
+
+- an approved, safety-constrained dare template library
+- automatic selection of geographic gaps and useful place questions
+- per-dare, daily, weekly, and per-city treasury caps
+- non-custodial escrow and automatic ordinary payouts
+- automated proof checks with human review for uncertainty or higher value
+- fraud and dispute tripwires that pause spend automatically
+- remote contributor acquisition, support, and moderation
+- multisig approval for exceptional spend or external commercial commitments
+
+Public branding may be pseudonymous. Legal ownership, tax obligations, contracts, payment-provider relationships, and beneficial ownership must remain accurate and compliant. Anonymity is not a mechanism for concealed employment, nominee ownership, unlicensed payment services, or evading local rules.
+
+The first business invoice is the trigger for accountable entity, invoicing, tax, contract, and rights readiness. "Experimental" revenue does not defer those obligations.
+
+## Current readiness — 2026-07-10
+
+### Built and reusable
+
+- open paid and Community Spark nearby dares
+- geographic nearby discovery
+- proof upload, freshness and duplicate-media checks, plus low-value generic auto-review paths
+- Sentinel review routing and admin queue
+- Local Signals / Local Tips as the discovery-layer embryo
+- place-memory rails through `VenueMemory` and `PlaceTag`
+- campaign and slot funding primitives
+
+### Sellability blockers
+
+1. Open-dare claim still requires a verified tag and moderated claim request; the money-first cold-wallet funnel is not built yet.
+2. Proof submission does not capture contributor coordinates or enforce proximity to the dare/place radius; venue-less presence is not yet strong enough for the product claim.
+3. Existing Terms cover BaseDare display and promotion, but sponsor-facing commercial reuse/sublicensing consent is only partial and is not captured explicitly in the upload flow.
+
+Structured field templates, paid-reviewer accounting, and batch funding can remain manual for the first design-partner Sprint.
+
+## Initial market-selection model
+
+BaseDare should not choose its permanent first city by founder convenience.
+
+Run a bounded multi-market discovery tournament, compare the markets, and concentrate in the winner. The first test should answer which market produces the best combination of:
+
+- cost per approved useful proof
+- claim-to-completion rate
+- contributor repeat rate
+- fraud and dispute rate
+- organic actions generated per paid action
+- place-memory density
+- receipt sharing and referral behavior
+- unsolicited venue, sponsor, or partner interest
+
+Initial working budget ceiling: **$9,000-$12,000 across three candidate markets**, including rewards, verification, referrals, amplification, contingency, and legal/payment review. Seek ecosystem funding before consuming the full founder-funded ceiling. Do not release the tournament budget until the three sellability blockers above are resolved and tested end to end; do not release a larger density budget until one market clears explicit continuation gates.
+
+## Growth truth
+
+BaseDare cannot buy virality directly. It can buy verified actions, content supply, map density, creator acquisition, and experiments.
+
+Track the organic multiplier:
+
+`unpaid useful actions generated / paid useful actions`
+
+If paid completions produce no unpaid claims, referrals, return contributors, sponsor interest, or accumulating place value, the treasury is buying activity rather than building a network.
+
+## Anti-drift
+
+BaseDare is not:
+
+- an events company that requires the founder on site
+- a generic travel guide or static map
+- a passive check-in farming app
+- an influencer campaign agency
+- a mechanism for paying for reckless or escalating stunts
+- an anonymous local operating business hidden behind crypto
+
+It is a **proof-backed discovery network**: fund useful real-world questions, reward verified answers, attach them to places, and let the resulting memory compound.

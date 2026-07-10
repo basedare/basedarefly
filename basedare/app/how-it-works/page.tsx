@@ -16,7 +16,6 @@ import {
   QrCode,
   Route,
   Store,
-  Film,
   DollarSign,
   Target,
   Users,
@@ -27,7 +26,6 @@ import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import LiquidBackground from "@/components/LiquidBackground";
 import CosmicButton from "@/components/ui/CosmicButton";
-import WhyClaimTagStrip from "@/components/WhyClaimTagStrip";
 
 /* ── design tokens (shared with FAQ) ── */
 
@@ -47,23 +45,23 @@ const sectionLabelClass =
 
 const OVERVIEW_STEPS = [
   {
-    icon: Wallet,
-    title: "Fund",
-    description: "Fund a dare with USDC. The money stays in escrow until proof is resolved.",
-    color: "text-yellow-400",
-    glow: "rgba(250,204,21,0.12)",
+    icon: MapPin,
+    title: "Explore",
+    description: "Open the map and see interesting places, local activity and challenges around you.",
+    color: "text-cyan-300",
+    glow: "rgba(103,232,249,0.12)",
   },
   {
-    icon: Camera,
-    title: "Complete",
-    description: "A creator shows up, does the action, and captures proof — checking in with QR + GPS.",
+    icon: Sparkles,
+    title: "Join",
+    description: "Choose something that sounds fun: a free Spark, a social activity, a route or a rewarded Dare.",
     color: "text-purple-400",
     glow: "rgba(168,85,247,0.12)",
   },
   {
     icon: BadgeCheck,
-    title: "Payout",
-    description: "Verified proof releases USDC to the creator — instantly when a check-in backs it.",
+    title: "Leave a mark",
+    description: "Complete it, add proof when needed and build points, receipts, local reputation or rewards.",
     color: "text-emerald-400",
     glow: "rgba(52,211,153,0.12)",
   },
@@ -71,61 +69,61 @@ const OVERVIEW_STEPS = [
 
 const CREATOR_POINTS = [
   {
-    icon: Zap,
-    title: "Claim dares from fans or brands",
-    description: "Find missions that match your location, skill, and vibe.",
-  },
-  {
     icon: MapPin,
-    title: "Show up & do the challenge",
-    description: "Go to the place, do the action, and capture the moment.",
+    title: "Find something nearby",
+    description: "Browse the map for places, free activities, meetups, routes and rewarded challenges.",
   },
   {
-    icon: Film,
-    title: "Check in, then submit proof",
-    description: "Check in with QR + GPS and your proof clears instantly — no referee. Without a check-in, it waits for review.",
+    icon: Users,
+    title: "Join or complete it",
+    description: "Go solo, bring a friend or join an activity at a public place.",
+  },
+  {
+    icon: Camera,
+    title: "Share proof when needed",
+    description: "Some challenges ask for a photo, clip, nearby location or venue check-in so the result can be trusted.",
   },
   {
     icon: DollarSign,
-    title: "Get paid in USDC",
-    description: "Verified proof pays from escrow to your wallet.",
+    title: "Keep what you earn",
+    description: "Collect points and reputation. Rewarded Dares can also pay USDC to your wallet.",
   },
 ];
 
 const BRAND_POINTS = [
   {
     icon: Target,
-    title: "Flip to Control first",
-    description: "Venue and brand tools live behind the Control switch.",
-  },
-  {
-    icon: Users,
-    title: "Pick your creator",
-    description: "Choose creators by fit, reliability, and proof history.",
+    title: "Choose a useful outcome",
+    description: "Start with one place, one clear challenge and one result worth measuring.",
   },
   {
     icon: Wallet,
-    title: "Fund the escrow, not a promise",
-    description: "Funds release only when the mission is verified.",
+    title: "Fund the reward",
+    description: "Set the reward and proof rules before the challenge goes live.",
+  },
+  {
+    icon: Users,
+    title: "Let people participate",
+    description: "Nearby people discover it, claim it and complete it through the normal map experience.",
   },
   {
     icon: BarChart3,
-    title: "On-chain proof = measurable ROI",
-    description: "Every completion leaves a measurable receipt.",
+    title: "See what happened",
+    description: "Approved completions leave a timestamped receipt attached to the place.",
   },
 ];
 
 const ROLE_GLOSSARY = [
   {
-    icon: Camera,
-    title: "Creators",
-    description: "Claim missions, show up, and submit proof for payout.",
+    icon: Sparkles,
+    title: "Everyone",
+    description: "Explore, join free activities, complete challenges and leave verified marks.",
     color: "text-cyan-300",
   },
   {
     icon: Users,
-    title: "Guests",
-    description: "Check in, vote, unlock perks, collect receipts.",
+    title: "Locals",
+    description: "Share useful spots, create community Sparks and help newcomers join in.",
     color: "text-emerald-300",
   },
   {
@@ -136,29 +134,29 @@ const ROLE_GLOSSARY = [
   },
   {
     icon: Store,
-    title: "Venues",
-    description: "Host missions, perks, QR, and local rooms.",
+    title: "Places",
+    description: "Build memory through challenges, check-ins, local rooms and recent activity.",
     color: "text-purple-300",
   },
 ];
 
 const QUICKSTART_TRACKS = [
   {
-    audience: "Creator",
-    title: "Claim and prove a dare",
-    summary: "Find a nearby mission, claim it, then submit proof.",
+    audience: "Everyone",
+    title: "Find something to do",
+    summary: "Explore first. Sign in only when an action needs identity, progress or payment.",
     href: "/map",
     cta: "Open map",
     pillClass: "border-cyan-300/20 bg-cyan-400/[0.08] text-cyan-100",
     iconClass: "text-cyan-300",
     lineColor: "rgba(103,232,249,0.58)",
     steps: [
-      { icon: MapPin, label: "Map", detail: "Open pins and nearby paid dares." },
-      { icon: Wallet, label: "Claim", detail: "Connect wallet and reserve it." },
-      { icon: QrCode, label: "Check in", detail: "Use QR or nearby proof." },
-      { icon: Camera, label: "Proof", detail: "Capture the proof moment." },
+      { icon: MapPin, label: "Explore", detail: "Open the map and see what is nearby." },
+      { icon: Sparkles, label: "Pick", detail: "Choose a place, Spark, Dare, route or activity." },
+      { icon: Users, label: "Join", detail: "Go solo, bring a friend or join people there." },
+      { icon: BadgeCheck, label: "Remember", detail: "Complete it and leave a trusted mark on the map." },
     ],
-    targets: ["Nav: Map", "Place drawer", "Claim proof panel"],
+    targets: ["Explore", "Nearby now", "Challenge page"],
   },
   {
     audience: "Venue",
@@ -240,9 +238,9 @@ export default function HowItWorksPage() {
             </h1>
 
             <p className="relative mx-auto max-w-xl font-mono text-sm text-gray-400 md:text-base">
-              Real venues. Real dares. Real payouts.
+              Discover real places. Join challenges. Meet people.
               <br />
-              <span className="text-purple-400/70">No middlemen. No promises. Just smart contracts.</span>
+              <span className="text-purple-300/75">Play for fun, build local reputation, or earn a reward.</span>
             </p>
           </motion.div>
 
@@ -290,15 +288,6 @@ export default function HowItWorksPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.17 }}
-            className="mb-10"
-          >
-            <WhyClaimTagStrip />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.18 }}
             className={`${softCardClass} mb-10 p-4 md:p-5`}
           >
@@ -306,14 +295,14 @@ export default function HowItWorksPage() {
             <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="font-mono text-[10px] font-black uppercase tracking-[0.28em] text-white/38">
-                  Roles
+                  People and places
                 </p>
                 <h2 className="mt-2 text-xl font-black uppercase italic tracking-tight text-white md:text-2xl">
-                  Who moves the grid?
+                  Everyone can take part
                 </h2>
               </div>
               <p className="max-w-2xl font-mono text-xs leading-6 text-gray-400">
-                Hosts are trusted locals who help venues and creators launch proof-backed missions.
+                Start as an explorer. People earn more trust and responsibility by completing useful actions over time.
               </p>
             </div>
 
@@ -342,11 +331,11 @@ export default function HowItWorksPage() {
             <div className="grid gap-4 md:grid-cols-[1fr_190px_1fr] md:items-center">
               <div className={`${insetDentClass} p-5`}>
                 <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-purple-200/70">
-                  Creators / Fans
+                  People
                 </p>
-                <h3 className="mt-2 text-2xl font-black uppercase italic text-white">Chaos side</h3>
+                <h3 className="mt-2 text-2xl font-black uppercase italic text-white">Play side</h3>
                 <p className="mt-2 font-mono text-xs leading-6 text-gray-400">
-                  Create, claim, complete, verify, and browse the public grid.
+                  Explore, join, create, complete and build your story on the map.
                 </p>
               </div>
 
@@ -365,11 +354,11 @@ export default function HowItWorksPage() {
 
               <div className={`${insetDentClass} p-5 grayscale`}>
                 <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-gray-300/70">
-                  Venues / Brands
+                  Places / Partners
                 </p>
                 <h3 className="mt-2 text-2xl font-black uppercase italic text-white">Control side</h3>
                 <p className="mt-2 font-mono text-xs leading-6 text-gray-400">
-                  Plan activations, operate the Brand Portal, and read measurable proof.
+                  Fund challenges, offer perks and see trusted activity around real places.
                 </p>
               </div>
             </div>
@@ -502,12 +491,12 @@ export default function HowItWorksPage() {
                 <Zap className="h-5 w-5 text-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]" />
               </div>
               <h2 className="text-2xl font-black uppercase italic tracking-tight text-white md:text-3xl">
-                For <span className="text-purple-400">Creators</span>
+                For <span className="text-purple-400">Everyone</span>
               </h2>
             </div>
 
             <p className="relative mb-8 max-w-2xl font-mono text-sm text-gray-400">
-              Get paid to do real missions. Complete the action, submit proof, and escrow pays when it clears.
+              Browse first, then choose how deeply you want to participate. A wallet is only needed for identity, progress or payment.
             </p>
 
             <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -557,7 +546,7 @@ export default function HowItWorksPage() {
             </div>
 
             <p className="relative mb-8 max-w-2xl font-mono text-sm text-gray-400">
-              Fund real venue missions, pick creator fit, and get a receipt for what happened.
+              Put a useful challenge on the map and get a trusted receipt for what people actually completed.
             </p>
 
             <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -598,24 +587,24 @@ export default function HowItWorksPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                 <div className={`${insetDentClass} px-4 py-4`}>
                   <CosmicButton
-                    href="/create"
+                    href="/map"
                     variant="gold"
                     size="lg"
                     className="min-w-[200px]"
                   >
-                    <Zap className="h-5 w-5" />
-                    Create a Dare
+                    <MapPin className="h-5 w-5" />
+                    Open the Map
                   </CosmicButton>
                 </div>
                 <div className={`${insetDentClass} px-4 py-4`}>
                   <CosmicButton
-                    href="/?mode=control"
+                    href="/join"
                     variant="blue"
                     size="lg"
                     className="min-w-[200px]"
                   >
-                    <Target className="h-5 w-5" />
-                    Open Control
+                    <Users className="h-5 w-5" />
+                    Start Here
                   </CosmicButton>
                 </div>
               </div>

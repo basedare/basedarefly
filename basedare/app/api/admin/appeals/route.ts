@@ -46,8 +46,35 @@ export async function GET(request: NextRequest) {
         stakerAddress: true,
         createdAt: true,
         isSimulated: true,
+        // Latest proximity evidence so the referee can adjudicate a location
+        // review. Admin-only surface. Raw SUBMITTED (device) coords are omitted
+        // — they are documented server-only; distance/accuracy/decision/code are
+        // enough to decide and don't expose the submitter's precise location.
+        proofAttempts: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            distanceKm: true,
+            allowedRadiusKm: true,
+            accuracyM: true,
+            capturedAt: true,
+            receivedAt: true,
+            proximityDecision: true,
+            proximityCode: true,
+            source: true,
+            reason: true,
+            targetLatitude: true,
+            targetLongitude: true,
+          },
+        },
       },
     });
+
+    // Flatten the single latest attempt into a `proximity` field (or null).
+    const appealsWithProximity = appeals.map(({ proofAttempts, ...rest }) => ({
+      ...rest,
+      proximity: proofAttempts[0] ?? null,
+    }));
 
     // Get counts for each status
     const counts = await prisma.dare.groupBy({
@@ -68,7 +95,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        appeals,
+        appeals: appealsWithProximity,
         counts: {
           pending: countMap['PENDING'] || 0,
           approved: countMap['APPROVED'] || 0,

@@ -19,6 +19,16 @@ const FORCE_SIMULATION = isBountySimulationMode();
 
 // Safety limits
 const MAX_RETRIES_PER_RUN = 5;
+// Grace window: verify-proof holds PENDING_PAYOUT as a short-lived settlement lock
+// while its on-chain payout is in flight. The cron must NOT grab a row that was
+// just locked (it would race the in-flight request and double-broadcast at the
+// same referee nonce), so it only retries rows untouched for at least this long.
+// A crashed in-flight settlement is still recovered — its updatedAt ages past the
+// window and the next run picks it up.
+const SETTLEMENT_LOCK_GRACE_MS = 3 * 60 * 1000; // 3 minutes
+// How long a per-row payout lease is honored before another worker may steal it
+// (covers a worker that crashed mid-payout without releasing its lease).
+const PAYOUT_LEASE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const REFEREE_MAX_BALANCE_ETH = '0.05';
 const REFEREE_MAX_BALANCE_WEI = parseEther(REFEREE_MAX_BALANCE_ETH);
 const REFEREE_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
@@ -94,6 +104,9 @@ async function handleRetryPayouts(req: NextRequest) {
     const stuckDares = await prisma.dare.findMany({
       where: {
         status: 'PENDING_PAYOUT',
+        // Skip freshly-locked rows so we never race an in-flight verify-proof
+        // settlement holding the PENDING_PAYOUT lock.
+        updatedAt: { lt: new Date(Date.now() - SETTLEMENT_LOCK_GRACE_MS) },
       },
       orderBy: { updatedAt: 'asc' },
       take: MAX_RETRIES_PER_RUN,
@@ -159,6 +172,28 @@ async function handleRetryPayouts(req: NextRequest) {
     }
 
     for (const dare of stuckDares) {
+      // Atomic per-row lease: only the worker that flips payoutLeaseAt from
+      // null/expired to now proceeds. A second concurrent cron invocation that
+      // selected the same stale row gets count 0 here and skips it, so the same
+      // dare is never double-processed / double-broadcast. The lease self-expires
+      // after PAYOUT_LEASE_TTL_MS so a crashed worker's row is recoverable.
+      const lease = await prisma.dare.updateMany({
+        where: {
+          id: dare.id,
+          status: 'PENDING_PAYOUT',
+          OR: [
+            { payoutLeaseAt: null },
+            { payoutLeaseAt: { lt: new Date(Date.now() - PAYOUT_LEASE_TTL_MS) } },
+          ],
+        },
+        data: { payoutLeaseAt: new Date() },
+      });
+      if (lease.count === 0) {
+        console.log(`[CRON] Dare ${dare.id} — lease held by another worker, skipping`);
+        results.push({ dareId: dare.id, status: 'skipped' });
+        continue;
+      }
+
       if (FORCE_SIMULATION || dare.isSimulated) {
         // Simulated dares don't need on-chain payout — just mark verified
         await finalizeVerifiedDare({
@@ -224,10 +259,17 @@ async function handleRetryPayouts(req: NextRequest) {
 
           if (settlement.type === 'REFUND') {
             console.log(`[CRON] Dare ${dare.id} — refund already happened on-chain, repairing DB state`);
-            await prisma.dare.update({
-              where: { id: dare.id },
+            // CAS: only repair a row still in PENDING_PAYOUT. If a concurrent
+            // finalize already moved it to VERIFIED, do NOT clobber it to REFUNDED.
+            const refundCas = await prisma.dare.updateMany({
+              where: { id: dare.id, status: 'PENDING_PAYOUT' },
               data: { status: 'REFUNDED', appealStatus: 'NONE', appealReason: null },
             });
+            if (refundCas.count === 0) {
+              console.log(`[CRON] Dare ${dare.id} — refund repair skipped (already settled elsewhere)`);
+              results.push({ dareId: dare.id, status: 'skipped' });
+              continue;
+            }
             await syncLinkedCampaignForDareState({
               dareId: dare.id,
               status: 'REFUNDED',
@@ -236,16 +278,13 @@ async function handleRetryPayouts(req: NextRequest) {
             continue;
           }
 
-          console.log(`[CRON] Dare ${dare.id} — bounty not found on-chain and no settlement logs found`);
-          await prisma.dare.update({
-            where: { id: dare.id },
-            data: { status: 'FAILED', appealStatus: 'NONE', appealReason: 'Bounty not found on-chain during retry' },
-          });
-          await syncLinkedCampaignForDareState({
-            dareId: dare.id,
-            status: 'FAILED',
-          });
-          results.push({ dareId: dare.id, status: 'failed', error: 'Bounty not found on-chain' });
+          // Bounty gone on-chain but neither a PAYOUT nor a REFUND log is visible
+          // yet. This is INCONCLUSIVE (commonly RPC log-index lag right after a
+          // payout that deleted the bounty). Marking FAILED here could overwrite a
+          // dare that was actually paid and finalized to VERIFIED, so we leave it
+          // PENDING_PAYOUT and let a later run reclassify it once the log indexes.
+          console.warn(`[CRON] Dare ${dare.id} — bounty absent on-chain but no settlement log yet; leaving PENDING_PAYOUT for a later run (not failing).`);
+          results.push({ dareId: dare.id, status: 'skipped', error: 'Inconclusive: bounty absent, settlement log not yet visible' });
           continue;
         }
 
