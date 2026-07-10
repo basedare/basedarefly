@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 import { isAddress } from 'viem';
@@ -254,14 +254,21 @@ export async function POST(request: NextRequest) {
           },
         });
 
-    void alertTagClaimSubmission({
-      tagClaimId: claimRecord.id,
-      tag: claimRecord.tag,
-      platform: parsed.data.platform,
-      handle: normalizedHandle,
-      walletAddress: sessionWallet,
-    }).catch((error) => {
-      console.error('[CLAIM-TAG] Telegram notification failed:', error);
+    // Send via after() — a bare fire-and-forget promise is dropped when the
+    // serverless function freezes on response (the return is right below), so
+    // the admin ping never lands. after() keeps the lambda alive to finish it.
+    after(async () => {
+      try {
+        await alertTagClaimSubmission({
+          tagClaimId: claimRecord.id,
+          tag: claimRecord.tag,
+          platform: parsed.data.platform,
+          handle: normalizedHandle,
+          walletAddress: sessionWallet,
+        });
+      } catch (error) {
+        console.error('[CLAIM-TAG] Telegram notification failed:', error);
+      }
     });
 
     return NextResponse.json({

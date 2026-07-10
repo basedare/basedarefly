@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import type { Prisma } from '@prisma/client';
@@ -538,13 +538,22 @@ export async function POST(request: NextRequest) {
     );
 
     if (isManualVerification) {
-      void alertTagClaimSubmission({
-        tagClaimId: streamerTag.id,
-        tag: streamerTag.tag,
-        platform: claimPlatform,
-        handle: platformHandle || '',
-        walletAddress,
-      }).catch((err) => console.error('[TELEGRAM] Tag claim alert failed:', err));
+      // Send via after() — a bare fire-and-forget promise is dropped when the
+      // serverless function freezes on response, so the admin ping never lands.
+      // after() runs it post-response but keeps the lambda alive to finish.
+      after(async () => {
+        try {
+          await alertTagClaimSubmission({
+            tagClaimId: streamerTag.id,
+            tag: streamerTag.tag,
+            platform: claimPlatform,
+            handle: platformHandle || '',
+            walletAddress,
+          });
+        } catch (err) {
+          console.error('[TELEGRAM] Tag claim alert failed:', err);
+        }
+      });
     }
 
     // -----------------------------------------------------------------------
