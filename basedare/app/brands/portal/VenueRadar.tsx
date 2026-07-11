@@ -129,7 +129,7 @@ export default function VenueRadar({
                       className="activation-raised-gold inline-flex min-h-10 items-center gap-2 rounded-full border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
                     >
                       <CreditCard className="h-3.5 w-3.5" />
-                      Ask here
+                      Verify this place
                     </button>
                   </div>
                 </article>
@@ -324,7 +324,7 @@ export default function VenueRadar({
                         className="activation-raised-gold inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-black uppercase tracking-[0.1em] transition active:translate-y-[1px]"
                       >
                         <PlayCircle className="h-4 w-4" />
-                        Create mission here
+                        Verify this place
                       </button>
                       <Link
                         href={`/venues/${selectedVenueRadar.slug}`}
