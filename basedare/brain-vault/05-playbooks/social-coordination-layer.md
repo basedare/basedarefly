@@ -94,3 +94,19 @@ Opt-in for any people-visibility · approximate zones, never precise pins for pe
 sensitive places · joiner-threads scoped to participants · report/block on every social
 surface · public places only for meetups · no minors-targeted copy · nothing that
 pressures drinking/danger (safe version is the only version that pays).
+
+## Adjustments (2026-07-12 review)
+
+1. **Never hide "Tonight" below a density threshold.** Sparse is honest: the strip
+   shows real zeros with an inviting empty state — "Nothing public tonight yet —
+   start something simple." Cold-start cities must look early, not broken.
+2. **A4 lands before A2's final copy.** Users learn ONE activity noun: everything
+   participatory presents as a **Dare**, with types like `Meet up`, `Explore`,
+   `Help`, `Earn`. `Meetup`/`Drop`/`Dare` stay distinct models internally only.
+3. **A1 contract locked & shipped** (PR: feat/tonight-api): location-agnostic,
+   destination-timezone window, rounded coords only, public approved activity only,
+   canonical type/id/title/times/place/going/capacity/reward/viewer-rsvp/visibility,
+   conservative dedup, honest zero counts (thresholds belong to the UI). Note:
+   no map-level Drop model exists yet — drops join the aggregation when they do.
+4. **Density seeding = real scheduled activities with honest RSVPs.** Never
+   manufactured activity; if the map is sparse, make the first action inviting.
