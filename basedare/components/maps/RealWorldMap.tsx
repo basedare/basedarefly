@@ -60,6 +60,11 @@ import ProofReel from '@/components/maps/ProofReel';
 import ProofMomentSheet from '@/components/maps/ProofMomentSheet';
 import MeetupComposerSheet from '@/components/maps/MeetupComposerSheet';
 import LayerReelBar from '@/components/maps/LayerReelBar';
+import AdventureMapOverlay from '@/components/maps/AdventureMapOverlay';
+import {
+  useTonightActivity,
+  type TonightActivity,
+} from '@/components/maps/useTonightActivity';
 import {
   createMeetupMarkerHtml,
   meetupPassesLayerFilter,
@@ -553,6 +558,7 @@ const LOCAL_SIGNAL_CATEGORIES = [
 
 const ACTIVE_PRESENCE_STORAGE_KEY = 'basedare:active-presence-signal';
 const START_PROOF_DOCK_DISMISSED_KEY = 'basedare:map-start-proof-dismissed';
+const ADVENTURE_MAP_STORAGE_KEY = 'basedare:adventure-map-enabled';
 
 type FootprintMark = {
   id: string;
@@ -2978,6 +2984,55 @@ function escapeMarkerAttribute(value: string) {
     .replace(/>/g, '&gt;');
 }
 
+function getAdventurePlaceGlyph({
+  challengeLiveCount,
+  legends,
+  categories,
+}: {
+  challengeLiveCount: number;
+  legends?: VenueLegend[];
+  categories?: string[] | null;
+}) {
+  if (challengeLiveCount > 0) return '⚑';
+
+  const legendGlyph = legends?.find((legend) => legend.emoji.trim())?.emoji.trim();
+  if (legendGlyph) return legendGlyph;
+
+  const categoryText = (categories ?? []).join(' ').toLowerCase();
+  if (/surf|wave/.test(categoryText)) return '🏄';
+  if (/coffee|cafe|bakery/.test(categoryText)) return '☕';
+  if (/restaurant|food|eat|kitchen/.test(categoryText)) return '🍜';
+  if (/bar|night|music|club/.test(categoryText)) return '🔥';
+  if (/hostel|hotel|stay|resort/.test(categoryText)) return '🛏️';
+  if (/beach|island|coast/.test(categoryText)) return '🐚';
+  if (/wellness|yoga|spa/.test(categoryText)) return '🌿';
+  if (/community|market|gather/.test(categoryText)) return '✨';
+  return '✦';
+}
+
+function getAdventureActivityGlyph(activity: TonightActivity) {
+  if (activity.type === 'dare') return '⚑';
+  return '🔥';
+}
+
+function createAdventureActivityMarkerHtml(activity: TonightActivity) {
+  const rewardLabel = activity.reward?.amountUsdc
+    ? `${activity.reward.amountUsdc}`
+    : activity.goingCount
+      ? `${activity.goingCount}`
+      : activity.type === 'meetup'
+        ? 'FREE'
+        : 'OPEN';
+
+  return `
+    <div class="adventure-focal-marker adventure-focal-marker--${activity.type}">
+      <span class="adventure-focal-beacon" aria-hidden="true">${getAdventureActivityGlyph(activity)}</span>
+      <span class="adventure-focal-badge">${escapeMarkerAttribute(rewardLabel)}</span>
+      <span class="adventure-focal-shadow" aria-hidden="true"></span>
+    </div>
+  `;
+}
+
 function getMarkerVenueLabel(value?: string | null) {
   const normalized = value?.replace(/\s+/g, ' ').trim();
   if (!normalized) return null;
@@ -3018,6 +3073,7 @@ function createPeebearMarkerHtml({
   activated = false,
   activationLabel,
   legends,
+  categories,
   liveTonight = false,
   mayorTag = null,
 }: {
@@ -3033,6 +3089,7 @@ function createPeebearMarkerHtml({
   activated?: boolean;
   activationLabel?: string;
   legends?: VenueLegend[];
+  categories?: string[] | null;
   liveTonight?: boolean;
   mayorTag?: string | null;
 }) {
@@ -3062,11 +3119,22 @@ function createPeebearMarkerHtml({
   // the chips say "what kind of place" at a glance. CSS already positions them.
   const visibleLegends = (legends ?? []).slice(0, compact ? 2 : 3);
   const legendKey = visibleLegends.map((legend) => legend.key).join(',');
+  const categoryKey = (categories ?? []).slice(0, 4).join(',');
+  const adventureGlyph = escapeMarkerAttribute(
+    getAdventurePlaceGlyph({ challengeLiveCount, legends, categories })
+  );
+  const adventureModifier = hasChallengeLive
+    ? liveLabel
+    : visualState === 'unmarked'
+      ? '?'
+      : approvedCount > 0
+        ? '✓'
+        : '';
   const venueLabel = getMarkerVenueLabel(venueName);
   const safeVenueLabel = venueLabel ? escapeMarkerAttribute(venueLabel) : null;
   const safeVenueTitle = venueName ? escapeMarkerAttribute(venueName) : null;
   const safeMayorTag = mayorTag ? escapeMarkerAttribute(mayorTag.replace(/^@/, '').slice(0, 12).toUpperCase()) : null;
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${liveTonight ? 'tonight' : 'off-night'}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `challenge-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${categoryKey}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${liveTonight ? 'tonight' : 'off-night'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -3085,6 +3153,10 @@ function createPeebearMarkerHtml({
       ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
       ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
       ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
+      <span class="adventure-place-object adventure-place-object--${visualState} ${hasChallengeLive ? 'has-live-dare' : ''}" aria-hidden="true">
+        <span class="adventure-place-glyph">${adventureGlyph}</span>
+        ${adventureModifier ? `<span class="adventure-place-modifier">${adventureModifier}</span>` : ''}
+      </span>
       ${
         visibleLegends.length > 0
           ? `<span class="venue-legend-stack" aria-label="Venue type">${visibleLegends
@@ -3129,6 +3201,10 @@ function createCurrentLocationMarkerHtml({
     <div class="current-location-marker ${centered ? 'is-centered' : 'is-dot'}">
       ${heading !== null ? `<span class="current-location-heading" style="transform: translateX(-50%) rotate(${heading}deg);"></span>` : ''}
       <span class="current-location-pulse"></span>
+      <span class="adventure-guide-head" aria-hidden="true">
+        <img src="/assets/peebear-head.webp" alt="" />
+        <span class="adventure-guide-spark"></span>
+      </span>
       ${
         centered
           ? `<img src="${CURRENT_LOCATION_CENTERED_ICON_PATH}" alt="Current location" class="current-location-bear" />`
@@ -3466,6 +3542,8 @@ export default function RealWorldMap() {
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMapFullscreenMobile, setIsMapFullscreenMobile] = useState(false);
   const [startProofDockDismissed, setStartProofDockDismissed] = useState(false);
+  const [adventureMode, setAdventureMode] = useState(true);
+  const [adventurePanelOpen, setAdventurePanelOpen] = useState(false);
   const isImmersiveMobile = isMobileViewport && isMapFullscreenMobile;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [proofMoment, setProofMoment] = useState<null | {
@@ -3487,6 +3565,17 @@ export default function RealWorldMap() {
   const deepLinkedDareShortId = searchParams.get('dare');
   const showTraceParam = searchParams.get('trace') === '1';
   const showMatchesParam = searchParams.get('matches') === '1';
+  const adventureCenter = useMemo(
+    () =>
+      viewportCenter ??
+      userLocation ?? {
+        latitude: DEFAULT_CENTER[0],
+        longitude: DEFAULT_CENTER[1],
+      },
+    [userLocation, viewportCenter]
+  );
+  const tonightActivity = useTonightActivity(adventureCenter, adventureMode && mapReady);
+  const focalAdventureActivity = tonightActivity.snapshot?.activities[0] ?? null;
   const deepLinkedLocation = useMemo(() => {
     const latitude = Number(searchParams.get('lat'));
     const longitude = Number(searchParams.get('lng'));
@@ -3678,6 +3767,23 @@ export default function RealWorldMap() {
     if (typeof window === 'undefined') return;
 
     setStartProofDockDismissed(window.localStorage.getItem(START_PROOF_DOCK_DISMISSED_KEY) === '1');
+    const savedAdventurePreference = window.localStorage.getItem(ADVENTURE_MAP_STORAGE_KEY);
+    if (savedAdventurePreference === '0') {
+      setAdventureMode(false);
+      setAdventurePanelOpen(false);
+    }
+  }, []);
+
+  const handleAdventureModeToggle = useCallback(() => {
+    setAdventureMode((current) => {
+      const next = !current;
+      if (!next) setAdventurePanelOpen(false);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(ADVENTURE_MAP_STORAGE_KEY, next ? '1' : '0');
+      }
+      triggerHaptic('selection');
+      return next;
+    });
   }, []);
 
   const dismissStartProofDock = useCallback(() => {
@@ -8187,6 +8293,39 @@ export default function RealWorldMap() {
     setIsMapFullscreenMobile((current) => !current);
   }, []);
 
+  const handleAdventureActivitySelect = useCallback(
+    (activity: TonightActivity) => {
+      setAdventurePanelOpen(false);
+      setTargetCenter([activity.place.lat, activity.place.lng]);
+      setTargetZoom(15);
+      triggerHaptic('selection');
+
+      if (activity.type === 'meetup') {
+        const meetup = meetups.find((candidate) => candidate.id === activity.id) ?? {
+          id: activity.id,
+          title: activity.title,
+          type: 'custom',
+          placeLabel: activity.place.label,
+          venueId: activity.place.venueId,
+          approxLat: activity.place.lat,
+          approxLng: activity.place.lng,
+          startTime: activity.startsAt ?? new Date().toISOString(),
+          note: null,
+          happeningNow: activity.startsAt
+            ? new Date(activity.startsAt).getTime() <= Date.now() + 30 * 60_000
+            : true,
+          creator: null,
+        } satisfies MeetupPin;
+        setSelectedPlace(null);
+        setSelectedMeetup(meetup);
+        return;
+      }
+
+      router.push(activity.href);
+    },
+    [meetups, router]
+  );
+
   const selectedPlaceMarkerHtml = useMemo(() => {
     if (!selectedPlace) {
       return null;
@@ -8204,6 +8343,7 @@ export default function RealWorldMap() {
       activated: selectedVenueActivated,
       activationLabel: getVenueActivationMarkerLabel(selectedCommandCenter),
       legends: selectedVenueProfile?.legends,
+      categories: selectedPlace.categories,
       liveTonight: isVenueNightTonight(selectedPlace.name, selectedPlace.slug),
       mayorTag: selectedPlace.slug
         ? nearbyPlaces.find((place) => place.slug === selectedPlace.slug)?.mayor?.tag ?? null
@@ -8464,6 +8604,7 @@ export default function RealWorldMap() {
           activated: activatedVenue,
           activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
           legends: place.profile?.legends,
+          categories: place.categories,
           liveTonight: isVenueNightTonight(place.name, place.slug),
           mayorTag: place.mayor?.tag ?? null,
         }),
@@ -8472,6 +8613,18 @@ export default function RealWorldMap() {
         onClick: () => focusExistingPlace(place),
       });
     });
+
+    if (adventureMode && focalAdventureActivity) {
+      addMarker({
+        key: `adventure-activity:${focalAdventureActivity.type}:${focalAdventureActivity.id}`,
+        latitude: focalAdventureActivity.place.lat,
+        longitude: focalAdventureActivity.place.lng,
+        html: createAdventureActivityMarkerHtml(focalAdventureActivity),
+        className: 'basedare-maplibre-marker basedare-maplibre-marker--adventure-activity',
+        anchor: 'bottom',
+        onClick: () => handleAdventureActivitySelect(focalAdventureActivity),
+      });
+    }
 
     if (showFootprintLayer) {
       footprintMarks.forEach((mark, index) => {
@@ -8523,6 +8676,7 @@ export default function RealWorldMap() {
         onClick: () => {
           setTargetCenter([userLocation.latitude, userLocation.longitude]);
           setTargetZoom(Math.max(Math.round(mapZoom), 14));
+          if (adventureMode) setAdventurePanelOpen((current) => !current);
         },
       });
     }
@@ -8595,11 +8749,13 @@ export default function RealWorldMap() {
     flushDeferredMarkerHtml();
     removeStaleMarkers();
   }, [
+    adventureMode,
     armMapClickSuppression,
     clusteredNearbyMarkers,
     compactMarkerZoomThreshold,
     currentLocationMarkerHtml,
     focusExistingPlace,
+    focalAdventureActivity,
     footprintMarks,
     isMobileViewport,
     isUserCentered,
@@ -8609,6 +8765,7 @@ export default function RealWorldMap() {
     privateMapSpots,
     focusPrivateSpot,
     handlePrivateSpotDragEnd,
+    handleAdventureActivitySelect,
     saveSpotDraft,
     selectedPlace,
     selectedPlaceMarkerHtml,
@@ -10139,6 +10296,7 @@ export default function RealWorldMap() {
             ref={mapViewportRef}
             data-map-preset={mapPreset}
             data-layer-filter={effectiveLayerFilter}
+            data-adventure-mode={adventureMode ? 'true' : 'false'}
             data-crosshair={!isMobileViewport ? 'true' : undefined}
             className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
               isImmersiveMobile
@@ -10153,10 +10311,22 @@ export default function RealWorldMap() {
             />
             <div className="maplibre-depth-vignette pointer-events-none absolute inset-0 z-[1]" />
 
+            <AdventureMapOverlay
+              enabled={adventureMode}
+              panelOpen={adventurePanelOpen}
+              loading={tonightActivity.loading}
+              error={tonightActivity.error}
+              snapshot={tonightActivity.snapshot}
+              obscured={Boolean(selectedPlace || selectedMeetup)}
+              onToggle={handleAdventureModeToggle}
+              onPanelOpenChange={setAdventurePanelOpen}
+              onSelectActivity={handleAdventureActivitySelect}
+            />
+
             {/* Free meetup layer (Stage 3) — layer filter + legend. Only mounts
                 once real meetups exist, so the paid map is untouched until then. */}
             {meetups.length > 0 ? (
-              <div className="pointer-events-auto absolute left-1/2 top-3 z-[12] flex max-w-[calc(100%-6.5rem)] -translate-x-1/2 flex-col items-center gap-2">
+              <div className="map-meetup-layer-controls pointer-events-auto absolute left-1/2 top-3 z-[12] flex max-w-[calc(100%-6.5rem)] -translate-x-1/2 flex-col items-center gap-2">
                 {isMobileViewport ? (
                   <LayerReelBar
                     options={MAP_LAYER_FILTERS.map((key) => ({ value: key, label: MAP_LAYER_FILTER_LABELS[key] }))}
@@ -15507,6 +15677,344 @@ export default function RealWorldMap() {
           animation: currentLocationBob 2.8s ease-in-out infinite;
           user-select: none;
           -webkit-user-drag: none;
+        }
+
+        /* Adventure mode is a removable presentation layer. The real map,
+           marker hit targets, camera, sources, and place state stay unchanged. */
+        .basedare-maplibre-map :global(.adventure-place-object),
+        .basedare-maplibre-map :global(.adventure-guide-head) {
+          display: none;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] .map-meetup-layer-controls,
+        .basedare-maplibre-map[data-adventure-mode='true'] .map-activation-legend,
+        .basedare-maplibre-map[data-adventure-mode='true'] .map-first-proof-dock,
+        .basedare-maplibre-map[data-adventure-mode='true'] .nearby-dare-tray {
+          display: none;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-core),
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-meta),
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-count),
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.venue-legend-stack),
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-ripple),
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-challenge-aura),
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-challenge-ring),
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-match-badge),
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-shadow) {
+          display: none !important;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker) {
+          width: 82px;
+          height: 112px;
+          opacity: 1;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-compact) {
+          width: 70px;
+          height: 94px;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-venue-label) {
+          top: 3px;
+          max-width: 126px;
+          opacity: 0;
+          visibility: hidden;
+          transition: none;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-active .peebear-venue-label),
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.has-challenge-live .peebear-venue-label),
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-live-tonight .peebear-venue-label) {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-activated-venue .peebear-venue-label) {
+          top: -2px;
+          min-width: 0;
+          max-width: 138px;
+          border-radius: 9999px;
+          padding: 5px 9px;
+          font-size: 8px;
+          transform: translateX(-50%);
+          animation: none;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-activated-venue .peebear-venue-label::after),
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-activated-venue .peebear-venue-label::before) {
+          display: none;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object) {
+          position: absolute;
+          left: 50%;
+          bottom: 18px;
+          z-index: 9;
+          display: grid;
+          width: 54px;
+          height: 54px;
+          place-items: center;
+          transform: translateX(-50%);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 19px 19px 16px 16px;
+          background:
+            radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.2), transparent 42%),
+            linear-gradient(145deg, rgba(29, 32, 48, 0.98), rgba(6, 8, 16, 0.98));
+          box-shadow:
+            0 14px 24px rgba(0, 0, 0, 0.46),
+            0 0 0 3px rgba(255, 255, 255, 0.045),
+            inset 0 1px 0 rgba(255, 255, 255, 0.17),
+            inset 0 -10px 15px rgba(0, 0, 0, 0.28);
+          isolation: isolate;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object::before) {
+          content: '';
+          position: absolute;
+          left: 50%;
+          bottom: -9px;
+          z-index: -1;
+          width: 38px;
+          height: 10px;
+          transform: translateX(-50%);
+          border-radius: 9999px;
+          background: rgba(1, 3, 9, 0.72);
+          filter: blur(3px);
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-glyph) {
+          position: relative;
+          z-index: 2;
+          display: grid;
+          place-items: center;
+          font-family: system-ui, sans-serif;
+          font-size: 27px;
+          line-height: 1;
+          filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.42));
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-modifier) {
+          position: absolute;
+          right: -9px;
+          top: -8px;
+          z-index: 4;
+          display: inline-flex;
+          min-width: 22px;
+          height: 22px;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid rgba(5, 6, 12, 0.96);
+          border-radius: 9999px;
+          background: #34d399;
+          padding: 0 6px;
+          color: #03140d;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 10px;
+          font-weight: 950;
+          line-height: 1;
+          box-shadow: 0 7px 14px rgba(0, 0, 0, 0.36);
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object--unmarked) {
+          border-color: rgba(184, 127, 255, 0.34);
+          background:
+            radial-gradient(circle at 50% 48%, rgba(184, 127, 255, 0.18), transparent 58%),
+            linear-gradient(145deg, rgba(31, 22, 52, 0.92), rgba(8, 7, 18, 0.96));
+          box-shadow:
+            0 14px 24px rgba(0, 0, 0, 0.44),
+            0 0 24px rgba(121, 81, 186, 0.17),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            inset 0 -10px 15px rgba(0, 0, 0, 0.28);
+          filter: saturate(0.64) brightness(0.82);
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object--unmarked .adventure-place-modifier) {
+          border-color: rgba(8, 6, 17, 0.96);
+          background: #6d45a8;
+          color: #f1e7ff;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object.has-live-dare) {
+          border-color: rgba(255, 235, 145, 0.82);
+          background:
+            radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.45), transparent 38%),
+            linear-gradient(145deg, rgba(255, 213, 55, 0.98), rgba(104, 60, 2, 0.98));
+          box-shadow:
+            0 15px 26px rgba(0, 0, 0, 0.5),
+            0 0 0 4px rgba(245, 197, 24, 0.12),
+            0 0 28px rgba(245, 197, 24, 0.32),
+            inset 0 1px 0 rgba(255, 255, 255, 0.58),
+            inset 0 -11px 16px rgba(81, 43, 0, 0.34);
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object.has-live-dare .adventure-place-glyph) {
+          color: #171103;
+          font-size: 31px;
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.34);
+          filter: none;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object.has-live-dare .adventure-place-modifier) {
+          right: -16px;
+          min-width: 34px;
+          border-color: rgba(19, 12, 0, 0.94);
+          background: #0b0d16;
+          color: #fff0a8;
+          font-size: 8px;
+          letter-spacing: 0.08em;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-active .adventure-place-object) {
+          transform: translateX(-50%) translateY(-4px) scale(1.1);
+          border-color: rgba(255, 240, 168, 0.86);
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.current-location-bear) {
+          display: none;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-guide-head) {
+          position: absolute;
+          left: 35px;
+          bottom: 23px;
+          z-index: 4;
+          display: grid;
+          width: 54px;
+          height: 54px;
+          place-items: center;
+          border-radius: 19px;
+          border: 1px solid rgba(245, 197, 24, 0.36);
+          background:
+            radial-gradient(circle at 28% 16%, rgba(255, 255, 255, 0.18), transparent 44%),
+            linear-gradient(145deg, rgba(31, 24, 10, 0.94), rgba(7, 8, 16, 0.97));
+          box-shadow:
+            0 14px 25px rgba(0, 0, 0, 0.48),
+            0 0 22px rgba(245, 197, 24, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14);
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-guide-head img) {
+          width: 49px;
+          height: 49px;
+          object-fit: contain;
+          filter: drop-shadow(0 4px 7px rgba(0, 0, 0, 0.38));
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-guide-spark) {
+          position: absolute;
+          right: -5px;
+          top: -5px;
+          width: 12px;
+          height: 12px;
+          border: 2px solid rgba(4, 7, 13, 0.96);
+          border-radius: 3px;
+          background: #22d3ee;
+          box-shadow: 0 0 14px rgba(34, 211, 238, 0.52);
+          transform: rotate(12deg);
+        }
+
+        .basedare-maplibre-map :global(.adventure-focal-marker) {
+          position: relative;
+          display: grid;
+          width: 72px;
+          height: 76px;
+          place-items: center;
+          transform: translateY(-8px);
+        }
+
+        .basedare-maplibre-map :global(.adventure-focal-beacon) {
+          position: relative;
+          z-index: 3;
+          display: grid;
+          width: 54px;
+          height: 54px;
+          flex: 0 0 54px;
+          place-items: center;
+          border: 1px solid rgba(255, 240, 168, 0.84);
+          border-radius: 19px;
+          background:
+            radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.5), transparent 38%),
+            linear-gradient(145deg, #ffd83d, #805000);
+          color: #171103;
+          font-family: system-ui, sans-serif;
+          font-size: 31px;
+          line-height: 1;
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.36);
+          box-shadow:
+            0 14px 24px rgba(0, 0, 0, 0.48),
+            0 0 0 4px rgba(245, 197, 24, 0.12),
+            0 0 28px rgba(245, 197, 24, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.58),
+            inset 0 -11px 16px rgba(81, 43, 0, 0.34);
+        }
+
+        .basedare-maplibre-map :global(.adventure-focal-marker--meetup .adventure-focal-beacon) {
+          border-color: rgba(167, 243, 208, 0.72);
+          background:
+            radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.36), transparent 38%),
+            linear-gradient(145deg, #34d399, #064e3b);
+          color: #ecfdf5;
+          box-shadow:
+            0 14px 24px rgba(0, 0, 0, 0.46),
+            0 0 0 4px rgba(52, 211, 153, 0.1),
+            0 0 26px rgba(52, 211, 153, 0.24),
+            inset 0 1px 0 rgba(255, 255, 255, 0.36),
+          inset 0 -11px 16px rgba(0, 50, 35, 0.3);
+        }
+
+        .basedare-maplibre-map :global(.adventure-focal-badge) {
+          position: absolute;
+          right: 0;
+          top: 0;
+          z-index: 5;
+          display: inline-flex;
+          min-width: 24px;
+          height: 22px;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid rgba(18, 12, 1, 0.96);
+          border-radius: 9999px;
+          background: #0b0d16;
+          padding: 0 6px;
+          color: #fff0a8;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 9px;
+          font-weight: 950;
+          line-height: 1;
+          box-shadow: 0 8px 15px rgba(0, 0, 0, 0.38);
+        }
+
+        .basedare-maplibre-map :global(.adventure-focal-marker--meetup .adventure-focal-badge) {
+          color: #a7f3d0;
+        }
+
+        .basedare-maplibre-map :global(.adventure-focal-shadow) {
+          position: absolute;
+          bottom: 3px;
+          left: 10px;
+          width: 52px;
+          height: 10px;
+          border-radius: 9999px;
+          background: rgba(1, 3, 8, 0.76);
+          filter: blur(4px);
+        }
+
+        .basedare-maplibre-map[data-map-moving='true'] :global(.adventure-place-object),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.adventure-guide-head),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.adventure-focal-marker) {
+          filter: none !important;
+          transition: none !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .basedare-maplibre-map :global(.adventure-place-object),
+          .basedare-maplibre-map :global(.adventure-guide-head),
+          .basedare-maplibre-map :global(.adventure-focal-marker) {
+            animation: none !important;
+            transition: none !important;
+          }
         }
 
         .basedare-maplibre-map :global(.place-cluster-marker) {
