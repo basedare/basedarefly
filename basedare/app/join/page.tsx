@@ -87,7 +87,7 @@ const WORDS = [
   },
   {
     word: 'BareTag',
-    meaning: 'An optional public handle that carries your reputation and receipts. Claim it whenever — you never need it to explore, join or get paid.',
+    meaning: 'An optional public handle that carries your reputation and receipts. You don’t need one to explore or complete open paid missions; some identity-based social features may ask for one.',
     icon: Fingerprint,
   },
 ] as const;
@@ -190,7 +190,7 @@ export default function JoinBaseDarePage() {
 
           <div className="mt-5 flex flex-col items-start justify-between gap-3 rounded-2xl border border-yellow-200/18 bg-yellow-400/[0.06] px-5 py-4 sm:flex-row sm:items-center">
             <p className="max-w-xl text-sm font-semibold leading-6 text-white/64">
-              Optional: claim a <span className="text-white">BareTag</span> when you want a public identity that carries your reputation and receipts across missions. You can explore, join and get paid without one.
+              Optional: claim a <span className="text-white">BareTag</span> when you want a public identity that carries your reputation and receipts. You don’t need one to explore or complete open paid missions; some identity-based social features may ask for one.
             </p>
             <Link
               href="/claim-tag"
