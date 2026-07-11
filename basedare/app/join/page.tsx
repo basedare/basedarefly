@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import {
   ArrowRight,
   BadgeCheck,
   Coins,
+  Fingerprint,
   MapPin,
   Plus,
   Sparkles,
@@ -83,6 +85,11 @@ const WORDS = [
     meaning: 'A quick read on how active and recently verified a place feels.',
     icon: BadgeCheck,
   },
+  {
+    word: 'BareTag',
+    meaning: 'An optional public handle that carries your reputation and receipts. Claim it whenever — you never need it to explore, join or get paid.',
+    icon: Fingerprint,
+  },
 ] as const;
 
 export default function JoinBaseDarePage() {
@@ -120,10 +127,10 @@ export default function JoinBaseDarePage() {
               href="/map"
               intent="explore"
               placement="hero"
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-yellow-200/55 bg-[linear-gradient(180deg,#ffe36a_0%,#f5c518_58%,#8a5a00_100%)] px-6 text-sm font-black uppercase tracking-[0.14em] text-[#171207] shadow-[0_16px_34px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.58)] transition hover:-translate-y-0.5 sm:w-auto"
+              cosmic={{ variant: 'gold', size: 'lg' }}
             >
+              <MapPin className="h-5 w-5" />
               Open the map
-              <ArrowRight className="h-4 w-4" />
             </OnboardingLink>
             <OnboardingLink
               href="/how-it-works"
@@ -165,11 +172,11 @@ export default function JoinBaseDarePage() {
 
         <section className={`${controlPanel} mt-6 p-6 sm:p-8`}>
           <div className={controlHairline} />
-          <p className={controlMicroLabel}>Three useful words</p>
+          <p className={controlMicroLabel}>A few useful words</p>
           <h2 className="mt-3 text-2xl font-black italic text-white sm:text-3xl">
             BaseDare without the jargon
           </h2>
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {WORDS.map((item) => (
               <div key={item.word} className={`${controlInset} p-5`}>
                 <div className="flex items-center gap-3">
@@ -179,6 +186,19 @@ export default function JoinBaseDarePage() {
                 <p className="mt-3 text-sm leading-6 text-white/52">{item.meaning}</p>
               </div>
             ))}
+          </div>
+
+          <div className="mt-5 flex flex-col items-start justify-between gap-3 rounded-2xl border border-yellow-200/18 bg-yellow-400/[0.06] px-5 py-4 sm:flex-row sm:items-center">
+            <p className="max-w-xl text-sm font-semibold leading-6 text-white/64">
+              Optional: claim a <span className="text-white">BareTag</span> when you want a public identity that carries your reputation and receipts across missions. You can explore, join and get paid without one.
+            </p>
+            <Link
+              href="/claim-tag"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-yellow-200/35 bg-yellow-400/[0.1] px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-yellow-100 transition hover:border-yellow-200/55 hover:text-white"
+            >
+              Secure your BareTag
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </section>
       </div>

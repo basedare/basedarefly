@@ -35,7 +35,7 @@ const TRUST_CARDS = [
   },
   {
     title: 'Proof has to be real',
-    body: 'Proof backed by a verified check-in (QR + GPS) is unfakeable, so it clears instantly. Anything that can’t be auto-verified moves through review first, so weak or fake submissions get stopped before settlement.',
+    body: 'QR + nearby location creates a stronger presence signal. Depending on the mission and its risk level, proof may clear automatically or move to review — so weak or uncertain submissions are stopped before settlement.',
     icon: ShieldCheck,
     tone: 'text-fuchsia-100 border-fuchsia-400/18 bg-fuchsia-500/[0.08]',
   },
@@ -56,7 +56,7 @@ const TRUST_CARDS = [
 const FLOW = [
   'Fund or target the dare',
   'Creator accepts and does it',
-  'Proof clears instantly with a verified check-in — otherwise it’s reviewed',
+  'Proof is checked — strong presence signals may clear it automatically, otherwise it’s reviewed',
   'Escrow settles to the creator wallet',
 ];
 
@@ -69,7 +69,7 @@ const PROTOCOL_CARDS = [
   },
   {
     title: 'Verifiable truth',
-    body: 'Trust comes from unfakeable proof, not a slow reviewer. When presence is proven, settlement is instant. When it can’t be, escrow holds and review decides — so money only moves on a real outcome.',
+    body: 'Trust comes from layered signals — location, freshness, media and reputation — not one unfakeable token. Strong signals can settle automatically; when they’re weak or uncertain, escrow holds and review decides — so money only moves on a real outcome.',
     icon: Shield,
     tone: 'text-cyan-100 border-cyan-400/18 bg-cyan-500/[0.08]',
   },

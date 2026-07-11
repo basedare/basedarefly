@@ -588,7 +588,7 @@ export default function HowItWorksPage() {
                 <div className={`${insetDentClass} px-4 py-4`}>
                   <CosmicButton
                     href="/map"
-                    variant="gold"
+                    variant="blue"
                     size="lg"
                     className="min-w-[200px]"
                   >
