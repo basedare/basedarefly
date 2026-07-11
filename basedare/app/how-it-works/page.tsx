@@ -588,7 +588,7 @@ export default function HowItWorksPage() {
                 <div className={`${insetDentClass} px-4 py-4`}>
                   <CosmicButton
                     href="/map"
-                    variant="gold"
+                    variant="blue"
                     size="lg"
                     className="min-w-[200px]"
                   >
@@ -596,17 +596,13 @@ export default function HowItWorksPage() {
                     Open the Map
                   </CosmicButton>
                 </div>
-                <div className={`${insetDentClass} px-4 py-4`}>
-                  <CosmicButton
-                    href="/join"
-                    variant="blue"
-                    size="lg"
-                    className="min-w-[200px]"
-                  >
-                    <Users className="h-5 w-5" />
-                    Start Here
-                  </CosmicButton>
-                </div>
+                <Link
+                  href="/join"
+                  className="inline-flex min-h-[52px] min-w-[200px] items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/[0.04] px-6 text-sm font-black uppercase tracking-[0.12em] text-white/70 transition hover:border-white/22 hover:text-white"
+                >
+                  <Users className="h-5 w-5" />
+                  Start Here
+                </Link>
               </div>
             </div>
           </motion.div>
