@@ -411,17 +411,9 @@ export default function ResponseRail({
                 See who is completing the work, what proof arrived, what cleared review, and what was paid.
               </p>
             </div>
-            {/* Empty state owns the single launch CTA; the header button only
-                appears once there are routes to sit alongside. */}
-            {campaigns.length > 0 ? (
-              <button
-                type="button"
-                onClick={openActivationBuilder}
-                className="activation-raised-gold inline-flex min-h-12 items-center justify-center rounded-full border px-5 text-xs font-black uppercase tracking-[0.14em] transition active:translate-y-[1px]"
-              >
-                Create mission
-              </button>
-            ) : null}
+            {/* The single generic "Create mission" CTA lives in the hero. This
+                reporting header stays focused on status; the empty state below
+                owns the launch CTA when there are no missions yet. */}
           </div>
 
           {campaigns.length > 0 ? (
@@ -774,7 +766,7 @@ export default function ResponseRail({
                             className="activation-raised-gold inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] transition active:translate-y-[1px]"
                           >
                             <CreditCard className="h-3.5 w-3.5" />
-                            Repeat route
+                            Re-verify this mission
                           </button>
                         ) : null}
                         <button
