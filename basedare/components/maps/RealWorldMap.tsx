@@ -3288,7 +3288,7 @@ function createPlaceClusterMarkerHtml({
       ${challengeLiveCount > 0 ? `<span class="place-cluster-live">${challengeLiveCount > 9 ? '9+' : challengeLiveCount} LIVE</span>` : ''}
       <span class="place-cluster-core">
         <span class="place-cluster-count">${count > 99 ? '99+' : count}</span>
-        <span class="place-cluster-label">${count > 4 ? 'HUB' : 'NODE'}</span>
+        <span class="place-cluster-label">PLACES</span>
       </span>
       <span class="place-cluster-shadow"></span>
     </div>
@@ -17482,6 +17482,21 @@ export default function RealWorldMap() {
         .basedare-maplibre-map[data-zoom-band='mid'] :global(.peebear-marker--unmarked.is-active .peebear-state) {
           opacity: 1 !important;
           visibility: visible !important;
+        }
+
+        /* Adventure mode changes the marker art, not the place identity.
+           Keep individual venue names readable at every settled zoom; clusters
+           already provide the density guard. Gesture-time hiding still wins so
+           desktop Chromium does not regress into marker repaint flicker. */
+        .basedare-maplibre-map[data-adventure-mode='true']:not([data-map-moving='true'])
+          :global(.peebear-venue-label) {
+          opacity: 1 !important;
+          visibility: visible !important;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true']
+          :global(.peebear-marker--unmarked) {
+          opacity: 0.94;
         }
 
         .basedare-maplibre-map :global(.maplibregl-ctrl-group),
