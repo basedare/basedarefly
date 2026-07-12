@@ -180,6 +180,7 @@ type SelectedPlace = {
   handle?: string | null;
   baseCashEnabled?: boolean;
   name: string;
+  description?: string | null;
   address?: string | null;
   city?: string | null;
   country?: string | null;
@@ -558,7 +559,7 @@ const LOCAL_SIGNAL_CATEGORIES = [
 
 const ACTIVE_PRESENCE_STORAGE_KEY = 'basedare:active-presence-signal';
 const START_PROOF_DOCK_DISMISSED_KEY = 'basedare:map-start-proof-dismissed';
-const ADVENTURE_MAP_STORAGE_KEY = 'basedare:adventure-map-enabled';
+const ADVENTURE_MAP_STORAGE_KEY = 'basedare:adventure-map-enabled-v2';
 
 type FootprintMark = {
   id: string;
@@ -674,6 +675,7 @@ type VenueDetailResponse = {
       handle: string | null;
       baseCashEnabled: boolean;
       name: string;
+      description: string | null;
       address: string | null;
       city: string | null;
       country: string | null;
@@ -2984,35 +2986,33 @@ function escapeMarkerAttribute(value: string) {
     .replace(/>/g, '&gt;');
 }
 
-function getAdventurePlaceGlyph({
+type AdventureSpriteKind = 'flag' | 'surf' | 'cafe' | 'gathering' | 'rumor';
+
+function getAdventurePlaceSprite({
   challengeLiveCount,
-  legends,
   categories,
 }: {
   challengeLiveCount: number;
-  legends?: VenueLegend[];
   categories?: string[] | null;
-}) {
-  if (challengeLiveCount > 0) return '⚑';
-
-  const legendGlyph = legends?.find((legend) => legend.emoji.trim())?.emoji.trim();
-  if (legendGlyph) return legendGlyph;
+}): AdventureSpriteKind {
+  if (challengeLiveCount > 0) return 'flag';
 
   const categoryText = (categories ?? []).join(' ').toLowerCase();
-  if (/surf|wave/.test(categoryText)) return '🏄';
-  if (/coffee|cafe|bakery/.test(categoryText)) return '☕';
-  if (/restaurant|food|eat|kitchen/.test(categoryText)) return '🍜';
-  if (/bar|night|music|club/.test(categoryText)) return '🔥';
-  if (/hostel|hotel|stay|resort/.test(categoryText)) return '🛏️';
-  if (/beach|island|coast/.test(categoryText)) return '🐚';
-  if (/wellness|yoga|spa/.test(categoryText)) return '🌿';
-  if (/community|market|gather/.test(categoryText)) return '✨';
-  return '✦';
+  if (/surf|wave|beach|island|coast|water|lagoon|river|rock-pool|dock|boat/.test(categoryText)) {
+    return 'surf';
+  }
+  if (/coffee|cafe|bakery|restaurant|food|eat|kitchen|market/.test(categoryText)) {
+    return 'cafe';
+  }
+  if (/bar|night|music|club|community|gather|hostel|hotel|stay|resort|wellness|yoga|spa/.test(categoryText)) {
+    return 'gathering';
+  }
+  return 'rumor';
 }
 
-function getAdventureActivityGlyph(activity: TonightActivity) {
-  if (activity.type === 'dare') return '⚑';
-  return '🔥';
+function getAdventureActivitySprite(activity: TonightActivity): AdventureSpriteKind {
+  if (activity.type === 'dare') return 'flag';
+  return 'gathering';
 }
 
 function createAdventureActivityMarkerHtml(activity: TonightActivity) {
@@ -3026,9 +3026,22 @@ function createAdventureActivityMarkerHtml(activity: TonightActivity) {
 
   return `
     <div class="adventure-focal-marker adventure-focal-marker--${activity.type}">
-      <span class="adventure-focal-beacon" aria-hidden="true">${getAdventureActivityGlyph(activity)}</span>
+      <span class="adventure-focal-beacon" aria-hidden="true">
+        <span class="adventure-sprite adventure-sprite--${getAdventureActivitySprite(activity)}"></span>
+      </span>
       <span class="adventure-focal-badge">${escapeMarkerAttribute(rewardLabel)}</span>
       <span class="adventure-focal-shadow" aria-hidden="true"></span>
+    </div>
+  `;
+}
+
+function createAdventureRumorMarkerHtml(signal: LocalSignal) {
+  const safeTitle = escapeMarkerAttribute(signal.title || 'Local rumor');
+  return `
+    <div class="adventure-rumor-marker" title="${safeTitle}">
+      <span class="adventure-rumor-fog" aria-hidden="true"></span>
+      <span class="adventure-sprite adventure-sprite--rumor" aria-hidden="true"></span>
+      <span class="adventure-rumor-label">RUMOR</span>
     </div>
   `;
 }
@@ -3120,9 +3133,7 @@ function createPeebearMarkerHtml({
   const visibleLegends = (legends ?? []).slice(0, compact ? 2 : 3);
   const legendKey = visibleLegends.map((legend) => legend.key).join(',');
   const categoryKey = (categories ?? []).slice(0, 4).join(',');
-  const adventureGlyph = escapeMarkerAttribute(
-    getAdventurePlaceGlyph({ challengeLiveCount, legends, categories })
-  );
+  const adventureSprite = getAdventurePlaceSprite({ challengeLiveCount, categories });
   const adventureModifier = hasChallengeLive
     ? liveLabel
     : visualState === 'unmarked'
@@ -3154,7 +3165,7 @@ function createPeebearMarkerHtml({
       ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
       ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
       <span class="adventure-place-object adventure-place-object--${visualState} ${hasChallengeLive ? 'has-live-dare' : ''}" aria-hidden="true">
-        <span class="adventure-place-glyph">${adventureGlyph}</span>
+        <span class="adventure-sprite adventure-sprite--${adventureSprite}"></span>
         ${adventureModifier ? `<span class="adventure-place-modifier">${adventureModifier}</span>` : ''}
       </span>
       ${
@@ -3542,7 +3553,7 @@ export default function RealWorldMap() {
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMapFullscreenMobile, setIsMapFullscreenMobile] = useState(false);
   const [startProofDockDismissed, setStartProofDockDismissed] = useState(false);
-  const [adventureMode, setAdventureMode] = useState(true);
+  const [adventureMode, setAdventureMode] = useState(false);
   const [adventurePanelOpen, setAdventurePanelOpen] = useState(false);
   const isImmersiveMobile = isMobileViewport && isMapFullscreenMobile;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
@@ -3768,8 +3779,9 @@ export default function RealWorldMap() {
 
     setStartProofDockDismissed(window.localStorage.getItem(START_PROOF_DOCK_DISMISSED_KEY) === '1');
     const savedAdventurePreference = window.localStorage.getItem(ADVENTURE_MAP_STORAGE_KEY);
-    if (savedAdventurePreference === '0') {
-      setAdventureMode(false);
+    const adventureEnabled = savedAdventurePreference === '1';
+    setAdventureMode(adventureEnabled);
+    if (!adventureEnabled) {
       setAdventurePanelOpen(false);
     }
   }, []);
@@ -5627,6 +5639,7 @@ export default function RealWorldMap() {
       handle: place.handle,
       baseCashEnabled: place.baseCashEnabled,
       name: place.name,
+      description: place.description,
       address: [place.city, place.country].filter(Boolean).join(', ') || place.description,
       city: place.city,
       country: place.country,
@@ -5677,6 +5690,7 @@ export default function RealWorldMap() {
             handle: venue.handle,
             baseCashEnabled: venue.baseCashEnabled,
             name: venue.name,
+            description: venue.description,
             address: venue.address,
             city: venue.city,
             country: venue.country,
@@ -8326,6 +8340,17 @@ export default function RealWorldMap() {
     [meetups, router]
   );
 
+  const handleExploreSecrets = useCallback(() => {
+    setSelectedPlace(null);
+    setSelectedMeetup(null);
+    setAdventurePanelOpen(false);
+    setPulseFilter('all');
+    setMapVenueFocus('all');
+    setTargetCenter([adventureCenter.latitude, adventureCenter.longitude]);
+    setTargetZoom(Math.max(9, Math.min(11, mapZoom - 2)));
+    triggerHaptic('selection');
+  }, [adventureCenter.latitude, adventureCenter.longitude, mapZoom]);
+
   const selectedPlaceMarkerHtml = useMemo(() => {
     if (!selectedPlace) {
       return null;
@@ -8614,6 +8639,37 @@ export default function RealWorldMap() {
       });
     });
 
+    if (adventureMode) {
+      localSignals
+        .filter(
+          (signal) =>
+            signal.status === 'APPROVED' &&
+            Number.isFinite(signal.latitude) &&
+            Number.isFinite(signal.longitude)
+        )
+        .slice(0, 6)
+        .forEach((signal) => {
+          const latitude = signal.latitude as number;
+          const longitude = signal.longitude as number;
+          addMarker({
+            key: `adventure-rumor:${signal.id}`,
+            latitude,
+            longitude,
+            html: createAdventureRumorMarkerHtml(signal),
+            className: 'basedare-maplibre-marker basedare-maplibre-marker--adventure-rumor',
+            anchor: 'bottom',
+            onClick: () => {
+              setSelectedPlace(null);
+              setSelectedMeetup(null);
+              setTargetCenter([latitude, longitude]);
+              setTargetZoom(Math.max(14, Math.round(mapZoom)));
+              setNearbyDarePanelCollapsed(false);
+              triggerHaptic('selection');
+            },
+          });
+        });
+    }
+
     if (adventureMode && focalAdventureActivity) {
       addMarker({
         key: `adventure-activity:${focalAdventureActivity.type}:${focalAdventureActivity.id}`,
@@ -8766,6 +8822,7 @@ export default function RealWorldMap() {
     focusPrivateSpot,
     handlePrivateSpotDragEnd,
     handleAdventureActivitySelect,
+    localSignals,
     saveSpotDraft,
     selectedPlace,
     selectedPlaceMarkerHtml,
@@ -10321,6 +10378,7 @@ export default function RealWorldMap() {
               onToggle={handleAdventureModeToggle}
               onPanelOpenChange={setAdventurePanelOpen}
               onSelectActivity={handleAdventureActivitySelect}
+              onExploreSecrets={handleExploreSecrets}
             />
 
             {/* Free meetup layer (Stage 3) — layer filter + legend. Only mounts
@@ -11214,6 +11272,24 @@ export default function RealWorldMap() {
                     className="selected-place-panel-content min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
                     style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)' } : undefined}
                   >
+
+                  {adventureMode && selectedPlace.description ? (
+                    <div className="map-panel-section mt-1 rounded-[22px] border border-violet-200/14 bg-[radial-gradient(circle_at_92%_0%,rgba(139,92,246,0.16),transparent_34%),linear-gradient(180deg,rgba(34,24,53,0.62),rgba(8,8,17,0.9))] px-4 py-3.5 shadow-[0_18px_34px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.07)]">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[9px] font-black uppercase tracking-[0.24em] text-violet-100/64">
+                          Local lore
+                        </p>
+                        <span className="rounded-full border border-violet-100/14 bg-violet-300/[0.07] px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/66">
+                          {(selectedPlace.approvedCount ?? 0) > 0
+                            ? `${selectedPlace.approvedCount} verified`
+                            : 'First proof unclaimed'}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold leading-5 text-white/72">
+                        {selectedPlace.description}
+                      </p>
+                    </div>
+                  ) : null}
 
                   {ceremonyState ? (
                     <div
@@ -15679,44 +15755,36 @@ export default function RealWorldMap() {
           -webkit-user-drag: none;
         }
 
-        /* Adventure mode is a removable presentation layer. The real map,
-           marker hit targets, camera, sources, and place state stay unchanged. */
-        .basedare-maplibre-map :global(.adventure-place-object),
+        /* Pixel place objects are the default marker language. Adventure mode
+           adds discovery signals; it never swaps out or hides real places. */
         .basedare-maplibre-map :global(.adventure-guide-head) {
           display: none;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] .map-meetup-layer-controls,
-        .basedare-maplibre-map[data-adventure-mode='true'] .map-activation-legend,
-        .basedare-maplibre-map[data-adventure-mode='true'] .map-first-proof-dock,
-        .basedare-maplibre-map[data-adventure-mode='true'] .nearby-dare-tray {
-          display: none;
-        }
-
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-core),
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-meta),
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-count),
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.venue-legend-stack),
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-ripple),
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-challenge-aura),
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-challenge-ring),
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-match-badge),
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-shadow) {
+        .basedare-maplibre-map :global(.peebear-core),
+        .basedare-maplibre-map :global(.peebear-meta),
+        .basedare-maplibre-map :global(.peebear-count),
+        .basedare-maplibre-map :global(.venue-legend-stack),
+        .basedare-maplibre-map :global(.peebear-ripple),
+        .basedare-maplibre-map :global(.peebear-challenge-aura),
+        .basedare-maplibre-map :global(.peebear-challenge-ring),
+        .basedare-maplibre-map :global(.peebear-match-badge),
+        .basedare-maplibre-map :global(.peebear-shadow) {
           display: none !important;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker) {
+        .basedare-maplibre-map :global(.peebear-marker) {
           width: 82px;
           height: 112px;
           opacity: 1;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-compact) {
+        .basedare-maplibre-map :global(.peebear-marker.is-compact) {
           width: 70px;
           height: 94px;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-venue-label) {
+        .basedare-maplibre-map :global(.peebear-venue-label) {
           top: 3px;
           max-width: 126px;
           opacity: 0;
@@ -15724,14 +15792,14 @@ export default function RealWorldMap() {
           transition: none;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-active .peebear-venue-label),
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.has-challenge-live .peebear-venue-label),
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-live-tonight .peebear-venue-label) {
+        .basedare-maplibre-map :global(.peebear-marker.is-active .peebear-venue-label),
+        .basedare-maplibre-map :global(.peebear-marker.has-challenge-live .peebear-venue-label),
+        .basedare-maplibre-map :global(.peebear-marker.is-live-tonight .peebear-venue-label) {
           opacity: 1;
           visibility: visible;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-activated-venue .peebear-venue-label) {
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label) {
           top: -2px;
           min-width: 0;
           max-width: 138px;
@@ -15742,12 +15810,12 @@ export default function RealWorldMap() {
           animation: none;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-activated-venue .peebear-venue-label::after),
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-activated-venue .peebear-venue-label::before) {
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label::after),
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label::before) {
           display: none;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object) {
+        .basedare-maplibre-map :global(.adventure-place-object) {
           position: absolute;
           left: 50%;
           bottom: 18px;
@@ -15770,7 +15838,7 @@ export default function RealWorldMap() {
           isolation: isolate;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object::before) {
+        .basedare-maplibre-map :global(.adventure-place-object::before) {
           content: '';
           position: absolute;
           left: 50%;
@@ -15784,18 +15852,66 @@ export default function RealWorldMap() {
           filter: blur(3px);
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-glyph) {
+        .basedare-maplibre-map :global(.adventure-sprite) {
           position: relative;
           z-index: 2;
-          display: grid;
-          place-items: center;
-          font-family: system-ui, sans-serif;
-          font-size: 27px;
-          line-height: 1;
+          display: block;
+          width: 64px;
+          height: 64px;
+          flex: 0 0 64px;
+          background-image: url('/assets/map/adventure-sprites-v1.png');
+          background-repeat: no-repeat;
+          background-size: 384px 256px;
+          image-rendering: pixelated;
           filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.42));
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-modifier) {
+        .basedare-maplibre-map :global(.adventure-sprite--flag) {
+          background-position: -38px -180px;
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--surf) {
+          background-position: -100px -180px;
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--cafe) {
+          background-position: -160px -180px;
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--gathering) {
+          background-position: -229px -180px;
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--rumor) {
+          background-position: -294px -180px;
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--bear) {
+          width: 74px;
+          height: 74px;
+          flex-basis: 74px;
+          background-size: 276px 184px;
+          background-position: -101px -4px;
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--bear-mini) {
+          width: 30px;
+          height: 30px;
+          flex-basis: 30px;
+          background-size: 108px 72px;
+          background-position: -39px -1px;
+          filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.4));
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--rumor-mini) {
+          width: 28px;
+          height: 28px;
+          flex-basis: 28px;
+          background-size: 168px 112px;
+          background-position: -128px -79px;
+        }
+
+        .basedare-maplibre-map :global(.adventure-place-modifier) {
           position: absolute;
           right: -9px;
           top: -8px;
@@ -15817,7 +15933,7 @@ export default function RealWorldMap() {
           box-shadow: 0 7px 14px rgba(0, 0, 0, 0.36);
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object--unmarked) {
+        .basedare-maplibre-map :global(.adventure-place-object--unmarked) {
           border-color: rgba(184, 127, 255, 0.34);
           background:
             radial-gradient(circle at 50% 48%, rgba(184, 127, 255, 0.18), transparent 58%),
@@ -15830,13 +15946,13 @@ export default function RealWorldMap() {
           filter: saturate(0.64) brightness(0.82);
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object--unmarked .adventure-place-modifier) {
+        .basedare-maplibre-map :global(.adventure-place-object--unmarked .adventure-place-modifier) {
           border-color: rgba(8, 6, 17, 0.96);
           background: #6d45a8;
           color: #f1e7ff;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object.has-live-dare) {
+        .basedare-maplibre-map :global(.adventure-place-object.has-live-dare) {
           border-color: rgba(255, 235, 145, 0.82);
           background:
             radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.45), transparent 38%),
@@ -15849,14 +15965,11 @@ export default function RealWorldMap() {
             inset 0 -11px 16px rgba(81, 43, 0, 0.34);
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object.has-live-dare .adventure-place-glyph) {
-          color: #171103;
-          font-size: 31px;
-          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.34);
+        .basedare-maplibre-map :global(.adventure-place-object.has-live-dare .adventure-sprite) {
           filter: none;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.adventure-place-object.has-live-dare .adventure-place-modifier) {
+        .basedare-maplibre-map :global(.adventure-place-object.has-live-dare .adventure-place-modifier) {
           right: -16px;
           min-width: 34px;
           border-color: rgba(19, 12, 0, 0.94);
@@ -15866,7 +15979,7 @@ export default function RealWorldMap() {
           letter-spacing: 0.08em;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true'] :global(.peebear-marker.is-active .adventure-place-object) {
+        .basedare-maplibre-map :global(.peebear-marker.is-active .adventure-place-object) {
           transform: translateX(-50%) translateY(-4px) scale(1.1);
           border-color: rgba(255, 240, 168, 0.86);
         }
@@ -15880,7 +15993,7 @@ export default function RealWorldMap() {
           left: 35px;
           bottom: 23px;
           z-index: 4;
-          display: grid;
+          display: none;
           width: 54px;
           height: 54px;
           place-items: center;
@@ -15913,6 +16026,110 @@ export default function RealWorldMap() {
           background: #22d3ee;
           box-shadow: 0 0 14px rgba(34, 211, 238, 0.52);
           transform: rotate(12deg);
+        }
+
+        .basedare-maplibre-map :global(.adventure-guide-orb) {
+          position: relative;
+          display: grid;
+          width: 78px;
+          height: 78px;
+          place-items: center;
+          overflow: hidden;
+          border: 1px solid rgba(245, 197, 24, 0.38);
+          border-radius: 25px;
+          background:
+            radial-gradient(circle at 32% 18%, rgba(255, 255, 255, 0.16), transparent 42%),
+            linear-gradient(145deg, rgba(35, 25, 8, 0.96), rgba(5, 7, 15, 0.98));
+          box-shadow:
+            0 18px 34px rgba(0, 0, 0, 0.5),
+            0 0 28px rgba(245, 197, 24, 0.16),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14);
+        }
+
+        .basedare-maplibre-map :global(.adventure-guide-orb__spark) {
+          position: absolute;
+          right: 4px;
+          top: 4px;
+          width: 12px;
+          height: 12px;
+          border: 2px solid rgba(4, 7, 13, 0.96);
+          border-radius: 3px;
+          background: #22d3ee;
+          box-shadow: 0 0 14px rgba(34, 211, 238, 0.5);
+          transform: rotate(12deg);
+        }
+
+        .basedare-maplibre-map :global(.adventure-rumor-marker) {
+          position: relative;
+          display: grid;
+          width: 82px;
+          height: 92px;
+          place-items: center;
+          transform: translateY(-5px);
+        }
+
+        .basedare-maplibre-map :global(.adventure-rumor-fog) {
+          position: absolute;
+          inset: 5px;
+          border: 2px dotted rgba(196, 157, 255, 0.58);
+          border-radius: 9999px;
+          background: radial-gradient(circle, rgba(139, 92, 246, 0.16), transparent 66%);
+          box-shadow: 0 0 28px rgba(139, 92, 246, 0.2);
+          animation: adventureRumorTurn 9s linear infinite;
+        }
+
+        .basedare-maplibre-map :global(.adventure-rumor-label) {
+          position: absolute;
+          bottom: -1px;
+          left: 50%;
+          z-index: 4;
+          transform: translateX(-50%);
+          border: 1px solid rgba(196, 157, 255, 0.28);
+          border-radius: 9999px;
+          background: rgba(13, 8, 27, 0.94);
+          padding: 4px 7px;
+          color: rgba(235, 221, 255, 0.86);
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 7px;
+          font-weight: 950;
+          letter-spacing: 0.18em;
+          line-height: 1;
+        }
+
+        @keyframes adventureRumorTurn {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true']
+          :global(.peebear-marker--blazing .adventure-place-object) {
+          border-color: rgba(255, 111, 142, 0.76);
+          box-shadow:
+            0 0 0 5px rgba(255, 60, 104, 0.1),
+            0 0 34px rgba(255, 60, 104, 0.28),
+            0 16px 26px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true']
+          :global(.peebear-marker--igniting .adventure-place-object) {
+          border-color: rgba(34, 211, 238, 0.72);
+          box-shadow:
+            0 0 0 5px rgba(34, 211, 238, 0.09),
+            0 0 30px rgba(34, 211, 238, 0.24),
+            0 16px 26px rgba(0, 0, 0, 0.48),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true']
+          :global(.peebear-marker--simmering .adventure-place-object) {
+          border-color: rgba(245, 197, 24, 0.7);
+          box-shadow:
+            0 0 0 4px rgba(245, 197, 24, 0.08),
+            0 0 26px rgba(245, 197, 24, 0.2),
+            0 15px 24px rgba(0, 0, 0, 0.46),
+            inset 0 1px 0 rgba(255, 255, 255, 0.18);
         }
 
         .basedare-maplibre-map :global(.adventure-focal-marker) {
@@ -17484,18 +17701,48 @@ export default function RealWorldMap() {
           visibility: visible !important;
         }
 
-        /* Adventure mode changes the marker art, not the place identity.
-           Keep individual venue names readable at every settled zoom; clusters
-           already provide the density guard. Gesture-time hiding still wins so
+        /* Pixel objects decorate named places; they never replace place identity.
+           Clusters provide the density guard. Gesture-time hiding still wins so
            desktop Chromium does not regress into marker repaint flicker. */
-        .basedare-maplibre-map[data-adventure-mode='true']:not([data-map-moving='true'])
+        .basedare-maplibre-map:not([data-map-moving='true'])
           :global(.peebear-venue-label) {
           opacity: 1 !important;
           visibility: visible !important;
         }
 
-        .basedare-maplibre-map[data-adventure-mode='true']
-          :global(.peebear-marker--unmarked) {
+        .basedare-maplibre-map :global(.peebear-marker) {
+          width: 82px;
+          height: 112px;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-compact) {
+          width: 70px;
+          height: 94px;
+        }
+
+        .basedare-maplibre-map :global(.peebear-venue-label) {
+          top: 3px;
+          max-width: 126px;
+          transition: none;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label) {
+          top: -2px;
+          min-width: 0;
+          max-width: 138px;
+          border-radius: 9999px;
+          padding: 5px 9px;
+          font-size: 8px;
+          transform: translateX(-50%);
+          animation: none;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label::after),
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label::before) {
+          display: none;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker--unmarked) {
           opacity: 0.94;
         }
 
