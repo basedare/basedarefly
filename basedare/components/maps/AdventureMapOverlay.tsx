@@ -1,7 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronRight, Loader2, Map, Sparkles, Users, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  ChevronRight,
+  Compass,
+  Footprints,
+  Loader2,
+  Map,
+  Sparkles,
+  Users,
+  X,
+} from "lucide-react";
 import type {
   TonightActivity,
   TonightSnapshot,
@@ -18,7 +27,49 @@ type AdventureMapOverlayProps = {
   onPanelOpenChange: (open: boolean) => void;
   onSelectActivity: (activity: TonightActivity) => void;
   onExploreSecrets: () => void;
+  intent: MapAttentionIntent | null;
+  placeSuggestions: MapAttentionPlaceSuggestion[];
+  trailCount: number;
+  onIntentChange: (intent: MapAttentionIntent | null) => void;
+  onSelectPlace: (slug: string) => void;
+  onOpenTrail: () => void;
 };
+
+export type MapAttentionIntent = "meet" | "discover" | "now";
+
+export type MapAttentionPlaceSuggestion = {
+  slug: string;
+  name: string;
+  description: string;
+  meta: string;
+  sprite: "surf" | "cafe" | "gathering" | "rumor" | "flag";
+};
+
+const INTENT_OPTIONS: Array<{
+  id: MapAttentionIntent;
+  label: string;
+  detail: string;
+  sprite: MapAttentionPlaceSuggestion["sprite"];
+}> = [
+  {
+    id: "meet",
+    label: "Meet people",
+    detail: "Public, bounded activities",
+    sprite: "gathering",
+  },
+  {
+    id: "discover",
+    label: "Find something interesting",
+    detail: "Places with a story",
+    sprite: "rumor",
+  },
+  {
+    id: "now",
+    label: "Do something now",
+    detail: "Live, nearby and low-friction",
+    sprite: "flag",
+  },
+];
 
 const PEEBEAR_FIELD_LINES = [
   "Tap a named place for its lore.",
@@ -66,12 +117,56 @@ export default function AdventureMapOverlay({
   onPanelOpenChange,
   onSelectActivity,
   onExploreSecrets,
+  intent,
+  placeSuggestions,
+  trailCount,
+  onIntentChange,
+  onSelectPlace,
+  onOpenTrail,
 }: AdventureMapOverlayProps) {
   const [guideLineIndex, setGuideLineIndex] = useState(0);
-  const focalActivity = snapshot?.activities[0] ?? null;
+  const rankedActivities = useMemo(() => {
+    const activities = [...(snapshot?.activities ?? [])];
+    if (intent === "meet") {
+      return activities.filter((activity) => activity.type === "meetup");
+    }
+    if (intent === "now") {
+      return activities.sort((a, b) => {
+        const aTime = a.startsAt ? new Date(a.startsAt).getTime() : 0;
+        const bTime = b.startsAt ? new Date(b.startsAt).getTime() : 0;
+        return aTime - bTime;
+      });
+    }
+    return [];
+  }, [intent, snapshot?.activities]);
+  const focalActivity = rankedActivities[0] ?? null;
   const activityCount = snapshot?.totals.activities ?? 0;
   const goingCount = snapshot?.totals.going ?? 0;
   const showPanel = enabled && panelOpen && !obscured;
+  const guideLines = useMemo(() => {
+    const personalLine =
+      intent === "meet"
+        ? goingCount > 0
+          ? `${goingCount} people are joining public activities nearby.`
+          : "I’ll show public activities when people opt in."
+        : intent === "now"
+        ? focalActivity
+          ? `${focalActivity.title} is your strongest live option.`
+          : "No fake urgency. I’m looking for a useful move now."
+        : intent === "discover"
+        ? "Purple stones mark reviewed clues, not random pins."
+        : "Tell me what would make your next two hours better.";
+
+    return [
+      personalLine,
+      trailCount > 0
+        ? `Your trail remembers ${trailCount} verified ${
+            trailCount === 1 ? "place" : "places"
+          }.`
+        : "Your first verified place will start a permanent trail.",
+      ...PEEBEAR_FIELD_LINES,
+    ];
+  }, [focalActivity, goingCount, intent, trailCount]);
 
   return (
     <>
@@ -155,7 +250,163 @@ export default function AdventureMapOverlay({
               <span className="sm:hidden">Secrets</span>
             </button>
           ) : null}
+
+          <button
+            type="button"
+            onClick={onOpenTrail}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-emerald-200/16 bg-[linear-gradient(180deg,rgba(17,42,36,0.88),rgba(5,9,13,0.95))] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-50/80 shadow-[0_14px_30px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition hover:border-emerald-100/28"
+          >
+            <Footprints className="h-3.5 w-3.5 text-emerald-200" />
+            Trail · {trailCount}
+          </button>
         </div>
+
+        {!obscured && !intent ? (
+          <section className="pointer-events-auto mt-1 max-h-[min(24rem,55dvh)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-[26px] border border-[#f5c518]/24 bg-[radial-gradient(circle_at_92%_0%,rgba(34,211,238,0.13),transparent_34%),radial-gradient(circle_at_5%_0%,rgba(245,197,24,0.16),transparent_36%),linear-gradient(180deg,rgba(18,20,31,0.97),rgba(5,7,14,0.985))] p-4 shadow-[0_28px_64px_rgba(0,0,0,0.56),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl">
+            <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#f8dd72]/70">
+              PeeBear reads the field
+            </p>
+            <h2 className="mt-2 max-w-[18rem] text-xl font-black leading-6 text-white">
+              What would make your next two hours better?
+            </h2>
+            <p className="mt-2 text-xs leading-5 text-white/52">
+              Pick a mood. I’ll narrow the map to three useful possibilities.
+            </p>
+            <div className="mt-3 grid gap-2">
+              {INTENT_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => onIntentChange(option.id)}
+                  className="group flex min-h-14 items-center gap-3 rounded-[18px] border border-white/9 bg-white/[0.035] px-3 text-left transition hover:-translate-y-0.5 hover:border-cyan-100/24 hover:bg-cyan-300/[0.055]"
+                >
+                  <span
+                    className={`adventure-sprite adventure-sprite--${option.sprite}`}
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-black text-white">
+                      {option.label}
+                    </span>
+                    <span className="mt-0.5 block text-[10px] font-semibold text-white/44">
+                      {option.detail}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-white/28 transition group-hover:text-cyan-100" />
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {!obscured && intent ? (
+          <section className="pointer-events-auto mt-1 max-h-[min(21rem,45dvh)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-[24px] border border-cyan-100/15 bg-[linear-gradient(180deg,rgba(13,21,32,0.95),rgba(5,7,14,0.975))] p-3.5 shadow-[0_24px_54px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-cyan-100/52">
+                  For your next move
+                </p>
+                <p className="mt-1 text-sm font-black text-white">
+                  {intent === "meet"
+                    ? "People, without the social gamble"
+                    : intent === "discover"
+                    ? "A place worth having a story about"
+                    : "Something useful you can do now"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onIntentChange(null)}
+                className="shrink-0 rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/48 transition hover:text-white"
+              >
+                Change
+              </button>
+            </div>
+
+            <div className="mt-3 grid gap-2">
+              {focalActivity ? (
+                <button
+                  type="button"
+                  onClick={() => onSelectActivity(focalActivity)}
+                  className="group flex min-h-16 items-center gap-3 rounded-[18px] border border-[#f5c518]/24 bg-[#f5c518]/[0.08] px-3 text-left transition hover:border-[#f5c518]/42 hover:bg-[#f5c518]/[0.12]"
+                >
+                  <span
+                    className={`adventure-sprite adventure-sprite--${
+                      focalActivity.type === "dare" ? "flag" : "gathering"
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-[#f8dd72]/72">
+                      Best match
+                    </span>
+                    <span className="mt-1 line-clamp-1 block text-sm font-black text-white">
+                      {focalActivity.title}
+                    </span>
+                    <span className="mt-1 block text-[10px] font-bold text-white/50">
+                      {getActivityMeta(focalActivity)}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-[#f8dd72]" />
+                </button>
+              ) : null}
+
+              {placeSuggestions
+                .slice(0, focalActivity ? 2 : 3)
+                .map((place, index) => (
+                  <button
+                    key={place.slug}
+                    type="button"
+                    onClick={() => onSelectPlace(place.slug)}
+                    className="group flex min-h-14 items-center gap-3 rounded-[17px] border border-white/9 bg-white/[0.035] px-3 text-left transition hover:border-violet-100/22 hover:bg-violet-300/[0.045]"
+                  >
+                    <span
+                      className={`adventure-sprite adventure-sprite--${place.sprite}`}
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[8px] font-black uppercase tracking-[0.15em] text-violet-100/48">
+                        {!focalActivity && index === 0
+                          ? "Best match"
+                          : (!focalActivity && index === 1) ||
+                            (focalActivity && index === 0)
+                          ? "Easy alternative"
+                          : "Mystery choice"}
+                      </span>
+                      <span className="mt-0.5 line-clamp-1 block text-xs font-black text-white">
+                        {place.name}
+                      </span>
+                      <span className="mt-1 line-clamp-1 block text-[9px] font-semibold text-white/46">
+                        {place.description}
+                      </span>
+                      <span className="mt-1 line-clamp-1 block text-[9px] font-semibold text-white/42">
+                        {place.meta}
+                      </span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-white/24 transition group-hover:text-violet-100" />
+                  </button>
+                ))}
+
+              {!focalActivity && placeSuggestions.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={onExploreSecrets}
+                  className="flex min-h-14 items-center gap-3 rounded-[17px] border border-violet-200/18 bg-violet-300/[0.055] px-3 text-left"
+                >
+                  <Compass className="h-5 w-5 text-violet-100" />
+                  <span>
+                    <span className="block text-xs font-black text-white">
+                      Widen the search
+                    </span>
+                    <span className="mt-1 block text-[9px] text-white/44">
+                      No fake recommendations. Scan a larger area.
+                    </span>
+                  </span>
+                </button>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         {showPanel ? (
           <div className="pointer-events-auto relative w-full overflow-hidden rounded-[24px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(245,197,24,0.14),transparent_34%),radial-gradient(circle_at_95%_15%,rgba(34,211,238,0.13),transparent_32%),linear-gradient(180deg,rgba(18,20,31,0.96),rgba(5,7,14,0.975))] p-3.5 shadow-[0_24px_54px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.11)] backdrop-blur-xl">
@@ -226,19 +477,17 @@ export default function AdventureMapOverlay({
         ) : null}
       </div>
 
-      {enabled && !obscured ? (
+      {!obscured ? (
         <button
           type="button"
           onClick={() =>
-            setGuideLineIndex(
-              (current) => (current + 1) % PEEBEAR_FIELD_LINES.length
-            )
+            setGuideLineIndex((current) => (current + 1) % guideLines.length)
           }
           aria-label="Ask PeeBear for another field hint"
           className="pointer-events-auto absolute bottom-5 right-4 z-[16] flex max-w-[min(18rem,calc(100%-2rem))] items-end gap-2 text-left md:bottom-6 md:right-6"
         >
           <span className="mb-2 rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.94),rgba(5,7,14,0.97))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/82 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl">
-            {PEEBEAR_FIELD_LINES[guideLineIndex]}
+            {guideLines[guideLineIndex % guideLines.length]}
           </span>
           <span className="adventure-guide-orb shrink-0" aria-hidden="true">
             <span className="adventure-sprite adventure-sprite--bear" />

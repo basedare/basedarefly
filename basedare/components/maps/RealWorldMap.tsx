@@ -60,7 +60,10 @@ import ProofReel from '@/components/maps/ProofReel';
 import ProofMomentSheet from '@/components/maps/ProofMomentSheet';
 import MeetupComposerSheet from '@/components/maps/MeetupComposerSheet';
 import LayerReelBar from '@/components/maps/LayerReelBar';
-import AdventureMapOverlay from '@/components/maps/AdventureMapOverlay';
+import AdventureMapOverlay, {
+  type MapAttentionIntent,
+  type MapAttentionPlaceSuggestion,
+} from '@/components/maps/AdventureMapOverlay';
 import {
   useTonightActivity,
   type TonightActivity,
@@ -560,6 +563,7 @@ const LOCAL_SIGNAL_CATEGORIES = [
 const ACTIVE_PRESENCE_STORAGE_KEY = 'basedare:active-presence-signal';
 const START_PROOF_DOCK_DISMISSED_KEY = 'basedare:map-start-proof-dismissed';
 const ADVENTURE_MAP_STORAGE_KEY = 'basedare:adventure-map-enabled-v2';
+const MAP_ATTENTION_INTENT_STORAGE_KEY = 'basedare:map-attention-intent-v1';
 
 type FootprintMark = {
   id: string;
@@ -3555,6 +3559,7 @@ export default function RealWorldMap() {
   const [startProofDockDismissed, setStartProofDockDismissed] = useState(false);
   const [adventureMode, setAdventureMode] = useState(false);
   const [adventurePanelOpen, setAdventurePanelOpen] = useState(false);
+  const [mapAttentionIntent, setMapAttentionIntent] = useState<MapAttentionIntent | null>(null);
   const isImmersiveMobile = isMobileViewport && isMapFullscreenMobile;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [proofMoment, setProofMoment] = useState<null | {
@@ -3585,7 +3590,7 @@ export default function RealWorldMap() {
       },
     [userLocation, viewportCenter]
   );
-  const tonightActivity = useTonightActivity(adventureCenter, adventureMode && mapReady);
+  const tonightActivity = useTonightActivity(adventureCenter, mapReady);
   const focalAdventureActivity = tonightActivity.snapshot?.activities[0] ?? null;
   const deepLinkedLocation = useMemo(() => {
     const latitude = Number(searchParams.get('lat'));
@@ -3784,7 +3789,32 @@ export default function RealWorldMap() {
     if (!adventureEnabled) {
       setAdventurePanelOpen(false);
     }
+    const savedIntent = window.localStorage.getItem(MAP_ATTENTION_INTENT_STORAGE_KEY);
+    if (savedIntent === 'meet' || savedIntent === 'discover' || savedIntent === 'now') {
+      setMapAttentionIntent(savedIntent);
+    }
   }, []);
+
+  const handleMapAttentionIntentChange = useCallback(
+    (intent: MapAttentionIntent | null) => {
+      setMapAttentionIntent(intent);
+      if (intent === 'discover') {
+        setSelectedPlace(null);
+        setSelectedMeetup(null);
+        setTargetCenter([adventureCenter.latitude, adventureCenter.longitude]);
+        setTargetZoom(11);
+      }
+      if (typeof window !== 'undefined') {
+        if (intent) {
+          window.localStorage.setItem(MAP_ATTENTION_INTENT_STORAGE_KEY, intent);
+        } else {
+          window.localStorage.removeItem(MAP_ATTENTION_INTENT_STORAGE_KEY);
+        }
+      }
+      triggerHaptic('selection');
+    },
+    [adventureCenter.latitude, adventureCenter.longitude]
+  );
 
   const handleAdventureModeToggle = useCallback(() => {
     setAdventureMode((current) => {
@@ -6585,6 +6615,54 @@ export default function RealWorldMap() {
       return true;
     });
   }, [footprintVenueIndex, liveVenueSlugSet, mapVenueFocus, matchedVenueIndex, nearbyPlaces, pulseFilter]);
+  const mapAttentionPlaceSuggestions = useMemo<MapAttentionPlaceSuggestion[]>(() => {
+    if (!mapAttentionIntent) return [];
+
+    const scorePlace = (place: NearbyPlace) => {
+      const categories = place.categories.join(' ').toLowerCase();
+      const hasStory = Boolean(place.description?.trim());
+      const isSocial = /bar|night|music|club|community|gather|hostel|market|event/.test(categories);
+      const isDiscovery = /surf|beach|island|coast|water|lagoon|river|cave|pool|view|nature|trail/.test(categories);
+      const proofCount = place.tagSummary.approvedCount;
+      const liveScore = place.activeDareCount * 35 + Math.min(24, place.tagSummary.heatScore / 4);
+      const socialScore = (isSocial ? 30 : 0) + Math.min(18, place.checkInCount * 2);
+      const discoveryScore = (isDiscovery ? 28 : 0) + (hasStory ? 16 : 0) + (proofCount === 0 ? 12 : 0);
+
+      if (mapAttentionIntent === 'meet') return socialScore + liveScore + proofCount;
+      if (mapAttentionIntent === 'now') return liveScore + socialScore / 2 + (proofCount > 0 ? 8 : 0);
+      return discoveryScore + Math.min(14, proofCount * 2) + liveScore / 3;
+    };
+
+    return [...nearbyPlaces]
+      .sort((a, b) => scorePlace(b) - scorePlace(a))
+      .slice(0, 3)
+      .map((place) => {
+        const proofCount = place.tagSummary.approvedCount;
+        const meta =
+          place.activeDareCount > 0
+            ? `${place.activeDareCount} live ${place.activeDareCount === 1 ? 'Dare' : 'Dares'}`
+            : place.checkInCount > 0
+              ? `${place.checkInCount} verified ${place.checkInCount === 1 ? 'visit' : 'visits'}`
+              : proofCount > 0
+                ? `${proofCount} verified ${proofCount === 1 ? 'Spark' : 'Sparks'}`
+                : 'First proof unclaimed';
+
+        return {
+          slug: place.slug,
+          name: place.name,
+          description: place.description ?? (place.categories.slice(0, 2).join(' · ') || 'Nearby place'),
+          meta,
+          sprite: getAdventurePlaceSprite({
+            challengeLiveCount: place.activeDareCount,
+            categories: place.categories,
+          }),
+        };
+      });
+  }, [mapAttentionIntent, nearbyPlaces]);
+  const mapAttentionSuggestedSlugSet = useMemo(
+    () => new Set(mapAttentionPlaceSuggestions.map((place) => place.slug)),
+    [mapAttentionPlaceSuggestions]
+  );
   const latestPrivateMapSpot = privateMapSpots[0] ?? null;
   const selectedPrivateMapSpot = useMemo(() => {
     if (!selectedPlace || selectedPlace.placeSource !== 'PRIVATE_SAVED_SPOT') {
@@ -8351,6 +8429,31 @@ export default function RealWorldMap() {
     triggerHaptic('selection');
   }, [adventureCenter.latitude, adventureCenter.longitude, mapZoom]);
 
+  const handleMapAttentionPlaceSelect = useCallback(
+    (slug: string) => {
+      const place = nearbyPlaceBySlug.get(slug);
+      if (!place) {
+        triggerHaptic('warning');
+        return;
+      }
+      focusExistingPlace(place);
+    },
+    [focusExistingPlace, nearbyPlaceBySlug]
+  );
+
+  const handleOpenPersonalTrail = useCallback(() => {
+    if (footprintMarks.length === 0) {
+      setNearbyDarePanelCollapsed(false);
+      triggerHaptic('warning');
+      return;
+    }
+    setPulseFilter('all');
+    setMapVenueFocus('footprint');
+    setShowMatchedLayer(false);
+    setShowFootprintLayer(true);
+    triggerHaptic('selection');
+  }, [footprintMarks.length]);
+
   const selectedPlaceMarkerHtml = useMemo(() => {
     if (!selectedPlace) {
       return null;
@@ -8602,6 +8705,7 @@ export default function RealWorldMap() {
       const reviewSignal = getVenueReviewSignal(place);
       const isActive = selectedPlace?.placeId === place.id;
       const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
+      const isAttentionPick = mapAttentionSuggestedSlugSet.has(place.slug);
       const activatedVenue = isVenueActivated(place.commandCenter);
       const highSignalVenue =
         activatedVenue ||
@@ -8633,7 +8737,9 @@ export default function RealWorldMap() {
           liveTonight: isVenueNightTonight(place.name, place.slug),
           mayorTag: place.mayor?.tag ?? null,
         }),
-        className: 'basedare-maplibre-marker basedare-maplibre-marker--venue',
+        className: `basedare-maplibre-marker basedare-maplibre-marker--venue${
+          isAttentionPick ? ' basedare-maplibre-marker--attention-pick' : ''
+        }`,
         anchor: 'bottom',
         onClick: () => focusExistingPlace(place),
       });
@@ -8823,6 +8929,7 @@ export default function RealWorldMap() {
     handlePrivateSpotDragEnd,
     handleAdventureActivitySelect,
     localSignals,
+    mapAttentionSuggestedSlugSet,
     saveSpotDraft,
     selectedPlace,
     selectedPlaceMarkerHtml,
@@ -10354,6 +10461,8 @@ export default function RealWorldMap() {
             data-map-preset={mapPreset}
             data-layer-filter={effectiveLayerFilter}
             data-adventure-mode={adventureMode ? 'true' : 'false'}
+            data-attention-intent={mapAttentionIntent ?? 'unset'}
+            data-attention-guide={!selectedPlace && !selectedMeetup ? 'true' : 'false'}
             data-crosshair={!isMobileViewport ? 'true' : undefined}
             className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
               isImmersiveMobile
@@ -10367,6 +10476,7 @@ export default function RealWorldMap() {
               aria-label="BaseDare MapLibre 3D city grid"
             />
             <div className="maplibre-depth-vignette pointer-events-none absolute inset-0 z-[1]" />
+            <div className="adventure-map-atmosphere pointer-events-none absolute inset-0 z-[2]" aria-hidden="true" />
 
             <AdventureMapOverlay
               enabled={adventureMode}
@@ -10379,6 +10489,12 @@ export default function RealWorldMap() {
               onPanelOpenChange={setAdventurePanelOpen}
               onSelectActivity={handleAdventureActivitySelect}
               onExploreSecrets={handleExploreSecrets}
+              intent={mapAttentionIntent}
+              placeSuggestions={mapAttentionPlaceSuggestions}
+              trailCount={footprintStats?.totalMarks ?? footprintMarks.length}
+              onIntentChange={handleMapAttentionIntentChange}
+              onSelectPlace={handleMapAttentionPlaceSelect}
+              onOpenTrail={handleOpenPersonalTrail}
             />
 
             {/* Free meetup layer (Stage 3) — layer filter + legend. Only mounts
@@ -15757,6 +15873,69 @@ export default function RealWorldMap() {
 
         /* Pixel place objects are the default marker language. Adventure mode
            adds discovery signals; it never swaps out or hides real places. */
+        .adventure-map-atmosphere {
+          opacity: 0;
+          background:
+            radial-gradient(circle at 18% 22%, rgba(34, 211, 238, 0.1), transparent 23%),
+            radial-gradient(circle at 78% 68%, rgba(139, 92, 246, 0.11), transparent 27%),
+            repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 4px),
+            repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 4px);
+          mix-blend-mode: screen;
+          transition: opacity 280ms ease;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] .adventure-map-atmosphere {
+          opacity: 0.82;
+        }
+
+        .basedare-maplibre-map[data-attention-guide='true'] .map-activation-legend,
+        .basedare-maplibre-map[data-attention-guide='true'] .map-first-proof-dock,
+        .basedare-maplibre-map[data-attention-guide='true'] .nearby-dare-tray,
+        .basedare-maplibre-map[data-attention-guide='true'] .map-meetup-layer-controls {
+          display: none;
+        }
+
+        .basedare-maplibre-map[data-adventure-mode='true'] .adventure-map-atmosphere::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(135deg, transparent 0 46%, rgba(245, 197, 24, 0.035) 46% 47%, transparent 47% 100%),
+            radial-gradient(circle at 50% 50%, transparent 28%, rgba(5, 7, 14, 0.22) 100%);
+          background-size: 34px 34px, auto;
+          image-rendering: pixelated;
+        }
+
+        .basedare-maplibre-map:not([data-attention-intent='unset'])
+          :global(.basedare-maplibre-marker--venue) {
+          opacity: 0.58;
+          filter: saturate(0.72);
+          transition: opacity 180ms ease, filter 180ms ease;
+        }
+
+        .basedare-maplibre-map:not([data-attention-intent='unset'])
+          :global(.basedare-maplibre-marker--attention-pick),
+        .basedare-maplibre-map:not([data-attention-intent='unset'])
+          :global(.basedare-maplibre-marker--selected) {
+          z-index: 8 !important;
+          opacity: 1;
+          filter: saturate(1.08);
+        }
+
+        .basedare-maplibre-map :global(.basedare-maplibre-marker--attention-pick .adventure-place-object) {
+          border-color: rgba(245, 197, 24, 0.76);
+          box-shadow:
+            0 0 0 5px rgba(245, 197, 24, 0.08),
+            0 0 30px rgba(245, 197, 24, 0.2),
+            0 16px 28px rgba(0, 0, 0, 0.52),
+            inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        }
+
+        .basedare-maplibre-map :global(.basedare-maplibre-marker--attention-pick .peebear-venue-label) {
+          border-color: rgba(245, 197, 24, 0.34);
+          color: rgba(255, 245, 190, 0.94);
+        }
+
         .basedare-maplibre-map :global(.adventure-guide-head) {
           display: none;
         }
