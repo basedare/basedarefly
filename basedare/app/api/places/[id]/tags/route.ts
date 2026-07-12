@@ -16,6 +16,7 @@ import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 import { alertPlaceTagSubmission } from '@/lib/telegram';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
 import { createWalletNotification } from '@/lib/notifications';
+import { composePassport } from '@/lib/creator-passport';
 
 // A proof mark auto-approves when the same wallet has a CONFIRMED venue
 // check-in (QR + GPS, replay-protected) at this venue within this window —
@@ -222,7 +223,7 @@ export async function POST(
 
     if (!walletAddress) {
       return NextResponse.json(
-        { success: false, error: 'Connect the wallet tied to your verified tag before tagging a place' },
+        { success: false, error: 'Connect the wallet tied to your verified BareTag before publishing place proof' },
         { status: 401 }
       );
     }
@@ -343,7 +344,7 @@ export async function POST(
     const creatorProfile = await findPrimaryCreatorTagForWallet(walletAddress);
     if (!creatorProfile) {
       return NextResponse.json(
-        { success: false, error: 'Claim and verify your creator tag before tagging this place.' },
+        { success: false, error: 'Secure a verified BareTag before publishing place proof.' },
         { status: 403 }
       );
     }
@@ -386,8 +387,9 @@ export async function POST(
     let presenceBacked = false;
     let presenceCheckInId: string | null = null;
     try {
-      // Require QR_AND_GPS specifically — a CONFIRMED check-in can be QR_ONLY,
-      // and QR+GPS is the unfakeable guarantee the auto-approval rests on.
+      // Require QR_AND_GPS specifically — a CONFIRMED check-in can be QR_ONLY.
+      // The paired signals support automatic approval without being treated as
+      // impossible to spoof.
       const presenceCheckIn = await prisma.venueCheckIn.findFirst({
         where: {
           venueId: id,
@@ -485,6 +487,11 @@ export async function POST(
       }).catch((receiptError) => {
         const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
         console.error('[PLACE_TAGS_POST] Room receipt failed:', receiptMessage);
+        return null;
+      });
+
+      await composePassport(walletAddress, { persist: true }).catch((passportError) => {
+        console.error('[PLACE_TAGS_POST] Passport refresh failed:', passportError);
         return null;
       });
     } else {

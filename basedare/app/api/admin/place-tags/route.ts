@@ -6,6 +6,7 @@ import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
 import { withReceiptSerial } from '@/lib/receipt-serial';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
+import { composePassport } from '@/lib/creator-passport';
 
 const ALLOWED_PLACE_TAG_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'FLAGGED'] as const;
 
@@ -194,6 +195,11 @@ export async function PUT(request: NextRequest) {
         }).catch((receiptError) => {
           const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
           console.error('[ADMIN_PLACE_TAGS] Room receipt failed:', receiptMessage);
+          return null;
+        });
+
+        await composePassport(existingTag.walletAddress, { persist: true }).catch((passportError) => {
+          console.error('[ADMIN_PLACE_TAGS] Passport refresh failed:', passportError);
           return null;
         });
       }

@@ -231,7 +231,7 @@ export default function TagPlaceButton({
       return 'Proof needs location + venue QR. You can still browse the map — enable location in your browser settings when you want to leave proof.';
     if (geoError) return geoError;
     if (coordinates) return 'Location locked. Proof will be checked against this place.';
-    return 'Location proves you are really here — it unlocks your venue-sealed receipt.';
+    return 'Location helps verify that your device is near this place and supports the review.';
   }, [coordinates, geoError, geoLoading, geoSupported, locationDenied]);
 
   const authMessage = useMemo(() => {
@@ -269,7 +269,7 @@ export default function TagPlaceButton({
 
     return {
       title: 'Sign in required',
-      description: 'Place tagging needs your wallet-backed session. If you already claimed your tag, just reconnect your session here.',
+      description: 'Public place proof needs your wallet-backed session and verified BareTag. Open paid missions use their own claim flow.',
       cta: 'Reconnect session',
     };
   }, [authChecking, hasVerifiedSession, hasWalletConnection, hasWalletMismatch, sessionStatus, sessionToken, sessionWallet]);
@@ -480,8 +480,8 @@ export default function TagPlaceButton({
       const actorLabel = payload.data?.creatorTag
         ? `@${payload.data.creatorTag.replace(/^@/, '')}`
         : normalizedConnectedWallet ?? sessionWallet;
-      // Presence-backed marks (a confirmed QR+GPS check-in) clear instantly —
-      // no referee. Reflect that in the receipt instead of "waiting for review".
+      // Presence-backed marks (a recent confirmed QR + GPS check-in) can be
+      // approved automatically. Reflect that without overstating either signal.
       const presenceVerified =
         payload.data?.presenceBacked === true || payload.data?.status === 'APPROVED';
       setSubmitState('success');
@@ -496,7 +496,7 @@ export default function TagPlaceButton({
             ? `First proof submitted at ${venueName}`
             : `Proof submitted at ${venueName}`,
         detail: presenceVerified
-          ? 'Your venue check-in verified it instantly — it’s live on the map now.'
+          ? 'A recent confirmed venue check-in matched this proof, so it is live on the map.'
           : payload.data?.firstMark
             ? 'This is waiting for review. If approved, it becomes the first public proof for the venue.'
             : 'This is waiting for review. If approved, the venue updates automatically.',
@@ -595,11 +595,11 @@ export default function TagPlaceButton({
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-purple-300/24 bg-purple-500/[0.1] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] text-purple-100">
                     <Crosshair className="h-3.5 w-3.5" />
-                    Take proof
+                    Add place proof
                   </div>
                   <h3 className="mt-4 text-2xl font-black text-white">{placeName}</h3>
                   <p className="mt-2 max-w-lg text-sm text-white/60">
-                    Take a photo or video from the spot. We check the location, then send it for review.
+                    Leave fresh evidence for this place. Approved proof updates the map, your trail, and your reputation.
                   </p>
                 </div>
                 <button
@@ -619,16 +619,16 @@ export default function TagPlaceButton({
                     {submittedVerified ? 'Proof verified' : 'Proof pending'}
                   </p>
                   <p className="mt-3 text-lg font-bold text-white">
-                    {submittedVerified ? "Your proof is live on the map." : 'Your proof is in review.'}
+                    {submittedVerified ? 'Your proof is live on the map.' : 'Your proof is in review.'}
                   </p>
                   <p className="mt-2 text-sm text-white/65">
                     {submittedVerified
                       ? submittedFirstMark
-                        ? 'Your check-in verified it instantly — you’re the first verified proof here.'
-                        : 'Your check-in verified it instantly. The venue is already updated.'
+                        ? 'A recent confirmed check-in matched it — you’re the first verified proof here.'
+                        : 'A recent confirmed check-in matched it. The place is already updated.'
                       : submittedFirstMark
                         ? 'If this clears, you become the first verified proof here.'
-                        : 'If this clears, the venue updates automatically.'}
+                        : 'If this clears, the place updates automatically.'}
                   </p>
                   <div className="mt-4 rounded-[18px] border border-white/10 bg-black/18 px-4 py-3">
                     <p className="text-[11px] uppercase tracking-[0.2em] text-white/42">
@@ -636,8 +636,13 @@ export default function TagPlaceButton({
                     </p>
                     <p className="mt-2 text-sm text-white/70">
                       {submittedVerified
-                        ? 'Your QR + GPS check-in proves you were here, so it cleared with no referee.'
-                        : 'Referees review it. If it passes, the map shows your verified proof.'}
+                        ? 'A recent confirmed QR + location check-in matched this submission, so it was approved automatically.'
+                        : 'Referees review it. If it passes, the map and your trail show the verified proof.'}
+                    </p>
+                    <p className="mt-2 text-xs text-white/48">
+                      {submittedVerified
+                        ? 'If this is your first approved place proof, it completes Wake a Spot (+150 Signal Points).'
+                        : 'Trail credit and the Wake a Spot bonus activate only after approval.'}
                     </p>
                   </div>
                   {submittedReceipt ? (
@@ -679,6 +684,12 @@ export default function TagPlaceButton({
                 </div>
               ) : (
                 <>
+                  <div className="mb-4 rounded-[20px] border border-cyan-200/14 bg-cyan-300/[0.055] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/62">What you get</p>
+                    <p className="mt-1.5 text-xs leading-5 text-white/58">
+                      Approved proof becomes place memory, extends your public trail, and creates a shareable receipt. Your first approved place proof completes Wake a Spot (+150 Signal Points). This unpaid public contribution requires a BareTag; paid missions show a USDC reward and use their own claim flow.
+                    </p>
+                  </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="bd-puncture-surface bd-puncture-surface--purple rounded-[24px] border border-white/10 p-4">
                       <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Proof</p>

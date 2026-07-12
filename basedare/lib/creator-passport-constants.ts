@@ -29,11 +29,11 @@ export const STARTER_MISSIONS: MissionDef[] = [
   { id: 'claim_signal', title: 'Claim Your Signal', detail: 'Finish tag, avatar, city.', points: 100, detection: 'data' },
   { id: 'tune_radar', title: 'Tune Your Radar', detail: 'Choose mission styles and radius.', points: 75, detection: 'passport' },
   { id: 'open_grid', title: 'Open the Grid', detail: 'Inspect one venue.', points: 50, detection: 'explicit' },
-  { id: 'wake_spot', title: 'Wake a Spot', detail: 'Mark a venue that needs first proof.', points: 150, detection: 'data' },
+  { id: 'wake_spot', title: 'Wake a Spot', detail: 'Get your first place proof approved.', points: 150, detection: 'data' },
   { id: 'mission_pings', title: 'Mission Pings On', detail: 'Enable mission pings.', points: 75, detection: 'passport' },
   { id: 'payout_ready', title: 'Payout Ready', detail: 'Connect your payout wallet.', points: 150, detection: 'passport' },
   { id: 'first_spark_applied', title: 'First Spark Applied', detail: 'Apply to one available route.', points: 250, detection: 'explicit' },
-  { id: 'first_proof_drop', title: 'First Proof Drop', detail: 'Submit first approved proof.', points: 1000, detection: 'data' },
+  { id: 'first_proof_drop', title: 'First Paid Proof', detail: 'Complete a paid dare with approved proof.', points: 1000, detection: 'data' },
 ];
 
 export const MISSION_BY_ID: Record<MissionId, MissionDef> = Object.fromEntries(

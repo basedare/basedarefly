@@ -952,7 +952,7 @@ function CreateDareContent() {
               What you&apos;re funding
             </p>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/55">
-              {['Fund a dare', 'Someone shows up', 'QR + GPS proves it', 'They get paid', 'You get the receipt'].map((beat, index) => (
+              {['Fund a dare', 'Someone shows up', 'Evidence is checked', 'They get paid', 'You get the receipt'].map((beat, index) => (
                 <span key={beat} className="inline-flex items-center gap-2">
                   {index > 0 ? <span className="text-[#f5c518]/55">→</span> : null}
                   {beat}
@@ -988,7 +988,7 @@ function CreateDareContent() {
                   <p className="mt-1 text-xs leading-5 text-white/54">
                     {isVenueSignalCheckout
                       ? 'This drop will attach to the venue memory layer and route proof back to the map.'
-                      : 'This mission will attach to the venue record directly. No GPS permission is needed for this route.'}
+                      : 'This mission attaches to the venue record directly, so the funder does not need to share their own location.'}
                   </p>
                 </div>
               </div>
@@ -1224,7 +1224,7 @@ function CreateDareContent() {
                       eyebrow: 'USDC escrow',
                       title: isVenueSignalCheckout ? 'Funded Drop' : 'Paid Dare',
                       body: isVenueSignalCheckout
-                        ? 'Put USDC behind this venue so someone shows up and proves it.'
+                        ? 'Put USDC behind this venue so someone shows up and submits checked evidence.'
                         : 'Fund a dare with a real payout.',
                     },
                     {
@@ -1426,7 +1426,7 @@ function CreateDareContent() {
                         {watchVenueId ? (
                           <>
                             <CheckCircle className="w-5 h-5 text-cyan-300" />
-                            <span className="text-sm text-cyan-200 font-mono">Venue locked · GPS not needed</span>
+                            <span className="text-sm text-cyan-200 font-mono">Venue locked · funder GPS not needed</span>
                           </>
                         ) : geoLoading ? (
                           <>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
@@ -94,7 +95,9 @@ export default function CreatePlaceChallengeButton({
   const [approvalStatus, setApprovalStatus] = useState<BountyApprovalStatus>('idle');
   const [submitState, setSubmitState] = useState<'idle' | 'success'>('idle');
   const [creationResult, setCreationResult] = useState<BountyCreationResult | null>(null);
+  const [openingFullBuilder, setOpeningFullBuilder] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const { address: walletAddress, isConnected } = useAccount();
   const publicClient = usePublicClient();
@@ -237,7 +240,7 @@ export default function CreatePlaceChallengeButton({
   }
 
   async function resolvePlaceAnchor() {
-    if (effectivePlaceId) {
+    if (effectivePlaceId && !effectivePlaceId.startsWith('curated:')) {
       return effectivePlaceId;
     }
 
@@ -282,6 +285,29 @@ export default function CreatePlaceChallengeButton({
     setResolvedPlaceId(resolvePayload.data.place.id);
     onPlaceResolved?.(resolvePayload.data.place);
     return resolvePayload.data.place.id;
+  }
+
+  async function handleOpenFullBuilder() {
+    try {
+      setOpeningFullBuilder(true);
+      triggerHaptic('selection');
+      const targetPlaceId = await resolvePlaceAnchor();
+      const params = new URLSearchParams({
+        venueId: targetPlaceId,
+        venueName: placeName,
+        mode: 'venue-challenge',
+        source: 'map',
+      });
+      router.push(`/create?${params.toString()}`);
+    } catch (error) {
+      toast({
+        title: 'Could not open full builder',
+        description: error instanceof Error ? error.message : 'Retry after reselecting this place.',
+        variant: 'destructive',
+      });
+    } finally {
+      setOpeningFullBuilder(false);
+    }
   }
 
   async function handleSubmit() {
@@ -455,12 +481,22 @@ export default function CreatePlaceChallengeButton({
                         <div>
                           <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/22 bg-[#f5c518]/[0.08] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] text-[#f8dd72]">
                             <Crosshair className="h-3.5 w-3.5" />
-                            Fund a place challenge
+                            Quick place mission
                           </div>
                           <h3 className="mt-4 text-2xl font-black text-white">{placeName}</h3>
                           <p className="mt-2 max-w-lg text-sm text-white/60">
-                            Turn this place into a live challenge market. Fund a real-world mission here and let the completion become memory.
+                            Launch a place-locked paid mission with a suggested brief, 24-hour window, and USDC reward.
                           </p>
+                          <button
+                            type="button"
+                            onClick={() => void handleOpenFullBuilder()}
+                            disabled={openingFullBuilder}
+                            className="mt-3 inline-flex text-[10px] font-black uppercase tracking-[0.15em] text-cyan-100/70 transition hover:text-cyan-50"
+                          >
+                            {openingFullBuilder
+                              ? 'Preparing full builder…'
+                              : 'Need a free mission, custom deadline, cover, or Sentinel? Open full builder →'}
+                          </button>
                         </div>
                         <button
                           type="button"

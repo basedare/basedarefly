@@ -58,12 +58,12 @@ async function detectDataSignals(wallet: string): Promise<{
 }> {
   const where = { walletAddress: { equals: wallet, mode: 'insensitive' as const } };
 
-  const [tag, markCount, recentMarks] = await Promise.all([
+  const [tag, approvedMarkCount, recentMarks] = await Promise.all([
     prisma.streamerTag.findFirst({
       where,
       select: { id: true, completedDares: true, status: true },
     }),
-    prisma.placeTag.count({ where }),
+    prisma.placeTag.count({ where: { ...where, status: 'APPROVED' } }),
     prisma.placeTag.findMany({
       where: { ...where, status: 'APPROVED' },
       select: { submittedAt: true },
@@ -75,7 +75,7 @@ async function detectDataSignals(wallet: string): Promise<{
   return {
     hasTag: Boolean(tag && tag.status !== 'REVOKED'),
     hasProof: (tag?.completedDares ?? 0) > 0,
-    hasMark: markCount > 0,
+    hasMark: approvedMarkCount > 0,
     streakDays: computeStreakDays(recentMarks.map((mark) => mark.submittedAt)),
   };
 }

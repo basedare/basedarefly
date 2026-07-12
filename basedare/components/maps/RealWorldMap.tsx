@@ -9039,7 +9039,7 @@ export default function RealWorldMap() {
   const selectedPlaceTakeProofButton =
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <TagPlaceButton
-        placeId={selectedPlace.placeId}
+        placeId={selectedResolvedPlaceId}
         placeName={selectedPlace.name}
         latitude={selectedPlace.latitude}
         longitude={selectedPlace.longitude}
@@ -9119,7 +9119,7 @@ export default function RealWorldMap() {
   const selectedPlaceFundDareButton =
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <CreatePlaceChallengeButton
-        placeId={selectedPlace.placeId}
+        placeId={selectedResolvedPlaceId}
         placeName={selectedPlace.name}
         latitude={selectedPlace.latitude}
         longitude={selectedPlace.longitude}
@@ -10618,7 +10618,7 @@ export default function RealWorldMap() {
                 </p>
               </div>
             ) : null}
-            {isMobileViewport ? (
+            {isMobileViewport && !mapAttentionGuideOpen ? (
               <button
                 type="button"
                 onClick={handleMapFullscreenToggle}
