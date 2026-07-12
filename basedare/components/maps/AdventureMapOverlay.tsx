@@ -30,9 +30,11 @@ type AdventureMapOverlayProps = {
   intent: MapAttentionIntent | null;
   placeSuggestions: MapAttentionPlaceSuggestion[];
   trailCount: number;
+  guideOpen: boolean;
   onIntentChange: (intent: MapAttentionIntent | null) => void;
   onSelectPlace: (slug: string) => void;
   onOpenTrail: () => void;
+  onGuideOpenChange: (open: boolean) => void;
 };
 
 export type MapAttentionIntent = "meet" | "discover" | "now";
@@ -120,9 +122,11 @@ export default function AdventureMapOverlay({
   intent,
   placeSuggestions,
   trailCount,
+  guideOpen,
   onIntentChange,
   onSelectPlace,
   onOpenTrail,
+  onGuideOpenChange,
 }: AdventureMapOverlayProps) {
   const [guideLineIndex, setGuideLineIndex] = useState(0);
   const rankedActivities = useMemo(() => {
@@ -143,6 +147,8 @@ export default function AdventureMapOverlay({
   const activityCount = snapshot?.totals.activities ?? 0;
   const goingCount = snapshot?.totals.going ?? 0;
   const showPanel = enabled && panelOpen && !obscured;
+  const showIntentCard = !obscured && !intent && guideOpen;
+  const showRecommendationCard = !obscured && Boolean(intent) && guideOpen;
   const guideLines = useMemo(() => {
     const personalLine =
       intent === "meet"
@@ -261,12 +267,20 @@ export default function AdventureMapOverlay({
           </button>
         </div>
 
-        {!obscured && !intent ? (
-          <section className="pointer-events-auto mt-1 max-h-[min(24rem,55dvh)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-[26px] border border-[#f5c518]/24 bg-[radial-gradient(circle_at_92%_0%,rgba(34,211,238,0.13),transparent_34%),radial-gradient(circle_at_5%_0%,rgba(245,197,24,0.16),transparent_36%),linear-gradient(180deg,rgba(18,20,31,0.97),rgba(5,7,14,0.985))] p-4 shadow-[0_28px_64px_rgba(0,0,0,0.56),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl">
+        {showIntentCard ? (
+          <section className="map-attention-card pointer-events-auto relative mt-1 max-h-[min(24rem,55dvh)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-[26px] border border-[#f5c518]/24 bg-[radial-gradient(circle_at_92%_0%,rgba(34,211,238,0.13),transparent_34%),radial-gradient(circle_at_5%_0%,rgba(245,197,24,0.16),transparent_36%),linear-gradient(180deg,rgba(18,20,31,0.97),rgba(5,7,14,0.985))] p-3 shadow-[0_28px_64px_rgba(0,0,0,0.56),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl sm:p-4">
+            <button
+              type="button"
+              onClick={() => onGuideOpenChange(false)}
+              aria-label="Close PeeBear suggestions"
+              className="absolute right-2.5 top-2.5 grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-black/30 text-white/48 transition hover:border-white/20 hover:text-white"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
             <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#f8dd72]/70">
               PeeBear reads the field
             </p>
-            <h2 className="mt-2 max-w-[18rem] text-xl font-black leading-6 text-white">
+            <h2 className="mt-2 max-w-[18rem] pr-7 text-lg font-black leading-5 text-white sm:text-xl sm:leading-6">
               What would make your next two hours better?
             </h2>
             <p className="mt-2 text-xs leading-5 text-white/52">
@@ -278,7 +292,7 @@ export default function AdventureMapOverlay({
                   key={option.id}
                   type="button"
                   onClick={() => onIntentChange(option.id)}
-                  className="group flex min-h-14 items-center gap-3 rounded-[18px] border border-white/9 bg-white/[0.035] px-3 text-left transition hover:-translate-y-0.5 hover:border-cyan-100/24 hover:bg-cyan-300/[0.055]"
+                  className="map-attention-choice group flex min-h-12 items-center gap-2 rounded-[18px] border border-white/9 bg-white/[0.035] px-2.5 text-left transition hover:-translate-y-0.5 hover:border-cyan-100/24 hover:bg-cyan-300/[0.055] sm:min-h-14 sm:gap-3 sm:px-3"
                 >
                   <span
                     className={`adventure-sprite adventure-sprite--${option.sprite}`}
@@ -295,12 +309,38 @@ export default function AdventureMapOverlay({
                   <ChevronRight className="h-4 w-4 text-white/28 transition group-hover:text-cyan-100" />
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => onGuideOpenChange(false)}
+                className="group flex min-h-12 items-center gap-3 rounded-[18px] border border-emerald-100/14 bg-emerald-300/[0.045] px-3 text-left transition hover:border-emerald-100/28 hover:bg-emerald-300/[0.075]"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-emerald-100/14 bg-black/25">
+                  <Compass className="h-4 w-4 text-emerald-100" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-black text-white">
+                    Free roam
+                  </span>
+                  <span className="mt-0.5 block text-[10px] font-semibold text-white/44">
+                    Just explore the map
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-white/28 transition group-hover:text-emerald-100" />
+              </button>
             </div>
           </section>
         ) : null}
 
-        {!obscured && intent ? (
-          <section className="pointer-events-auto mt-1 max-h-[min(21rem,45dvh)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-[24px] border border-cyan-100/15 bg-[linear-gradient(180deg,rgba(13,21,32,0.95),rgba(5,7,14,0.975))] p-3.5 shadow-[0_24px_54px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl">
+        {showRecommendationCard ? (
+          <section className="map-attention-card pointer-events-auto relative mt-1 max-h-[min(21rem,45dvh)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-[24px] border border-cyan-100/15 bg-[linear-gradient(180deg,rgba(13,21,32,0.95),rgba(5,7,14,0.975))] p-3.5 shadow-[0_24px_54px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={() => onGuideOpenChange(false)}
+              aria-label="Close PeeBear recommendations"
+              className="absolute right-2.5 top-2.5 grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-black/30 text-white/48 transition hover:border-white/20 hover:text-white"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.22em] text-cyan-100/52">
@@ -317,7 +357,7 @@ export default function AdventureMapOverlay({
               <button
                 type="button"
                 onClick={() => onIntentChange(null)}
-                className="shrink-0 rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/48 transition hover:text-white"
+                className="mr-8 shrink-0 rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/48 transition hover:text-white"
               >
                 Change
               </button>
@@ -477,17 +517,31 @@ export default function AdventureMapOverlay({
         ) : null}
       </div>
 
-      {!obscured ? (
+      {!obscured && !showIntentCard ? (
         <button
           type="button"
-          onClick={() =>
-            setGuideLineIndex((current) => (current + 1) % guideLines.length)
+          onClick={() => {
+            if (!guideOpen) {
+              onGuideOpenChange(true);
+              return;
+            }
+            setGuideLineIndex((current) => (current + 1) % guideLines.length);
+          }}
+          aria-label={
+            !guideOpen
+              ? "Open PeeBear suggestions"
+              : "Ask PeeBear for another field hint"
           }
-          aria-label="Ask PeeBear for another field hint"
           className="pointer-events-auto absolute bottom-5 right-4 z-[16] flex max-w-[min(18rem,calc(100%-2rem))] items-end gap-2 text-left md:bottom-6 md:right-6"
         >
-          <span className="mb-2 rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.94),rgba(5,7,14,0.97))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/82 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl">
-            {guideLines[guideLineIndex % guideLines.length]}
+          <span
+            className={`mb-2 rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.94),rgba(5,7,14,0.97))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/82 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl ${
+              !guideOpen ? "hidden sm:block" : ""
+            }`}
+          >
+            {!guideOpen
+              ? "Free roam. Tap me if you want three suggestions."
+              : guideLines[guideLineIndex % guideLines.length]}
           </span>
           <span className="adventure-guide-orb shrink-0" aria-hidden="true">
             <span className="adventure-sprite adventure-sprite--bear" />

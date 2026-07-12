@@ -3560,6 +3560,7 @@ export default function RealWorldMap() {
   const [adventureMode, setAdventureMode] = useState(false);
   const [adventurePanelOpen, setAdventurePanelOpen] = useState(false);
   const [mapAttentionIntent, setMapAttentionIntent] = useState<MapAttentionIntent | null>(null);
+  const [mapAttentionGuideOpen, setMapAttentionGuideOpen] = useState(true);
   const isImmersiveMobile = isMobileViewport && isMapFullscreenMobile;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [proofMoment, setProofMoment] = useState<null | {
@@ -10462,7 +10463,9 @@ export default function RealWorldMap() {
             data-layer-filter={effectiveLayerFilter}
             data-adventure-mode={adventureMode ? 'true' : 'false'}
             data-attention-intent={mapAttentionIntent ?? 'unset'}
-            data-attention-guide={!selectedPlace && !selectedMeetup ? 'true' : 'false'}
+            data-attention-guide={
+              mapAttentionGuideOpen && !selectedPlace && !selectedMeetup ? 'true' : 'false'
+            }
             data-crosshair={!isMobileViewport ? 'true' : undefined}
             className={`map-container-wrapper basedare-maplibre-map basedare-maplibre-map--${mapPreset} relative overflow-hidden ${
               isImmersiveMobile
@@ -10492,9 +10495,11 @@ export default function RealWorldMap() {
               intent={mapAttentionIntent}
               placeSuggestions={mapAttentionPlaceSuggestions}
               trailCount={footprintStats?.totalMarks ?? footprintMarks.length}
+              guideOpen={mapAttentionGuideOpen}
               onIntentChange={handleMapAttentionIntentChange}
               onSelectPlace={handleMapAttentionPlaceSelect}
               onOpenTrail={handleOpenPersonalTrail}
+              onGuideOpenChange={setMapAttentionGuideOpen}
             />
 
             {/* Free meetup layer (Stage 3) — layer filter + legend. Only mounts
@@ -15893,6 +15898,13 @@ export default function RealWorldMap() {
         .basedare-maplibre-map[data-attention-guide='true'] .nearby-dare-tray,
         .basedare-maplibre-map[data-attention-guide='true'] .map-meetup-layer-controls {
           display: none;
+        }
+
+        @media (max-width: 639px) {
+          .basedare-maplibre-map :global(.map-attention-choice .adventure-sprite) {
+            margin: -7px;
+            transform: scale(0.78);
+          }
         }
 
         .basedare-maplibre-map[data-adventure-mode='true'] .adventure-map-atmosphere::after {
