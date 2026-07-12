@@ -6680,11 +6680,11 @@ export default function RealWorldMap() {
     );
   }, [privateMapSpots, selectedPlace]);
   const activeMapFilterLabel = useMemo(() => {
-    if (mapVenueFocus === 'live') return 'Live venues';
+    if (mapVenueFocus === 'live') return 'Live now';
     if (mapVenueFocus === 'matched') return 'For you';
-    if (mapVenueFocus === 'footprint') return 'My proofs';
+    if (mapVenueFocus === 'footprint') return 'My trail';
     if (pulseFilter === 'verified') return 'Verified venues';
-    if (pulseFilter === 'unmarked') return 'No proof yet';
+    if (pulseFilter === 'unmarked') return 'Needs proof';
     if (pulseFilter === 'blazing') return 'Hot venues';
     if (pulseFilter === 'igniting') return 'Active venues';
     if (pulseFilter === 'simmering') return 'Started venues';
@@ -7434,42 +7434,6 @@ export default function RealWorldMap() {
     return items.slice(0, 4);
   }, [selectedPlaceTags, selectedVenueProfile?.coverImageUrl, selectedVenueProfile?.profileImageUrl]);
 
-  const filterOptions: Array<{
-    value: PulseFilter;
-    label: string;
-    accentClass: string;
-  }> = [
-    {
-      value: 'all',
-      label: 'All',
-      accentClass: 'data-[active=true]:border-white/25 data-[active=true]:bg-white/[0.1] data-[active=true]:text-white',
-    },
-    {
-      value: 'blazing',
-      label: 'Hot',
-      accentClass: 'data-[active=true]:border-rose-300/45 data-[active=true]:bg-rose-500/[0.14] data-[active=true]:text-rose-100',
-    },
-    {
-      value: 'igniting',
-      label: 'Active',
-      accentClass: 'data-[active=true]:border-cyan-300/45 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100',
-    },
-    {
-      value: 'simmering',
-      label: 'Started',
-      accentClass: 'data-[active=true]:border-amber-300/45 data-[active=true]:bg-amber-500/[0.14] data-[active=true]:text-amber-100',
-    },
-    {
-      value: 'verified',
-      label: 'Verified',
-      accentClass: 'data-[active=true]:border-emerald-300/45 data-[active=true]:bg-emerald-500/[0.14] data-[active=true]:text-emerald-100',
-    },
-    {
-      value: 'unmarked',
-      label: 'No proof',
-      accentClass: 'data-[active=true]:border-fuchsia-300/45 data-[active=true]:bg-fuchsia-500/[0.14] data-[active=true]:text-fuchsia-100',
-    },
-  ];
   const compactMarkerZoomThreshold = isMobileViewport ? 15 : 14;
   const visibleMapIntentChips = isMobileViewport
     ? MAP_INTENT_SEARCH_CHIPS.filter((chip) => chip !== 'Proof').slice(0, 4)
@@ -8165,7 +8129,7 @@ export default function RealWorldMap() {
     () => [
       {
         id: 'live',
-        label: 'Live',
+        label: 'Live now',
         count: nearbyDareCounts.all,
         detail: 'nearby',
         active: mapVenueFocus === 'live',
@@ -8257,7 +8221,7 @@ export default function RealWorldMap() {
       },
       {
         id: 'open',
-        label: 'No Proof',
+        label: 'Needs proof',
         count: filterCounts.unmarked,
         detail: 'open',
         active: pulseFilter === 'unmarked',
@@ -8325,7 +8289,7 @@ export default function RealWorldMap() {
     return [
       {
         id: 'all',
-        label: 'All',
+        label: 'All places',
         count: filterCounts.all,
         detail: 'venues',
         active: !activeMapFilterIsScoped,
@@ -10337,50 +10301,50 @@ export default function RealWorldMap() {
                 ) : null}
                 <button
                   type="button"
-                  data-active={showAdvancedMapFilters || activeMapFilterIsScoped}
+                  data-active={showAdvancedMapFilters}
                   onClick={() => {
                     setShowAdvancedMapFilters((current) => !current);
                     triggerHaptic('selection');
                   }}
                   className="map-status-pill map-status-pill--filters"
                   aria-expanded={showAdvancedMapFilters}
+                  aria-label="More map tools and views"
                 >
                   <SlidersHorizontal className="h-3.5 w-3.5" />
-                  <span>Filters</span>
-                  {activeMapFilterIsScoped ? <span>{filteredNearbyPlaces.length}</span> : null}
+                  <span>More</span>
                 </button>
               </div>
 
               {showAdvancedMapFilters ? (
                 <div className="map-advanced-filter-panel">
-                  <div className="map-advanced-filter-group">
-                    <span className="map-advanced-filter-label">Show</span>
-                    <div className="map-advanced-filter-row">
-                      {filterOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          data-active={pulseFilter === option.value}
-                          onClick={() => {
-                            setMapVenueFocus('all');
-                            setShowMatchedLayer(false);
-                            setShowFootprintLayer(false);
-                            setPulseFilter(option.value);
-                            triggerHaptic('selection');
-                          }}
-                          className={`map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white ${option.accentClass}`}
-                        >
-                          <span>{option.label}</span>
-                          <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
-                            {filterCounts[option.value]}
-                          </span>
-                        </button>
-                      ))}
+                  {isMobileViewport ? (
+                    <div className="map-advanced-filter-group">
+                      <span className="map-advanced-filter-label">Show places</span>
+                      <div className="map-advanced-filter-row">
+                        {mapStatusRailOptions.map((option) => (
+                          <button
+                            key={`mobile-map-filter:${option.id}`}
+                            type="button"
+                            data-active={option.active}
+                            disabled={option.disabled}
+                            onClick={() => {
+                              option.onClick();
+                              setShowAdvancedMapFilters(false);
+                            }}
+                            className={`map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${option.className}`}
+                          >
+                            <span>{option.label}</span>
+                            <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
+                              {option.count}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
 
                   <div className="map-advanced-filter-group">
-                    <span className="map-advanced-filter-label">Tag</span>
+                    <span className="map-advanced-filter-label">Add to map</span>
                     <div className="map-advanced-filter-row">
                       <button
                         type="button"
@@ -10390,11 +10354,12 @@ export default function RealWorldMap() {
                           closeSearchPopover();
                           setSaveSpotDraft(null);
                           setSaveSpotState({ type: 'info', message: 'Search or tap the map to pick a venue.' });
+                          setShowAdvancedMapFilters(false);
                         }}
                         className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/58 transition hover:border-cyan-200/30 hover:text-cyan-100"
                       >
                         <MapPin className="h-3 w-3" />
-                        Venue
+                        Add place
                       </button>
                       <button
                         type="button"
@@ -10402,11 +10367,12 @@ export default function RealWorldMap() {
                         onClick={() => {
                           closeSearchPopover();
                           openProofForSelectedPlace();
+                          setShowAdvancedMapFilters(false);
                         }}
                         className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-yellow-200/18 bg-yellow-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100/80 transition hover:border-yellow-100/32 hover:text-yellow-50"
                       >
                         <Sparkles className="h-3 w-3" />
-                        Proof
+                        Add proof
                       </button>
                       <button
                         type="button"
@@ -10414,11 +10380,12 @@ export default function RealWorldMap() {
                         onClick={() => {
                           closeSearchPopover();
                           openSaveSpotDraft(selectedPlace);
+                          setShowAdvancedMapFilters(false);
                         }}
                         className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-emerald-200/18 bg-emerald-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100/82 transition hover:border-emerald-100/32 hover:text-emerald-50"
                       >
                         <Bike className="h-3 w-3" />
-                        Save
+                        Save spot
                       </button>
                       <button
                         type="button"
@@ -10427,12 +10394,13 @@ export default function RealWorldMap() {
                           closeSearchPopover();
                           setShowLocalSignalForm((current) => !current);
                           setNearbyDarePanelCollapsed(false);
+                          setShowAdvancedMapFilters(false);
                           triggerHaptic('selection');
                         }}
                         className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-cyan-200/18 bg-cyan-300/[0.075] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100/78 transition hover:border-cyan-100/32 hover:text-cyan-50"
                       >
                         <Sparkles className="h-3 w-3" />
-                        {showLocalSignalForm ? 'Close tip' : 'Tip'}
+                        {showLocalSignalForm ? 'Close tip' : 'Share tip'}
                       </button>
                       {latestPrivateMapSpot ? (
                         <button
@@ -10441,6 +10409,7 @@ export default function RealWorldMap() {
                           onClick={() => {
                             closeSearchPopover();
                             focusPrivateSpot(latestPrivateMapSpot);
+                            setShowAdvancedMapFilters(false);
                           }}
                           className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-black/28 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/52 transition hover:border-white/18 hover:text-white"
                         >
@@ -10453,7 +10422,7 @@ export default function RealWorldMap() {
 
                   {isConnected ? (
                     <div className="map-advanced-filter-group">
-                      <span className="map-advanced-filter-label">Mine</span>
+                      <span className="map-advanced-filter-label">Your map</span>
                       <div className="map-advanced-filter-row">
                         <button
                           type="button"
@@ -10464,12 +10433,13 @@ export default function RealWorldMap() {
                             setMapVenueFocus(nextFocus);
                             setShowMatchedLayer(false);
                             setShowFootprintLayer(nextFocus === 'footprint');
+                            setShowAdvancedMapFilters(false);
                             triggerHaptic('selection');
                           }}
                           className="map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white data-[active=true]:border-[#b87fff]/46 data-[active=true]:bg-[#b87fff]/[0.14] data-[active=true]:text-[#edd8ff]"
                         >
                           <span className="h-2 w-2 rounded-full bg-[#b87fff]" />
-                          <span>My Proofs</span>
+                          <span>My trail</span>
                           <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/62">
                             {footprintStats?.totalMarks ?? footprintMarks.length}
                           </span>
@@ -10489,6 +10459,7 @@ export default function RealWorldMap() {
                             setMapVenueFocus(nextFocus);
                             setShowFootprintLayer(false);
                             setShowMatchedLayer(nextFocus === 'matched');
+                            setShowAdvancedMapFilters(false);
                             triggerHaptic('selection');
                           }}
                           className="map-filter-pill inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52 shadow-[0_10px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-[1px] hover:border-white/18 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 data-[active=true]:border-cyan-300/46 data-[active=true]:bg-cyan-500/[0.14] data-[active=true]:text-cyan-100"
@@ -13123,7 +13094,8 @@ export default function RealWorldMap() {
 
         .map-advanced-filter-panel {
           display: grid;
-          width: min(100%, 50rem);
+          width: fit-content;
+          max-width: 100%;
           gap: 0.52rem;
           border-radius: 1.1rem;
           border: 1px solid rgba(255, 255, 255, 0.1);
@@ -13223,6 +13195,7 @@ export default function RealWorldMap() {
           }
 
           .map-advanced-filter-panel {
+            width: 100%;
             max-height: min(32vh, 13.5rem);
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
