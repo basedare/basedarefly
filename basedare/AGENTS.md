@@ -14,6 +14,12 @@ Build *from the single aligned canon* in `docs/PHILOSOPHY.md` and `brain-vault/0
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex floating world-marker pass (2026-07-12)
+- User explicitly reassigned the map surface to Codex while Claude was out of credits and requested direct-to-main delivery.
+- `components/maps/RealWorldMap.tsx` now presents venue/activity sprites as frameless floating AR-style objects with silhouette cuts, world tethers, and ground glows; real venue names and place-memory states remain intact.
+- Desktop-only orbit/tilt/north controls are a compact right-side pad. Mobile remains gesture-only and renders no camera-control buttons.
+- Preserve the existing MapLibre camera/renderer and marker gesture calm-down path; this pass changes DOM-marker presentation and existing camera-control placement only.
+
 ### Codex universal consumer onboarding pass (2026-07-11)
 - Codex is adding a new neutral `/join` entry point, plain-language global nav/sign-in/footer copy, a consumer-first top layer on `/how-it-works`, onboarding CTA analytics, and the `brain-vault/05-playbooks/playable-map-launch.md` launch strategy.
 - Files owned in this pass: `app/join/*`, `components/onboarding/*`, `components/Navbar.tsx`, `components/IdentityButton.tsx`, `components/Footer.tsx`, `app/how-it-works/page.tsx`, and the targeted Brain control/playbook edits.

@@ -10597,9 +10597,6 @@ export default function RealWorldMap() {
                 </p>
               </div>
             ) : null}
-            <div className="map-engine-badge pointer-events-none absolute right-4 top-4 z-[10] hidden rounded-full border border-cyan-200/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.13)_0%,rgba(8,10,20,0.82)_100%)] px-3.5 py-2 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-100 shadow-[0_16px_34px_rgba(0,0,0,0.32),0_0_22px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur md:block">
-              3D Map
-            </div>
             {isMobileViewport ? (
               <button
                 type="button"
@@ -11094,60 +11091,30 @@ export default function RealWorldMap() {
                   <Minus className="h-4 w-4" />
                 </button>
               </div>
-              <div className="hidden overflow-hidden rounded-[20px] border border-cyan-200/14 bg-[linear-gradient(180deg,rgba(190,249,255,0.1)_0%,rgba(8,12,22,0.94)_100%)] shadow-[0_16px_34px_rgba(0,0,0,0.38),0_0_22px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur lg:block lg:rounded-[22px]">
-                <div className="hidden items-center justify-between border-b border-white/10 px-2 py-1 text-[7px] font-black uppercase tracking-[0.16em] text-cyan-100/70 md:flex">
-                  <span>3D</span>
-                  <span>{mapCameraPitchLabel}</span>
-                </div>
-                <div className="grid grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => easeMapCamera({ bearingDelta: -28 })}
-                    className="flex h-9 w-10 items-center justify-center border-b border-r border-white/10 text-cyan-100/82 transition hover:bg-cyan-300/[0.12] hover:text-white md:h-10 md:w-11"
-                    aria-label="Orbit map left"
-                    title="Orbit left"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => easeMapCamera({ bearingDelta: 28 })}
-                    className="flex h-9 w-10 items-center justify-center border-b border-white/10 text-cyan-100/82 transition hover:bg-cyan-300/[0.12] hover:text-white md:h-10 md:w-11"
-                    aria-label="Orbit map right"
-                    title="Orbit right"
-                  >
-                    <RotateCw className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => easeMapCamera({ pitchDelta: -10 })}
-                    className="flex h-9 w-10 items-center justify-center border-r border-white/10 text-white/78 transition hover:bg-white/[0.08] hover:text-white md:h-10 md:w-11"
-                    aria-label="Tilt map down"
-                    title="Tilt down"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => easeMapCamera({ pitchDelta: 10 })}
-                    className="flex h-9 w-10 items-center justify-center text-white/78 transition hover:bg-white/[0.08] hover:text-white md:h-10 md:w-11"
-                    aria-label="Tilt map up"
-                    title="Tilt up"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => easeMapCamera({ reset: true })}
-                  className="flex h-8 w-full items-center justify-center gap-1 border-t border-white/10 px-2 text-[8px] font-black uppercase tracking-[0.14em] text-cyan-100/70 transition hover:bg-cyan-300/[0.12] hover:text-cyan-50 md:h-9"
-                  aria-label="Reset map camera north"
-                  title={`Reset camera north · ${mapCameraBearingLabel}`}
-                >
-                  <span>North</span>
-                  <span className="hidden text-white/36 md:inline">{mapCameraBearingLabel}</span>
+            </div>
+            <div className="pointer-events-auto absolute right-5 top-6 z-[15] hidden overflow-hidden rounded-[18px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(16,25,36,0.88),rgba(5,8,15,0.94))] shadow-[0_18px_40px_rgba(0,0,0,0.42),0_0_22px_rgba(34,211,238,0.09),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl lg:block">
+              <div className="flex items-center justify-between border-b border-white/10 px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.16em] text-cyan-100/72">
+                <span>Orbit</span>
+                <span>{mapCameraPitchLabel}</span>
+              </div>
+              <div className="grid grid-cols-2">
+                <button type="button" onClick={() => easeMapCamera({ bearingDelta: -28 })} className="grid h-9 w-10 place-items-center border-b border-r border-white/10 text-cyan-100/82 transition hover:bg-cyan-300/[0.12] hover:text-white" aria-label="Orbit map left" title="Orbit left">
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" onClick={() => easeMapCamera({ bearingDelta: 28 })} className="grid h-9 w-10 place-items-center border-b border-white/10 text-cyan-100/82 transition hover:bg-cyan-300/[0.12] hover:text-white" aria-label="Orbit map right" title="Orbit right">
+                  <RotateCw className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" onClick={() => easeMapCamera({ pitchDelta: -10 })} className="grid h-9 w-10 place-items-center border-r border-white/10 text-white/76 transition hover:bg-white/[0.08] hover:text-white" aria-label="Tilt map down" title="Tilt down">
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => easeMapCamera({ pitchDelta: 10 })} className="grid h-9 w-10 place-items-center text-white/76 transition hover:bg-white/[0.08] hover:text-white" aria-label="Tilt map up" title="Tilt up">
+                  <ChevronUp className="h-4 w-4" />
                 </button>
               </div>
+              <button type="button" onClick={() => easeMapCamera({ reset: true })} className="flex h-8 w-full items-center justify-center gap-1 border-t border-white/10 px-2 text-[8px] font-black uppercase tracking-[0.14em] text-cyan-100/68 transition hover:bg-cyan-300/[0.12] hover:text-cyan-50" aria-label="Reset map camera north" title={`Reset camera north · ${mapCameraBearingLabel}`}>
+                <span>North</span>
+                <span className="text-white/34">{mapCameraBearingLabel}</span>
+              </button>
             </div>
             {!mapReady ? (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-[rgba(3,5,12,0.74)] backdrop-blur-sm">
@@ -15935,12 +15902,7 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.basedare-maplibre-marker--attention-pick .adventure-place-object) {
-          border-color: rgba(245, 197, 24, 0.76);
-          box-shadow:
-            0 0 0 5px rgba(245, 197, 24, 0.08),
-            0 0 30px rgba(245, 197, 24, 0.2),
-            0 16px 28px rgba(0, 0, 0, 0.52),
-            inset 0 1px 0 rgba(255, 255, 255, 0.22);
+          filter: drop-shadow(0 0 12px rgba(245, 197, 24, 0.48));
         }
 
         .basedare-maplibre-map :global(.basedare-maplibre-marker--attention-pick .peebear-venue-label) {
@@ -16009,38 +15971,49 @@ export default function RealWorldMap() {
         .basedare-maplibre-map :global(.adventure-place-object) {
           position: absolute;
           left: 50%;
-          bottom: 18px;
+          bottom: 15px;
           z-index: 9;
           display: grid;
-          width: 54px;
-          height: 54px;
+          width: 72px;
+          height: 76px;
           place-items: center;
-          transform: translateX(-50%);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 19px 19px 16px 16px;
-          background:
-            radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.2), transparent 42%),
-            linear-gradient(145deg, rgba(29, 32, 48, 0.98), rgba(6, 8, 16, 0.98));
-          box-shadow:
-            0 14px 24px rgba(0, 0, 0, 0.46),
-            0 0 0 3px rgba(255, 255, 255, 0.045),
-            inset 0 1px 0 rgba(255, 255, 255, 0.17),
-            inset 0 -10px 15px rgba(0, 0, 0, 0.28);
-          isolation: isolate;
+          transform: translateX(-50%) translateY(-7px);
+          transform-origin: 50% 100%;
+          border: 0;
+          background: transparent;
+          box-shadow: none;
+          filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 8px rgba(95, 230, 255, 0.14));
+          animation: adventureObjectHover 3.2s ease-in-out infinite;
+          isolation: auto;
         }
 
         .basedare-maplibre-map :global(.adventure-place-object::before) {
           content: '';
           position: absolute;
           left: 50%;
-          bottom: -9px;
-          z-index: -1;
-          width: 38px;
-          height: 10px;
+          bottom: -3px;
+          z-index: 0;
+          width: 34px;
+          height: 8px;
           transform: translateX(-50%);
           border-radius: 9999px;
-          background: rgba(1, 3, 9, 0.72);
-          filter: blur(3px);
+          border: 1px solid rgba(95, 230, 255, 0.3);
+          background: radial-gradient(ellipse, rgba(34, 211, 238, 0.23), rgba(1, 3, 9, 0.48) 58%, transparent 72%);
+          box-shadow: 0 0 11px rgba(34, 211, 238, 0.2);
+          filter: blur(0.3px);
+        }
+
+        .basedare-maplibre-map :global(.adventure-place-object::after) {
+          content: '';
+          position: absolute;
+          left: 50%;
+          bottom: 3px;
+          z-index: 0;
+          width: 1px;
+          height: 17px;
+          transform: translateX(-50%);
+          background: linear-gradient(180deg, transparent, rgba(95, 230, 255, 0.46));
+          box-shadow: 0 0 7px rgba(34, 211, 238, 0.34);
         }
 
         .basedare-maplibre-map :global(.adventure-sprite) {
@@ -16053,28 +16026,39 @@ export default function RealWorldMap() {
           background-image: url('/assets/map/adventure-sprites-v1.png');
           background-repeat: no-repeat;
           background-size: 384px 256px;
-          image-rendering: pixelated;
-          filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.42));
+          image-rendering: auto;
+          mix-blend-mode: screen;
+          filter: saturate(1.12) contrast(1.04) drop-shadow(0 8px 7px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 5px rgba(255, 224, 114, 0.2));
+        }
+
+        .basedare-maplibre-map :global(.adventure-place-object .adventure-sprite),
+        .basedare-maplibre-map :global(.adventure-focal-marker .adventure-sprite) {
+          transform: translateY(-7px) scale(1.12);
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--flag) {
           background-position: -38px -180px;
+          clip-path: polygon(10% 2%, 76% 2%, 94% 24%, 82% 72%, 65% 80%, 63% 100%, 39% 100%, 39% 82%, 13% 78%);
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--surf) {
           background-position: -100px -180px;
+          clip-path: polygon(25% 0, 70% 0, 88% 14%, 96% 46%, 87% 72%, 68% 100%, 11% 100%, 3% 72%, 13% 45%);
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--cafe) {
           background-position: -160px -180px;
+          clip-path: polygon(23% 8%, 64% 8%, 71% 25%, 91% 28%, 96% 45%, 90% 66%, 71% 73%, 62% 91%, 18% 91%, 7% 71%, 8% 34%);
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--gathering) {
           background-position: -229px -180px;
+          clip-path: polygon(36% 0, 62% 0, 74% 18%, 94% 64%, 88% 86%, 68% 100%, 25% 100%, 7% 86%, 4% 62%, 27% 18%);
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--rumor) {
           background-position: -294px -180px;
+          clip-path: polygon(35% 0, 66% 0, 88% 13%, 100% 37%, 95% 72%, 76% 94%, 48% 100%, 17% 91%, 1% 67%, 4% 30%, 17% 10%);
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--bear) {
@@ -16083,6 +16067,7 @@ export default function RealWorldMap() {
           flex-basis: 74px;
           background-size: 276px 184px;
           background-position: -101px -4px;
+          clip-path: polygon(18% 3%, 82% 3%, 100% 27%, 96% 72%, 78% 96%, 50% 100%, 21% 95%, 3% 72%, 0 27%);
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--bear-mini) {
@@ -16091,6 +16076,7 @@ export default function RealWorldMap() {
           flex-basis: 30px;
           background-size: 108px 72px;
           background-position: -39px -1px;
+          clip-path: polygon(18% 3%, 82% 3%, 100% 27%, 96% 72%, 78% 96%, 50% 100%, 21% 95%, 3% 72%, 0 27%);
           filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.4));
         }
 
@@ -16100,6 +16086,7 @@ export default function RealWorldMap() {
           flex-basis: 28px;
           background-size: 168px 112px;
           background-position: -128px -79px;
+          clip-path: polygon(35% 0, 66% 0, 88% 13%, 100% 37%, 95% 72%, 76% 94%, 48% 100%, 17% 91%, 1% 67%, 4% 30%, 17% 10%);
         }
 
         .basedare-maplibre-map :global(.adventure-place-modifier) {
@@ -16125,16 +16112,7 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.adventure-place-object--unmarked) {
-          border-color: rgba(184, 127, 255, 0.34);
-          background:
-            radial-gradient(circle at 50% 48%, rgba(184, 127, 255, 0.18), transparent 58%),
-            linear-gradient(145deg, rgba(31, 22, 52, 0.92), rgba(8, 7, 18, 0.96));
-          box-shadow:
-            0 14px 24px rgba(0, 0, 0, 0.44),
-            0 0 24px rgba(121, 81, 186, 0.17),
-            inset 0 1px 0 rgba(255, 255, 255, 0.12),
-            inset 0 -10px 15px rgba(0, 0, 0, 0.28);
-          filter: saturate(0.64) brightness(0.82);
+          filter: saturate(0.76) brightness(0.9) drop-shadow(0 0 10px rgba(184, 127, 255, 0.34));
         }
 
         .basedare-maplibre-map :global(.adventure-place-object--unmarked .adventure-place-modifier) {
@@ -16144,20 +16122,11 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.adventure-place-object.has-live-dare) {
-          border-color: rgba(255, 235, 145, 0.82);
-          background:
-            radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.45), transparent 38%),
-            linear-gradient(145deg, rgba(255, 213, 55, 0.98), rgba(104, 60, 2, 0.98));
-          box-shadow:
-            0 15px 26px rgba(0, 0, 0, 0.5),
-            0 0 0 4px rgba(245, 197, 24, 0.12),
-            0 0 28px rgba(245, 197, 24, 0.32),
-            inset 0 1px 0 rgba(255, 255, 255, 0.58),
-            inset 0 -11px 16px rgba(81, 43, 0, 0.34);
+          filter: drop-shadow(0 14px 11px rgba(0, 0, 0, 0.54)) drop-shadow(0 0 13px rgba(245, 197, 24, 0.5));
         }
 
         .basedare-maplibre-map :global(.adventure-place-object.has-live-dare .adventure-sprite) {
-          filter: none;
+          filter: saturate(1.18) contrast(1.06) drop-shadow(0 9px 8px rgba(0, 0, 0, 0.54)) drop-shadow(0 0 8px rgba(255, 222, 98, 0.4));
         }
 
         .basedare-maplibre-map :global(.adventure-place-object.has-live-dare .adventure-place-modifier) {
@@ -16171,8 +16140,13 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-active .adventure-place-object) {
-          transform: translateX(-50%) translateY(-4px) scale(1.1);
-          border-color: rgba(255, 240, 168, 0.86);
+          transform: translateX(-50%) translateY(-12px) scale(1.14);
+          filter: drop-shadow(0 16px 12px rgba(0, 0, 0, 0.56)) drop-shadow(0 0 14px rgba(255, 240, 168, 0.5));
+        }
+
+        @keyframes adventureObjectHover {
+          0%, 100% { translate: 0 0; }
+          50% { translate: 0 -4px; }
         }
 
         .basedare-maplibre-map[data-adventure-mode='true'] :global(.current-location-bear) {
@@ -16225,16 +16199,12 @@ export default function RealWorldMap() {
           width: 78px;
           height: 78px;
           place-items: center;
-          overflow: hidden;
-          border: 1px solid rgba(245, 197, 24, 0.38);
-          border-radius: 25px;
-          background:
-            radial-gradient(circle at 32% 18%, rgba(255, 255, 255, 0.16), transparent 42%),
-            linear-gradient(145deg, rgba(35, 25, 8, 0.96), rgba(5, 7, 15, 0.98));
-          box-shadow:
-            0 18px 34px rgba(0, 0, 0, 0.5),
-            0 0 28px rgba(245, 197, 24, 0.16),
-            inset 0 1px 0 rgba(255, 255, 255, 0.14);
+          overflow: visible;
+          border: 0;
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none;
+          filter: drop-shadow(0 14px 10px rgba(0, 0, 0, 0.58)) drop-shadow(0 0 13px rgba(245, 197, 24, 0.34));
         }
 
         .basedare-maplibre-map :global(.adventure-guide-orb__spark) {
