@@ -10285,6 +10285,56 @@ export default function RealWorldMap() {
                     </button>
                   ))
                 )}
+                {isMobileViewport ? (
+                  <>
+                    <button
+                      type="button"
+                      data-active={adventureMode}
+                      aria-pressed={adventureMode}
+                      onClick={handleAdventureModeToggle}
+                      className="map-status-pill map-status-pill--adventure"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span className="map-status-label">Adventure</span>
+                    </button>
+                    <button
+                      type="button"
+                      data-active={adventurePanelOpen}
+                      aria-expanded={adventurePanelOpen}
+                      onClick={() => {
+                        if (!adventureMode) handleAdventureModeToggle();
+                        setAdventurePanelOpen((current) => !current);
+                        triggerHaptic('selection');
+                      }}
+                      className="map-status-pill map-status-pill--tonight"
+                    >
+                      <Flame className="h-3.5 w-3.5" />
+                      <span className="map-status-label">Tonight</span>
+                      <span>{tonightActivity.snapshot?.totals.activities ?? 0}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!adventureMode) handleAdventureModeToggle();
+                        handleExploreSecrets();
+                      }}
+                      className="map-status-pill map-status-pill--secrets"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      <span className="map-status-label">Secrets</span>
+                    </button>
+                    <button
+                      type="button"
+                      data-active={mapVenueFocus === 'footprint'}
+                      onClick={handleOpenPersonalTrail}
+                      className="map-status-pill map-status-pill--trail"
+                    >
+                      <Navigation className="h-3.5 w-3.5" />
+                      <span className="map-status-label">Trail</span>
+                      <span>{footprintStats?.totalMarks ?? footprintMarks.length}</span>
+                    </button>
+                  </>
+                ) : null}
                 <button
                   type="button"
                   data-active={showAdvancedMapFilters || activeMapFilterIsScoped}
@@ -13001,6 +13051,17 @@ export default function RealWorldMap() {
           letter-spacing: 0;
         }
 
+        .map-status-pill span.map-status-label {
+          min-width: 0;
+          height: auto;
+          border: 0;
+          border-radius: 0;
+          background: transparent;
+          color: inherit;
+          font-size: inherit;
+          letter-spacing: inherit;
+        }
+
         .map-status-pill:hover:not(:disabled),
         .map-status-pill[data-active='true'] {
           transform: translateY(-1px);
@@ -13037,6 +13098,27 @@ export default function RealWorldMap() {
             radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.15), transparent 42%),
             linear-gradient(180deg, rgba(34, 211, 238, 0.11), rgba(6, 8, 16, 0.9));
           color: rgba(224, 252, 255, 0.96);
+        }
+
+        .map-status-pill--adventure[data-active='true'] {
+          border-color: rgba(245, 197, 24, 0.38);
+          background: linear-gradient(180deg, rgba(245, 197, 24, 0.14), rgba(12, 9, 3, 0.92));
+          color: rgba(255, 239, 164, 0.96);
+        }
+
+        .map-status-pill--tonight {
+          border-color: rgba(34, 211, 238, 0.16);
+          color: rgba(207, 250, 254, 0.78);
+        }
+
+        .map-status-pill--secrets {
+          border-color: rgba(196, 157, 255, 0.2);
+          color: rgba(237, 221, 255, 0.8);
+        }
+
+        .map-status-pill--trail {
+          border-color: rgba(110, 231, 183, 0.18);
+          color: rgba(209, 250, 229, 0.8);
         }
 
         .map-advanced-filter-panel {
@@ -13131,13 +13213,13 @@ export default function RealWorldMap() {
           }
 
           .map-status-pill--summary {
-            flex: 1 1 auto;
+            flex: 0 0 auto;
             max-width: none;
             justify-content: space-between;
           }
 
           .map-status-pill--filters {
-            margin-left: auto;
+            margin-left: 0;
           }
 
           .map-advanced-filter-panel {
@@ -16205,6 +16287,38 @@ export default function RealWorldMap() {
           background: transparent;
           box-shadow: none;
           filter: drop-shadow(0 14px 10px rgba(0, 0, 0, 0.58)) drop-shadow(0 0 13px rgba(245, 197, 24, 0.34));
+        }
+
+        .basedare-maplibre-map :global(.adventure-guide-face) {
+          display: block;
+          width: 96px;
+          height: 72px;
+          max-width: none;
+          object-fit: contain;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+
+        .basedare-maplibre-map :global(.adventure-guide-mini) {
+          display: block;
+          width: 32px;
+          height: 24px;
+          max-width: none;
+          object-fit: contain;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+
+        @media (max-width: 639px) {
+          .basedare-maplibre-map :global(.adventure-guide-orb) {
+            width: 70px;
+            height: 58px;
+          }
+
+          .basedare-maplibre-map :global(.adventure-guide-face) {
+            width: 82px;
+            height: 56px;
+          }
         }
 
         .basedare-maplibre-map :global(.adventure-guide-orb__spark) {

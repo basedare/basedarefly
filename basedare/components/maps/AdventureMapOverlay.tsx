@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import {
   ChevronRight,
   Compass,
@@ -129,6 +130,7 @@ export default function AdventureMapOverlay({
   onGuideOpenChange,
 }: AdventureMapOverlayProps) {
   const [guideLineIndex, setGuideLineIndex] = useState(0);
+  const [guideSpeechOpen, setGuideSpeechOpen] = useState(false);
   const rankedActivities = useMemo(() => {
     const activities = [...(snapshot?.activities ?? [])];
     if (intent === "meet") {
@@ -177,7 +179,7 @@ export default function AdventureMapOverlay({
   return (
     <>
       <div className="pointer-events-none absolute left-3 top-3 z-[15] flex max-w-[min(22rem,calc(100%-5.25rem))] flex-col items-start gap-2 md:left-5 md:top-5">
-        <div className="pointer-events-auto flex flex-wrap items-center gap-2">
+        <div className="pointer-events-auto hidden flex-wrap items-center gap-2 md:flex">
           <button
             type="button"
             aria-pressed={enabled}
@@ -192,8 +194,13 @@ export default function AdventureMapOverlay({
             }`}
           >
             <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full border border-[#f5c518]/28 bg-black/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-              <span
-                className="adventure-sprite adventure-sprite--bear-mini"
+              <Image
+                src="/assets/peebear-head.webp"
+                alt=""
+                width={1200}
+                height={670}
+                unoptimized
+                className="adventure-guide-mini"
                 aria-hidden="true"
               />
             </span>
@@ -517,34 +524,34 @@ export default function AdventureMapOverlay({
         ) : null}
       </div>
 
-      {!obscured && !showIntentCard ? (
+      {!showIntentCard ? (
         <button
           type="button"
           onClick={() => {
-            if (!guideOpen) {
-              onGuideOpenChange(true);
-              return;
+            setGuideSpeechOpen(true);
+            if (guideSpeechOpen) {
+              setGuideLineIndex((current) => (current + 1) % guideLines.length);
             }
-            setGuideLineIndex((current) => (current + 1) % guideLines.length);
           }}
-          aria-label={
-            !guideOpen
-              ? "Open PeeBear suggestions"
-              : "Ask PeeBear for another field hint"
-          }
-          className="pointer-events-auto absolute bottom-5 right-4 z-[16] flex max-w-[min(18rem,calc(100%-2rem))] items-end gap-2 text-left md:bottom-6 md:right-6"
+          aria-label="Ask PeeBear for another field hint"
+          className={`pointer-events-auto absolute right-4 z-[16] flex max-w-[min(18rem,calc(100%-2rem))] items-end gap-2 text-left md:bottom-6 md:right-6 ${
+            obscured ? "bottom-28" : "bottom-5"
+          }`}
         >
-          <span
-            className={`mb-2 rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.94),rgba(5,7,14,0.97))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/82 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl ${
-              !guideOpen ? "hidden sm:block" : ""
-            }`}
-          >
-            {!guideOpen
-              ? "Free roam. Tap me if you want three suggestions."
-              : guideLines[guideLineIndex % guideLines.length]}
-          </span>
+          {guideSpeechOpen ? (
+            <span className="mb-2 max-w-[12rem] rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.96),rgba(5,7,14,0.98))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/86 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl sm:max-w-[15rem]">
+              {guideLines[guideLineIndex % guideLines.length]}
+            </span>
+          ) : null}
           <span className="adventure-guide-orb shrink-0" aria-hidden="true">
-            <span className="adventure-sprite adventure-sprite--bear" />
+            <Image
+              src="/assets/peebear-head.webp"
+              alt=""
+              width={1200}
+              height={670}
+              unoptimized
+              className="adventure-guide-face"
+            />
             <span className="adventure-guide-orb__spark" />
           </span>
         </button>

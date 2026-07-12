@@ -18,6 +18,7 @@ Two agents work this repo at once. Check this section before starting, and updat
 - User explicitly reassigned the map surface to Codex while Claude was out of credits and requested direct-to-main delivery.
 - `components/maps/RealWorldMap.tsx` now presents venue/activity sprites as frameless floating AR-style objects with silhouette cuts, world tethers, and ground glows; real venue names and place-memory states remain intact.
 - Desktop-only orbit/tilt/north controls are a compact right-side pad. Mobile remains gesture-only and renders no camera-control buttons.
+- PeeBear uses the canonical transparent head; tapping cycles field tips without reopening the mission chooser. On mobile, Adventure/Tonight/Secrets/Trail live in the existing horizontally scrollable status rail instead of a second floating row.
 - Preserve the existing MapLibre camera/renderer and marker gesture calm-down path; this pass changes DOM-marker presentation and existing camera-control placement only.
 
 ### Codex universal consumer onboarding pass (2026-07-11)
