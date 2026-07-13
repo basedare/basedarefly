@@ -7238,15 +7238,20 @@ export default function RealWorldMap() {
       }));
     }
 
-    const activatedPlaces = filteredNearbyPlaces.filter((place) => isVenueActivated(place.commandCenter));
-    const clusterablePlaces = filteredNearbyPlaces.filter((place) => !isVenueActivated(place.commandCenter));
+    const roundedZoom = Math.max(0, Math.round(mapZoom));
+    const preserveActivatedMarkers = roundedZoom >= 14;
+    const activatedPlaces = preserveActivatedMarkers
+      ? filteredNearbyPlaces.filter((place) => isVenueActivated(place.commandCenter))
+      : [];
+    const clusterablePlaces = preserveActivatedMarkers
+      ? filteredNearbyPlaces.filter((place) => !isVenueActivated(place.commandCenter))
+      : filteredNearbyPlaces;
     const activatedMarkers = activatedPlaces.map((place): ClusteredNearbyMarker => ({
       kind: 'place',
       key: place.id,
       place,
     }));
 
-    const roundedZoom = Math.max(0, Math.round(mapZoom));
     const cellSize = getClusterCellSize(roundedZoom);
 
     if (cellSize <= 0 || clusterablePlaces.length <= 1) {
@@ -7324,7 +7329,7 @@ export default function RealWorldMap() {
   }, [filteredNearbyPlaces, mapZoom, matchedVenueIndex, showMatchedLayer]);
 
   const selectedPlaceNeedsDedicatedMarker = useMemo(() => {
-    if (!selectedPlace) {
+    if (!selectedPlace || mapZoom < 14) {
       return false;
     }
 
@@ -7343,7 +7348,7 @@ export default function RealWorldMap() {
         Math.abs(place.longitude - selectedPlace.longitude) < 0.000001
       );
     });
-  }, [clusteredNearbyMarkers, selectedPlace]);
+  }, [clusteredNearbyMarkers, mapZoom, selectedPlace]);
 
   const selectedPlaceFootprintStats = useMemo(() => {
     if (!selectedPlace) {
@@ -8381,7 +8386,7 @@ export default function RealWorldMap() {
     setPulseFilter('all');
     setMapVenueFocus('all');
     setTargetCenter([adventureCenter.latitude, adventureCenter.longitude]);
-    setTargetZoom(Math.max(9, Math.min(11, mapZoom - 2)));
+    setTargetZoom(Math.min(16, Math.max(14, mapZoom)));
     triggerHaptic('selection');
   }, [adventureCenter.latitude, adventureCenter.longitude, mapZoom]);
 
@@ -8701,7 +8706,7 @@ export default function RealWorldMap() {
       });
     });
 
-    if (adventureMode) {
+    if (adventureMode && mapZoom >= 14) {
       localSignals
         .filter(
           (signal) =>
@@ -8732,7 +8737,7 @@ export default function RealWorldMap() {
         });
     }
 
-    if (adventureMode && focalAdventureActivity) {
+    if (adventureMode && mapZoom >= 14 && focalAdventureActivity) {
       addMarker({
         key: `adventure-activity:${focalAdventureActivity.type}:${focalAdventureActivity.id}`,
         latitude: focalAdventureActivity.place.lat,
@@ -16058,6 +16063,17 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.adventure-sprite--rumor) {
           background-image: url('/assets/map/holograms/rumor.webp');
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--rumor-mini) {
+          width: 22px;
+          height: 22px;
+          flex-basis: 22px;
+          background-image: url('/assets/map/holograms/rumor.webp');
+          filter:
+            saturate(1.08)
+            drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55))
+            drop-shadow(0 0 4px rgba(167, 139, 250, 0.42));
         }
 
         @keyframes hologramProjectorPulse {

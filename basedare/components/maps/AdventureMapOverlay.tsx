@@ -78,7 +78,7 @@ const PEEBEAR_FIELD_LINES = [
   "Tap a named place for its lore.",
   "Purple stones are reviewed local rumors.",
   "Brighter halos mean more verified activity.",
-  "Zoom out to find island secrets.",
+  "Zoom closer and the hidden details come into focus.",
 ];
 
 function formatActivityTiming(activity: TonightActivity) {
@@ -253,7 +253,7 @@ export default function AdventureMapOverlay({
             <button
               type="button"
               onClick={onExploreSecrets}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-violet-200/22 bg-[linear-gradient(180deg,rgba(41,24,64,0.92),rgba(8,7,17,0.95))] px-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-violet-50 shadow-[0_14px_30px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl transition hover:border-violet-100/36 sm:px-3.5"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-violet-200/22 bg-[linear-gradient(180deg,rgba(41,24,64,0.92),rgba(8,7,17,0.95))] px-3 text-[9px] font-black uppercase tracking-[0.11em] text-violet-50 shadow-[0_10px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl transition hover:border-violet-100/36"
             >
               <span
                 className="adventure-sprite adventure-sprite--rumor-mini"

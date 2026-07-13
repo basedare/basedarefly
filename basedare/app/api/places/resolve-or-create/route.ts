@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import {
-  calculateDistance,
   encodeGeohash,
   getNeighborGeohashes,
   isValidCoordinates,
 } from '@/lib/geo';
 import { deriveVenueHandle, isBaseCashPilotVenue } from '@/lib/venue-handles';
+import { selectNearbyPlaceMatch } from '@/lib/place-resolution-policy';
 
 const ResolvePlaceSchema = z.object({
   name: z.string().trim().min(1).max(160).optional(),
@@ -64,12 +64,26 @@ async function ensureUniqueVenueSlug(baseSlug: string) {
   }
 }
 
-async function findNearbyVenueMatch(latitude: number, longitude: number) {
+async function findNearbyVenueMatch(
+  latitude: number,
+  longitude: number,
+  requestedName?: string | null
+) {
   const queryGeohash = encodeGeohash(latitude, longitude, 7);
+  const legacyQueryGeohash = encodeGeohash(latitude, longitude, 6);
+  const latitudeDelta = NEARBY_MATCH_RADIUS_METERS / 111_320;
+  const longitudeDelta = latitudeDelta / Math.max(Math.cos((latitude * Math.PI) / 180), 0.2);
   const nearby = await prisma.venue.findMany({
     where: {
       status: 'ACTIVE',
-      geohash: { in: getNeighborGeohashes(queryGeohash) },
+      OR: [
+        { geohash: { in: getNeighborGeohashes(queryGeohash) } },
+        { geohash: { in: getNeighborGeohashes(legacyQueryGeohash) } },
+        {
+          latitude: { gte: latitude - latitudeDelta, lte: latitude + latitudeDelta },
+          longitude: { gte: longitude - longitudeDelta, lte: longitude + longitudeDelta },
+        },
+      ],
     },
     select: {
       id: true,
@@ -81,20 +95,16 @@ async function findNearbyVenueMatch(latitude: number, longitude: number) {
       latitude: true,
       longitude: true,
     },
-    take: 16,
+    take: 32,
   });
 
-  const ranked = nearby
-    .map((venue) => ({
-      venue,
-      distanceMeters: Math.round(
-        calculateDistance(latitude, longitude, venue.latitude, venue.longitude) * 1000
-      ),
-    }))
-    .filter((item) => item.distanceMeters <= NEARBY_MATCH_RADIUS_METERS)
-    .sort((a, b) => a.distanceMeters - b.distanceMeters);
-
-  return ranked[0]?.venue ?? null;
+  return selectNearbyPlaceMatch({
+    latitude,
+    longitude,
+    requestedName,
+    candidates: nearby,
+    radiusMeters: NEARBY_MATCH_RADIUS_METERS,
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -168,7 +178,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const nearbyMatch = await findNearbyVenueMatch(latitude, longitude);
+    const nearbyMatch = await findNearbyVenueMatch(latitude, longitude, name);
     if (nearbyMatch) {
       return NextResponse.json({
         success: true,

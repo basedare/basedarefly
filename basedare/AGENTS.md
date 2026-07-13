@@ -193,3 +193,8 @@ Best repro: real Chrome → DevTools → Rendering → enable **Paint flashing +
 - Desktop Chrome/Chromium kept dropping MapLibre's WebGL base layer during marker/camera interaction even after DPR caps, canvas isolation, fade tuning, and camera-noop patches. The stable fix is now a Chrome-only DOM/SVG fallback inside `components/maps/RealWorldMap.tsx`.
 - In desktop Chromium only, `RealWorldMap` skips MapLibre startup, marks the map ready, renders `.desktop-chrome-map-fallback` with projected venue markers, and keeps marker clicks opening the normal venue side panel. Safari, mobile Chrome, and mobile Safari still use the MapLibre path.
 - Do not remove this fallback just because the MapLibre code still exists nearby; it is intentionally browser-gated to avoid Chrome's WebGL compositor flicker/black-tile bug.
+
+### Codex map density + place-resolution correction (2026-07-13)
+- User explicitly assigned Codex the map follow-up while Claude was unavailable. Far zoom now clusters activated venues and withholds detail-only rumor/activity objects until zoom 14; close zoom still restores the holographic place layer. Do not undo this level-of-detail boundary when adding new marker families.
+- `Find secrets` now zooms into the detail layer and uses a dedicated compact transparent rumor icon instead of inheriting the 64px map-object sprite.
+- `POST /api/places/resolve-or-create` now searches both legacy/current geohash precision plus a coordinate bounding box and prefers the canonical exact-slug match. This prevents same-coordinate duplicates such as `hideaway-2`; the empty production duplicate was removed after all venue relations were confirmed zero.
