@@ -53,6 +53,11 @@ import { calculateDistance } from '@/lib/geo';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
+import {
+  getAdventurePlaceSprite,
+  SURF_SIGNAL_PATTERN,
+  type AdventureSpriteKind,
+} from '@/lib/map-adventure-policy';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import type { VenueLegend, VenueMemorySummary, VenueProfileSummary, VenueSessionSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
@@ -2599,11 +2604,14 @@ function getVenueHappeningCopy(place: NearbyPlace, window: HappeningWindow) {
   }
 
   if (window.key === 'morning' && /(surf|beach|coffee|cafe|boardwalk)/.test(categoryText)) {
+    const hasSurfSignal = SURF_SIGNAL_PATTERN.test(categoryText);
     return {
       kind: 'tourist-route' as const,
       eyebrow: 'Morning pick',
       title: `Start at ${place.name}`,
-      detail: 'Good for a quick surf check, coffee stop, or first-light clip.',
+      detail: hasSurfSignal
+        ? 'Good for a wave check, surf plan, or first-light proof.'
+        : 'Good for coffee, breakfast, a boardwalk stop, or first-light proof.',
       actionLabel: 'Open',
       tone: 'cyan' as HappeningTone,
     };
@@ -2648,6 +2656,7 @@ type LocalEventTemplate = {
   id: string;
   windows: HappeningWindow['key'][];
   placePatterns: RegExp[];
+  strictCategoryMatch?: boolean;
   eyebrow: string;
   title: (placeName: string) => string;
   detail: string;
@@ -2659,7 +2668,8 @@ const LOCAL_SIARGAO_EVENT_TEMPLATES: LocalEventTemplate[] = [
   {
     id: 'cloud9-surf-check',
     windows: ['morning', 'day'],
-    placePatterns: [/cloud\s*9/i, /surf/i, /boardwalk/i, /beach/i],
+    placePatterns: [SURF_SIGNAL_PATTERN],
+    strictCategoryMatch: true,
     eyebrow: 'Local event',
     title: (placeName) => `Surf check around ${placeName}`,
     detail: 'A simple first stop for wave checks, lessons, or boardwalk energy.',
@@ -2730,7 +2740,9 @@ function findBestLocalEventPlace(input: {
   const candidates = input.places
     .filter((place) => !input.excludedSlugs.has(place.slug))
     .map((place) => {
-      const text = getPlaceSearchText(place);
+      const text = input.template.strictCategoryMatch
+        ? [place.name, ...place.categories].join(' ').toLowerCase()
+        : getPlaceSearchText(place);
       const patternScore = input.template.placePatterns.reduce(
         (score, pattern) => score + (pattern.test(text) ? 18 : 0),
         0
@@ -2745,9 +2757,9 @@ function findBestLocalEventPlace(input: {
         place.tagSummary.heatScore -
         (distanceKm ? Math.min(distanceKm * 3, 22) : 0);
 
-      return { place, distanceKm, score };
+      return { place, distanceKm, score, patternScore };
     })
-    .filter((candidate) => candidate.score > 0)
+    .filter((candidate) => candidate.patternScore > 0 && candidate.score > 0)
     .sort((a, b) => b.score - a.score);
 
   return candidates[0] ?? null;
@@ -2988,30 +3000,6 @@ function escapeMarkerAttribute(value: string) {
     .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
-}
-
-type AdventureSpriteKind = 'flag' | 'surf' | 'cafe' | 'gathering' | 'rumor';
-
-function getAdventurePlaceSprite({
-  challengeLiveCount,
-  categories,
-}: {
-  challengeLiveCount: number;
-  categories?: string[] | null;
-}): AdventureSpriteKind {
-  if (challengeLiveCount > 0) return 'flag';
-
-  const categoryText = (categories ?? []).join(' ').toLowerCase();
-  if (/surf|wave|beach|island|coast|water|lagoon|river|rock-pool|dock|boat/.test(categoryText)) {
-    return 'surf';
-  }
-  if (/coffee|cafe|bakery|restaurant|food|eat|kitchen|market/.test(categoryText)) {
-    return 'cafe';
-  }
-  if (/bar|night|music|club|community|gather|hostel|hotel|stay|resort|wellness|yoga|spa/.test(categoryText)) {
-    return 'gathering';
-  }
-  return 'rumor';
 }
 
 function getAdventureActivitySprite(activity: TonightActivity): AdventureSpriteKind {
@@ -16049,8 +16037,16 @@ export default function RealWorldMap() {
           background-image: url('/assets/map/holograms/flag.webp');
         }
 
+        .basedare-maplibre-map :global(.adventure-sprite--beer) {
+          background-image: url('/assets/map/holograms/beer.webp');
+        }
+
         .basedare-maplibre-map :global(.adventure-sprite--surf) {
           background-image: url('/assets/map/holograms/surf.webp');
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--palm) {
+          background-image: url('/assets/map/holograms/palm.webp');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--cafe) {

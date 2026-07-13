@@ -45,7 +45,7 @@ export type MapAttentionPlaceSuggestion = {
   name: string;
   description: string;
   meta: string;
-  sprite: "surf" | "cafe" | "gathering" | "rumor" | "flag";
+  sprite: "beer" | "surf" | "palm" | "cafe" | "gathering" | "rumor" | "flag";
 };
 
 const INTENT_OPTIONS: Array<{

@@ -57,7 +57,7 @@ const VENUE_LEGENDS: Record<VenueLegendKey, VenueLegend & { keywords: string[]; 
     key: 'surf',
     label: 'Surf',
     emoji: '🏄',
-    keywords: ['surf', 'cloud 9', 'boardwalk', 'wave', 'surfing'],
+    keywords: ['surf', 'cloud 9', 'wave', 'surfing'],
     story: 'wave culture, boardwalk rituals, and island proof',
   },
   bar: {
@@ -99,7 +99,7 @@ const VENUE_LEGENDS: Record<VenueLegendKey, VenueLegend & { keywords: string[]; 
     key: 'hotel',
     label: 'Hotel',
     emoji: '🛎️',
-    keywords: ['hotel', 'resort', 'villa', 'hostel', 'hideaway', 'stay'],
+    keywords: ['hotel', 'resort', 'villa', 'hostel', 'stay'],
     story: 'arrival, hospitality, and travel-proof moments',
   },
   sport: {
