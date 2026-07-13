@@ -14296,8 +14296,8 @@ export default function RealWorldMap() {
           position: relative;
           z-index: 1;
           display: grid;
-          height: 2.65rem;
-          width: 2.65rem;
+          height: 2.85rem;
+          width: 2.85rem;
           flex: 0 0 auto;
           place-items: center;
           border: 0;
@@ -14310,7 +14310,7 @@ export default function RealWorldMap() {
           position: absolute;
           left: 50%;
           bottom: 0;
-          width: 27px;
+          width: 30px;
           height: 7px;
           transform: translateX(-50%) perspective(30px) rotateX(60deg);
           border: 1px solid rgba(var(--holo-rgb), 0.7);
@@ -14328,10 +14328,10 @@ export default function RealWorldMap() {
         }
 
         .map-legend-hologram .adventure-sprite {
-          width: 44px;
-          height: 44px;
-          flex-basis: 44px;
-          transform: translateY(-3px) scale(1.06);
+          width: 48px;
+          height: 48px;
+          flex-basis: 48px;
+          transform: translateY(-3px) scale(1.08);
           filter: saturate(1.05) drop-shadow(0 5px 4px rgba(0, 0, 0, 0.48));
         }
 
@@ -16030,7 +16030,22 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.adventure-place-object .adventure-sprite),
         .basedare-maplibre-map :global(.adventure-focal-marker .adventure-sprite) {
-          transform: translateY(-8px) scale(1.1);
+          transform: translateY(-8px) scale(1.22);
+        }
+
+        .basedare-maplibre-map :global(.adventure-rumor-marker .adventure-sprite) {
+          transform: translateY(-3px) scale(1.12);
+        }
+
+        @media (max-width: 639px) {
+          .basedare-maplibre-map :global(.adventure-place-object .adventure-sprite),
+          .basedare-maplibre-map :global(.adventure-focal-marker .adventure-sprite) {
+            transform: translateY(-8px) scale(1.16);
+          }
+
+          .basedare-maplibre-map :global(.adventure-rumor-marker .adventure-sprite) {
+            transform: translateY(-3px) scale(1.08);
+          }
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--flag) {
