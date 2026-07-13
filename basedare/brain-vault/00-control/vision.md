@@ -3,7 +3,7 @@ type: strategic_vision
 system: basedare-brain
 status: ACTIVE
 created_at: 2026-07-10
-updated_at: 2026-07-10
+updated_at: 2026-07-13
 owner: BaseDare
 ---
 
@@ -85,6 +85,14 @@ Verified Field Sprints are the revenue wedge, but bespoke field research can bec
 
 Sprint #1 should be delivered to a friendly design partner at cost or free to manufacture the first honest receipt and establish verification cost. Sprint #2 is the first paid sale. The buyer paying again remains the PMF signal.
 
+## Financial canon
+
+The first paid SKU is one **$2,500 Verified Field Sprint**: a $2,000 managed-service fee plus a separately tracked $500 creator pool. Four contributors are funded at $125 gross each; each accepted contribution pays $120 net after the V2 settlement fee. The delivery target is 7–10 days, no more than $650 of direct delivery cost excluding creator pass-through, and no more than 10 operator hours.
+
+Personal and community-funded dares remain self-serve: **96% completer / 4% BaseDare / 0% referral / no Live Pot entitlement**. The 4% is settlement and liquidity revenue only; it does not buy mission design, contributor recruitment, managed verification, support, or reporting. Managed-service fees are invoiced outside the bounty contract. A future 25% all-in automated business rail is parked, not live.
+
+`docs/FINANCIAL_CANON.md` and `lib/financial-canon.ts` are the pricing authority. Sprint #1 may waive the service fee only as an explicitly measured design-partner acquisition cost; Sprint #2 must test the canonical paid price.
+
 ## Buyer ladder
 
 The likely commercial sequence is:
@@ -116,7 +124,7 @@ Public branding may be pseudonymous. Legal ownership, tax obligations, contracts
 
 The first business invoice is the trigger for accountable entity, invoicing, tax, contract, and rights readiness. "Experimental" revenue does not defer those obligations.
 
-## Current readiness — 2026-07-10
+## Current readiness — 2026-07-13
 
 ### Built and reusable
 
@@ -127,12 +135,15 @@ The first business invoice is the trigger for accountable entity, invoicing, tax
 - Local Signals / Local Tips as the discovery-layer embryo
 - place-memory rails through `VenueMemory` and `PlaceTag`
 - campaign and slot funding primitives
+- wallet-first open-dare claim policy with transactional moderation guards
+- append-only proof attempts, submission-time proximity policy, trusted-media binding, resumable idempotency, and payout leases
 
-### Sellability blockers
+### Release and sellability gates
 
-1. Open-dare claim still requires a verified tag and moderated claim request; the money-first cold-wallet funnel is not built yet.
-2. Proof submission does not capture contributor coordinates or enforce proximity to the dare/place radius; venue-less presence is not yet strong enough for the product claim.
-3. Existing Terms cover BaseDare display and promotion, but sponsor-facing commercial reuse/sublicensing consent is only partial and is not captured explicitly in the upload flow.
+1. The wallet-first/proximity rail must have its required migrations deployed before code and pass a real signed-wallet production smoke; local tests are not production evidence.
+2. Existing Terms cover BaseDare display and promotion, but sponsor-facing commercial reuse/sublicensing consent is only partial and is not captured explicitly in the upload flow. Do not sell sponsor reuse yet.
+3. V2 has not been deployed to Base mainnet. The financial canon does not authorize deployment; the human-signed cutover runbook remains binding.
+4. Managed batch routing, invoice confirmation, paid-reviewer accounting, and receipt assembly may be manual for the design-partner Sprint only while they remain inside the canonical cost and time ceilings.
 
 Structured field templates, paid-reviewer accounting, and batch funding can remain manual for the first design-partner Sprint.
 

@@ -1,165 +1,37 @@
 # BaseDare Monetization Roadmap
 
-## Goal
+Pricing authority: [`docs/FINANCIAL_CANON.md`](./FINANCIAL_CANON.md).
 
-Build BaseDare into a profitable and original challenge economy without turning it into:
-- a generic creator marketplace
-- a coupon app
-- a shallow ad network
+## Now: prove one profitable sale
 
-## Phase 1: Prove Money Wants Chaos
+1. Keep personal and community-funded dares self-serve at the V2 96/4 split.
+2. Deliver one design-partner Verified Field Sprint and measure the real verification and support cost.
+3. Sell Sprint #2 for $2,500: $2,000 managed service plus a $500 creator pool.
+4. Keep every commercial result bounded, timestamped, and honest about what was and was not verified.
+5. Turn each Sprint into reusable mission templates, place memory, contributor reputation, verification learnings, and refresh demand.
 
-Primary goal:
-- prove users will fund dares
-- prove creators will complete them
-- prove verification can resolve payouts cleanly
+Near-term success is not gross funded volume. It is a paid Sprint delivered within the $650 direct-cost and 10-hour ceilings, followed by repeat or referral demand.
 
-Top monetization items:
+## Next: automate before discounting
 
-1. consumer successful-payout take rate
-- simple and understandable
-- should be visible in economics dashboards
+Only after several paid Sprints show repeatable delivery:
 
-2. boosted dare placement
-- users or brands pay to push a dare higher in discovery
+- automate question scoping, contributor routing, review packets, refunds, and receipts;
+- test the parked 25% all-in self-serve business rail;
+- test recurring re-verification or City Signal pricing with buyers who already paid once;
+- price higher proof rungs only when BaseDare can actually verify conversion or qualified action.
 
-3. priority claim access for creators
-- premium early-access or featured challenge queue
+Do not replace the $2,000 service fee with a percentage rake while work remains operationally managed.
 
-4. brand pilot challenges
-- small paid test campaigns with explicit setup fees
+## Later: earn the right to add layers
 
-What matters most:
-- realized GMV
-- completion rate
-- average successful bounty
-- revenue per resolved dare
+Venue subscriptions, data/API pricing, white-label infrastructure, commerce revenue share, boosted placement, and token economics remain hypotheses. Each needs a real buyer, measured serving cost, clear rights, and a repeatable product before it enters the financial plan.
 
-## Phase 2: Sell Verified Campaigns
+## Rules
 
-Primary goal:
-- move from random dares to repeatable campaign revenue
-
-Top monetization items:
-
-5. managed creator campaign packages
-- briefing
-- sync timing
-- verification
-- reporting
-
-6. campaign rake on budget
-- clear split between creator payout, company revenue, and scout/referral if applicable
-
-7. premium verification or compliance package
-- faster review
-- brand-safe review lane
-- proof-quality guarantees
-
-What matters most:
-- average campaign value
-- gross margin per campaign
-- repeat brand usage
-- time from pitch to launch
-
-## Phase 3: Turn Places Into Revenue Nodes
-
-Primary goal:
-- make real-world places part of the business model
-
-Top monetization items:
-
-8. venue subscription
-- venue console
-- venue memory page
-- live check-in layer
-- premium analytics later
-
-9. venue activation package
-- one-off event nights
-- nightlife drops
-- district trails
-- sponsored challenge nights
-
-10. perk and commerce revenue share
-- discounts
-- unlockable offers
-- VIP entry
-- sponsor-backed rewards
-
-What matters most:
-- venue retention
-- check-ins per venue
-- repeat visits
-- activation revenue per venue
-
-## Phase 4: Expand Into Infrastructure
-
-Primary goal:
-- make BaseDare the default challenge and proof layer for third parties
-
-Future monetization:
-- verification API
-- white-label challenge engine
-- enterprise venue / event stack
-- recurring protocol subscriptions for partners
-
-What matters most:
-- software-like margins
-- reduced ops cost
-- partner dependency on BaseDare rails
-
-## Suggested Top 10 By Priority
-
-1. consumer payout take rate
-2. brand pilot setup fees
-3. managed creator campaigns
-4. campaign rake
-5. boosted dare placement
-6. premium review / verification lane
-7. venue subscriptions
-8. venue activation packages
-9. commerce / perk revenue share
-10. verification API / white-label rails
-
-## Pricing Anchors To Test
-
-These are starting points, not truths:
-
-### Consumer
-- 8% to 12% successful payout fee
-- boosted dare placement from $5 to $100 depending on visibility
-
-### Brand Campaigns
-- setup fee: $500 to $5,000
-- campaign rake: 15% to 30%
-- premium reporting or review add-on: $250 to $2,000
-
-### Venues
-- pilot: free or heavily discounted
-- subscription: $49 to $299 per month
-- activation package: $500 to $3,000+
-
-### Protocol / Enterprise
-- monthly minimum + usage
-- or flat enterprise contract with SLA and reporting
-
-## Rules For The Roadmap
-
-1. Do not count treasury flows as company revenue.
-2. Do not launch venue subscriptions before proving check-in utility.
-3. Do not let consumer activity distract from B2B monetization.
-4. Do not over-engineer token mechanics before revenue works.
-5. Do not build a giant sales org before repeatable campaign delivery exists.
-
-## What Makes This Original
-
-BaseDare is not just monetizing content.
-It is monetizing:
-- action
-- proof
-- presence
-- place
-- public challenge
-
-That is the thing to preserve.
+- Creator rewards are pass-through funds, not revenue.
+- The 4% V2 settlement fee is additional settlement revenue, not the managed-service fee.
+- No referral or Live Pot promise comes from V2 settlement.
+- No guarantee of traffic, purchases, reach, or positive findings.
+- No sponsor commercial-reuse promise before explicit contributor consent and human legal review.
+- No new monetization surface before the existing paid Sprint runs like a product rather than an improvised agency project.

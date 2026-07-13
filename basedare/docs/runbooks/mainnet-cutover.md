@@ -27,9 +27,16 @@ The platform wallet and referee address must be different.
 
 ## Pre-Deploy
 
-1. Create the fresh referee wallet and keep only its public address handy.
-2. Fund the deployer with Base mainnet ETH for gas.
-3. Run the public preflight:
+1. Confirm `docs/FINANCIAL_CANON.md`, `lib/financial-canon.ts`, contract tests,
+   creator copy, and dashboard definitions all agree on `96 / 4 / 0` with no
+   Live Pot entitlement.
+2. Confirm the public Buyer Portal routes new managed work through the `$2,500`
+   invoice intake and cannot launch a partially funded campaign directly.
+3. Confirm the required proof-attempt and payout-lease migrations have a reviewed
+   deploy order. Migrations deploy before code.
+4. Create the fresh referee wallet and keep only its public address handy.
+5. Fund the deployer with Base mainnet ETH for gas.
+6. Run the public preflight:
 
 ```bash
 MAINNET_REFEREE_ADDRESS=0xFRESH_REFEREE_ADDRESS npm run mainnet:preflight
@@ -116,3 +123,6 @@ gh variable set NEXT_PUBLIC_SIMULATE_BOUNTIES --body false
 
 Keep the first live amount intentionally small. The goal is to prove the whole
 settlement loop, not to make the first transaction impressive.
+
+Do not use the mainnet smoke to collect a managed-service fee. It tests only the
+V2 reward escrow and its 4% successful-settlement fee.

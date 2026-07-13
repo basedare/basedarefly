@@ -24,11 +24,13 @@ BaseDare proofs outcomes; it does not insure or guarantee them. Funds may be esc
 
 **Every paid dare must create a durable asset:** verified presence · structured local information · reusable media or a field note with sufficient rights · a serial receipt · contributor reputation · a referral or discovery path. If a payout creates only a disposable post, it is marketing spend without a network effect.
 
-**First SKU = one Verified Field Sprint.** Use a friendly design partner at cost or free to manufacture the first honest receipt. The sprint asks one bounded physical-world question, pays a small contributor cell to produce useful verified answers, records rejection/fraud/review costs, and publishes one timestamped deliverable. Sprint #1 proves delivery and verification economics; Sprint #2 is the first real paid sale.
+**First SKU = one $2,500 Verified Field Sprint.** The fixed invoice is a $2,000 managed-service fee plus a separately tracked $500 creator pool. Four contributors are funded at $125 gross each; an accepted result pays $120 net after the V2 4% settlement fee. Use a friendly design partner at cost or free only to manufacture the first honest receipt and measure delivery. Sprint #1 proves delivery and verification economics; Sprint #2 is the first real paid sale.
+
+**Financial rails are separate and canonical.** Personal/community dares are self-serve: 96% completer, 4% BaseDare, 0% referral, and no Live Pot entitlement. The 4% is settlement/liquidity revenue, not managed-service revenue. Business service fees are invoiced off-contract; the V2 contract carries only creator reward funding. `docs/FINANCIAL_CANON.md` and `lib/financial-canon.ts` are the pricing authority. A future 25% all-in self-serve business rail is parked until delivery is automated and proven.
 
 **Service → asset is non-negotiable.** A Field Sprint is a service wedge, not the destination. Every sprint must reuse templates, improve verification, add place records, strengthen contributor reputation, and create re-verification demand. Local information decays; every result carries an `as of` date and a refresh expectation. Freshness decay is both a product liability to communicate honestly and the bridge to recurring **City Signal** revenue.
 
-**The contributor funnel is money-first:** see a specific paid mission → claim → prove → get paid → reputation activates → receive the next mission. Do not require a cold contributor to build an identity and wait in an empty marketplace before touching value. The current code does not yet meet this rule because open-dare claiming requires a verified tag and moderation before the contributor can proceed.
+**The contributor funnel is money-first:** see a specific paid mission → claim → prove → get paid → reputation activates → receive the next mission. Do not require a cold contributor to build an identity and wait in an empty marketplace before touching value. The wallet-first claim and proximity-evidence implementation exists locally; it is not production proof until migrations, deployment, and a signed end-to-end smoke are complete.
 
 **Non-negotiable safety constraint:** dare briefs come from a constrained, pre-approved menu; payout never scales with danger, humiliation, harassment, drinking pressure, trespass, or escalation-for-views. Good discovery templates include **Verify**, **Correct**, **Taste**, **Hunt**, **Route**, and **Story** dares. The useful and safe version is the only version that pays.
 
@@ -102,7 +104,7 @@ Do not skip from founder treasury to a grand tourism-platform story. Do not clai
 6. **Higher proof rungs** — add venue/merchant co-signs, redemptions, purchases, bookings, and attributed actions.
 7. **Verified place graph infrastructure** — data/API/white-label only after reliable density and repeat buyers exist.
 
-## Current substrate and blockers — 2026-07-10
+## Current substrate and release gates — 2026-07-13
 
 ### Built and reusable
 
@@ -113,13 +115,15 @@ Do not skip from founder treasury to a grand tourism-platform story. Do not clai
 - Local Signals / Local Tips as the structured discovery-layer embryo
 - `VenueMemory` and `PlaceTag` place-memory rails with proof media and serial history
 - campaign and slot funding primitives
+- wallet-first open-dare claim policy with transactional moderation guards
+- append-only proof attempts, submission-time proximity policy, trusted-media binding, resumable idempotency, and payout leases
 
-### Partial or missing — blocks a sellable remote Sprint
+### Partial or missing — blocks a paid commercial launch
 
-1. **Money-first claim is blocked.** `app/api/dares/[id]/claim/route.ts` requires a verified creator tag and creates a moderated claim request before a cold wallet can proceed.
-2. **Venue-less proximity verification is missing.** `app/api/verify-proof/route.ts` accepts proof URL/timestamp data but does not capture submission coordinates or compare them with the dare/place radius.
-3. **Sponsor-usable media rights are partial.** Current Terms grant display and BaseDare promotional rights, but the upload flow does not capture explicit campaign-specific commercial reuse/sublicensing consent for sponsor deliverables.
-4. **Structured field templates, paid reviewer accounting, and one-request-to-many-dares funding are partial.** They may remain manual for Sprint #1 if the three sellability blockers above are resolved.
+1. **Production proof is still required.** Run the required migrations before code, then complete a real signed-wallet claim → upload → proximity decision → review/payout/refund → receipt smoke. Local tests are not production evidence.
+2. **Sponsor-usable media rights are partial.** Current Terms grant display and BaseDare promotional rights, but the upload flow does not capture explicit campaign-specific commercial reuse/sublicensing consent for sponsor deliverables. Do not sell that right yet.
+3. **Managed delivery remains manual.** Contributor routing, batch funding, paid-reviewer accounting, invoice confirmation, and receipt assembly may be operated manually for the design-partner Sprint, but must stay within the canonical $650 direct-cost and 10-hour ceilings.
+4. **V2 mainnet is not deployed.** The financial canon is locked, but human-signed deployment and production cutover remain separate release work governed by `docs/runbooks/mainnet-cutover.md`.
 
 ## Build discipline
 

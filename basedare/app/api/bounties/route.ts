@@ -170,7 +170,7 @@ const StakeBountySchema = z.object({
     .refine((addr) => isAddress(addr), 'Address checksum invalid')
     .optional(),
 
-  // Referrer tag for 1% fee tracking
+  // Legacy attribution only. V2 pays 0% referral fee.
   referrerTag: z
     .string()
     .max(20, 'Tag must be 20 characters or less')
@@ -531,7 +531,7 @@ export async function POST(request: NextRequest) {
       if (!resolvedReferrerAddress && referrerTag) {
         const referrerResolution = await resolveTagToAddress(referrerTag);
         resolvedReferrerAddress = referrerResolution.address;
-        console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
+        console.log(`[ATTRIBUTION] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (V2 payout: 0%)`);
       }
 
       const {
@@ -771,7 +771,7 @@ export async function POST(request: NextRequest) {
     if (!resolvedReferrerAddress && referrerTag) {
       const referrerResolution = await resolveTagToAddress(referrerTag);
       resolvedReferrerAddress = referrerResolution.address;
-      console.log(`[REFERRAL] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (1% fee on payout)`);
+      console.log(`[ATTRIBUTION] Tracking referrer: ${referrerTag} -> ${resolvedReferrerAddress} (V2 payout: 0%)`);
     }
     if (!resolvedReferrerAddress) {
       resolvedReferrerAddress = getPlatformWalletFallback();

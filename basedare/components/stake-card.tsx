@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import DareGenerator from "@/components/DareGenerator";
 
@@ -94,7 +93,7 @@ export function StakeCard() {
                  </Button>
 
                  <p className="text-center text-[9px] text-purple-400/60 mt-4 font-mono uppercase tracking-widest">
-                    10% Platform Fee
+                    4% Success Fee
                  </p>
               </div>
 

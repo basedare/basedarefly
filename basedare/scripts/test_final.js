@@ -1,6 +1,9 @@
 const { ethers } = require("hardhat");
 require("dotenv").config({ path: '.env.local' });
 
+// LEGACY ONLY: exercises BaseDareBounty (89/10/1). It is not a V2 release
+// check. Use the V2 contract tests, preflight, and launch smoke for 96/4/0.
+
 async function main() {
   // Use NEW contract address from env
   const BOUNTY = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS;

@@ -28,12 +28,6 @@ const CreateBountySchema = z.object({
     .min(3, 'Tag must be at least 3 characters')
     .max(20, 'Tag must be 20 characters or less')
     .regex(/^@[a-zA-Z0-9_]+$/, 'Tag must start with @ and contain only letters, numbers, and underscores'),
-  referrerTag: z
-    .string()
-    .max(20, 'Tag must be 20 characters or less')
-    .regex(/^(@[a-zA-Z0-9_]+)?$/, 'Tag must start with @ if provided')
-    .optional()
-    .or(z.literal('')),
   streamId: z.string().min(1, 'Stream ID is required'),
 });
 
@@ -63,7 +57,6 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
       title: '',
       amount: 5,
       streamerTag: '',
-      referrerTag: '',
       streamId: defaultStreamId,
     },
   });
@@ -103,7 +96,6 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
-          referrerTag: data.referrerTag || undefined,
           stakerAddress: address || undefined,
         }),
       });
@@ -215,24 +207,7 @@ export default function CreateBountyForm({ defaultStreamId = 'dev-stream-001' }:
               <p className="text-red-400 text-xs">{errors.streamerTag.message}</p>
             )}
             <p className="text-white/30 text-xs">
-              We'll map your tag to an address later
-            </p>
-          </div>
-
-          {/* Referrer Tag (Optional) */}
-          <div className="space-y-2">
-            <Label htmlFor="referrerTag" className="text-white/70 text-xs font-mono uppercase tracking-wider">Referrer Tag (Optional)</Label>
-            <Input
-              id="referrerTag"
-              placeholder="@recruiter"
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-white/30 focus:ring-white/10 transition-all"
-              {...register('referrerTag')}
-            />
-            {errors.referrerTag && (
-              <p className="text-red-400 text-xs">{errors.referrerTag.message}</p>
-            )}
-            <p className="text-white/30 text-xs">
-              Earn 1% if your referral completes the dare
+              We&apos;ll map your tag to an address later
             </p>
           </div>
 

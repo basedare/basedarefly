@@ -97,16 +97,16 @@ const summaryClass =
   'cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.2em] text-white/52 transition hover:text-white';
 
 const BUDGET_RANGE_LABELS: Record<IntakeState['budgetRange'], string> = {
-  '500_1500': '$500-$1.5k',
-  '1500_5000': '$1.5k-$5k',
+  '500_1500': 'Design-partner exception only',
+  '1500_5000': '$2,500 Verified Field Sprint',
   '5000_15000': '$5k-$15k',
   '15000_plus': '$15k+',
 };
 
 const PACKAGE_LABELS: Record<IntakeState['packageId'], string> = {
-  'pilot-drop': 'Venue Spark Pilot',
-  'local-signal': 'Always-On Spark',
-  'city-takeover': 'Global Challenge Drop',
+  'pilot-drop': 'Design-partner Sprint (approval required)',
+  'local-signal': 'Verified Field Sprint — $2,500',
+  'city-takeover': 'Custom multi-area fieldwork',
 };
 
 const GOAL_LABELS: Record<IntakeState['goal'], string> = {
@@ -285,9 +285,9 @@ export default function ActivationIntakeForm({
         company: initialNormalizedVenue || '',
         city: initialNormalizedCity || '',
         venue: initialNormalizedVenue || '',
-        budgetRange: initialBudgetRange ?? (initialOfferId === 'first-spark' ? '500_1500' : INITIAL_STATE.budgetRange),
+        budgetRange: initialBudgetRange ?? INITIAL_STATE.budgetRange,
         timeline: initialOfferId === 'first-spark' ? 'this_week' : INITIAL_STATE.timeline,
-        packageId: initialPackageId ?? (initialOfferId === 'first-spark' ? 'pilot-drop' : INITIAL_STATE.packageId),
+        packageId: initialPackageId ?? INITIAL_STATE.packageId,
         goal: initialGoal ?? (initialOfferId === 'first-spark' ? 'foot_traffic' : INITIAL_STATE.goal),
         buyerType: initialBuyerType ?? (initialOfferId === 'first-spark' ? 'venue' : INITIAL_STATE.buyerType),
         routedCreator: initialNormalizedCreator || '',
@@ -310,7 +310,7 @@ export default function ActivationIntakeForm({
         offerId: initialOfferId || '',
         notes: [
           initialOfferId === 'first-spark'
-            ? 'Offer: First Spark Pilot. Venue provides one perk or reward; BaseDare handles setup, creator routing, QR/check-in proof path, and recap. If no verified proof lands, review and rerun the route.'
+            ? 'Offer: Verified Field Sprint. $2,000 managed service plus a separately funded $500 creator pool; BaseDare scopes one bounded question, routes four contributors, verifies the evidence, and returns a receipt.'
             : null,
           initialNormalizedCreator ? `Preferred creator: ${initialNormalizedCreator}` : null,
           initialNormalizedVenue ? `Target venue: ${initialNormalizedVenue}` : null,
@@ -480,9 +480,9 @@ export default function ActivationIntakeForm({
         company: current.company || normalizedVenue || '',
         city: current.city || normalizedCity || '',
         venue: current.venue || normalizedVenue || '',
-        budgetRange: budgetRange ?? (offerId === 'first-spark' ? '500_1500' : current.budgetRange),
+        budgetRange: budgetRange ?? current.budgetRange,
         timeline: offerId === 'first-spark' ? 'this_week' : current.timeline,
-        packageId: packageId ?? (offerId === 'first-spark' ? 'pilot-drop' : current.packageId),
+        packageId: packageId ?? current.packageId,
         goal: goal ?? (offerId === 'first-spark' ? 'foot_traffic' : current.goal),
         buyerType: buyerType ?? (offerId === 'first-spark' ? 'venue' : current.buyerType),
         routedCreator: normalizedCreator ?? current.routedCreator,
@@ -506,7 +506,7 @@ export default function ActivationIntakeForm({
         notes: [
           current.notes.trim(),
           offerId === 'first-spark'
-            ? 'Offer: First Spark Pilot. Venue provides one perk or reward; BaseDare handles setup, creator routing, QR/check-in proof path, and recap. If no verified proof lands, review and rerun the route.'
+            ? 'Offer: Verified Field Sprint. $2,000 managed service plus a separately funded $500 creator pool; BaseDare scopes one bounded question, routes four contributors, verifies the evidence, and returns a receipt.'
             : null,
           normalizedCreator ? `Preferred creator: ${normalizedCreator}` : null,
           normalizedVenue ? `Target venue: ${normalizedVenue}` : null,
@@ -641,7 +641,7 @@ export default function ActivationIntakeForm({
         ['Budget lane', BUDGET_RANGE_LABELS[form.budgetRange]],
         ['Package', PACKAGE_LABELS[form.packageId]],
         ['Goal', GOAL_LABELS[form.goal]],
-        form.offerId === 'first-spark' ? ['Offer', 'First Spark Pilot'] : null,
+        form.offerId === 'first-spark' ? ['Offer', 'Verified Field Sprint template'] : null,
       ].filter((item): item is [string, string] => Boolean(item)),
     [
       form.budgetRange,
@@ -1117,8 +1117,8 @@ export default function ActivationIntakeForm({
                 onChange={(event) => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])}
                 className={inputClass}
               >
-                <option className="bg-[#080814]" value="500_1500">$500-$1.5k</option>
-                <option className="bg-[#080814]" value="1500_5000">$1.5k-$5k</option>
+                <option className="bg-[#080814]" value="500_1500">Design-partner exception only</option>
+                <option className="bg-[#080814]" value="1500_5000">$2,500 Verified Field Sprint</option>
                 <option className="bg-[#080814]" value="5000_15000">$5k-$15k</option>
                 <option className="bg-[#080814]" value="15000_plus">$15k+</option>
               </select>
@@ -1143,9 +1143,9 @@ export default function ActivationIntakeForm({
                 onChange={(event) => updateField('packageId', event.target.value as IntakeState['packageId'])}
                 className={inputClass}
               >
-                <option className="bg-[#080814]" value="pilot-drop">Venue Spark Pilot</option>
-                <option className="bg-[#080814]" value="local-signal">Always-On Spark</option>
-                <option className="bg-[#080814]" value="city-takeover">Global Challenge Drop</option>
+                <option className="bg-[#080814]" value="pilot-drop">Design-partner Sprint (approval required)</option>
+                <option className="bg-[#080814]" value="local-signal">Verified Field Sprint — $2,500</option>
+                <option className="bg-[#080814]" value="city-takeover">Custom multi-area fieldwork</option>
               </select>
             </div>
           </div>
@@ -1159,8 +1159,8 @@ export default function ActivationIntakeForm({
             onChange={(event) => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])}
             className={inputClass}
           >
-            <option className="bg-[#080814]" value="500_1500">$500-$1.5k</option>
-            <option className="bg-[#080814]" value="1500_5000">$1.5k-$5k</option>
+            <option className="bg-[#080814]" value="500_1500">Design-partner exception only</option>
+            <option className="bg-[#080814]" value="1500_5000">$2,500 Verified Field Sprint</option>
             <option className="bg-[#080814]" value="5000_15000">$5k-$15k</option>
             <option className="bg-[#080814]" value="15000_plus">$15k+</option>
           </select>
@@ -1185,9 +1185,9 @@ export default function ActivationIntakeForm({
             onChange={(event) => updateField('packageId', event.target.value as IntakeState['packageId'])}
             className={inputClass}
           >
-            <option className="bg-[#080814]" value="pilot-drop">Venue Spark Pilot</option>
-            <option className="bg-[#080814]" value="local-signal">Always-On Spark</option>
-            <option className="bg-[#080814]" value="city-takeover">Global Challenge Drop</option>
+            <option className="bg-[#080814]" value="pilot-drop">Design-partner Sprint (approval required)</option>
+            <option className="bg-[#080814]" value="local-signal">Verified Field Sprint — $2,500</option>
+            <option className="bg-[#080814]" value="city-takeover">Custom multi-area fieldwork</option>
           </select>
         </div>
       </div>

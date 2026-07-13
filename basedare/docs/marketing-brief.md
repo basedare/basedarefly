@@ -56,7 +56,7 @@ proposals — adjust, don't ignore.
 | 1 | Mates + island locals | 40% | Mayor, land grab, the night |
 | 2 | Venue owners | 25% | "You're already on the map" — claim free |
 | 3 | Tourists/backpackers | 20% | Receipt + earned DMs |
-| 4 | Creators/earners | 10% | Dare → proof → USDC |
+| 4 | Contributors/earners | 4% success fee | Dare → proof → 96% payout |
 | 5 | X thesis crowd | 5% | #HumanOnly credibility (not acquisition) |
 
 ## 5. Channels & roles

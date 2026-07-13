@@ -10,6 +10,8 @@ Rules:
 ## Product philosophy (read before building features / writing copy)
 Build *from the single aligned canon* in `docs/PHILOSOPHY.md` and `brain-vault/00-control/vision.md`. BaseDare is a remote, bounty-funded discovery network: safe dares pay contributors to create verified place intelligence; the map is the feed; place memory and verification are the assets being built; every batch must create a durable receipt; events are optional local-partner products; reputation now / token later; working beats perfect. If these two files ever conflict, reconcile them in the same change before continuing. Market evidence lives in `brain-vault/03-insights/`.
 
+Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib/financial-canon.ts`: self-serve V2 settlement is 96% completer / 4% BaseDare / 0% referral / no Live Pot entitlement; the first managed Verified Field Sprint is a separate $2,500 invoice ($2,000 service + $500 creator pool). Do not let a product surface, dashboard, helper, or old document invent a different split or treat reward funding as revenue.
+
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.

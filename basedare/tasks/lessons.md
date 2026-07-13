@@ -12,6 +12,12 @@ Use this file for durable project lessons that prevent repeated mistakes.
 
 ## Active Lessons
 
+### 2026-07-13
+- Context: Separating V2 bounty settlement from the Verified Field Sprint service invoice.
+- What went wrong: Stale pricing code allowed a managed-service amount to become an automatic scout-commission base, while a campaign could be registered from a database-only reward fallback.
+- Rule going forward: Service revenue, creator reward liability, and settlement revenue are separate ledgers. Never infer commissions from an invoice, and never call a commercial mission funded until each reward is backed by real escrow.
+- Files or systems affected: `docs/FINANCIAL_CANON.md`, `lib/financial-canon.ts`, activation-intake admin, campaign creation, founder scoreboard, release safety.
+
 ### 2026-04-29
 - Context: Money-rail cron and Telegram admin surfaces.
 - What went wrong: Live settlement jobs could treat missing on-chain IDs too softly, and the Telegram natural-language query route was not protected like the command route.

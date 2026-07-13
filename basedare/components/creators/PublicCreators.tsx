@@ -211,7 +211,7 @@ export default function CreatorsPage() {
   const verificationSteps = [
     { icon: Tag, title: "Claim Your Tag", description: "Choose a unique @tag linked to your wallet" },
     { icon: Shield, title: "Verify Identity", description: "Link your handle and submit proof" },
-    { icon: CheckCircle, title: "Start Earning", description: "Receive 89% of every dare you complete" },
+    { icon: CheckCircle, title: "Start Earning", description: "Receive 96% of every successful dare you complete" },
   ];
 
   const filteredCreators = React.useMemo(() => {

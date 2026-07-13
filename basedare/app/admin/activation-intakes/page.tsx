@@ -28,6 +28,7 @@ import { useAccount } from 'wagmi';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
 import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
+import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
 
 type IntakeStatus =
   | 'NEW'
@@ -224,6 +225,8 @@ type IntakeUpdatePatch = Partial<Omit<IntakeDraft, 'nextActionAt'>> & {
   nextActionAt?: string | null;
   status?: IntakeStatus;
   paidConfirmedAmountUsd?: number;
+  rewardPoolConfirmedAmountUsd?: number;
+  designPartnerServiceFeeException?: boolean;
   closeRoomAction?: 'sent';
 };
 
@@ -711,19 +714,46 @@ export default function ActivationIntakesPage() {
 
   const confirmPaid = async (intake: ActivationIntake) => {
     const draft = drafts[intake.id] ?? {};
-    // Capture the COMMISSIONABLE amount (the margin BaseDare rakes from — exclude
-    // pass-through like prizes/host fees) so scout rake accrues correctly. Blank
-    // = confirm payment without firing scout rake.
+    // Record service revenue separately from the contributor reward pool. This
+    // value never triggers an automatic scout/referral commission.
     const entered =
       typeof window !== 'undefined'
         ? window.prompt(
-            `Commissionable amount for "${intake.company || 'this activation'}" (USD) — the margin BaseDare rakes from, excluding pass-through costs. Leave blank to skip scout rake.`,
-            intake.amount ? String(intake.amount) : ''
+            `Managed-service revenue confirmed for "${intake.company || 'this activation'}" (USD). Exclude the contributor reward pool.`,
+            String(MANAGED_FIELD_SPRINT.serviceFeeUsd)
           )
         : null;
-    const parsed = entered != null && entered.trim() !== '' ? Number(entered.trim()) : null;
-    const paidConfirmedAmountUsd =
-      parsed != null && Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+    if (entered == null) return;
+    const paidConfirmedAmountUsd = Number(entered.trim());
+    if (
+      !Number.isFinite(paidConfirmedAmountUsd) ||
+      paidConfirmedAmountUsd < 0 ||
+      paidConfirmedAmountUsd > MANAGED_FIELD_SPRINT.serviceFeeUsd
+    ) {
+      setError(`Service revenue must be between $0 and $${MANAGED_FIELD_SPRINT.serviceFeeUsd}.`);
+      return;
+    }
+    const designPartnerServiceFeeException =
+      paidConfirmedAmountUsd !== MANAGED_FIELD_SPRINT.serviceFeeUsd;
+    if (
+      designPartnerServiceFeeException &&
+      !window.confirm(
+        `Record a $${MANAGED_FIELD_SPRINT.serviceFeeUsd - paidConfirmedAmountUsd} design-partner service-fee waiver as acquisition cost?`
+      )
+    ) {
+      return;
+    }
+
+    const rewardPoolEntry = window.prompt(
+      `Contributor reward pool received (USD). The full pool is required before launch.`,
+      String(MANAGED_FIELD_SPRINT.grossRewardPoolUsd)
+    );
+    if (rewardPoolEntry == null) return;
+    const rewardPoolConfirmedAmountUsd = Number(rewardPoolEntry.trim());
+    if (rewardPoolConfirmedAmountUsd !== MANAGED_FIELD_SPRINT.grossRewardPoolUsd) {
+      setError(`Confirm the full $${MANAGED_FIELD_SPRINT.grossRewardPoolUsd} contributor pool before launch.`);
+      return;
+    }
 
     await updateIntake(intake.id, {
       assignedCreator: draft.assignedCreator ?? intake.assignedCreator,
@@ -731,13 +761,13 @@ export default function ActivationIntakesPage() {
       paymentLink: draft.paymentLink ?? intake.paymentLink,
       paymentReference: draft.paymentReference ?? intake.paymentReference,
       status: 'PAID_CONFIRMED',
-      ...(paidConfirmedAmountUsd !== undefined ? { paidConfirmedAmountUsd } : {}),
+      paidConfirmedAmountUsd,
+      rewardPoolConfirmedAmountUsd,
+      designPartnerServiceFeeException,
       nextActionAt: null,
       operatorNote: appendOperatorNote(
         draft.operatorNote ?? intake.operatorNote,
-        paidConfirmedAmountUsd !== undefined
-          ? `Payment confirmed ($${paidConfirmedAmountUsd} commissionable). Open Brand Portal launch with the assigned venue and creator prefilled.`
-          : 'Payment confirmed. Open Brand Portal launch with the assigned venue and creator prefilled.'
+        `Payment confirmed ($${paidConfirmedAmountUsd} managed-service revenue + $${rewardPoolConfirmedAmountUsd} contributor pool${designPartnerServiceFeeException ? '; design-partner fee exception recorded' : ''}). Open the launch workflow with the assigned place prefilled.`
       ),
     });
   };

@@ -6,13 +6,14 @@ import SquircleLink from '@/components/ui/SquircleLink';
 import { ControlChrome } from '@/components/control/ControlChrome';
 import { ControlPanel } from '@/components/control/ControlPanel';
 import { controlPanel, controlInset } from '@/components/control/tokens';
+import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
 import ActivationFunnelTracker from '../activations/ActivationFunnelTracker';
 import ActivationIntakeForm from '../activations/ActivationIntakeForm';
 
 export const metadata: Metadata = {
   title: 'Run First Spark | BaseDare',
   description:
-    'Launch a verified creator dare at your venue. BaseDare brings the creator, the dare, the QR check-in, and the receipt.',
+    'Use the Verified Field Sprint for one bounded venue question, four independent contributors, verified evidence, and a receipt.',
 };
 
 type FirstSparkVenueRoute = {
@@ -71,8 +72,8 @@ function buildFirstSparkRouteHref(route: FirstSparkVenueRoute) {
     city: route.city,
     source: 'first-spark-route',
     buyerType: 'venue',
-    budgetRange: '500_1500',
-    packageId: 'first-spark-window',
+    budgetRange: '1500_5000',
+    packageId: 'local-signal',
     goal: 'foot_traffic',
     missionType: 'dead-window',
     missionTitle: route.missionTitle,
@@ -167,27 +168,27 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
   );
 
   const pilotSnapshot = [
-    ['Offer', '$500-$1.5k'],
-    ['Venue gives', '1 simple perk'],
-    ['BaseDare does', 'Route + QR proof'],
+    ['Invoice', `$${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()}`],
+    ['Service', `$${MANAGED_FIELD_SPRINT.serviceFeeUsd.toLocaleString()}`],
+    ['Creator pool', `$${MANAGED_FIELD_SPRINT.grossRewardPoolUsd}`],
     ['Output', 'Spark Receipt'],
   ];
 
   const pilotSteps = [
     {
       icon: <Users className="h-5 w-5" />,
-      label: '1. Window',
-      detail: hasRoutedVenue ? routedVenue || routedCity || 'Selected venue' : 'Choose the slow slot',
+      label: '1. Question',
+      detail: hasRoutedVenue ? routedVenue || routedCity || 'Selected venue' : 'Choose one bounded fact',
     },
     {
       icon: <QrCode className="h-5 w-5" />,
-      label: '2. Perk',
-      detail: 'Give people a reason',
+      label: '2. Contributors',
+      detail: 'Four independent routes',
     },
     {
       icon: <ReceiptText className="h-5 w-5" />,
       label: '3. Proof',
-      detail: 'QR proof plus clip',
+      detail: 'Presence + trusted media',
     },
     {
       icon: <CreditCard className="h-5 w-5" />,
@@ -215,13 +216,13 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
             <div className="relative grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">
-                  First Spark pilot — for venues with one quiet slot
+                  First Spark — a Verified Field Sprint template
                 </div>
                 <h1 className="mt-2 max-w-3xl text-3xl font-black leading-[0.95] tracking-[-0.045em] text-white sm:text-5xl">
-                  Launch a verified creator dare at your venue.
+                  Verify one useful question at your venue.
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/62 sm:text-base">
-                  You pick the night. BaseDare brings the creator, the dare, the QR check-in, and the receipt — you pay only for proven arrivals.
+                  BaseDare scopes the question, routes four contributors, verifies what the evidence actually proves, and returns a timestamped receipt. No guaranteed traffic or purchases.
                 </p>
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <div className="w-full sm:w-[260px]" data-activation-track="first-spark-primary" data-activation-channel="first-spark-page">
@@ -351,8 +352,8 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
           routedVenueSlug={routedVenueSlug}
           routedCity={routedCity}
           routedSource={routedSource}
-          routedBudgetRange={resolvedSearchParams.budgetRange || '500_1500'}
-          routedPackageId={resolvedSearchParams.packageId || 'pilot-drop'}
+          routedBudgetRange={resolvedSearchParams.budgetRange || '1500_5000'}
+          routedPackageId={resolvedSearchParams.packageId || 'local-signal'}
           routedGoal={resolvedSearchParams.goal || 'foot_traffic'}
           routedBuyerType={resolvedSearchParams.buyerType || 'venue'}
           routedOfferId="first-spark"

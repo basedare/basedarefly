@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Building2, CreditCard, MapPin, Sparkles } from 'lucide-react';
 import type { Connector } from 'wagmi';
+import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
 import { getPreferredWalletConnector } from '@/lib/wallet-connect';
 
 type PortalGatesProps = {
@@ -59,7 +60,7 @@ export default function PortalGates({
               Send a verified mission into the real world.
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/72 md:text-lg">
-              Choose a place or question, fund the reward, and BaseDare returns a verified answer, place memory, and receipt.
+              One bounded question, four independent contributors, verified evidence, place memory, and a receipt. The managed Sprint is ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} by invoice.
             </p>
 
             <div className="mx-auto mt-7 grid max-w-xl gap-3 sm:grid-cols-2">
@@ -68,14 +69,14 @@ export default function PortalGates({
                 className="activation-raised-gold inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-black uppercase tracking-[0.1em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70"
               >
                 <CreditCard className="h-4 w-4" />
-                Start with invoice
+                Request Sprint invoice
               </Link>
               <button
                 type="button"
                 onClick={connectWallet}
                 className="activation-soft-button inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-white/14 px-5 text-sm font-black text-white/82 transition hover:border-white/26 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                Use wallet
+                Manage existing missions
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
@@ -127,9 +128,9 @@ export default function PortalGates({
               <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300/[0.09] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-yellow-100">
                 Buyer profile
               </div>
-              <h1 className="mt-5 text-4xl font-black uppercase italic tracking-[-0.05em] text-white">Who is funding the mission?</h1>
+              <h1 className="mt-5 text-4xl font-black uppercase italic tracking-[-0.05em] text-white">Who is buying the Sprint?</h1>
               <p className="mt-3 text-base font-semibold leading-7 text-white/68">
-                This name appears on funded missions and receipts. It can be a company, project, community, or individual buyer.
+                This name appears on the managed mission and receipt. New Sprints launch only after the invoice is confirmed.
               </p>
             </div>
 
@@ -148,7 +149,7 @@ export default function PortalGates({
               </div>
 
               <div>
-                <div className="mb-2 text-sm font-black text-white/78">Funding wallet</div>
+                <div className="mb-2 text-sm font-black text-white/78">Reporting wallet</div>
                 <div className="break-all rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-white/65">{address}</div>
               </div>
 
@@ -164,7 +165,7 @@ export default function PortalGates({
                 disabled={!registerName.trim()}
                 className="activation-raised-gold inline-flex min-h-12 w-full items-center justify-center rounded-2xl border px-5 text-sm font-black uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70"
               >
-                Open mission builder
+                Scope the Sprint
               </button>
             </div>
 

@@ -114,17 +114,31 @@ export function calculatePayout(
 }
 
 /**
- * Calculate rake breakdown for a payout
+ * Calculate rake breakdown for a payout.
  *
- * Split rake model:
+ * Legacy split-rake model only:
  * - Discovery Scout: 0.5% permanent
  * - Active Scout: 0.5% for placement
- * - Platform: Campaign rake % (25-35%)
+ * - Platform: the stored legacy campaign rake percentage
+ *
+ * New managed Verified Field Sprints store `platformRakePercent = 0`. Their
+ * service fee is invoiced separately, so this helper must add no scout or
+ * platform amount to the creator reward.
  */
 export function calculateRakeBreakdown(
   totalPayout: number,
   platformRakePercent: number
 ): RakeBreakdown {
+  if (platformRakePercent <= 0) {
+    return {
+      creatorPayout: totalPayout,
+      discoveryRake: 0,
+      activeRake: 0,
+      platformRake: 0,
+      grossTotal: totalPayout,
+    };
+  }
+
   const DISCOVERY_RAKE_PERCENT = 0.5;
   const ACTIVE_RAKE_PERCENT = 0.5;
 

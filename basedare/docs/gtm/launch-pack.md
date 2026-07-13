@@ -38,7 +38,7 @@ That's BaseDare. If you can't say it in 5 beats, you're overselling.
 **The ask:** one pilot, one window, one perk. Close the *test*, not a contract.
 
 ### Pilot one-pager (what the venue buys)
-- **Offer:** $500–$1.5k pilot ("First Spark").
+- **Offer:** $2,500 Verified Field Sprint ($2,000 managed service + $500 creator pool). Sprint #1 may waive the service fee only as a recorded design-partner exception; Sprint #2 tests the paid price.
 - **Venue gives:** 1 simple perk (free coffee, happy-hour unlock, house item).
 - **BaseDare does:** routes local creators + QR/GPS proof of every arrival.
 - **Output (the Spark Receipt):** verified check-ins, time window, proof clips, baseline vs result, "repeat / adjust / stop" call.

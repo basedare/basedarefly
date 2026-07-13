@@ -99,6 +99,12 @@ function safeNumber(value: number | null | undefined) {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
@@ -274,6 +280,49 @@ async function fetchFounderEventLedgerRows(periodStart: Date, ledgerLimit: numbe
 
     console.warn('[FOUNDER_SCOREBOARD] Durable ledger query failed; using synthesized ledger only:', error);
     return [];
+  }
+}
+
+async function fetchManagedServiceRevenue(periodStart: Date): Promise<number> {
+  try {
+    const rows = await prisma.founderEvent.findMany({
+      where: {
+        eventType: 'ACTIVATION_INTAKE',
+        status: { in: ['PAID_CONFIRMED', 'LAUNCHED'] },
+        updatedAt: { gte: periodStart },
+      },
+      select: {
+        metadataJson: true,
+        updatedAt: true,
+      },
+    });
+
+    return rows.reduce((sum, row) => {
+      const metadata = asRecord(row.metadataJson);
+      const operator = asRecord(metadata.operator);
+      const history = Array.isArray(metadata.statusHistory) ? metadata.statusHistory : [];
+      const paidTransition = [...history]
+        .reverse()
+        .map(asRecord)
+        .find((entry) => entry.to === 'PAID_CONFIRMED');
+      const paidAtValue = paidTransition?.at;
+      const paidAt = typeof paidAtValue === 'string' ? new Date(paidAtValue) : row.updatedAt;
+
+      if (!Number.isFinite(paidAt.getTime()) || paidAt < periodStart) return sum;
+      return sum + safeNumber(
+        typeof operator.paidConfirmedAmountUsd === 'number'
+          ? operator.paidConfirmedAmountUsd
+          : undefined
+      );
+    }, 0);
+  } catch (error) {
+    if (isMissingFounderEventStorage(error)) {
+      console.warn('[FOUNDER_SCOREBOARD] FounderEvent storage unavailable; managed-service revenue omitted');
+      return 0;
+    }
+
+    console.warn('[FOUNDER_SCOREBOARD] Managed-service revenue query failed:', error);
+    return 0;
   }
 }
 
@@ -520,7 +569,7 @@ export async function buildFounderScoreboardPulse(periodDays = DEFAULT_PERIOD_DA
   const now = new Date();
   const periodStart = new Date(now.getTime() - periodDays * DAY_MS);
 
-  const [dareRows, campaignSlotRows, venueCheckIns, venueLeadRows] = await Promise.all([
+  const [dareRows, campaignSlotRows, venueCheckIns, venueLeadRows, managedServiceRevenue] = await Promise.all([
     prisma.dare.findMany({
       where: {
         OR: [
@@ -578,6 +627,7 @@ export async function buildFounderScoreboardPulse(periodDays = DEFAULT_PERIOD_DA
       where: { followUpStatus: { in: ACTIVE_VENUE_LEAD_STATUSES } },
       select: { id: true },
     }),
+    fetchManagedServiceRevenue(periodStart),
   ]);
 
   const createdDares = dareRows.filter((dare) => dare.createdAt >= periodStart);
@@ -598,14 +648,14 @@ export async function buildFounderScoreboardPulse(periodDays = DEFAULT_PERIOD_DA
   const settledGmv = sumAmount(settledDares);
   const liveGmv = sumAmount(liveDares);
   const consumerSettledGmv = sumAmount(settledDares.filter((dare) => !dare.linkedCampaign));
-  const consumerRevenue = consumerSettledGmv * (FEE_CONFIG.P2P.devWalletPercent / 100);
+  const consumerRevenue = consumerSettledGmv * (FEE_CONFIG.P2P.platformWalletPercent / 100);
   const campaignRevenue = paidCampaignSlots.reduce((sum, slot) => {
     const totalPayout = safeNumber(slot.totalPayout);
     const scoutRakes = safeNumber(slot.discoveryRake) + safeNumber(slot.activeRake);
     const platformBase = totalPayout + scoutRakes;
     return sum + platformBase * (safeNumber(slot.campaign.rakePercent) / 100);
   }, 0);
-  const realizedRevenue = consumerRevenue + campaignRevenue;
+  const realizedRevenue = consumerRevenue + campaignRevenue + managedServiceRevenue;
   const completionRate = fundedDares.length > 0 ? settledDares.length / fundedDares.length : 0;
   const refundRate = fundedDares.length + refundedDares.length > 0
     ? refundedDares.length / (fundedDares.length + refundedDares.length)
@@ -666,6 +716,7 @@ export async function buildFounderScoreboardReport(
     venueLeadRows,
     creatorTagRows,
     founderEventRows,
+    managedServiceRevenue,
   ] = await Promise.all([
     prisma.dare.findMany({
       where: {
@@ -829,6 +880,7 @@ export async function buildFounderScoreboardReport(
       },
     }),
     fetchFounderEventLedgerRows(periodStart, ledgerLimit),
+    fetchManagedServiceRevenue(periodStart),
   ]);
 
   const createdDares = dareRows.filter((dare) => dare.createdAt >= periodStart);
@@ -881,14 +933,14 @@ export async function buildFounderScoreboardReport(
   const refundedGmv = sumAmount(refundedDares);
   const failedGmv = sumAmount(failedDares);
   const consumerSettledGmv = sumAmount(settledDares.filter((dare) => !dare.linkedCampaign));
-  const consumerRevenue = consumerSettledGmv * (FEE_CONFIG.P2P.devWalletPercent / 100);
+  const consumerRevenue = consumerSettledGmv * (FEE_CONFIG.P2P.platformWalletPercent / 100);
   const campaignRevenue = paidCampaignSlots.reduce((sum, slot) => {
     const totalPayout = safeNumber(slot.totalPayout);
     const scoutRakes = safeNumber(slot.discoveryRake) + safeNumber(slot.activeRake);
     const platformBase = totalPayout + scoutRakes;
     return sum + platformBase * (safeNumber(slot.campaign.rakePercent) / 100);
   }, 0);
-  const realizedRevenue = consumerRevenue + campaignRevenue;
+  const realizedRevenue = consumerRevenue + campaignRevenue + managedServiceRevenue;
   const completionRate = fundedDares.length > 0 ? settledDares.length / fundedDares.length : 0;
   const refundRate = fundedDares.length + refundedDares.length > 0
     ? refundedDares.length / (fundedDares.length + refundedDares.length)
@@ -930,7 +982,7 @@ export async function buildFounderScoreboardReport(
       id: 'realized-revenue',
       label: 'Revenue',
       value: formatMoney(realizedRevenue),
-      detail: `${formatMoney(consumerRevenue)} consumer fee + ${formatMoney(campaignRevenue)} campaign rake`,
+      detail: `${formatMoney(managedServiceRevenue)} managed service + ${formatMoney(consumerRevenue)} consumer settlement + ${formatMoney(campaignRevenue)} legacy campaign settlement`,
       tone: realizedRevenue > 0 ? 'positive' : settledGmv > 0 ? 'warning' : 'neutral',
     }),
     metric({
@@ -1127,6 +1179,7 @@ export async function buildFounderScoreboardReport(
       realizedRevenue: roundMoney(realizedRevenue),
       consumerRevenue: roundMoney(consumerRevenue),
       campaignRevenue: roundMoney(campaignRevenue),
+      managedServiceRevenue: roundMoney(managedServiceRevenue),
       averageSettledBounty: roundMoney(averageSettledBounty),
       completionRate,
       refundRate,

@@ -126,9 +126,99 @@ async function checkSensitiveRoutes() {
   }
 }
 
+async function checkFinancialCanon() {
+  const contract = await read('contracts/BaseDareBountyV2.sol');
+  assertContains(
+    'contracts/BaseDareBountyV2.sol',
+    contract,
+    [
+      'PLATFORM_FEE_PERCENT = 4',
+      'REFERRAL_FEE_PERCENT = 0',
+      'totalFeePercent()',
+    ],
+    'V2 financial canon',
+  );
+
+  const executableCanon = await read('lib/financial-canon.ts');
+  assertContains(
+    'lib/financial-canon.ts',
+    executableCanon,
+    [
+      'completerPercent: 96',
+      'platformPercent: 4',
+      'referralPercent: 0',
+      'livePotPercent: 0',
+      'invoiceTotalUsd: 2_500',
+      'serviceFeeUsd: 2_000',
+      'grossRewardPoolUsd: 500',
+    ],
+    'Executable financial canon',
+  );
+
+  const campaignRoute = await read('app/api/campaigns/route.ts');
+  assertContains(
+    'app/api/campaigns/route.ts',
+    campaignRoute,
+    [
+      'if (!isInternalAuthorized)',
+      'BUSINESS_INVOICE_REQUIRED',
+      'PAID_INTAKE_REQUIRED',
+      'PAYMENT_LINES_NOT_CONFIRMED',
+      'REWARD_ESCROW_REQUIRED',
+      'SPRINT_MISSION_LIMIT_REACHED',
+      'PLACE_CAMPAIGN_DB_FALLBACK = false',
+      'rakePercent: 0',
+    ],
+    'Managed campaign invoice gate',
+  );
+
+  const buyerComposer = await read('app/brands/portal/ActivationComposer.tsx');
+  assertContains(
+    'app/brands/portal/ActivationComposer.tsx',
+    buyerComposer,
+    ['MANAGED_FIELD_SPRINT', 'Request $', 'Sprint invoice'],
+    'Buyer portal financial canon',
+  );
+  if (buyerComposer.includes('submitBountyCreation') || buyerComposer.includes('handleCreateCampaign')) {
+    failures.push('Buyer portal financial canon: public composer must not directly fund a managed campaign');
+  }
+
+  const activationAdminRoute = await read('app/api/admin/activation-intakes/route.ts');
+  if (
+    activationAdminRoute.includes('accrueScoutRakeForVenuePayment') ||
+    activationAdminRoute.includes('clawbackScoutRakeForPayment')
+  ) {
+    failures.push('Managed-service revenue must not trigger an automatic scout commission');
+  }
+  assertContains(
+    'app/api/admin/activation-intakes/route.ts',
+    activationAdminRoute,
+    [
+      'rewardPoolConfirmedAmountUsd',
+      'designPartnerServiceFeeException',
+      'The full $${MANAGED_FIELD_SPRINT.grossRewardPoolUsd} contributor pool must be confirmed before launch.',
+    ],
+    'Managed-service payment-line gate',
+  );
+
+  const publicFeeCopy = [
+    'components/RotatingHero.tsx',
+    'components/creators/PublicCreators.tsx',
+    'components/StakeCard.tsx',
+    'components/stake-card.tsx',
+  ];
+  for (const file of publicFeeCopy) {
+    const content = await read(file);
+    if (content.includes('10% Platform Fee') || content.includes('10% platform fee') || content.includes('Receive 89%')) {
+      failures.push(`Public V2 fee copy drift: ${file} still exposes legacy economics`);
+    }
+  }
+}
+
 await checkAdminRoutes();
 await checkCronRoutes();
 await checkSensitiveRoutes();
+await checkFinancialCanon();
 
 for (const warning of warnings) {
   console.warn(`WARN: ${warning}`);

@@ -1,237 +1,66 @@
 # BaseDare Revenue Architecture
 
-## Core Thesis
+Pricing authority: [`docs/FINANCIAL_CANON.md`](./FINANCIAL_CANON.md).
 
-BaseDare should not be modeled as a single-revenue-stream dare app.
+## Active revenue rails
 
-It should be modeled as a stacked business with four layers:
+### 1. Self-serve settlement
 
-1. consumer challenge liquidity
-2. brand and campaign operating system
-3. venue and city operating system
-4. protocol and verification infrastructure
+- Buyer funds a personal/community dare.
+- V2 escrows the reward.
+- A successful completion settles 96% to the completer and 4% to BaseDare.
+- There is no V2 referral payout or Live Pot entitlement.
+- BaseDare provides the protocol rail, not managed campaign delivery.
 
-The biggest mistake would be treating all gross volume as company revenue.
+### 2. Managed Verified Field Sprint
 
-## Non-Negotiable Financial Rule
+- Buyer pays a $2,500 invoice.
+- $2,000 is the managed-service line.
+- $500 is a separately tracked creator reward pool.
+- Four accepted $125 rewards pay creators $120 each and produce $20 total settlement revenue.
+- BaseDare delivers scoping, routing, bounded verification/support, and a receipt.
 
-Separate these clearly:
+The public buyer portal must lead to the invoice intake. Only an authorized internal path may register the managed campaign after payment confirmation. The V2 contract is used for creator rewards, not the service fee.
 
-- company revenue
-- creator payout
-- referral or scout rake
-- community treasury or live pot
-- refunded volume
-
-If these are mixed together in internal dashboards, the business will look healthier than it really is.
-
-## The Four Revenue Layers
-
-### 1. Consumer Layer
-
-What it is:
-- fans or users fund dares
-- creators complete or fail them
-- BaseDare earns only when the payout path resolves successfully
-
-Why it matters:
-- creates spectacle
-- creates creator supply
-- creates content loops
-- creates social proof
-- creates top-of-funnel demand
-
-Best monetization:
-- take rate on successful payouts
-- boosted dare placement
-- premium dare visibility
-- creator challenge subscriptions later
-
-Limits:
-- weak as a standalone business if average dare values stay low
-- refund and failure rates can crush realized revenue
-- moderation cost can erase margin
-
-Role in the business:
-- growth engine first
-- revenue engine second
-
-### 2. Campaign Layer
-
-What it is:
-- brand-funded creator challenges
-- timed challenges
-- sync-window campaign missions
-- verified content outcomes
-
-Why it matters:
-- higher budgets
-- stronger willingness to pay
-- less random than consumer demand
-- better justification for verification and reporting
-
-Best monetization:
-- setup fee
-- campaign rake
-- managed service fee
-- reporting package
-- premium review / QA / compliance support
-
-Role in the business:
-- primary near-term revenue engine
-
-### 3. Venue Layer
-
-What it is:
-- venue pages
-- venue console
-- venue check-ins
-- venue memory
-- venue perks and event activation
-
-Why it matters:
-- recurring revenue potential
-- real-world moat
-- repeat traffic
-- place-based network effects
-
-Best monetization:
-- venue software subscription
-- one-off activation packages
-- district sponsorships
-- perk redemption revenue share
-- local leaderboard or traffic packages
-
-Role in the business:
-- secondary revenue engine that becomes much stronger after check-in and foot-traffic proof
-
-### 4. Protocol Layer
-
-What it is:
-- proof validation
-- challenge settlement
-- venue secure handshakes
-- reusable challenge rails for partners
-
-Why it matters:
-- highest long-term leverage
-- can move BaseDare from app to platform
-- unlocks API and enterprise revenue
-
-Best monetization:
-- API pricing
-- verification-as-a-service
-- white-label or infrastructure contracts
-- enterprise settlement and reporting
-
-Role in the business:
-- long-term platform upside
-
-## Revenue Map
+## Money flow
 
 ```mermaid
-flowchart TD
-  A["Consumer Dares"] --> B["Realized Payout Take Rate"]
-  A --> C["Boosted Discovery"]
-  D["Brand Campaigns"] --> E["Campaign Rake"]
-  D --> F["Managed Services"]
-  D --> G["Premium Reporting"]
-  H["Venue Layer"] --> I["Venue Subscription"]
-  H --> J["Activation Fees"]
-  H --> K["Perk / Commerce Revenue Share"]
-  L["Protocol Layer"] --> M["Verification API"]
-  L --> N["White-label Rails"]
-  L --> O["Enterprise Contracts"]
+flowchart LR
+  B["Business buyer"] -->|"$2,500 invoice"| I["Invoice rail"]
+  I -->|"$2,000 service line"| R["BaseDare service revenue"]
+  I -->|"$500 reward liability"| E["Four $125 V2 rewards"]
+  E -->|"$480 total"| C["Accepted contributors"]
+  E -->|"$20 total"| S["BaseDare settlement revenue"]
+  E -->|"Unused funding"| U["Refund or credit"]
 ```
 
-## What Should Count As Revenue
+## Accounting boundaries
 
-Should count:
-- platform rake sent to company wallet
-- setup fees
-- recurring venue subscriptions
-- managed-service revenue
-- enterprise or API contract revenue
+Count as company revenue:
 
-Should not count:
-- full funded GMV
-- creator payouts
-- refunded volume
-- live pot or community treasury balances
-- referral payouts
+- settled 4% platform fees;
+- earned managed-service fees;
+- future paid products only after they are live and separately measured.
 
-## Margin Profile By Layer
+Do not count as company revenue:
 
-### Consumer
+- funded GMV;
+- creator payouts or unsettled reward pools;
+- refunds and credits;
+- treasury-funded dares;
+- referral or Live Pot balances;
+- grants as customer PMF.
 
-Gross margin potential:
-- medium
+## Parked architecture
 
-Why:
-- payment rail cost is low
-- moderation and support cost can still be high
+The 25% all-in self-serve business rail is a future automated product, not a current price. Venue subscriptions, City Signal, API/data licensing, white-label settlement, boosted discovery, referral economics, and token economics remain parked until a real paid loop justifies them.
 
-Main risk:
-- too much manual review for too little bounty value
+## Control rule
 
-### Campaigns
+Any change to pricing or splits must update, in one reviewed change:
 
-Gross margin potential:
-- high
-
-Why:
-- larger contracts
-- can bundle services
-- better pricing power
-
-Main risk:
-- sales cycle and delivery ops become human-heavy
-
-### Venues
-
-Gross margin potential:
-- medium to high
-
-Why:
-- subscriptions can be sticky
-- low serving cost after product maturity
-
-Main risk:
-- hard local sales and weak ROI proof early
-
-### Protocol
-
-Gross margin potential:
-- very high
-
-Why:
-- software and infrastructure economics
-
-Main risk:
-- only works after trust and product-market fit exist
-
-## Suggested Revenue Stack
-
-### Now
-- consumer payout take rate
-- brand challenge fees
-
-### Next
-- venue subscriptions
-- venue activation fees
-- challenge commerce / perk revenue share
-
-### Later
-- verification API
-- white-label challenge rails
-- enterprise challenge stack
-
-## Core Financial Insight
-
-BaseDare is strongest when:
-- consumer generates attention
-- campaigns generate cash
-- venues generate recurring local revenue
-- protocol generates long-term software leverage
-
-If BaseDare relies only on consumer dare fees, it will likely feel culturally alive but financially thin.
+1. `docs/FINANCIAL_CANON.md`;
+2. `lib/financial-canon.ts` and its tests;
+3. contract constants/tests if settlement changes;
+4. public buyer and creator copy;
+5. dashboard revenue definitions and release runbooks.

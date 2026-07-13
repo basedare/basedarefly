@@ -81,6 +81,7 @@ export type FounderScoreboardReport = {
     realizedRevenue: number;
     consumerRevenue: number;
     campaignRevenue: number;
+    managedServiceRevenue: number;
     averageSettledBounty: number;
     completionRate: number;
     refundRate: number;

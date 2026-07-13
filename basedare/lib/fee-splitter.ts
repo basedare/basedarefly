@@ -1,39 +1,42 @@
 /**
- * Fee Splitter - Live Pot (Sunder Pool) Logic
+ * Settlement and community-pool helpers.
  *
- * The Live Pot is BaseDare's Progressive Jackpot / Community War Chest.
- * Every transaction feeds the pot, creating a global marketing event.
+ * Canonical money split:
+ * - personal/self-serve dare: 96% completer, 4% BaseDare, 0% referral;
+ * - managed business work: fixed service fee + separately funded reward pool;
+ * - no part of the V2 settlement fee is promised to a Live Pot.
  *
- * Fee Structure:
- * - P2P Dares: 4% total fee (2% Dev, 2% Pot) — matches BaseDareBountyV2 on-chain (96% creator)
- * - Control Mode (B2B): 30% total fee (1% Scout, 19% Dev, 10% Pot)
- * - Sunder (Slashing): 100% to Live Pot
- *
- * Pot Outflows:
- * - Weekly Leaderboard rewards (top creators/scouts)
- * - Legendary Dare subsidies (community voted)
+ * See `docs/FINANCIAL_CANON.md` and `lib/financial-canon.ts`.
  */
+
+import {
+  MANAGED_FIELD_SPRINT,
+  SETTLEMENT_SPLIT,
+  calculateSuccessfulSettlement,
+} from '@/lib/financial-canon';
 
 // ============================================================================
 // FEE CONFIGURATION
 // ============================================================================
 
 export const FEE_CONFIG = {
-  // P2P Dare Settlement (Consumer) — matches BaseDareBountyV2 on-chain (4% fee)
+  // Matches BaseDareBountyV2 on-chain. The full 4% reaches the platform wallet.
   P2P: {
-    totalFeePercent: 4,
-    devWalletPercent: 2,    // 2% of total amount
-    livePotPercent: 2,      // 2% of total amount
-    creatorPercent: 96,     // 96% of total amount
+    totalFeePercent: SETTLEMENT_SPLIT.platformPercent,
+    platformWalletPercent: SETTLEMENT_SPLIT.platformPercent,
+    livePotPercent: SETTLEMENT_SPLIT.livePotPercent,
+    creatorPercent: SETTLEMENT_SPLIT.completerPercent,
+    referralPercent: SETTLEMENT_SPLIT.referralPercent,
   },
 
-  // Control Mode (B2B Brand Campaigns)
+  // Managed delivery is invoiced separately. It is not a 30% bounty split.
   B2B: {
-    totalFeePercent: 30,
-    scoutRakePercent: 1,    // 1% to scout (referral)
-    devWalletPercent: 19,   // 19% to dev wallet
-    livePotPercent: 10,     // 10% to live pot
-    creatorPercent: 70,     // 70% to creator
+    model: 'FIXED_MANAGED_SERVICE',
+    packageName: MANAGED_FIELD_SPRINT.name,
+    invoiceTotalUsd: MANAGED_FIELD_SPRINT.invoiceTotalUsd,
+    serviceFeeUsd: MANAGED_FIELD_SPRINT.serviceFeeUsd,
+    grossRewardPoolUsd: MANAGED_FIELD_SPRINT.grossRewardPoolUsd,
+    additionalCampaignRakePercent: 0,
   },
 
   // Sunder (Slashing for fake proofs)
@@ -58,17 +61,9 @@ export const FEE_CONFIG = {
 export interface P2PSettlement {
   totalAmount: number;
   creatorPayout: number;
-  devWalletAmount: number;
+  platformFeeAmount: number;
   livePotAmount: number;
-  referrerAmount: number;  // Optional 1% referrer
-}
-
-export interface B2BSettlement {
-  totalAmount: number;
-  creatorPayout: number;
-  scoutRake: number;
-  devWalletAmount: number;
-  livePotAmount: number;
+  referrerAmount: number;
 }
 
 export interface SunderSettlement {
@@ -100,49 +95,22 @@ export interface WeeklyRewardDistribution {
 
 /**
  * Calculate P2P Dare Settlement
- * Total Fee: 4% (2% Dev, 2% Pot)
+ * Total Fee: 4% to BaseDare
  * Creator: 96%
  */
 export function calculateP2PSettlement(
   totalAmount: number,
-  hasReferrer: boolean = false
+  _hasReferrer: boolean = false
 ): P2PSettlement {
-  const { devWalletPercent, livePotPercent, creatorPercent } = FEE_CONFIG.P2P;
-
-  // If referrer exists, they get 1% from the creator's share
-  const referrerPercent = hasReferrer ? 1 : 0;
-  const adjustedCreatorPercent = creatorPercent - referrerPercent;
+  void _hasReferrer; // Kept for legacy callers; V2 never pays a referrer.
+  const settlement = calculateSuccessfulSettlement(totalAmount);
 
   return {
     totalAmount,
-    creatorPayout: totalAmount * (adjustedCreatorPercent / 100),
-    devWalletAmount: totalAmount * (devWalletPercent / 100),
-    livePotAmount: totalAmount * (livePotPercent / 100),
-    referrerAmount: totalAmount * (referrerPercent / 100),
-  };
-}
-
-/**
- * Calculate B2B Campaign Settlement
- * Total Fee: 30% (1% Scout, 19% Dev, 10% Pot)
- * Creator: 70%
- */
-export function calculateB2BSettlement(
-  totalAmount: number,
-  hasScout: boolean = true
-): B2BSettlement {
-  const { scoutRakePercent, devWalletPercent, livePotPercent, creatorPercent } = FEE_CONFIG.B2B;
-
-  // If no scout, their 1% goes to dev wallet
-  const actualScoutRake = hasScout ? scoutRakePercent : 0;
-  const actualDevPercent = hasScout ? devWalletPercent : devWalletPercent + scoutRakePercent;
-
-  return {
-    totalAmount,
-    creatorPayout: totalAmount * (creatorPercent / 100),
-    scoutRake: totalAmount * (actualScoutRake / 100),
-    devWalletAmount: totalAmount * (actualDevPercent / 100),
-    livePotAmount: totalAmount * (livePotPercent / 100),
+    creatorPayout: settlement.completerPayoutUsd,
+    platformFeeAmount: settlement.platformFeeUsd,
+    livePotAmount: settlement.livePotContributionUsd,
+    referrerAmount: settlement.referralFeeUsd,
   };
 }
 
@@ -206,24 +174,11 @@ export function calculateWeeklyRewards(
 export function validateP2PSettlement(settlement: P2PSettlement): boolean {
   const sum =
     settlement.creatorPayout +
-    settlement.devWalletAmount +
+    settlement.platformFeeAmount +
     settlement.livePotAmount +
     settlement.referrerAmount;
 
   // Allow for small floating point differences
-  return Math.abs(sum - settlement.totalAmount) < 0.01;
-}
-
-/**
- * Validate B2B settlement amounts
- */
-export function validateB2BSettlement(settlement: B2BSettlement): boolean {
-  const sum =
-    settlement.creatorPayout +
-    settlement.scoutRake +
-    settlement.devWalletAmount +
-    settlement.livePotAmount;
-
   return Math.abs(sum - settlement.totalAmount) < 0.01;
 }
 
@@ -238,22 +193,9 @@ export function formatP2PSettlement(settlement: P2PSettlement): string {
   return `
 P2P Settlement ($${settlement.totalAmount.toFixed(2)}):
   Creator:    $${settlement.creatorPayout.toFixed(2)} (96%)
-  Dev Wallet: $${settlement.devWalletAmount.toFixed(2)} (2%)
-  Live Pot:   $${settlement.livePotAmount.toFixed(2)} (2%)
-  Referrer:   $${settlement.referrerAmount.toFixed(2)} (${settlement.referrerAmount > 0 ? '1%' : '0%'})
-`.trim();
-}
-
-/**
- * Format B2B settlement for logging/display
- */
-export function formatB2BSettlement(settlement: B2BSettlement): string {
-  return `
-B2B Settlement ($${settlement.totalAmount.toFixed(2)}):
-  Creator:    $${settlement.creatorPayout.toFixed(2)} (70%)
-  Scout Rake: $${settlement.scoutRake.toFixed(2)} (1%)
-  Dev Wallet: $${settlement.devWalletAmount.toFixed(2)} (19%)
-  Live Pot:   $${settlement.livePotAmount.toFixed(2)} (10%)
+  BaseDare:   $${settlement.platformFeeAmount.toFixed(2)} (4%)
+  Live Pot:   $${settlement.livePotAmount.toFixed(2)} (0%)
+  Referrer:   $${settlement.referrerAmount.toFixed(2)} (0%)
 `.trim();
 }
 
@@ -269,19 +211,16 @@ export function getFeeSummary(mode: 'P2P' | 'B2B'): {
       totalFee: '4%',
       breakdown: [
         { label: 'Creator', percent: 96, description: 'Direct to performer' },
-        { label: 'Dev Ops', percent: 2, description: 'Platform operations' },
-        { label: 'Live Pot', percent: 2, description: 'Community treasury' },
+        { label: 'BaseDare', percent: 4, description: 'Settlement and liquidity rail' },
       ],
     };
   }
 
   return {
-    totalFee: '30%',
+    totalFee: `$${MANAGED_FIELD_SPRINT.serviceFeeUsd.toLocaleString()} service fee`,
     breakdown: [
-      { label: 'Creator', percent: 70, description: 'Direct to performer' },
-      { label: 'Dev Ops', percent: 19, description: 'Platform operations' },
-      { label: 'Live Pot', percent: 10, description: 'Community treasury' },
-      { label: 'Scout', percent: 1, description: 'Referral rake' },
+      { label: 'Creator settlement', percent: 96, description: 'Of each funded reward' },
+      { label: 'Settlement fee', percent: 4, description: 'Of each successful funded reward' },
     ],
   };
 }

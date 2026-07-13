@@ -11,9 +11,11 @@ import {
 } from '@/lib/activation-funnel';
 import { normalizeCreatorHandle } from '@/lib/creator-stats';
 import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
+import {
+  MANAGED_FIELD_SPRINT,
+  hasValidManagedFieldSprintPaymentLines,
+} from '@/lib/financial-canon';
 import { prisma } from '@/lib/prisma';
-import { accrueScoutRakeForVenuePayment } from '@/lib/scout-accrual';
-import { clawbackScoutRakeForPayment } from '@/lib/scout-vesting';
 import { alertActivationIntakeStatusUpdate } from '@/lib/telegram';
 
 const INTAKE_STATUSES = [
@@ -38,10 +40,11 @@ const IntakeUpdateSchema = z.object({
   nextActionAt: z.string().datetime().nullable().optional(),
   paymentLink: z.string().max(500).nullable().optional(),
   paymentReference: z.string().max(180).nullable().optional(),
-  // The COMMISSIONABLE amount BaseDare rakes from on this paid activation (the
-  // margin, not the gross invoice). Entered at the PAID_CONFIRMED step; drives
-  // scout-rake accrual.
-  paidConfirmedAmountUsd: z.number().positive().max(1_000_000).optional(),
+  // Confirmed BaseDare managed-service revenue, excluding the contributor reward
+  // pool. Stored separately from bounty GMV for founder revenue reporting.
+  paidConfirmedAmountUsd: z.number().nonnegative().max(MANAGED_FIELD_SPRINT.serviceFeeUsd).optional(),
+  rewardPoolConfirmedAmountUsd: z.number().positive().max(MANAGED_FIELD_SPRINT.grossRewardPoolUsd).optional(),
+  designPartnerServiceFeeException: z.boolean().optional(),
   closeRoomAction: z.enum(['sent']).optional(),
 });
 
@@ -1381,9 +1384,79 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (input.status === 'PAID_CONFIRMED' && currentStatus === 'LAUNCHED') {
+      return NextResponse.json(
+        { success: false, error: 'A launched Sprint cannot move backward to paid-confirmed.' },
+        { status: 409 }
+      );
+    }
 
     const metadata = asRecord(event.metadataJson);
     const existingOperator = asRecord(metadata.operator);
+    const isNewPaidConfirmation = input.status === 'PAID_CONFIRMED' && currentStatus !== 'PAID_CONFIRMED';
+    const mutatesPaymentLines =
+      input.paidConfirmedAmountUsd !== undefined ||
+      input.rewardPoolConfirmedAmountUsd !== undefined ||
+      input.designPartnerServiceFeeException !== undefined;
+    if (mutatesPaymentLines && !isNewPaidConfirmation) {
+      return NextResponse.json(
+        { success: false, error: 'Confirmed payment lines are immutable. Record a separate correction event.' },
+        { status: 409 }
+      );
+    }
+    if (isNewPaidConfirmation) {
+      if (currentStatus !== 'PAYMENT_SENT') {
+        return NextResponse.json(
+          { success: false, error: 'Send the payment packet before confirming payment.' },
+          { status: 409 }
+        );
+      }
+      if (input.paidConfirmedAmountUsd === undefined) {
+        return NextResponse.json(
+          { success: false, error: 'Record the managed-service revenue before confirming payment.' },
+          { status: 400 }
+        );
+      }
+      if (input.rewardPoolConfirmedAmountUsd !== MANAGED_FIELD_SPRINT.grossRewardPoolUsd) {
+        return NextResponse.json(
+          { success: false, error: `The full $${MANAGED_FIELD_SPRINT.grossRewardPoolUsd} contributor pool must be confirmed before launch.` },
+          { status: 400 }
+        );
+      }
+      if (
+        input.paidConfirmedAmountUsd !== MANAGED_FIELD_SPRINT.serviceFeeUsd &&
+        input.designPartnerServiceFeeException !== true
+      ) {
+        return NextResponse.json(
+          { success: false, error: 'A reduced service fee requires an explicit design-partner exception.' },
+          { status: 400 }
+        );
+      }
+      if (!hasValidManagedFieldSprintPaymentLines({
+        serviceRevenueUsd: input.paidConfirmedAmountUsd,
+        rewardPoolUsd: input.rewardPoolConfirmedAmountUsd,
+        designPartnerException: input.designPartnerServiceFeeException,
+      })) {
+        return NextResponse.json(
+          { success: false, error: 'The payment lines do not match the active Financial Canon.' },
+          { status: 400 }
+        );
+      }
+    }
+    if (input.status === 'LAUNCHED') {
+      const confirmedServiceRevenue = existingOperator.paidConfirmedAmountUsd;
+      const confirmedRewardPool = existingOperator.rewardPoolConfirmedAmountUsd;
+      if (!hasValidManagedFieldSprintPaymentLines({
+        serviceRevenueUsd: confirmedServiceRevenue,
+        rewardPoolUsd: confirmedRewardPool,
+        designPartnerException: existingOperator.designPartnerServiceFeeException,
+      })) {
+        return NextResponse.json(
+          { success: false, error: 'Cannot launch without immutable, confirmed service and reward-pool lines.' },
+          { status: 409 }
+        );
+      }
+    }
     const nextOperator: MetadataRecord = {
       ...existingOperator,
       updatedAt: new Date().toISOString(),
@@ -1397,6 +1470,10 @@ export async function PUT(request: NextRequest) {
     if (input.paymentLink !== undefined) nextOperator.paymentLink = cleanOptional(input.paymentLink);
     if (input.paymentReference !== undefined) nextOperator.paymentReference = cleanOptional(input.paymentReference);
     if (input.paidConfirmedAmountUsd !== undefined) nextOperator.paidConfirmedAmountUsd = input.paidConfirmedAmountUsd;
+    if (input.rewardPoolConfirmedAmountUsd !== undefined) nextOperator.rewardPoolConfirmedAmountUsd = input.rewardPoolConfirmedAmountUsd;
+    if (input.designPartnerServiceFeeException !== undefined) {
+      nextOperator.designPartnerServiceFeeException = input.designPartnerServiceFeeException;
+    }
     if (input.closeRoomAction === 'sent') {
       const now = new Date().toISOString();
       nextOperator.closeRoomSentAt = now;
@@ -1458,53 +1535,6 @@ export async function PUT(request: NextRequest) {
       fetchActivationReceiptCampaigns(),
     ]);
     const mappedIntake = mapIntakeEvent(updated, creatorCandidates, activationCampaigns);
-
-    // Scout rake accrual (scout-engine slice 4): the first time an activation is
-    // confirmed paid, accrue the venue's bound scout(s) a cut of the
-    // COMMISSIONABLE amount entered (the margin, not gross). Idempotent on the
-    // activation id; best-effort — never blocks the admin action.
-    if (
-      nextStatus === 'PAID_CONFIRMED' &&
-      currentStatus !== 'PAID_CONFIRMED' &&
-      typeof input.paidConfirmedAmountUsd === 'number' &&
-      input.paidConfirmedAmountUsd > 0
-    ) {
-      const venueRef = typeof nextOperator.assignedVenue === 'string' ? nextOperator.assignedVenue.trim() : '';
-      if (venueRef) {
-        try {
-          const venue = await prisma.venue.findFirst({
-            where: { OR: [{ slug: venueRef }, { id: venueRef }] },
-            select: { id: true },
-          });
-          if (venue) {
-            const accrual = await accrueScoutRakeForVenuePayment({
-              venueId: venue.id,
-              sourceId: event.id,
-              commissionableAmountUsd: input.paidConfirmedAmountUsd,
-            });
-            console.log(`[ACTIVATION_PAID] scout rake for ${venueRef}: accrued=${accrual.accrued} (${accrual.reason})`);
-          } else {
-            console.warn(`[ACTIVATION_PAID] assigned venue not found for scout accrual: ${venueRef}`);
-          }
-        } catch (accrualError) {
-          console.error('[ACTIVATION_PAID] scout rake accrual failed (non-blocking):', accrualError);
-        }
-      }
-    }
-
-    // Reversal: if a (possibly paid) activation is rejected, claw back any scout
-    // rake accrued for it and reverse the denormalized totals. Self-guards — no
-    // ledger events for this activation = a clean no-op. Best-effort.
-    if (nextStatus === 'REJECTED' && currentStatus !== 'REJECTED') {
-      try {
-        const clawback = await clawbackScoutRakeForPayment(event.id);
-        if (clawback.clawedBack > 0) {
-          console.log(`[ACTIVATION_REJECTED] clawed back ${clawback.clawedBack} scout rake event(s) for ${event.id}`);
-        }
-      } catch (clawbackError) {
-        console.error('[ACTIVATION_REJECTED] scout rake clawback failed (non-blocking):', clawbackError);
-      }
-    }
 
     if (nextStatus !== currentStatus) {
       const funnelEventType = activationFunnelEventTypeForStatus(nextStatus);

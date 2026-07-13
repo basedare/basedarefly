@@ -24,6 +24,30 @@ Use this section for active non-trivial tasks.
 - Outcome: Added a public paid-activation offer page, qualified intake endpoint, internal founder-event capture, and Telegram alerting for buyer leads.
 - Follow-ups: Add conversion tracking once analytics is wired so we can measure activation page views, form starts, and qualified submissions.
 
+### Task — V2 financial canon lock (2026-07-13)
+- Owner: Codex
+- Goal: Make the personal-dare settlement rail and managed commercial rail economically consistent before V2 release.
+
+### Plan
+- [x] Lock 96% completer / 4% BaseDare / 0% referral / 0% Live Pot entitlement in one executable and written canon.
+- [x] Lock the $2,500 Verified Field Sprint: $2,000 managed service + $500 gross contributor pool across four $125 escrows.
+- [x] Remove public direct campaign funding and automatic scout commission from the managed-service path.
+- [x] Require a paid intake, separately confirmed payment lines, one real escrow per mission, and a four-mission cap.
+- [x] Align buyer/admin copy, founder revenue reporting, release runbooks, tests, and static safety.
+
+### Verification
+- [x] App and test TypeScript checks
+- [x] Financial canon unit tests
+- [x] V2 Hardhat contract tests
+- [x] Touched-source ESLint
+- [x] Static production safety
+- [x] Production Next build
+- [x] Graphify rebuild
+
+### Review
+- Outcome: Financial canon is code-backed and managed delivery can no longer be confused with the 4% settlement fee or launched from an unfunded database fallback.
+- Follow-ups: No V2 deployment. Production migration, bytecode/environment checks, proof smoke tests, and sponsor commercial-reuse legal review remain release gates.
+
 ## High Priority (MVP Completion)
 - [x] **Complete Dare Creation Flow**: Connected `app/create/page.tsx` directly to Wagmi, added `/api/bounties/register` for verification, and saved to Prisma.
 - [x] **Money Rails Hardening**: Productionize scheduled payout retry + expired refund runs, alert on failures, and add a short operator runbook for simulation mode vs real mode.

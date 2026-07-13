@@ -111,7 +111,7 @@ Track:
 Track:
 - average campaign size
 - setup fee revenue
-- campaign rake revenue
+- managed-service revenue and any legacy campaign settlement revenue, reported separately
 - gross margin per campaign
 - repeat campaign rate
 

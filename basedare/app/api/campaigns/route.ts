@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
@@ -8,6 +9,12 @@ import { isInternalApiAuthorized } from '@/lib/api-auth';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
 import { getRankedCampaignMatches } from '@/lib/campaign-matching';
 import { buildCampaignSlotCounts, buildCampaignTruth } from '@/lib/campaign-truth';
+import {
+  MANAGED_FIELD_SPRINT,
+  hasValidManagedFieldSprintPaymentLines,
+  isCanonicalManagedFieldSprintMission,
+  isEligibleManagedFieldSprintEscrow,
+} from '@/lib/financial-canon';
 import { getApprovedTagSummaryMap } from '@/lib/place-tags';
 import { markActivationIntakeLaunchedFromCampaign } from '@/lib/activation-funnel';
 import { recordVenueReportEvent } from '@/lib/venue-report-pipeline';
@@ -23,10 +30,9 @@ import {
 
 const CREATOR_CAMPAIGNS_DORMANT_MESSAGE =
   'CREATOR campaigns stay visible in Control Mode, but new creator-routing launches are temporarily parked while we finish the real social-routing path.';
-// PLACE campaigns can now attach a pre-funded linked dare from the shared bounty flow.
-// We keep the older DB-backed dare path as a fallback until the UI always launches via
-// wallet funding first.
-const PLACE_CAMPAIGN_DB_FALLBACK = true;
+// Commercial missions must attach a real, pre-funded linked dare. A database-only
+// fallback would record budget without escrow and is therefore release-blocked.
+const PLACE_CAMPAIGN_DB_FALLBACK = false;
 
 // Campaign tier configurations
 const TIER_CONFIG = {
@@ -34,28 +40,28 @@ const TIER_CONFIG = {
     windowHours: 168, // 7 days
     strikeWindowMinutes: 0,
     precisionMultiplier: 1.0,
-    rakePercent: 25,
+    rakePercent: 0,
     minPayout: 50,
   },
   SIP_SHILL: {
     windowHours: 24,
     strikeWindowMinutes: 0,
     precisionMultiplier: 1.0,
-    rakePercent: 28,
+    rakePercent: 0,
     minPayout: 100,
   },
   CHALLENGE: {
     windowHours: 2,
     strikeWindowMinutes: 10,
     precisionMultiplier: 1.3,
-    rakePercent: 30,
+    rakePercent: 0,
     minPayout: 250,
   },
   APEX: {
     windowHours: 1,
     strikeWindowMinutes: 5,
     precisionMultiplier: 1.5,
-    rakePercent: 35,
+    rakePercent: 0,
     minPayout: 1000,
   },
 } as const;
@@ -172,6 +178,12 @@ async function getVerifiedSessionWallet(request: NextRequest): Promise<string | 
 function normalizeWalletForControl(value: string | null | undefined): string | null {
   if (!value || !isAddress(value)) return null;
   return value.toLowerCase();
+}
+
+function asJsonRecord(value: unknown): Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
 }
 
 // ============================================================================
@@ -402,6 +414,86 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // A bounty funds contributor rewards; it does not collect BaseDare's
+    // managed-service fee. Until a separate service-payment rail exists, only
+    // the internal, human-confirmed invoice lane may launch business campaigns.
+    if (!isInternalAuthorized) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Managed business missions require confirmed invoice payment before launch.',
+          code: 'BUSINESS_INVOICE_REQUIRED',
+          invoiceHref: '/activations?source=buyer-portal&missionType=field-mission',
+        },
+        { status: 409 },
+      );
+    }
+
+    if (reportSource !== 'activation-intake' || !reportSessionKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Launch requires a paid activation-intake reference.',
+          code: 'PAID_INTAKE_REQUIRED',
+        },
+        { status: 409 },
+      );
+    }
+
+    const paidIntake = await prisma.founderEvent.findFirst({
+      where: {
+        id: reportSessionKey,
+        eventType: 'ACTIVATION_INTAKE',
+        status: { in: ['PAID_CONFIRMED', 'LAUNCHED'] },
+      },
+      select: { metadataJson: true },
+    });
+    const paidIntakeOperator = asJsonRecord(asJsonRecord(paidIntake?.metadataJson).operator);
+    if (
+      !paidIntake ||
+      !hasValidManagedFieldSprintPaymentLines({
+        serviceRevenueUsd: paidIntakeOperator.paidConfirmedAmountUsd,
+        rewardPoolUsd: paidIntakeOperator.rewardPoolConfirmedAmountUsd,
+        designPartnerException: paidIntakeOperator.designPartnerServiceFeeException,
+      })
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Confirm the service line and full contributor pool before launch.',
+          code: 'PAYMENT_LINES_NOT_CONFIRMED',
+        },
+        { status: 409 },
+      );
+    }
+
+    if (!isCanonicalManagedFieldSprintMission({
+      type,
+      tier,
+      creatorCountTarget,
+      grossRewardUsd: payoutPerCreator,
+    })) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Each Verified Field Sprint mission must fund one contributor at $${MANAGED_FIELD_SPRINT.grossRewardPerContributorUsd} gross.`,
+          code: 'SPRINT_REWARD_MISMATCH',
+        },
+        { status: 409 },
+      );
+    }
+
+    if (!linkedDareId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Fund the contributor reward in V2 escrow before registering the mission.',
+          code: 'REWARD_ESCROW_REQUIRED',
+        },
+        { status: 409 },
+      );
+    }
+
     // Verify brand exists
     const brand = await prisma.brand.findUnique({
       where: { walletAddress: brandWallet.toLowerCase() },
@@ -430,7 +522,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate total budget (payout * count + platform rake)
+    // Managed-service revenue is recorded through the paid activation intake.
+    // Campaign budget is reward funding only; do not manufacture an unpaid
+    // percentage rake in the campaign record.
     const effectiveCreatorCountTarget = type === 'PLACE' ? 1 : creatorCountTarget;
     const grossBudget = payoutPerCreator * effectiveCreatorCountTarget;
     const platformRake = grossBudget * (tierConfig.rakePercent / 100);
@@ -446,6 +540,7 @@ export async function POST(request: NextRequest) {
     if (reportSource === 'activation-intake' && reportSessionKey) {
       campaignTargetingCriteria.activationLeadId = reportSessionKey;
     }
+    const activationLeadNeedle = `\"activationLeadId\":${JSON.stringify(reportSessionKey)}`;
 
     // Calculate veto window (24h after campaign goes to RECRUITING)
     const vetoWindowEndsAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -535,8 +630,21 @@ export async function POST(request: NextRequest) {
               });
 
               if (existingCampaign) {
+                if (!existingCampaign.targetingCriteria?.includes(activationLeadNeedle)) {
+                  throw new Error('LINKED_DARE_ALREADY_REGISTERED');
+                }
                 return existingCampaign;
               }
+            }
+
+            const sprintMissionCount = await tx.campaign.count({
+              where: {
+                targetingCriteria: { contains: activationLeadNeedle },
+                status: { not: 'CANCELLED' },
+              },
+            });
+            if (sprintMissionCount >= MANAGED_FIELD_SPRINT.assignedContributorCount) {
+              throw new Error('SPRINT_MISSION_LIMIT_REACHED');
             }
 
             const linkedLiveDare = linkedDareId
@@ -545,6 +653,7 @@ export async function POST(request: NextRequest) {
                   select: {
                     id: true,
                     shortId: true,
+                    bounty: true,
                     status: true,
                     verifiedAt: true,
                     completed_at: true,
@@ -553,6 +662,8 @@ export async function POST(request: NextRequest) {
                     streamerHandle: true,
                     targetWalletAddress: true,
                     stakerAddress: true,
+                    isSimulated: true,
+                    onChainDareId: true,
                   },
                 })
               : null;
@@ -560,6 +671,15 @@ export async function POST(request: NextRequest) {
             if (linkedDareId) {
               if (!linkedLiveDare) {
                 throw new Error('Linked funded dare not found');
+              }
+
+              if (!isEligibleManagedFieldSprintEscrow({
+                grossRewardUsd: linkedLiveDare.bounty,
+                status: linkedLiveDare.status,
+                isSimulated: linkedLiveDare.isSimulated,
+                onChainDareId: linkedLiveDare.onChainDareId,
+              })) {
+                throw new Error(`Linked dare must be an active, non-simulated $${MANAGED_FIELD_SPRINT.grossRewardPerContributorUsd} escrow.`);
               }
 
               if (!linkedLiveDare.stakerAddress || linkedLiveDare.stakerAddress.toLowerCase() !== brand.walletAddress.toLowerCase()) {
@@ -703,6 +823,7 @@ export async function POST(request: NextRequest) {
           {
             maxWait: 5000,
             timeout: 15000,
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
           }
         );
       } catch (error) {
@@ -720,6 +841,26 @@ export async function POST(request: NextRequest) {
               code: 'PLACE_CAMPAIGN_TIMEOUT',
             },
             { status: 503 }
+          );
+        }
+        if (error instanceof Error && error.message === 'SPRINT_MISSION_LIMIT_REACHED') {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `This Sprint already has ${MANAGED_FIELD_SPRINT.assignedContributorCount} funded missions.`,
+              code: 'SPRINT_MISSION_LIMIT_REACHED',
+            },
+            { status: 409 }
+          );
+        }
+        if (error instanceof Error && error.message === 'LINKED_DARE_ALREADY_REGISTERED') {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'This funded dare already belongs to a different Sprint.',
+              code: 'LINKED_DARE_ALREADY_REGISTERED',
+            },
+            { status: 409 }
           );
         }
         throw error;
@@ -744,12 +885,12 @@ export async function POST(request: NextRequest) {
       `[CAMPAIGNS] Created: ${title} (${type}/${tier}) - $${totalBudget} for ${effectiveCreatorCountTarget} creator slots`
     );
 
-    if (type === 'PLACE' && venueId && (reportSource === 'venue-report' || reportSource === 'activation-intake')) {
+    if (venueId) {
       void recordVenueReportEvent({
         venueId: campaign.venueId ?? venueId,
         audience: reportAudience ?? 'venue',
         eventType: reportIntent === 'repeat' ? 'REPEAT_LAUNCHED' : 'ACTIVATION_LAUNCHED',
-        sessionKey: reportSessionKey ?? null,
+        sessionKey: reportSessionKey,
         channel: 'campaign-create',
         metadataJson: {
           campaignId: campaign.id,
@@ -759,19 +900,17 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      if (reportSource === 'activation-intake' && reportSessionKey) {
-        void markActivationIntakeLaunchedFromCampaign({
-          leadId: reportSessionKey,
-          campaignId: campaign.id,
-          campaignTitle: campaign.title,
-          venueId: campaign.venueId ?? venueId,
-          venueSlug: campaign.venue?.slug ?? null,
-          actor: brandWallet,
-          amount: totalBudget,
-        }).catch((error) => {
-          console.error('[CAMPAIGNS] Activation intake launch tracking failed:', error);
-        });
-      }
+      void markActivationIntakeLaunchedFromCampaign({
+        leadId: reportSessionKey,
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        venueId: campaign.venueId ?? venueId,
+        venueSlug: campaign.venue?.slug ?? null,
+        actor: brandWallet,
+        amount: totalBudget,
+      }).catch((error) => {
+        console.error('[CAMPAIGNS] Activation intake launch tracking failed:', error);
+      });
     }
 
     const campaignWithCounts = mapCampaignWithCounts(campaign as Parameters<typeof mapCampaignWithCounts>[0]);

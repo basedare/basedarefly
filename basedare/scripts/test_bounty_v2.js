@@ -4,7 +4,7 @@ require("dotenv").config({ path: '.env.local' });
 
 // Load ABI from artifacts
 const bountyArtifact = JSON.parse(
-  fs.readFileSync("./artifacts/contracts/BaseDareBounty.sol/BaseDareBounty.json")
+  fs.readFileSync("./artifacts/contracts/BaseDareBountyV2.sol/BaseDareBountyV2.json")
 );
 
 const BOUNTY_CONTRACT = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS;
@@ -25,6 +25,18 @@ async function main() {
   // Use full ABI from artifacts
   const bounty = new ethers.Contract(BOUNTY_CONTRACT, bountyArtifact.abi, signer);
   const usdc = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, signer);
+
+  const [platformFeePercent, referralFeePercent, totalFeePercent] = await Promise.all([
+    bounty.platformFeePercent(),
+    bounty.referralFeePercent(),
+    bounty.totalFeePercent(),
+  ]);
+  if (platformFeePercent !== 4n || referralFeePercent !== 0n || totalFeePercent !== 4n) {
+    throw new Error(
+      `Wrong V2 fee metadata: platform=${platformFeePercent}, referral=${referralFeePercent}, total=${totalFeePercent}`
+    );
+  }
+  console.log("Verified V2 fee metadata: 96% completer / 4% platform / 0% referral");
 
   // Check balances
   const balance = await usdc.balanceOf(signer.address);

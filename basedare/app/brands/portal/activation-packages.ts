@@ -284,7 +284,7 @@ export const TIER_INFO = {
     minPayout: 50,
     window: '7 days',
     bonus: 'None',
-    rake: '25%',
+    rake: '0%',
     color: 'from-zinc-600 to-zinc-700',
     borderColor: 'border-zinc-500/30',
   },
@@ -294,7 +294,7 @@ export const TIER_INFO = {
     minPayout: 100,
     window: '24 hours',
     bonus: 'None',
-    rake: '28%',
+    rake: '0%',
     color: 'from-blue-600 to-blue-700',
     borderColor: 'border-blue-500/30',
   },
@@ -304,7 +304,7 @@ export const TIER_INFO = {
     minPayout: 250,
     window: '2 hours',
     bonus: '1.3x Strike',
-    rake: '30%',
+    rake: '0%',
     color: 'from-purple-600 to-purple-700',
     borderColor: 'border-purple-500/30',
   },
@@ -314,13 +314,13 @@ export const TIER_INFO = {
     minPayout: 1000,
     window: '1 hour',
     bonus: '1.5x Strike',
-    rake: '35%',
+    rake: '0%',
     color: 'from-amber-500 to-orange-600',
     borderColor: 'border-amber-500/30',
   },
 };
 
-export type ActivationPackageId = 'scout-drop' | 'venue-push' | 'headline-night';
+export type ActivationPackageId = 'verified-field-sprint';
 export type ActivationPackage = {
   id: ActivationPackageId;
   name: string;
@@ -333,41 +333,19 @@ export type ActivationPackage = {
   buyerCopy: string;
 };
 
-export const DEFAULT_ACTIVATION_PACKAGE_ID: ActivationPackageId = 'venue-push';
+export const DEFAULT_ACTIVATION_PACKAGE_ID: ActivationPackageId = 'verified-field-sprint';
 
 export const ACTIVATION_PACKAGES: ActivationPackage[] = [
   {
-    id: 'scout-drop',
-    name: 'Verify a Place',
-    eyebrow: 'Simple field check',
+    id: 'verified-field-sprint',
+    name: 'Verified Field Sprint',
+    eyebrow: '$2,500 managed fieldwork',
     tier: 'SIP_MENTION',
-    payout: 75,
-    bestFor: 'Hours, access, prices, atmosphere, menu or practical details',
-    outcome: 'One current, evidence-backed answer attached to a real place.',
-    proof: 'Visit the place, answer one bounded question, and capture clear evidence that supports the answer.',
-    buyerCopy: 'Use this when one fresh fact would help people make a better decision.',
-  },
-  {
-    id: 'venue-push',
-    name: 'Discovery Drop',
-    eyebrow: 'Recommended',
-    tier: 'CHALLENGE',
-    payout: 250,
-    bestFor: 'Travel, tourism, product discovery and richer place intelligence',
-    outcome: 'One useful field story with verified presence and reusable place memory.',
-    proof: 'Explore the place, answer the buyer question, and return a concise field note with supporting media.',
-    buyerCopy: 'The default when the answer needs context, not just a yes or no.',
-  },
-  {
-    id: 'headline-night',
-    name: 'First Spark',
-    eyebrow: 'Higher proof',
-    tier: 'APEX',
-    payout: 1000,
-    bestFor: 'Venue-backed arrivals, redemptions, launches or timed destination moments',
-    outcome: 'A tightly scoped mission with stronger confirmation and a buyer-ready receipt.',
-    proof: 'Complete the timed place mission and capture the agreed presence, action, and partner-confirmed evidence.',
-    buyerCopy: 'Use this only when the place or partner can support a stronger proof rung.',
+    payout: 125,
+    bestFor: 'One bounded buyer question in one real micro-area',
+    outcome: 'Up to four independently verified field answers, place memory, and one durable receipt.',
+    proof: 'BaseDare assigns four contributors, pays $120 net for each accepted answer, and records the actual accepted, rejected, and inconclusive result.',
+    buyerCopy: 'Seven to ten days. No guaranteed traffic or sales lift; the receipt reports what the field actually proved.',
   },
 ];
 

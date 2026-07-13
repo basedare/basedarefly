@@ -21,7 +21,7 @@ const headlines = [
   },
   {
     text: "Fund bounties. Challenge any streamer. No mercy.",
-    sub: "One click = total control. 10% platform fee.",
+    sub: "One click = total control. 4% success fee.",
     cta: "Fund a dare now",
     color: "from-orange-400 to-red-500",
     action: "scroll"
@@ -186,4 +186,3 @@ export default function RotatingHero({ onConfetti }: RotatingHeroProps) {
     </div>
   );
 }
-

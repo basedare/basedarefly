@@ -1,11 +1,9 @@
 # Spec: Scout Engine — incentivized hotspot seeding
 
-**Status:** spec + pure rake lib (`lib/scout-rake.ts`). Schema migration + cron/
-endpoints are NOT built — parked until greenlit (and DB-migration access).
+**Status:** **PARKED HISTORICAL SPEC.** The pure helpers and ledger schema may remain for historical compatibility, but the active Verified Field Sprint does not accrue an automatic scout commission. `docs/FINANCIAL_CANON.md` supersedes every price or entitlement in this file.
 
-**What it is:** scouts are the cold-start engine. They sign up venues and
-discover creators, and earn a **recurring cut of the B2B revenue** their venues
-generate — for as long as the venue keeps paying *and* they keep delivering.
+**What it explored:** scouts as a cold-start engine who sign up venues and
+discover creators, with a possible future recurring cut of B2B revenue.
 This productizes "a catalyst per node": every hotspot gets a self-interested
 local operator who's motivated to seed it and keep it alive, with no founder
 on-site.
@@ -18,15 +16,11 @@ on-site.
 
 ## Funding source — the unlock
 
-Scout comp comes from the **fat B2B margin** (venue activations / brand campaigns /
-CPV), **not** the thin 4% creator-dare fee. A brand paying $500–5k for verified
-visits leaves room to pay a scout a real recurring cut *and* keep platform
-margin. The 4% creator side is a separate, smaller stream and is **not** the
-scout funding source.
+Any future scout compensation must come from an explicitly approved commercial acquisition budget, **not** the 4% settlement fee. It must be recorded as a direct acquisition cost and fit inside the active SKU's delivery-cost ceiling. No commission may be inferred from a managed-service invoice or accrued automatically.
 
 ## Dual rake (reuses the existing `Scout` / `ScoutCreator` pattern)
 
-For each B2B payment a venue makes, a **scout commission** is carved out and split:
+The historical model proposed carving a scout commission out of a B2B payment and splitting it as follows. These are not current entitlements:
 
 - **Discovery rake — 25%, permanent.** Credit for sourcing the venue. The scout
   who signed it keeps this for as long as the venue pays, even if someone else
@@ -56,13 +50,7 @@ Discovery rake is untouched by this — it's permanent.
 
 ## Anti-fraud — the moat does the work
 
-Rake only accrues on **verified, settled B2B payments tied to real verified
-delivery** (a real venue really paid, real verified visits were delivered). It is
-**not** paid on "venue signed up" alone. Because presence is unfakeable (the #1
-thesis), and the cut is recurring + tied to ongoing real money, **fraud has to
-sustain real verified value flowing — i.e. actually do the work.** The recurring
-model launders out farmers automatically. Payouts **vest** after `vestDays` and
-**claw back** if the underlying payment reverses.
+If a future version is approved, commission would accrue only on settled B2B payments tied to verified delivery, never on signup alone. Presence evidence is layered and fallible—not “unfakeable”—so any future payout also needs the active fraud, dispute, vesting, and clawback controls.
 
 ## Capacity + tiers (reuses existing `Scout.reputationScore` / `tier`)
 

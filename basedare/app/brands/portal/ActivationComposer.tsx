@@ -2,56 +2,40 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 import Link from 'next/link';
 import {
   CheckCircle2,
-  ChevronDown,
   CreditCard,
   MapPin,
   ReceiptText,
   Route,
   Sparkles,
-  UserRoundCheck,
   X,
 } from 'lucide-react';
-import type { BountyApprovalStatus } from '@/lib/bounty-flow';
-import { NETWORK_CONFIG } from '@/lib/contracts';
+import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
 import {
   ACTIVATION_PACKAGES,
-  TIER_INFO,
   buildActivationPackageDescription,
   formatUsdAmount,
   type ActivationPackage,
   type ActivationPackageId,
   type CampaignFormData,
-  type CampaignMatch,
   type PlaceSearchResult,
+  type ReportAttribution,
 } from './activation-packages';
 
 type MissionComposerProps = {
-  approvalStatus: BountyApprovalStatus;
-  budget: { gross: number; rake: number; total: number; effectiveSlotCount: number };
-  canLaunchActivation: boolean;
   checkoutSectionRef: RefObject<HTMLDivElement | null>;
   checkoutSteps: Array<{ label: string; detail: string; complete: boolean }>;
-  creatingCampaign: boolean;
   formData: CampaignFormData;
-  formError: string | null;
-  handleCreateCampaign: () => Promise<void>;
   placeLoading: boolean;
   placeQuery: string;
   placeResults: PlaceSearchResult[];
-  recommendedCreators: CampaignMatch[];
-  recommendedCreatorsError: string | null;
-  recommendedCreatorsLoading: boolean;
+  reportAttribution: ReportAttribution | null;
   selectActivationPackage: (packageId: ActivationPackageId) => void;
   selectedActivationPackage: ActivationPackage;
   selectedActivationPackageId: ActivationPackageId;
-  selectedCheckoutCreator: CampaignMatch | null;
-  selectedCreatorId: string | null;
   selectedPlace: PlaceSearchResult | null;
   setFormData: Dispatch<SetStateAction<CampaignFormData>>;
   setPlaceQuery: Dispatch<SetStateAction<string>>;
   setPlaceResults: Dispatch<SetStateAction<PlaceSearchResult[]>>;
-  setPreferredCreatorTag: Dispatch<SetStateAction<string | null>>;
-  setSelectedCreatorId: Dispatch<SetStateAction<string | null>>;
   setSelectedPlace: Dispatch<SetStateAction<PlaceSearchResult | null>>;
   setShowCreateCampaign: Dispatch<SetStateAction<boolean>>;
   showCreateCampaign: boolean;
@@ -64,32 +48,20 @@ const inputClass =
   'min-h-12 w-full rounded-2xl border border-white/12 bg-black/35 px-4 py-3 text-base font-semibold text-white outline-none transition placeholder:text-white/34 focus:border-yellow-300/55 focus:ring-2 focus:ring-yellow-300/15';
 
 export default function ActivationComposer({
-  approvalStatus,
-  budget,
-  canLaunchActivation,
   checkoutSectionRef,
   checkoutSteps,
-  creatingCampaign,
   formData,
-  formError,
-  handleCreateCampaign,
   placeLoading,
   placeQuery,
   placeResults,
-  recommendedCreators,
-  recommendedCreatorsError,
-  recommendedCreatorsLoading,
+  reportAttribution,
   selectActivationPackage,
   selectedActivationPackage,
   selectedActivationPackageId,
-  selectedCheckoutCreator,
-  selectedCreatorId,
   selectedPlace,
   setFormData,
   setPlaceQuery,
   setPlaceResults,
-  setPreferredCreatorTag,
-  setSelectedCreatorId,
   setSelectedPlace,
   setShowCreateCampaign,
   showCreateCampaign,
@@ -98,12 +70,10 @@ export default function ActivationComposer({
 
   const closeComposer = () => {
     setShowCreateCampaign(false);
-    setPreferredCreatorTag(null);
   };
 
   const selectPlace = (place: PlaceSearchResult) => {
     setSelectedPlace(place);
-    setPreferredCreatorTag(null);
     setPlaceQuery(place.displayName);
     setPlaceResults([]);
     setFormData((current) => {
@@ -124,25 +94,32 @@ export default function ActivationComposer({
     });
   };
 
-  const routingLabel = !selectedPlace
-    ? 'Choose a place first'
-    : recommendedCreatorsLoading
-      ? 'Finding the best fit…'
-      : recommendedCreatorsError
-        ? 'Routing needs attention'
-        : selectedCheckoutCreator
-          ? 'Best-fit contributor ready'
-          : 'No contributor ready yet';
-
   const disabledReason = !formData.title.trim()
     ? 'Add the real-world question to continue.'
     : !selectedPlace
       ? 'Choose the place where the answer should be verified.'
-      : recommendedCreatorsLoading
-        ? 'BaseDare is finding the best available contributor.'
-        : !selectedCreatorId
-          ? recommendedCreatorsError || 'No suitable contributor is ready for this place yet.'
-          : null;
+      : null;
+
+  const invoiceParams = new URLSearchParams({
+    source: 'buyer-portal',
+    missionType: 'field-mission',
+    packageId: 'local-signal',
+    budgetRange: '1500_5000',
+    creatorSlots: String(MANAGED_FIELD_SPRINT.assignedContributorCount),
+    payout: `$${MANAGED_FIELD_SPRINT.netRewardPerContributorUsd} net per accepted answer`,
+    timeWindow: `${MANAGED_FIELD_SPRINT.durationDaysMin}-${MANAGED_FIELD_SPRINT.durationDaysMax} days`,
+    proofRequired: 'Presence, freshness, trusted media, uniqueness, and bounded manual review',
+  });
+  if (formData.title.trim()) invoiceParams.set('missionTitle', formData.title.trim());
+  if (selectedPlace?.name) invoiceParams.set('venueName', selectedPlace.name);
+  if (selectedPlace?.placeId) invoiceParams.set('venueId', selectedPlace.placeId);
+  if (selectedPlace?.slug) invoiceParams.set('venueSlug', selectedPlace.slug);
+  if (selectedPlace?.city) invoiceParams.set('city', selectedPlace.city);
+  if (reportAttribution?.source) invoiceParams.set('reportSource', reportAttribution.source);
+  if (reportAttribution?.audience) invoiceParams.set('reportAudience', reportAttribution.audience);
+  if (reportAttribution?.sessionKey) invoiceParams.set('reportSessionKey', reportAttribution.sessionKey);
+  if (reportAttribution?.intent) invoiceParams.set('reportIntent', reportAttribution.intent);
+  const invoiceHref = `/activations?${invoiceParams.toString()}#activation-intake`;
 
   return (
     <section
@@ -161,7 +138,7 @@ export default function ActivationComposer({
               Send one useful question into the real world.
             </h2>
             <p className="mt-3 max-w-2xl text-base leading-7 text-white/70">
-              Choose what should be verified, where it should happen, and the reward. BaseDare routes the contributor, checks the proof, and returns a receipt.
+              Define the question and place. BaseDare scopes the contributor cell, confirms payment by invoice, checks the proof, and returns a receipt.
             </p>
           </div>
           <button
@@ -212,7 +189,7 @@ export default function ActivationComposer({
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="mt-5 grid gap-3">
             {ACTIVATION_PACKAGES.map((template) => {
               const selected = selectedActivationPackageId === template.id;
               return (
@@ -282,8 +259,6 @@ export default function ActivationComposer({
               value={selectedPlace ? selectedPlace.displayName : placeQuery}
               onChange={(event) => {
                 setSelectedPlace(null);
-                setSelectedCreatorId(null);
-                setPreferredCreatorTag(null);
                 setPlaceQuery(event.target.value);
               }}
               placeholder="Search for a real place…"
@@ -333,33 +308,16 @@ export default function ActivationComposer({
             </span>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-100/75">Step 3</p>
-              <h3 id="mission-reward-heading" className="text-xl font-black text-white">Set the reward</h3>
+              <h3 id="mission-reward-heading" className="text-xl font-black text-white">Fixed Sprint economics</h3>
             </div>
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-[0.78fr_1.22fr]">
-            <div>
-              <label htmlFor="mission-reward" className={labelClass}>Reward for an approved answer</label>
-              <div className="relative">
-                <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-base font-black text-white/55">$</span>
-                <input
-                  id="mission-reward"
-                  type="number"
-                  value={formData.payoutPerCreator}
-                  onChange={(event) => setFormData({ ...formData, payoutPerCreator: Number.parseInt(event.target.value, 10) || 0 })}
-                  min={NETWORK_CONFIG.isMainnet ? TIER_INFO[formData.tier].minPayout : 1}
-                  inputMode="numeric"
-                  className={`${inputClass} pl-8`}
-                />
-              </div>
-              <p className="mt-2 text-sm leading-6 text-white/55">Payment releases only after the proof clears review.</p>
-            </div>
-
+          <div className="mt-5">
             <div className="activation-inset grid grid-cols-3 gap-2 rounded-2xl border border-white/10 p-3">
               {[
-                ['Reward', budget.gross],
-                ['BaseDare fee', budget.rake],
-                ['Total', budget.total],
+                ['Managed service', MANAGED_FIELD_SPRINT.serviceFeeUsd],
+                ['Creator pool', MANAGED_FIELD_SPRINT.grossRewardPoolUsd],
+                ['Invoice total', MANAGED_FIELD_SPRINT.invoiceTotalUsd],
               ].map(([label, value]) => (
                 <div key={String(label)} className="rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-center">
                   <div className="text-lg font-black tabular-nums text-white">${formatUsdAmount(Number(value))}</div>
@@ -367,6 +325,9 @@ export default function ActivationComposer({
                 </div>
               ))}
             </div>
+            <p className="mt-3 text-sm leading-6 text-white/58">
+              Four assigned contributors are funded at ${MANAGED_FIELD_SPRINT.grossRewardPerContributorUsd} each. After the 4% settlement fee, each accepted answer pays ${MANAGED_FIELD_SPRINT.netRewardPerContributorUsd} net. Unused reward funding is refunded or credited.
+            </p>
           </div>
         </section>
 
@@ -394,51 +355,10 @@ export default function ActivationComposer({
             </div>
             <div className="activation-inset rounded-2xl border border-white/10 px-4 py-4">
               <div className="text-xs font-black uppercase tracking-[0.14em] text-white/55">Routing</div>
-              <div className="mt-2 font-black text-white">{routingLabel}</div>
-              <div className="mt-1 text-sm leading-6 text-white/58">BaseDare chooses by local fit and proof history</div>
+              <div className="mt-2 font-black text-white">Four assigned contributors</div>
+              <div className="mt-1 text-sm leading-6 text-white/58">BaseDare routes by local fit and proof history after payment clears</div>
             </div>
           </div>
-
-          {recommendedCreatorsError ? (
-            <div className="mt-3 rounded-2xl border border-red-300/25 bg-red-400/[0.08] px-4 py-3 text-sm font-semibold text-red-100" role="alert">
-              {recommendedCreatorsError}
-            </div>
-          ) : null}
-
-          {recommendedCreators.length > 0 ? (
-            <details className="mt-3 rounded-2xl border border-white/10 bg-black/20">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-black text-white/78 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-200/60">
-                <span className="inline-flex items-center gap-2">
-                  <UserRoundCheck className="h-4 w-4 text-cyan-200" />
-                  Choose a specific contributor instead
-                </span>
-                <ChevronDown className="h-4 w-4" />
-              </summary>
-              <div className="grid gap-2 border-t border-white/10 p-3 md:grid-cols-3">
-                {recommendedCreators.slice(0, 3).map((match) => {
-                  const selected = selectedCreatorId === match.creator.id;
-                  return (
-                    <button
-                      key={match.creator.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCreatorId(match.creator.id);
-                        setPreferredCreatorTag(match.creator.tag);
-                      }}
-                      className={`min-h-14 rounded-xl border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60 ${
-                        selected
-                          ? 'border-cyan-300/45 bg-cyan-400/10'
-                          : 'border-white/10 bg-white/[0.035] hover:border-white/22'
-                      }`}
-                    >
-                      <div className="font-black text-white">{match.creator.tag}</div>
-                      <div className="mt-1 text-sm text-white/58">{match.reasons.slice(0, 1).join('') || 'Available for this place'}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </details>
-          ) : null}
 
           <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-400/[0.07] px-4 py-4">
             <div className="flex items-center gap-2 font-black text-emerald-100">
@@ -450,37 +370,29 @@ export default function ActivationComposer({
             </p>
           </div>
 
-          {formError ? (
-            <div className="mt-4 rounded-2xl border border-red-300/30 bg-red-400/[0.09] px-4 py-3 text-sm font-semibold leading-6 text-red-100" role="alert">
-              {formError}
-            </div>
-          ) : disabledReason ? (
+          {disabledReason ? (
             <p className="mt-4 text-sm font-semibold text-white/60">{disabledReason}</p>
           ) : null}
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={handleCreateCampaign}
-              disabled={!canLaunchActivation}
-              className="activation-raised-gold inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.1em] transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70"
+            <Link
+              href={disabledReason ? '#' : invoiceHref}
+              aria-disabled={Boolean(disabledReason)}
+              onClick={(event) => {
+                if (disabledReason) event.preventDefault();
+              }}
+              className={`activation-raised-gold inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.1em] transition active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70 ${
+                disabledReason ? 'cursor-not-allowed opacity-45' : ''
+              }`}
             >
               <CreditCard className="h-4 w-4" />
-              {creatingCampaign
-                ? approvalStatus === 'approving'
-                  ? 'Approve USDC in wallet…'
-                  : approvalStatus === 'funding'
-                    ? 'Funding mission…'
-                    : approvalStatus === 'verifying'
-                      ? 'Registering mission…'
-                      : 'Creating mission…'
-                : `Fund mission · $${formatUsdAmount(budget.total)} USDC`}
-            </button>
+              Request ${formatUsdAmount(MANAGED_FIELD_SPRINT.invoiceTotalUsd)} Sprint invoice
+            </Link>
             <Link
-              href="/activations?source=buyer-portal&missionType=field-mission"
+              href="/board"
               className="activation-soft-button inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/12 px-5 py-3 text-sm font-black text-white/78 transition hover:border-white/24 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              Request invoice setup
+              See an example receipt
             </Link>
             <button
               type="button"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useAccount, useConnect, usePublicClient, useWriteContract } from 'wagmi';
+import { useAccount, useConnect } from 'wagmi';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
@@ -13,9 +13,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
-import { useBountyMode } from '@/hooks/useBountyMode';
-import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
-import { NETWORK_CONFIG } from '@/lib/contracts';
+import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
 
 // ============================================================================
 // CONTROL MODE - BUYER PORTAL
@@ -27,7 +25,6 @@ import {
   type BrandVenueRadarItem,
   type Campaign,
   type CampaignFormData,
-  type CampaignMatch,
   type CampaignMatchesState,
   type ResponseRailTab,
   type VenueRadarFilter,
@@ -36,12 +33,10 @@ import {
   type PlaceSearchResult,
   type ActivationPackageId,
   ACTIVATION_PACKAGES,
-  TIER_INFO,
   DEFAULT_ACTIVATION_PACKAGE_ID,
   getActivationPackage,
   getActivationPackageForTier,
   buildActivationPackageDescription,
-  formatUsdAmount,
   isCampaignTier,
   formatVenueRadarLocation,
   getDefaultResponseTab,
@@ -55,11 +50,8 @@ import ResponseRail from './ResponseRail';
 export default function BrandPortalPage() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
-  const publicClient = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
   const { data: session } = useSession();
   const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
-  const { simulated: isSimulationMode } = useBountyMode();
 
   // Hydration guard to prevent SSR/client mismatch flickering
   const [mounted, setMounted] = useState(false);
@@ -71,12 +63,10 @@ export default function BrandPortalPage() {
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [registerName, setRegisterName] = useState('');
   const [registerError, setRegisterError] = useState<string | null>(null);
-  const [composerError, setComposerError] = useState<string | null>(null);
   const [selectedActivationPackageId, setSelectedActivationPackageId] =
     useState<ActivationPackageId>(DEFAULT_ACTIVATION_PACKAGE_ID);
   const [venueRadarFilter, setVenueRadarFilter] = useState<VenueRadarFilter>('hot');
   const [selectedVenueRadarId, setSelectedVenueRadarId] = useState<string | null>(null);
-  const [preferredCreatorTag, setPreferredCreatorTag] = useState<string | null>(null);
   const [reportAttribution, setReportAttribution] = useState<ReportAttribution | null>(null);
 
   const [formData, setFormData] = useState<CampaignFormData>({
@@ -84,7 +74,7 @@ export default function BrandPortalPage() {
     tier: getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID).tier,
     title: '',
     description: '',
-    creatorCountTarget: 10,
+    creatorCountTarget: MANAGED_FIELD_SPRINT.assignedContributorCount,
     payoutPerCreator: getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID).payout,
     syncTime: '',
     targetingCriteria: {
@@ -102,12 +92,6 @@ export default function BrandPortalPage() {
   const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
   const [placeLoading, setPlaceLoading] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<PlaceSearchResult | null>(null);
-  const [recommendedCreators, setRecommendedCreators] = useState<CampaignMatch[]>([]);
-  const [recommendedCreatorsLoading, setRecommendedCreatorsLoading] = useState(false);
-  const [recommendedCreatorsError, setRecommendedCreatorsError] = useState<string | null>(null);
-  const [selectedCreatorId, setSelectedCreatorId] = useState<string | null>(null);
-  const [creatingCampaign, setCreatingCampaign] = useState(false);
-  const [approvalStatus, setApprovalStatus] = useState<BountyApprovalStatus>('idle');
   const [expandedMatchesCampaignId, setExpandedMatchesCampaignId] = useState<string | null>(null);
   const [responsesTabByCampaign, setResponsesTabByCampaign] = useState<Record<string, ResponseRailTab>>({});
   const [matchesByCampaign, setMatchesByCampaign] = useState<Record<string, CampaignMatchesState>>({});
@@ -158,10 +142,6 @@ export default function BrandPortalPage() {
     ? filteredVenueRadar.find((venue) => venue.id === selectedVenueRadarId) ?? null
     : null;
   const selectedActivationPackage = getActivationPackage(selectedActivationPackageId);
-  const selectedCheckoutCreator =
-    formData.type === 'PLACE'
-      ? recommendedCreators.find((match) => match.creator.id === selectedCreatorId) ?? null
-      : null;
   const routeParams = useMemo(() => new URLSearchParams(deepLinkSearch), [deepLinkSearch]);
   const cameFromHome = routeParams.get('from') === 'home';
   const controlBackHref = cameFromHome ? '/' : '/?mode=control';
@@ -180,13 +160,9 @@ export default function BrandPortalPage() {
 
   const selectActivationPackage = useCallback((packageId: ActivationPackageId) => {
     const activationPackage = getActivationPackage(packageId);
-    const activeMinPayout = NETWORK_CONFIG.isMainnet
-      ? TIER_INFO[activationPackage.tier].minPayout
-      : 1;
     const venueName = selectedPlace?.name ?? selectedVenueRadar?.name ?? null;
 
     setSelectedActivationPackageId(packageId);
-    setComposerError(null);
     setFormData((current) => ({
       ...current,
       type: 'PLACE',
@@ -201,8 +177,8 @@ export default function BrandPortalPage() {
         )
           ? buildActivationPackageDescription(activationPackage, venueName)
           : current.description,
-      creatorCountTarget: 1,
-      payoutPerCreator: Math.max(activationPackage.payout, activeMinPayout),
+      creatorCountTarget: MANAGED_FIELD_SPRINT.assignedContributorCount,
+      payoutPerCreator: activationPackage.payout,
       targetingCriteria: {
         ...current.targetingCriteria,
         location: 'near-venue',
@@ -218,10 +194,7 @@ export default function BrandPortalPage() {
     const displayName = [venue.name, formatVenueRadarLocation(venue)].filter(Boolean).join(', ');
     const activationPackage = getActivationPackageForTier(prefill.tier);
     const nextTier = prefill.tier ?? activationPackage.tier;
-    const minimumPayout = NETWORK_CONFIG.isMainnet ? TIER_INFO[nextTier].minPayout : 1;
-    const nextPayout = prefill.payoutPerCreator
-      ? Math.max(prefill.payoutPerCreator, minimumPayout)
-      : Math.max(activationPackage.payout, minimumPayout);
+    const nextPayout = activationPackage.payout;
 
     setSelectedActivationPackageId(activationPackage.id);
     setSelectedPlace({
@@ -243,15 +216,13 @@ export default function BrandPortalPage() {
         prefill.description?.trim() ||
         buildActivationPackageDescription(activationPackage, venue.name),
       payoutPerCreator: nextPayout,
-      creatorCountTarget: 1,
+      creatorCountTarget: MANAGED_FIELD_SPRINT.assignedContributorCount,
       syncTime: prefill.syncTime ?? current.syncTime,
       targetingCriteria: {
         ...current.targetingCriteria,
         location: 'near-venue',
       },
     }));
-    setPreferredCreatorTag(prefill.creatorTag?.trim() || null);
-    setComposerError(null);
     setReportAttribution(
       prefill.reportSource === 'venue-report'
         ? {
@@ -291,7 +262,6 @@ export default function BrandPortalPage() {
 
     const activationPackage = getActivationPackageForTier(campaignTier);
     const nextTier = campaignTier ?? activationPackage.tier;
-    const minimumPayout = NETWORK_CONFIG.isMainnet ? TIER_INFO[nextTier].minPayout : 1;
     const displayName = [campaign.venue.name, formatVenueRadarLocation(campaign.venue)]
       .filter(Boolean)
       .join(', ');
@@ -307,7 +277,6 @@ export default function BrandPortalPage() {
       slug: campaign.venue.slug,
     });
     setPlaceQuery(displayName);
-    setPreferredCreatorTag(null);
     setReportAttribution(null);
     setFormData((current) => ({
       ...current,
@@ -317,15 +286,14 @@ export default function BrandPortalPage() {
       description:
         campaign.description?.trim() ||
         buildActivationPackageDescription(activationPackage, campaign.venue?.name),
-      payoutPerCreator: Math.max(campaign.payoutPerCreator || activationPackage.payout, minimumPayout),
-      creatorCountTarget: 1,
+      payoutPerCreator: activationPackage.payout,
+      creatorCountTarget: MANAGED_FIELD_SPRINT.assignedContributorCount,
       targetingCriteria: {
         ...current.targetingCriteria,
         location: 'near-venue',
       },
     }));
     setShowCreateCampaign(true);
-    setComposerError(null);
     setTimeout(() => {
       checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
@@ -358,10 +326,6 @@ export default function BrandPortalPage() {
   useEffect(() => {
     setRegisterError(null);
   }, [registerName]);
-
-  useEffect(() => {
-    setComposerError(null);
-  }, [formData.title, formData.description, formData.payoutPerCreator, formData.tier, selectedPlace?.id, selectedCreatorId]);
 
   useEffect(() => {
     if (!mounted || typeof window === 'undefined') return;
@@ -553,89 +517,6 @@ export default function BrandPortalPage() {
     };
   }, [formData.type, placeQuery]);
 
-  useEffect(() => {
-    if (!showCreateCampaign || formData.type !== 'PLACE' || !address || !selectedPlace) {
-      setRecommendedCreators([]);
-      setRecommendedCreatorsLoading(false);
-      setRecommendedCreatorsError(null);
-      setSelectedCreatorId(null);
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-    const targetingSignature = JSON.stringify(formData.targetingCriteria);
-
-    const run = async () => {
-      try {
-        setRecommendedCreatorsLoading(true);
-        setRecommendedCreatorsError(null);
-
-        const response = await fetch('/api/campaigns/recommendations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-          },
-          signal: controller.signal,
-          body: JSON.stringify({
-            brandWallet: address,
-            venueId: selectedPlace.placeId,
-            venueCity: selectedPlace.city ?? undefined,
-            venueCountry: selectedPlace.country ?? undefined,
-            targetingCriteria: JSON.parse(targetingSignature),
-            limit: 4,
-          }),
-        });
-
-        const payload = await response.json();
-
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.error || 'Failed to load recommended creators');
-        }
-
-        if (cancelled) return;
-
-        const matches = payload.data?.matches ?? [];
-        setRecommendedCreators(matches);
-        setSelectedCreatorId((current) =>
-          current && matches.some((match: CampaignMatch) => match.creator.id === current)
-            ? current
-            : preferredCreatorTag
-              ? matches.find((match: CampaignMatch) => match.creator.tag.toLowerCase() === preferredCreatorTag.toLowerCase())?.creator.id ?? matches[0]?.creator.id ?? null
-              : matches[0]?.creator.id ?? null
-        );
-      } catch (error) {
-        if (cancelled || controller.signal.aborted) return;
-        setRecommendedCreators([]);
-        setSelectedCreatorId(null);
-        setRecommendedCreatorsError(
-          error instanceof Error ? error.message : 'Failed to load recommended creators'
-        );
-      } finally {
-        if (!cancelled) {
-          setRecommendedCreatorsLoading(false);
-        }
-      }
-    };
-
-    const timer = window.setTimeout(run, 220);
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [
-    showCreateCampaign,
-    formData.type,
-    address,
-    sessionToken,
-    selectedPlace,
-    preferredCreatorTag,
-    formData.targetingCriteria,
-  ]);
-
   const handleRegister = async () => {
     if (!address || !registerName.trim()) return;
 
@@ -664,187 +545,6 @@ export default function BrandPortalPage() {
     } catch (error) {
       console.error('Failed to register brand:', error);
       setRegisterError(error instanceof Error ? error.message : 'Unable to create the buyer profile. Please try again.');
-    }
-  };
-
-  const handleCreateCampaign = async () => {
-    if (!address) return;
-
-    try {
-      setCreatingCampaign(true);
-      setApprovalStatus('idle');
-      setComposerError(null);
-      const tierConfig = TIER_INFO[formData.tier];
-      const activeMinPayout = NETWORK_CONFIG.isMainnet ? tierConfig.minPayout : 1;
-      
-      if (formData.payoutPerCreator < activeMinPayout) {
-        setComposerError(`The minimum reward for ${tierConfig.name} is $${activeMinPayout}.`);
-        return;
-      }
-
-      if (formData.type === 'PLACE' && !selectedPlace?.placeId) {
-        if (
-          !selectedPlace?.externalPlaceId ||
-          typeof selectedPlace.latitude !== 'number' ||
-          typeof selectedPlace.longitude !== 'number'
-        ) {
-          setComposerError('Choose a valid place for this mission.');
-          return;
-        }
-      }
-
-      let resolvedVenueId = selectedPlace?.placeId;
-      if (formData.type === 'PLACE' && !resolvedVenueId && selectedPlace) {
-        const resolveResponse = await fetch('/api/places/resolve-or-create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-          },
-          body: JSON.stringify({
-            name: selectedPlace.name,
-            latitude: selectedPlace.latitude,
-            longitude: selectedPlace.longitude,
-            address: selectedPlace.address ?? selectedPlace.displayName,
-            city: selectedPlace.city,
-            country: selectedPlace.country,
-            placeSource: selectedPlace.placeSource ?? 'OSM_NOMINATIM',
-            externalPlaceId: selectedPlace.externalPlaceId ?? selectedPlace.id,
-          }),
-        });
-
-        const resolvePayload = await resolveResponse.json();
-        if (!resolvePayload.success || !resolvePayload.data?.place?.id) {
-          throw new Error(resolvePayload.error || 'Failed to resolve place');
-        }
-
-        resolvedVenueId = resolvePayload.data.place.id;
-        setSelectedPlace((current) =>
-          current
-            ? {
-                ...current,
-                placeId: resolvePayload.data.place.id,
-                slug: resolvePayload.data.place.slug ?? current.slug,
-                address: resolvePayload.data.place.address ?? current.address,
-              }
-            : current
-        );
-      }
-
-      if (formData.type === 'PLACE' && !selectedCreatorId) {
-        setComposerError('BaseDare could not route a contributor yet. Try another place or request invoice setup.');
-        return;
-      }
-
-      const chosenCreator =
-        formData.type === 'PLACE'
-          ? recommendedCreators.find((match) => match.creator.id === selectedCreatorId) ?? null
-          : null;
-
-      if (formData.type === 'PLACE' && !chosenCreator) {
-        setComposerError('The routed contributor is no longer available. Refresh the place selection and try again.');
-        return;
-      }
-
-      let linkedDareId: string | undefined;
-
-      if (formData.type === 'PLACE' && chosenCreator && resolvedVenueId) {
-        const connectedWallet = address.toLowerCase();
-
-        const fundedDare = await submitBountyCreation(
-          {
-            title: formData.title.trim(),
-            description: formData.description.trim() || undefined,
-            amount: formData.payoutPerCreator,
-            streamerTag: chosenCreator.creator.tag,
-            streamId: `brand:${Date.now()}`,
-            missionMode: 'IRL',
-            missionTag: 'brand-campaign',
-            isNearbyDare: true,
-            latitude: selectedPlace?.latitude,
-            longitude: selectedPlace?.longitude,
-            locationLabel: selectedPlace?.name || selectedPlace?.displayName || undefined,
-            discoveryRadiusKm: 0.5,
-            venueId: resolvedVenueId,
-            creationContext: 'MAP',
-            stakerAddress: connectedWallet,
-          },
-          {
-            sessionToken,
-            isSimulationMode,
-            publicClient,
-            writeContractAsync,
-            onApprovalStatusChange: setApprovalStatus,
-          }
-        );
-
-        linkedDareId = fundedDare.dareId;
-      }
-
-      const res = await fetch('/api/campaigns', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-        },
-        body: JSON.stringify({
-          brandWallet: address,
-          ...formData,
-          creatorCountTarget: formData.type === 'PLACE' ? 1 : formData.creatorCountTarget,
-          venueId: formData.type === 'PLACE' ? resolvedVenueId : undefined,
-          selectedCreatorId: formData.type === 'PLACE' ? selectedCreatorId : undefined,
-          linkedDareId,
-          syncTime: formData.syncTime || undefined,
-          reportSource: reportAttribution?.source ?? undefined,
-          reportAudience: reportAttribution?.audience ?? undefined,
-          reportSessionKey: reportAttribution?.sessionKey ?? undefined,
-          reportIntent: reportAttribution?.intent ?? undefined,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setCampaigns([data.data, ...campaigns]);
-        setComposerError(null);
-        setShowCreateCampaign(false);
-        setFormData({
-          type: 'PLACE',
-          tier: getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID).tier,
-          title: '',
-          description: '',
-          creatorCountTarget: 10,
-          payoutPerCreator: getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID).payout,
-          syncTime: '',
-          targetingCriteria: { niche: '', minFollowers: 0, location: 'anywhere', platforms: [] },
-          verificationCriteria: { hashtagsRequired: [], minDurationSeconds: 30 },
-        });
-        setSelectedActivationPackageId(DEFAULT_ACTIVATION_PACKAGE_ID);
-        setPlaceQuery('');
-        setPlaceResults([]);
-        setSelectedPlace(null);
-        setPreferredCreatorTag(null);
-        setReportAttribution(null);
-        setRecommendedCreators([]);
-        setRecommendedCreatorsError(null);
-        setRecommendedCreatorsLoading(false);
-        setSelectedCreatorId(null);
-      } else if (data.code === 'CREATOR_CAMPAIGNS_DORMANT') {
-        setComposerError(data.error || 'This mission type is not available yet.');
-      } else {
-        setComposerError(
-          linkedDareId
-            ? `${data.error || 'Mission registration failed.'} Your funded dare is ${linkedDareId}; support can recover it without another payment.`
-            : data.error || 'Mission registration failed. Please try again.',
-        );
-      }
-    } catch (error) {
-      console.error('Failed to create campaign:', error);
-      const message = error instanceof Error ? error.message : 'Failed to create campaign';
-      setComposerError(message);
-    } finally {
-      setCreatingCampaign(false);
-      setApprovalStatus('idle');
     }
   };
 
@@ -924,23 +624,6 @@ export default function BrandPortalPage() {
     });
   };
 
-
-  const calculateBudget = () => {
-    const tierConfig = TIER_INFO[formData.tier];
-    const effectiveSlotCount = formData.type === 'PLACE' ? 1 : formData.creatorCountTarget;
-    const gross = formData.payoutPerCreator * effectiveSlotCount;
-    const rake = gross * (parseInt(tierConfig.rake) / 100);
-    return { gross, rake, total: gross + rake, effectiveSlotCount };
-  };
-
-  const budget = calculateBudget();
-  const canLaunchActivation =
-    !creatingCampaign &&
-    Boolean(formData.title.trim()) &&
-    formData.type === 'PLACE' &&
-    Boolean(selectedPlace) &&
-    !recommendedCreatorsLoading &&
-    Boolean(selectedCreatorId);
   const checkoutSteps = [
     {
       label: 'Question',
@@ -953,13 +636,13 @@ export default function BrandPortalPage() {
       complete: Boolean(selectedPlace),
     },
     {
-      label: 'Reward',
-      detail: `$${formatUsdAmount(formData.payoutPerCreator)}`,
-      complete: formData.payoutPerCreator > 0,
+      label: 'Economics',
+      detail: `$${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} fixed invoice`,
+      complete: true,
     },
     {
-      label: 'Fund',
-      detail: `$${formatUsdAmount(budget.total)} USDC`,
+      label: 'Invoice',
+      detail: 'Confirmed before launch',
       complete: false,
     },
   ];
@@ -1204,7 +887,7 @@ export default function BrandPortalPage() {
                 BUYER PORTAL
               </div>
               <div className="mt-1 hidden text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200/70 md:block">
-                Fund questions · verify answers · keep receipts
+                Scope fieldwork · confirm invoice · keep receipts
               </div>
             </div>
           </div>
@@ -1251,7 +934,7 @@ export default function BrandPortalPage() {
                   Send one useful question into the real world.
                 </h1>
                 <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/72">
-                  Choose a place or question, fund the reward, and BaseDare returns a verified answer, timestamped place memory, and receipt.
+                  Define one bounded question and place. The ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} managed Sprint routes four contributors and returns verified evidence, timestamped place memory, and a receipt.
                 </p>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                   <button
@@ -1260,7 +943,7 @@ export default function BrandPortalPage() {
                     className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
                   >
                     <Sparkles className="h-4 w-4" />
-                    Create a mission
+                    Scope a Sprint
                   </button>
                   <Link
                     href="/board"
@@ -1285,8 +968,8 @@ export default function BrandPortalPage() {
                   },
                   {
                     icon: <CreditCard className="h-4 w-4" />,
-                    label: '3. Reward',
-                    detail: 'Pay for an approved answer.',
+                    label: '3. Invoice',
+                    detail: `$${MANAGED_FIELD_SPRINT.serviceFeeUsd.toLocaleString()} service + $${MANAGED_FIELD_SPRINT.grossRewardPoolUsd} reward pool.`,
                   },
                   {
                     icon: <CheckCircle2 className="h-4 w-4" />,
@@ -1337,7 +1020,7 @@ export default function BrandPortalPage() {
             Send a verified mission into the real world
           </h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-white/70">
-            Ask one useful place question, fund the reward, and receive verified evidence, place memory, and a durable receipt. BaseDare handles contributor routing.
+            Ask one useful place question. The fixed ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} managed Sprint covers delivery plus a separately funded creator pool; BaseDare handles routing, verification, and the receipt.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <button
@@ -1346,7 +1029,7 @@ export default function BrandPortalPage() {
               className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
             >
               <Sparkles className="h-4 w-4" />
-              Create mission
+              Scope a Sprint
             </button>
             <Link
               href="/board"
@@ -1362,32 +1045,20 @@ export default function BrandPortalPage() {
         </div>
 
         <ActivationComposer
-          approvalStatus={approvalStatus}
-          budget={budget}
-          canLaunchActivation={canLaunchActivation}
           checkoutSectionRef={checkoutSectionRef}
           checkoutSteps={checkoutSteps}
-          creatingCampaign={creatingCampaign}
           formData={formData}
-          formError={composerError}
-          handleCreateCampaign={handleCreateCampaign}
           placeLoading={placeLoading}
           placeQuery={placeQuery}
           placeResults={placeResults}
-          recommendedCreators={recommendedCreators}
-          recommendedCreatorsError={recommendedCreatorsError}
-          recommendedCreatorsLoading={recommendedCreatorsLoading}
+          reportAttribution={reportAttribution}
           selectActivationPackage={selectActivationPackage}
           selectedActivationPackage={selectedActivationPackage}
           selectedActivationPackageId={selectedActivationPackageId}
-          selectedCheckoutCreator={selectedCheckoutCreator}
-          selectedCreatorId={selectedCreatorId}
           selectedPlace={selectedPlace}
           setFormData={setFormData}
           setPlaceQuery={setPlaceQuery}
           setPlaceResults={setPlaceResults}
-          setPreferredCreatorTag={setPreferredCreatorTag}
-          setSelectedCreatorId={setSelectedCreatorId}
           setSelectedPlace={setSelectedPlace}
           setShowCreateCampaign={setShowCreateCampaign}
           showCreateCampaign={showCreateCampaign}

@@ -2,7 +2,8 @@ const { ethers } = require("hardhat");
 require("dotenv").config({ path: '.env.local' });
 
 // =============================================================================
-// LIVE BOUNTY TEST - Creates a real bounty on Sepolia and verifies payout
+// LEGACY LIVE BOUNTY TEST - BaseDareBounty (89/10/1), not V2.
+// Do not use this script as a 96/4/0 release gate.
 // =============================================================================
 
 const BOUNTY_CONTRACT = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS;

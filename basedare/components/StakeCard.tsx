@@ -127,7 +127,7 @@ export function StakeCard() {
                         className="cursor-pointer"
                      />
                      <div className="text-center text-[10px] text-purple-300/60 font-mono uppercase tracking-widest">
-                        10% Platform Fee
+                        4% Success Fee
                      </div>
                 </div>
 
@@ -158,5 +158,4 @@ export function StakeCard() {
     </div>
   );
 }
-
 
