@@ -21,6 +21,7 @@ Two agents work this repo at once. Check this section before starting, and updat
 - PeeBear uses the canonical transparent head; tapping cycles field tips without reopening the mission chooser. On mobile, Adventure/Tonight/Secrets/Trail live in the existing horizontally scrollable status rail instead of a second floating row.
 - The public place filter has one vocabulary and one control surface: All places / Live now / Verified / Needs proof. Desktop no longer repeats internal heat states; mobile exposes the same four choices under More. Creation actions live under Add to map, and personal views live under Your map.
 - Map funding is explicitly the quick, paid, place-locked 24h composer; it links into `/create` as the full paid/free/custom builder. Direct place proof is labeled as an unpaid map contribution with trail/receipt value and a one-time approved-proof Signal Points mission. PeeBear guide cards temporarily hide the mobile fullscreen control so their close targets never overlap.
+- Marker art now uses five individual transparent 3D WebPs in `public/assets/map/holograms/` (flag, surf, cafe, gathering, rumor). Hologram rings/beams are lightweight DOM/CSS state modifiers; never restore the baked-background `adventure-sprites-v1.png` atlas or emoji legend stacks.
 - Preserve the existing MapLibre camera/renderer and marker gesture calm-down path; this pass changes DOM-marker presentation and existing camera-control placement only.
 
 ### Codex universal consumer onboarding pass (2026-07-11)

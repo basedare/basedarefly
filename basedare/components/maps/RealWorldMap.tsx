@@ -3132,17 +3132,18 @@ function createPeebearMarkerHtml({
   const liveLabel =
     challengeLiveCount > 1 ? `LIVE ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}` : 'LIVE';
   const showActivatedMarkerChrome = activated && (!compact || active);
-  // Activated venues keep their legend emojis too — the gold sign says "official",
-  // the chips say "what kind of place" at a glance. CSS already positions them.
-  const visibleLegends = (legends ?? []).slice(0, compact ? 2 : 3);
-  const legendKey = visibleLegends.map((legend) => legend.key).join(',');
+  // Category is now carried by one transparent 3D object. Additional venue
+  // legends stay in the selected-place surface instead of stacking emoji pills
+  // over the map.
+  const legendKey = (legends ?? [])
+    .slice(0, compact ? 2 : 3)
+    .map((legend) => legend.key)
+    .join(',');
   const categoryKey = (categories ?? []).slice(0, 4).join(',');
   const adventureSprite = getAdventurePlaceSprite({ challengeLiveCount, categories });
   const adventureModifier = hasChallengeLive
     ? liveLabel
-    : visualState === 'unmarked'
-      ? '?'
-      : approvedCount > 0
+    : approvedCount > 0
         ? '✓'
         : '';
   const venueLabel = getMarkerVenueLabel(venueName);
@@ -3172,16 +3173,6 @@ function createPeebearMarkerHtml({
         <span class="adventure-sprite adventure-sprite--${adventureSprite}"></span>
         ${adventureModifier ? `<span class="adventure-place-modifier">${adventureModifier}</span>` : ''}
       </span>
-      ${
-        visibleLegends.length > 0
-          ? `<span class="venue-legend-stack" aria-label="Venue type">${visibleLegends
-              .map(
-                (legend) =>
-                  `<span class="venue-legend-chip venue-legend-chip--${escapeMarkerAttribute(legend.key)}" title="${escapeMarkerAttribute(legend.label)}">${legend.emoji}</span>`
-              )
-              .join('')}</span>`
-          : ''
-      }
       <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
         <img src="/assets/peebear-head.webp" alt="PeeBear pin" class="peebear-head" />
       </div>
@@ -10664,10 +10655,8 @@ export default function RealWorldMap() {
                   </div>
                   <div className="mt-3 space-y-2">
                     <div className="map-legend-row map-legend-row--activated">
-                      <span className="map-legend-icon-well map-legend-icon-well--activated" aria-hidden="true">
-                        <span className="legend-venue-sign-mini" aria-hidden="true">
-                          <span className="legend-venue-sign-mini-face">NAME</span>
-                        </span>
+                      <span className="map-legend-hologram map-legend-hologram--activated" aria-hidden="true">
+                        <span className="adventure-sprite adventure-sprite--cafe" />
                       </span>
                       <div className="min-w-0">
                         <p className="map-legend-title text-[#f8dd72]">Activated venue</p>
@@ -10675,8 +10664,8 @@ export default function RealWorldMap() {
                       </div>
                     </div>
                     <div className="map-legend-row map-legend-row--live">
-                      <span className="map-legend-icon-well map-legend-icon-well--live" aria-hidden="true">
-                        <span className="legend-live-dot" aria-hidden="true" />
+                      <span className="map-legend-hologram map-legend-hologram--live" aria-hidden="true">
+                        <span className="adventure-sprite adventure-sprite--flag" />
                       </span>
                       <div className="min-w-0">
                         <p className="map-legend-title text-cyan-100">Live challenge</p>
@@ -10684,8 +10673,8 @@ export default function RealWorldMap() {
                       </div>
                     </div>
                     <div className="map-legend-row map-legend-row--open">
-                      <span className="map-legend-icon-well map-legend-icon-well--open" aria-hidden="true">
-                        <span className="legend-open-dot" aria-hidden="true" />
+                      <span className="map-legend-hologram map-legend-hologram--open" aria-hidden="true">
+                        <span className="adventure-sprite adventure-sprite--rumor" />
                       </span>
                       <div className="min-w-0">
                         <p className="map-legend-title text-white/78">Open venue</p>
@@ -14309,36 +14298,48 @@ export default function RealWorldMap() {
           background: radial-gradient(circle at 8% 12%, rgba(255, 255, 255, 0.08), transparent 42%);
         }
 
-        .map-legend-icon-well {
+        .map-legend-hologram {
+          --holo-rgb: 245, 197, 24;
           position: relative;
           z-index: 1;
           display: grid;
-          height: 2.35rem;
-          width: 2.35rem;
+          height: 2.65rem;
+          width: 2.65rem;
           flex: 0 0 auto;
           place-items: center;
-          border-radius: 15px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.18));
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            inset 0 -8px 12px rgba(0, 0, 0, 0.18);
+          border: 0;
+          background: transparent;
+          filter: drop-shadow(0 7px 6px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 7px rgba(var(--holo-rgb), 0.34));
         }
 
-        .map-legend-icon-well--activated {
-          border-color: rgba(245, 197, 24, 0.22);
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            inset 0 -8px 12px rgba(0, 0, 0, 0.18),
-            0 0 18px rgba(245, 197, 24, 0.1);
+        .map-legend-hologram::before {
+          content: '';
+          position: absolute;
+          left: 50%;
+          bottom: 0;
+          width: 27px;
+          height: 7px;
+          transform: translateX(-50%) perspective(30px) rotateX(60deg);
+          border: 1px solid rgba(var(--holo-rgb), 0.7);
+          border-radius: 9999px;
+          background: radial-gradient(ellipse, rgba(var(--holo-rgb), 0.38), transparent 72%);
+          box-shadow: 0 0 9px rgba(var(--holo-rgb), 0.48);
         }
 
-        .map-legend-icon-well--live {
-          border-color: rgba(34, 211, 238, 0.22);
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            inset 0 -8px 12px rgba(0, 0, 0, 0.18),
-            0 0 18px rgba(34, 211, 238, 0.1);
+        .map-legend-hologram--live {
+          --holo-rgb: 34, 211, 238;
+        }
+
+        .map-legend-hologram--open {
+          --holo-rgb: 168, 85, 247;
+        }
+
+        .map-legend-hologram .adventure-sprite {
+          width: 44px;
+          height: 44px;
+          flex-basis: 44px;
+          transform: translateY(-3px) scale(1.06);
+          filter: saturate(1.05) drop-shadow(0 5px 4px rgba(0, 0, 0, 0.48));
         }
 
         .map-legend-title {
@@ -14359,72 +14360,6 @@ export default function RealWorldMap() {
           font-weight: 700;
           color: rgba(255, 255, 255, 0.42);
           line-height: 1.2;
-        }
-
-        .legend-venue-sign-mini {
-          position: relative;
-          display: grid;
-          height: 28px;
-          width: 38px;
-          flex: 0 0 auto;
-          place-items: center;
-          filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.38)) drop-shadow(0 0 12px rgba(245, 197, 24, 0.24));
-        }
-
-        .legend-venue-sign-mini::after {
-          content: '';
-          position: absolute;
-          left: 7px;
-          right: 7px;
-          bottom: 0;
-          height: 8px;
-          border-radius: 0 0 9999px 9999px;
-          background: linear-gradient(90deg, rgba(96, 62, 8, 0.2), rgba(248, 221, 114, 0.74), rgba(96, 62, 8, 0.2));
-          transform: perspective(36px) rotateX(58deg);
-          transform-origin: center top;
-        }
-
-        .legend-venue-sign-mini-face {
-          position: relative;
-          z-index: 1;
-          border-radius: 8px 8px 6px 6px;
-          border: 1px solid rgba(255, 244, 190, 0.72);
-          background:
-            linear-gradient(180deg, rgba(255, 246, 183, 0.98), rgba(245, 197, 24, 0.96) 52%, rgba(139, 86, 12, 0.96));
-          padding: 5px 7px 4px;
-          color: rgba(22, 14, 0, 0.92);
-          font-size: 6px;
-          font-weight: 950;
-          letter-spacing: 0.08em;
-          line-height: 1;
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.65),
-            inset 0 -6px 8px rgba(74, 42, 0, 0.28),
-            0 0 0 2px rgba(245, 197, 24, 0.14);
-        }
-
-        .legend-live-dot,
-        .legend-open-dot {
-          display: inline-flex;
-          height: 16px;
-          width: 16px;
-          flex: 0 0 auto;
-          border-radius: 9999px;
-          border: 2px solid rgba(5, 6, 12, 0.88);
-        }
-
-        .legend-live-dot {
-          background: #f5c518;
-          box-shadow:
-            0 0 0 3px rgba(245, 197, 24, 0.12),
-            0 0 18px rgba(245, 197, 24, 0.34);
-        }
-
-        .legend-open-dot {
-          background: #161322;
-          box-shadow:
-            0 0 0 3px rgba(255, 255, 255, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         .place-panel-popup {
@@ -15785,7 +15720,6 @@ export default function RealWorldMap() {
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-tonight-pill),
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-count),
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-state),
-          .basedare-maplibre-map[data-map-moving='true'] :global(.venue-legend-chip),
           .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-match),
           .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-live) {
             opacity: 0 !important;
@@ -15969,11 +15903,10 @@ export default function RealWorldMap() {
           display: none;
         }
 
-        .basedare-maplibre-map :global(.peebear-core),
-        .basedare-maplibre-map :global(.peebear-meta),
-        .basedare-maplibre-map :global(.peebear-count),
-        .basedare-maplibre-map :global(.venue-legend-stack),
-        .basedare-maplibre-map :global(.peebear-ripple),
+          .basedare-maplibre-map :global(.peebear-core),
+          .basedare-maplibre-map :global(.peebear-meta),
+          .basedare-maplibre-map :global(.peebear-count),
+          .basedare-maplibre-map :global(.peebear-ripple),
         .basedare-maplibre-map :global(.peebear-challenge-aura),
         .basedare-maplibre-map :global(.peebear-challenge-ring),
         .basedare-maplibre-map :global(.peebear-match-badge),
@@ -16024,6 +15957,7 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.adventure-place-object) {
+          --holo-rgb: 34, 211, 238;
           position: absolute;
           left: 50%;
           bottom: 15px;
@@ -16037,38 +15971,49 @@ export default function RealWorldMap() {
           border: 0;
           background: transparent;
           box-shadow: none;
-          filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 8px rgba(95, 230, 255, 0.14));
+          filter:
+            drop-shadow(0 13px 9px rgba(0, 0, 0, 0.58))
+            drop-shadow(0 0 9px rgba(var(--holo-rgb), 0.26));
           animation: adventureObjectHover 3.2s ease-in-out infinite;
-          isolation: auto;
+          isolation: isolate;
+          perspective: 120px;
         }
 
         .basedare-maplibre-map :global(.adventure-place-object::before) {
           content: '';
           position: absolute;
           left: 50%;
-          bottom: -3px;
+          bottom: -1px;
           z-index: 0;
-          width: 34px;
-          height: 8px;
-          transform: translateX(-50%);
+          width: 43px;
+          height: 11px;
+          transform: translateX(-50%) perspective(40px) rotateX(60deg);
           border-radius: 9999px;
-          border: 1px solid rgba(95, 230, 255, 0.3);
-          background: radial-gradient(ellipse, rgba(34, 211, 238, 0.23), rgba(1, 3, 9, 0.48) 58%, transparent 72%);
-          box-shadow: 0 0 11px rgba(34, 211, 238, 0.2);
-          filter: blur(0.3px);
+          border: 1px solid rgba(var(--holo-rgb), 0.72);
+          background:
+            radial-gradient(ellipse, rgba(var(--holo-rgb), 0.42) 0%, rgba(2, 7, 14, 0.62) 52%, transparent 74%);
+          box-shadow:
+            0 0 5px rgba(var(--holo-rgb), 0.74),
+            0 0 16px rgba(var(--holo-rgb), 0.4),
+            inset 0 0 7px rgba(var(--holo-rgb), 0.48);
+          animation: hologramProjectorPulse 2.5s ease-in-out infinite;
         }
 
         .basedare-maplibre-map :global(.adventure-place-object::after) {
           content: '';
           position: absolute;
           left: 50%;
-          bottom: 3px;
-          z-index: 0;
-          width: 1px;
-          height: 17px;
+          bottom: 5px;
+          z-index: 1;
+          width: 34px;
+          height: 43px;
           transform: translateX(-50%);
-          background: linear-gradient(180deg, transparent, rgba(95, 230, 255, 0.46));
-          box-shadow: 0 0 7px rgba(34, 211, 238, 0.34);
+          background: linear-gradient(180deg, transparent 0%, rgba(var(--holo-rgb), 0.04) 28%, rgba(var(--holo-rgb), 0.24) 100%);
+          clip-path: polygon(35% 0, 65% 0, 100% 100%, 0 100%);
+          filter: blur(1.2px);
+          opacity: 0.58;
+          mix-blend-mode: screen;
+          animation: hologramBeamBreathe 2.5s ease-in-out infinite;
         }
 
         .basedare-maplibre-map :global(.adventure-sprite) {
@@ -16078,105 +16023,84 @@ export default function RealWorldMap() {
           width: 64px;
           height: 64px;
           flex: 0 0 64px;
-          background-image: url('/assets/map/adventure-sprites-v1.png');
           background-repeat: no-repeat;
-          background-size: 384px 256px;
+          background-position: center;
+          background-size: contain;
           image-rendering: auto;
-          mix-blend-mode: screen;
-          filter: saturate(1.12) contrast(1.04) drop-shadow(0 8px 7px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 5px rgba(255, 224, 114, 0.2));
+          filter:
+            saturate(1.06)
+            contrast(1.03)
+            drop-shadow(0 8px 6px rgba(0, 0, 0, 0.6))
+            drop-shadow(0 0 5px rgba(var(--holo-rgb), 0.24));
+          will-change: transform;
         }
 
         .basedare-maplibre-map :global(.adventure-place-object .adventure-sprite),
         .basedare-maplibre-map :global(.adventure-focal-marker .adventure-sprite) {
-          transform: translateY(-7px) scale(1.12);
+          transform: translateY(-8px) scale(1.1);
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--flag) {
-          background-position: -38px -180px;
-          clip-path: polygon(10% 2%, 76% 2%, 94% 24%, 82% 72%, 65% 80%, 63% 100%, 39% 100%, 39% 82%, 13% 78%);
+          background-image: url('/assets/map/holograms/flag.webp');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--surf) {
-          background-position: -100px -180px;
-          clip-path: polygon(25% 0, 70% 0, 88% 14%, 96% 46%, 87% 72%, 68% 100%, 11% 100%, 3% 72%, 13% 45%);
+          background-image: url('/assets/map/holograms/surf.webp');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--cafe) {
-          background-position: -160px -180px;
-          clip-path: polygon(23% 8%, 64% 8%, 71% 25%, 91% 28%, 96% 45%, 90% 66%, 71% 73%, 62% 91%, 18% 91%, 7% 71%, 8% 34%);
+          background-image: url('/assets/map/holograms/cafe.webp');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--gathering) {
-          background-position: -229px -180px;
-          clip-path: polygon(36% 0, 62% 0, 74% 18%, 94% 64%, 88% 86%, 68% 100%, 25% 100%, 7% 86%, 4% 62%, 27% 18%);
+          background-image: url('/assets/map/holograms/gathering.webp');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--rumor) {
-          background-position: -294px -180px;
-          clip-path: polygon(35% 0, 66% 0, 88% 13%, 100% 37%, 95% 72%, 76% 94%, 48% 100%, 17% 91%, 1% 67%, 4% 30%, 17% 10%);
+          background-image: url('/assets/map/holograms/rumor.webp');
         }
 
-        .basedare-maplibre-map :global(.adventure-sprite--bear) {
-          width: 74px;
-          height: 74px;
-          flex-basis: 74px;
-          background-size: 276px 184px;
-          background-position: -101px -4px;
-          clip-path: polygon(18% 3%, 82% 3%, 100% 27%, 96% 72%, 78% 96%, 50% 100%, 21% 95%, 3% 72%, 0 27%);
+        @keyframes hologramProjectorPulse {
+          0%, 100% { opacity: 0.62; scale: 0.92; }
+          50% { opacity: 1; scale: 1.08; }
         }
 
-        .basedare-maplibre-map :global(.adventure-sprite--bear-mini) {
-          width: 30px;
-          height: 30px;
-          flex-basis: 30px;
-          background-size: 108px 72px;
-          background-position: -39px -1px;
-          clip-path: polygon(18% 3%, 82% 3%, 100% 27%, 96% 72%, 78% 96%, 50% 100%, 21% 95%, 3% 72%, 0 27%);
-          filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.4));
-        }
-
-        .basedare-maplibre-map :global(.adventure-sprite--rumor-mini) {
-          width: 28px;
-          height: 28px;
-          flex-basis: 28px;
-          background-size: 168px 112px;
-          background-position: -128px -79px;
-          clip-path: polygon(35% 0, 66% 0, 88% 13%, 100% 37%, 95% 72%, 76% 94%, 48% 100%, 17% 91%, 1% 67%, 4% 30%, 17% 10%);
+        @keyframes hologramBeamBreathe {
+          0%, 100% { opacity: 0.28; }
+          50% { opacity: 0.68; }
         }
 
         .basedare-maplibre-map :global(.adventure-place-modifier) {
           position: absolute;
-          right: -9px;
-          top: -8px;
+          right: -6px;
+          top: -5px;
           z-index: 4;
           display: inline-flex;
-          min-width: 22px;
-          height: 22px;
+          min-width: 16px;
+          height: 18px;
           align-items: center;
           justify-content: center;
-          border: 2px solid rgba(5, 6, 12, 0.96);
-          border-radius: 9999px;
-          background: #34d399;
-          padding: 0 6px;
-          color: #03140d;
+          border: 0;
+          background: transparent;
+          padding: 0;
+          color: #6ee7b7;
           font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-          font-size: 10px;
+          font-size: 13px;
           font-weight: 950;
           line-height: 1;
-          box-shadow: 0 7px 14px rgba(0, 0, 0, 0.36);
+          text-shadow:
+            0 2px 3px rgba(0, 0, 0, 0.96),
+            0 0 6px rgba(52, 211, 153, 0.86),
+            0 0 13px rgba(52, 211, 153, 0.54);
         }
 
         .basedare-maplibre-map :global(.adventure-place-object--unmarked) {
-          filter: saturate(0.76) brightness(0.9) drop-shadow(0 0 10px rgba(184, 127, 255, 0.34));
-        }
-
-        .basedare-maplibre-map :global(.adventure-place-object--unmarked .adventure-place-modifier) {
-          border-color: rgba(8, 6, 17, 0.96);
-          background: #6d45a8;
-          color: #f1e7ff;
+          --holo-rgb: 168, 85, 247;
+          filter: saturate(0.9) brightness(0.94) drop-shadow(0 0 12px rgba(168, 85, 247, 0.4));
         }
 
         .basedare-maplibre-map :global(.adventure-place-object.has-live-dare) {
+          --holo-rgb: 245, 197, 24;
           filter: drop-shadow(0 14px 11px rgba(0, 0, 0, 0.54)) drop-shadow(0 0 13px rgba(245, 197, 24, 0.5));
         }
 
@@ -16185,13 +16109,15 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.adventure-place-object.has-live-dare .adventure-place-modifier) {
-          right: -16px;
-          min-width: 34px;
-          border-color: rgba(19, 12, 0, 0.94);
-          background: #0b0d16;
+          right: -13px;
+          min-width: 30px;
           color: #fff0a8;
           font-size: 8px;
           letter-spacing: 0.08em;
+          text-shadow:
+            0 2px 3px rgba(0, 0, 0, 0.98),
+            0 0 7px rgba(245, 197, 24, 0.88),
+            0 0 15px rgba(245, 197, 24, 0.55);
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-active .adventure-place-object) {
@@ -16308,6 +16234,7 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.adventure-rumor-marker) {
+          --holo-rgb: 168, 85, 247;
           position: relative;
           display: grid;
           width: 82px;
@@ -16318,12 +16245,19 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.adventure-rumor-fog) {
           position: absolute;
-          inset: 5px;
-          border: 2px dotted rgba(196, 157, 255, 0.58);
+          left: 50%;
+          bottom: 8px;
+          z-index: 0;
+          width: 48px;
+          height: 12px;
+          transform: translateX(-50%) perspective(42px) rotateX(60deg);
+          border: 1px solid rgba(196, 157, 255, 0.82);
           border-radius: 9999px;
-          background: radial-gradient(circle, rgba(139, 92, 246, 0.16), transparent 66%);
-          box-shadow: 0 0 28px rgba(139, 92, 246, 0.2);
-          animation: adventureRumorTurn 9s linear infinite;
+          background: radial-gradient(ellipse, rgba(168, 85, 247, 0.46), rgba(8, 4, 18, 0.62) 54%, transparent 74%);
+          box-shadow:
+            0 0 7px rgba(168, 85, 247, 0.82),
+            0 0 22px rgba(168, 85, 247, 0.5);
+          animation: hologramProjectorPulse 2.8s ease-in-out infinite;
         }
 
         .basedare-maplibre-map :global(.adventure-rumor-label) {
@@ -16332,101 +16266,98 @@ export default function RealWorldMap() {
           left: 50%;
           z-index: 4;
           transform: translateX(-50%);
-          border: 1px solid rgba(196, 157, 255, 0.28);
-          border-radius: 9999px;
-          background: rgba(13, 8, 27, 0.94);
-          padding: 4px 7px;
+          border: 0;
+          background: transparent;
+          padding: 0;
           color: rgba(235, 221, 255, 0.86);
           font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
           font-size: 7px;
           font-weight: 950;
           letter-spacing: 0.18em;
           line-height: 1;
-        }
-
-        @keyframes adventureRumorTurn {
-          to {
-            transform: rotate(360deg);
-          }
+          text-shadow:
+            0 2px 3px rgba(0, 0, 0, 0.98),
+            0 0 8px rgba(168, 85, 247, 0.82);
         }
 
         .basedare-maplibre-map[data-adventure-mode='true']
           :global(.peebear-marker--blazing .adventure-place-object) {
-          border-color: rgba(255, 111, 142, 0.76);
-          box-shadow:
-            0 0 0 5px rgba(255, 60, 104, 0.1),
-            0 0 34px rgba(255, 60, 104, 0.28),
-            0 16px 26px rgba(0, 0, 0, 0.5),
-            inset 0 1px 0 rgba(255, 255, 255, 0.22);
+          --holo-rgb: 255, 77, 122;
+          filter: drop-shadow(0 14px 10px rgba(0, 0, 0, 0.56)) drop-shadow(0 0 12px rgba(255, 77, 122, 0.42));
         }
 
         .basedare-maplibre-map[data-adventure-mode='true']
           :global(.peebear-marker--igniting .adventure-place-object) {
-          border-color: rgba(34, 211, 238, 0.72);
-          box-shadow:
-            0 0 0 5px rgba(34, 211, 238, 0.09),
-            0 0 30px rgba(34, 211, 238, 0.24),
-            0 16px 26px rgba(0, 0, 0, 0.48),
-            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          --holo-rgb: 34, 211, 238;
+          filter: drop-shadow(0 14px 10px rgba(0, 0, 0, 0.54)) drop-shadow(0 0 11px rgba(34, 211, 238, 0.38));
         }
 
         .basedare-maplibre-map[data-adventure-mode='true']
           :global(.peebear-marker--simmering .adventure-place-object) {
-          border-color: rgba(245, 197, 24, 0.7);
-          box-shadow:
-            0 0 0 4px rgba(245, 197, 24, 0.08),
-            0 0 26px rgba(245, 197, 24, 0.2),
-            0 15px 24px rgba(0, 0, 0, 0.46),
-            inset 0 1px 0 rgba(255, 255, 255, 0.18);
+          --holo-rgb: 245, 197, 24;
+          filter: drop-shadow(0 14px 10px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 10px rgba(245, 197, 24, 0.34));
         }
 
         .basedare-maplibre-map :global(.adventure-focal-marker) {
+          --holo-rgb: 245, 197, 24;
           position: relative;
           display: grid;
-          width: 72px;
-          height: 76px;
+          width: 82px;
+          height: 88px;
           place-items: center;
           transform: translateY(-8px);
+          filter: drop-shadow(0 14px 10px rgba(0, 0, 0, 0.56)) drop-shadow(0 0 12px rgba(var(--holo-rgb), 0.38));
+        }
+
+        .basedare-maplibre-map :global(.adventure-focal-marker--meetup) {
+          --holo-rgb: 52, 211, 153;
         }
 
         .basedare-maplibre-map :global(.adventure-focal-beacon) {
           position: relative;
           z-index: 3;
           display: grid;
-          width: 54px;
-          height: 54px;
-          flex: 0 0 54px;
+          width: 72px;
+          height: 76px;
+          flex: 0 0 72px;
           place-items: center;
-          border: 1px solid rgba(255, 240, 168, 0.84);
-          border-radius: 19px;
-          background:
-            radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.5), transparent 38%),
-            linear-gradient(145deg, #ffd83d, #805000);
-          color: #171103;
-          font-family: system-ui, sans-serif;
-          font-size: 31px;
-          line-height: 1;
-          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.36);
-          box-shadow:
-            0 14px 24px rgba(0, 0, 0, 0.48),
-            0 0 0 4px rgba(245, 197, 24, 0.12),
-            0 0 28px rgba(245, 197, 24, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.58),
-            inset 0 -11px 16px rgba(81, 43, 0, 0.34);
+          border: 0;
+          background: transparent;
+          box-shadow: none;
         }
 
-        .basedare-maplibre-map :global(.adventure-focal-marker--meetup .adventure-focal-beacon) {
-          border-color: rgba(167, 243, 208, 0.72);
-          background:
-            radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.36), transparent 38%),
-            linear-gradient(145deg, #34d399, #064e3b);
-          color: #ecfdf5;
+        .basedare-maplibre-map :global(.adventure-focal-beacon::before) {
+          content: '';
+          position: absolute;
+          left: 50%;
+          bottom: 1px;
+          z-index: 0;
+          width: 48px;
+          height: 12px;
+          transform: translateX(-50%) perspective(42px) rotateX(60deg);
+          border: 1px solid rgba(var(--holo-rgb), 0.82);
+          border-radius: 9999px;
+          background: radial-gradient(ellipse, rgba(var(--holo-rgb), 0.46), rgba(2, 7, 14, 0.62) 54%, transparent 74%);
           box-shadow:
-            0 14px 24px rgba(0, 0, 0, 0.46),
-            0 0 0 4px rgba(52, 211, 153, 0.1),
-            0 0 26px rgba(52, 211, 153, 0.24),
-            inset 0 1px 0 rgba(255, 255, 255, 0.36),
-          inset 0 -11px 16px rgba(0, 50, 35, 0.3);
+            0 0 7px rgba(var(--holo-rgb), 0.8),
+            0 0 20px rgba(var(--holo-rgb), 0.48);
+          animation: hologramProjectorPulse 2s ease-in-out infinite;
+        }
+
+        .basedare-maplibre-map :global(.adventure-focal-beacon::after) {
+          content: '';
+          position: absolute;
+          left: 50%;
+          bottom: 7px;
+          z-index: 1;
+          width: 38px;
+          height: 48px;
+          transform: translateX(-50%);
+          background: linear-gradient(180deg, transparent, rgba(var(--holo-rgb), 0.28));
+          clip-path: polygon(36% 0, 64% 0, 100% 100%, 0 100%);
+          filter: blur(1.4px);
+          mix-blend-mode: screen;
+          animation: hologramBeamBreathe 2s ease-in-out infinite;
         }
 
         .basedare-maplibre-map :global(.adventure-focal-badge) {
@@ -16456,14 +16387,7 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.adventure-focal-shadow) {
-          position: absolute;
-          bottom: 3px;
-          left: 10px;
-          width: 52px;
-          height: 10px;
-          border-radius: 9999px;
-          background: rgba(1, 3, 8, 0.76);
-          filter: blur(4px);
+          display: none;
         }
 
         .basedare-maplibre-map[data-map-moving='true'] :global(.adventure-place-object),
@@ -16842,57 +16766,6 @@ export default function RealWorldMap() {
             0 6px 12px rgba(0, 0, 0, 0.3),
             0 0 12px rgba(245, 197, 24, 0.22),
             inset 0 1px 0 rgba(255, 255, 255, 0.25);
-        }
-
-        .basedare-maplibre-map :global(.venue-legend-stack) {
-          position: absolute;
-          left: 50%;
-          top: 31px;
-          z-index: 8;
-          display: flex;
-          flex-direction: column;
-          gap: 3px;
-          transform: translateX(26px);
-          pointer-events: none;
-        }
-
-        .basedare-maplibre-map :global(.venue-legend-chip) {
-          display: inline-flex;
-          height: 21px;
-          min-width: 21px;
-          align-items: center;
-          justify-content: center;
-          border-radius: 9999px;
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          background:
-            radial-gradient(circle at 34% 20%, rgba(255, 255, 255, 0.2), transparent 52%),
-            linear-gradient(180deg, rgba(19, 22, 35, 0.94), rgba(5, 6, 12, 0.94));
-          box-shadow:
-            0 8px 18px rgba(0, 0, 0, 0.36),
-            0 0 16px rgba(245, 197, 24, 0.12),
-            inset 0 1px 0 rgba(255, 255, 255, 0.16),
-            inset 0 -6px 9px rgba(0, 0, 0, 0.22);
-          font-size: 11px;
-          line-height: 1;
-          backdrop-filter: blur(10px);
-        }
-
-        .basedare-maplibre-map :global(.peebear-marker.is-compact .venue-legend-stack) {
-          top: 25px;
-          gap: 2px;
-          transform: translateX(22px) scale(0.9);
-          transform-origin: top left;
-        }
-
-        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .venue-legend-stack) {
-          top: 50px;
-          transform: translateX(27px);
-        }
-
-        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue.is-compact .venue-legend-stack) {
-          top: 42px;
-          transform: translateX(24px) scale(0.86);
-          transform-origin: top left;
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-core) {
@@ -17847,7 +17720,6 @@ export default function RealWorldMap() {
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-count),
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-state),
           .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-footprint),
-          .basedare-maplibre-map[data-map-moving='true'] :global(.venue-legend-chip),
           .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-match),
           .basedare-maplibre-map[data-map-moving='true'] :global(.place-cluster-live) {
             backdrop-filter: none !important;
@@ -17897,7 +17769,6 @@ export default function RealWorldMap() {
         .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-footprint),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-review-signal),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-match-badge),
-        .basedare-maplibre-map[data-zoom-band='far'] :global(.venue-legend-chip),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.place-cluster-match),
         .basedare-maplibre-map[data-zoom-band='far'] :global(.place-cluster-live) {
           opacity: 0 !important;
