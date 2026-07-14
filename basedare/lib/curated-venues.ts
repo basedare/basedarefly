@@ -15,6 +15,7 @@ type CuratedVenue = {
   timezone: string;
   categories: string[];
   locationConfidence?: string;
+  instagramHandle?: string;
 };
 
 export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
@@ -79,6 +80,30 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
       'work-friendly',
       'siargao',
       'catangnan',
+    ],
+  },
+  {
+    slug: 'la-sola-sunset-bar-and-lounge',
+    name: 'La Sola Sunset Bar & Lounge',
+    description:
+      'Sunset bar and lounge beside Catangnan (AFAM) Bridge for golden-hour drinks and easy social discovery.',
+    address: 'R554+RC8, General Luna, Surigao del Norte, Philippines',
+    city: 'General Luna',
+    country: 'Philippines',
+    latitude: 9.8098397,
+    longitude: 126.1560223,
+    timezone: 'Asia/Manila',
+    instagramHandle: '@lasola.siargao',
+    categories: [
+      'bar',
+      'lounge',
+      'sunset',
+      'cocktails',
+      'nightlife',
+      'social',
+      'catangnan',
+      'siargao',
+      'general-luna',
     ],
   },
   {
@@ -475,6 +500,8 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
 const SIARGAO_QUERY_TOKENS = [
   'cat',
   'gun',
+  'la sola',
+  'afam bridge',
   'catangnan',
   'siargao',
   'general luna',
@@ -586,11 +613,12 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v5',
+            curatedSet: 'siargao-v6',
             locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
             coordinatePolicy:
               'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
             activationAngle: 'Food, surf, nightlife, and island-hangout missions.',
+            ...(venue.instagramHandle ? { instagramHandle: venue.instagramHandle } : {}),
           },
         },
         create: {
@@ -610,11 +638,12 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v5',
+            curatedSet: 'siargao-v6',
             locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
             coordinatePolicy:
               'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
             activationAngle: 'Food, surf, nightlife, and island-hangout missions.',
+            ...(venue.instagramHandle ? { instagramHandle: venue.instagramHandle } : {}),
           },
         },
       })

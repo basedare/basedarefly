@@ -20,6 +20,13 @@ test('bar identity wins over nearby boardwalk, dock, and beach categories', () =
     }),
     'beer'
   );
+  assert.equal(
+    getAdventurePlaceSprite({
+      challengeLiveCount: 0,
+      categories: ['bar', 'lounge', 'sunset', 'cocktails', 'catangnan'],
+    }),
+    'beer'
+  );
 });
 
 test('surfboards are reserved for actual surf signals', () => {
