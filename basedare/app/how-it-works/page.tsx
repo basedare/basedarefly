@@ -21,6 +21,9 @@ import {
   Users,
   BarChart3,
   Sparkles,
+  KeyRound,
+  Mail,
+  ShieldCheck,
 } from "lucide-react";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import HoneyGooAccent from "@/components/HoneyGooAccent";
@@ -64,6 +67,24 @@ const OVERVIEW_STEPS = [
     description: "Complete it, add proof when needed and build points, receipts, local reputation or rewards.",
     color: "text-emerald-400",
     glow: "rgba(52,211,153,0.12)",
+  },
+];
+
+const MISSION_PASS_STEPS = [
+  {
+    icon: Mail,
+    title: "Save it",
+    description: "Email, share or copy the private pass after choosing an activity.",
+  },
+  {
+    icon: Route,
+    title: "Continue",
+    description: "Open the pass in your normal browser to restore what you saved.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Act when ready",
+    description: "Use identity or a wallet only if the activity actually requires it.",
   },
 ];
 
@@ -285,10 +306,76 @@ export default function HowItWorksPage() {
             ))}
           </motion.div>
 
+          {/* ════════════════════════════════════════════
+              MISSION PASS
+          ════════════════════════════════════════════ */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.18 }}
+            className={`${raisedPanelClass} mb-10 p-5 md:p-8`}
+          >
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.1),transparent_34%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.08),transparent_38%)]" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/30 to-transparent" />
+
+            <div className="relative grid gap-5 lg:grid-cols-[0.9fr_1.35fr] lg:items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-400/[0.07] px-3 py-1.5 font-mono text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100">
+                  <KeyRound className="h-3.5 w-3.5 text-cyan-300" />
+                  Mission Pass
+                </div>
+                <h2 className="mt-4 text-2xl font-black uppercase italic tracking-tight text-white md:text-3xl">
+                  Take a mission <span className="text-cyan-300">with you</span>
+                </h2>
+                <p className="mt-3 max-w-xl font-mono text-xs leading-6 text-gray-400 md:text-sm">
+                  A Mission Pass is a private link that saves the activity you chose, so you can reopen the same mission and map context in Safari, Chrome or another device.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                {MISSION_PASS_STEPS.map((step) => (
+                  <div key={step.title} className={`${insetDentClass} p-4`}>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-400/[0.06]">
+                      <step.icon className="h-4 w-4 text-cyan-300" />
+                    </div>
+                    <h3 className="mt-3 text-sm font-black uppercase tracking-[0.12em] text-white">
+                      {step.title}
+                    </h3>
+                    <p className="mt-2 text-xs leading-5 text-gray-500">{step.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative mt-5 flex flex-col gap-4 rounded-[20px] border border-emerald-300/14 bg-emerald-400/[0.045] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
+                <p className="max-w-2xl text-xs leading-5 text-emerald-50/65">
+                  A Mission Pass never claims a reward, proves your identity, connects a wallet or authorizes payment. Email is used only to deliver or recover the pass unless you separately opt into updates.
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Link
+                  href="/missions"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-cyan-300/18 bg-cyan-400/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100 transition hover:border-cyan-300/30 hover:bg-cyan-400/[0.12]"
+                >
+                  Your Missions
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+                <Link
+                  href="/faq"
+                  className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/62 transition hover:border-white/18 hover:text-white"
+                >
+                  Read FAQ
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
             className={`${softCardClass} mb-10 p-4 md:p-5`}
           >
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/24 to-transparent" />

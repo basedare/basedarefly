@@ -9,6 +9,7 @@ import { SessionProvider } from 'next-auth/react';
 import { ReactNode, useState } from 'react';
 import WalletAutoReconnect from './WalletAutoReconnect';
 import PostHogProvider from './PostHogProvider';
+import { SocialWebviewProvider } from './mission-pass/SocialWebviewProvider';
 
 // Use Coinbase RPC if API key available, otherwise fallback to public
 const rpcUrl = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY
@@ -44,25 +45,27 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <PostHogProvider>
-    <SessionProvider>
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
-          <OnchainKitProvider
-            apiKey={apiKey || ''}
-            chain={base}
-            projectId={projectId}
-            config={{
-              appearance: { mode: 'auto', theme: 'default' },
-              // Paymaster for gasless tx - will work if env var is set, otherwise standard gas
-              paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL,
-            }}
-          >
-            <WalletAutoReconnect />
-            {children}
-          </OnchainKitProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
-    </SessionProvider>
+      <SocialWebviewProvider>
+        <SessionProvider>
+          <WagmiProvider config={config}>
+            <QueryClientProvider client={queryClient}>
+              <OnchainKitProvider
+                apiKey={apiKey || ''}
+                chain={base}
+                projectId={projectId}
+                config={{
+                  appearance: { mode: 'auto', theme: 'default' },
+                  // Paymaster for gasless tx - will work if env var is set, otherwise standard gas
+                  paymaster: process.env.NEXT_PUBLIC_PAYMASTER_URL,
+                }}
+              >
+                <WalletAutoReconnect />
+                {children}
+              </OnchainKitProvider>
+            </QueryClientProvider>
+          </WagmiProvider>
+        </SessionProvider>
+      </SocialWebviewProvider>
     </PostHogProvider>
   );
 }

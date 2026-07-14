@@ -24,6 +24,8 @@ import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { buildXSharePayload } from '@/lib/social-share';
 import { buildCreatorReviewMessage } from '@/lib/creator-review-auth';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import { MissionPassSheet } from '@/components/mission-pass/MissionPassSheet';
+import { useSocialWebview } from '@/components/mission-pass/SocialWebviewProvider';
 
 // ── ABI stubs ──────────────────────────────────────────────────────────────
 const USDC_ABI = [
@@ -222,6 +224,8 @@ export default function DareDetailPage() {
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [claimWaiverAccepted, setClaimWaiverAccepted] = useState(false);
+  const [showMissionPass, setShowMissionPass] = useState(false);
+  const { isSocialWebview, label: socialWebviewLabel } = useSocialWebview();
 
   // Wagmi tx hooks
   const { writeContract: writeApprove, data: approveHash, isPending: approvePending } = useWriteContract();
@@ -1005,6 +1009,29 @@ export default function DareDetailPage() {
           </div>
         )}
 
+        {dare.awaitingClaim && !dare.targetWalletAddress && !isConnected && !dare.claimRequestWallet && (
+          <div className="rounded-2xl border border-[#f5c518]/20 bg-[linear-gradient(145deg,rgba(245,197,24,.1),rgba(79,45,120,.08))] p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#ffe36a]">
+              {isSocialWebview ? `Opened inside ${socialWebviewLabel}` : 'Not ready to claim yet?'}
+            </p>
+            <h3 className="mt-2 text-base font-black text-white">Take this mission with you</h3>
+            <p className="mt-1 text-xs leading-5 text-white/50">
+              {isSocialWebview
+                ? 'Save a private Mission Pass, then open it in Safari or Chrome before you connect a wallet.'
+                : 'Save it without an account, or use Sign in above when you are ready to request the mission.'}
+            </p>
+            <CosmicButton
+              onClick={() => setShowMissionPass(true)}
+              variant="gold"
+              size="md"
+              fullWidth
+              className="mt-4"
+            >
+              Save Mission Pass
+            </CosmicButton>
+          </div>
+        )}
+
         {dare.awaitingClaim && dare.claimRequestStatus === 'PENDING' && dare.claimRequestWallet && (
           <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl">
             <h3 className="text-sm font-black text-cyan-300 mb-2">Activation claim pending</h3>
@@ -1167,6 +1194,15 @@ export default function DareDetailPage() {
         </div>
 
       </div>
+
+      <MissionPassSheet
+        open={showMissionPass}
+        onClose={() => setShowMissionPass(false)}
+        targetType="DARE"
+        targetId={dare.id}
+        targetHref={`/dare/${dare.shortId || dare.id}`}
+        title={dare.title}
+      />
 
       {/* Steal modal */}
       <AnimatePresence>

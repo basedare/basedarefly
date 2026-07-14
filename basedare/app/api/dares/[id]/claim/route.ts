@@ -7,6 +7,7 @@ import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limit';
 import { evaluateClaimEligibility } from '@/lib/dare-claim-policy';
+import { bindDareIntentToWallet } from '@/lib/creator-attribution-server';
 
 // ============================================================================
 // CLAIM DARE API - For @open dares (moderated claim request flow)
@@ -162,6 +163,17 @@ export async function POST(
         { status: 409 }
       );
     }
+
+    // Attribution is deliberately separate from claim authorization and
+    // payout economics. Bind a previously locked Mission Pass intent only
+    // after the claim CAS wins; storage failure must never undo the claim.
+    await bindDareIntentToWallet(request, dare.id, lowerWallet).catch((attributionError) => {
+      console.error(
+        '[ATTRIBUTION] Claim intent binding failed:',
+        attributionError instanceof Error ? attributionError.message : attributionError
+      );
+      return null;
+    });
 
     console.log(`[CLAIM REQUEST] Dare ${dareId} requested by ${claimDisplay} (${lowerWallet})`);
 

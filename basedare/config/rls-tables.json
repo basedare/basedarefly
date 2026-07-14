@@ -47,5 +47,11 @@
   "Meetup",
   "MeetupRsvp",
   "MeetupReport",
-  "MeetupBlock"
+  "MeetupBlock",
+  "CreatorAttributionLink",
+  "AttributionJourney",
+  "AttributionTouch",
+  "ActionIntent",
+  "MissionPass",
+  "AttributionEvent"
 ]

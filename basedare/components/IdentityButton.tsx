@@ -4,7 +4,11 @@ import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import type { Connector } from 'wagmi';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useFeedback } from '@/hooks/useFeedback';
+import { MissionPassSheet } from '@/components/mission-pass/MissionPassSheet';
+import { useSocialWebview } from '@/components/mission-pass/SocialWebviewProvider';
 
 const CONNECTOR_META: Record<string, { label: string; icon: string }> = {
   injected: { label: 'Browser Wallet (MetaMask/Brave)', icon: '🦊' },
@@ -72,6 +76,7 @@ function getWalletConnectErrorMessage(error: unknown, connector: ConnectorLike) 
 }
 
 export function IdentityButton() {
+  const pathname = usePathname();
   const { address, isConnected } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
@@ -80,6 +85,8 @@ export function IdentityButton() {
   const [showOtherWallets, setShowOtherWallets] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [pendingConnectorUid, setPendingConnectorUid] = useState<string | null>(null);
+  const [showMissionPass, setShowMissionPass] = useState(false);
+  const [missionPassHref, setMissionPassHref] = useState(pathname || '/map');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const walletPickerRef = useRef<HTMLDivElement>(null);
@@ -93,6 +100,7 @@ export function IdentityButton() {
     return /Android|iPhone|iPad|iPod/i.test(ua) || touchMac;
   });
   const { trigger } = useFeedback();
+  const { checked: webviewChecked, isSocialWebview } = useSocialWebview();
 
   const updateMenuPosition = useCallback(() => {
     if (!dropdownRef.current || typeof window === 'undefined') return;
@@ -156,6 +164,18 @@ export function IdentityButton() {
     : uniqueConnectors;
 
   const handleClick = () => {
+    if (!isConnected && webviewChecked && isSocialWebview) {
+      trigger('click');
+      setMissionPassHref(
+        typeof window === 'undefined'
+          ? pathname || '/map'
+          : `${window.location.pathname}${window.location.search}${window.location.hash}`
+      );
+      setShowMissionPass(true);
+      setShowDropdown(false);
+      setShowWalletPicker(false);
+      return;
+    }
     if (isConnected) {
       trigger('click');
       setShowDropdown(!showDropdown);
@@ -207,6 +227,13 @@ export function IdentityButton() {
         <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Connected As</p>
         <p className="text-sm text-white font-mono">{truncatedAddress}</p>
       </div>
+      <Link
+        href="/missions"
+        onClick={() => setShowDropdown(false)}
+        className="block w-full px-4 py-3 text-left text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+      >
+        Your Missions
+      </Link>
       <button
         onClick={() => { trigger('click'); disconnect(); setShowDropdown(false); }}
         className="w-full px-4 py-3 text-left text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors font-medium border-t border-white/5"
@@ -312,7 +339,7 @@ export function IdentityButton() {
                 <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px rgba(74,222,128,0.8)' }} />
                 <span className="truncate">{truncatedAddress}</span>
               </>
-            ) : 'Sign in'}
+            ) : webviewChecked && isSocialWebview ? 'Mission Pass' : 'Sign in'}
           </span>
           <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none rounded-[12px] md:rounded-[15px]" />
         </button>
@@ -320,6 +347,15 @@ export function IdentityButton() {
       </div>
       {typeof document !== 'undefined' && accountMenu ? createPortal(accountMenu, document.body) : null}
       {typeof document !== 'undefined' && walletPicker ? createPortal(walletPicker, document.body) : null}
+      <MissionPassSheet
+        open={showMissionPass}
+        onClose={() => setShowMissionPass(false)}
+        targetType="PAGE"
+        targetId={`page:${pathname}`}
+        targetHref={missionPassHref}
+        title="Continue exploring BaseDare"
+        description="Save this screen, move into Safari or Chrome, and keep the map state tied to your private Mission Pass."
+      />
     </>
   );
 }

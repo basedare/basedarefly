@@ -1,11 +1,11 @@
 ---
 type: daily_control
-date: 2026-07-11
+date: 2026-07-13
 status: ACTIVE
 owner: codex
 primary_objective: "Turn BaseDare into a remote, bounty-funded discovery network that can seed and learn from markets without founder presence."
 created_at: 2026-05-13
-updated_at: 2026-07-11
+updated_at: 2026-07-13
 ---
 
 # Today
@@ -20,6 +20,8 @@ Operationalize BaseDare as a remote-first playable social map:
 4. reuse Local Signals, Sentinel, proof, payout, place-memory, receipt, meetup and reputation rails
 5. run one dense playable-map alpha and one friendly design-partner Sprint
 6. pursue ecosystem funding, then run a bounded multi-market tournament
+7. use short-form stories to turn attention into attributable map participation
+8. preserve creator attribution with an explicit passwordless Mission Pass while keeping social webviews wallet-free
 
 ## Active Context
 
@@ -45,6 +47,8 @@ Operationalize BaseDare as a remote-first playable social map:
 | 6 | Reuse Local Signals + Sentinel for Sprint #1 | codex | READY | Route structured tips through existing discovery and uncertain-proof review surfaces |
 | 7 | Secure design partner and ecosystem grant path | human | NEXT | Manufacture first receipt at cost/free and prepare grant application before full tournament spend |
 | 8 | Clean public traction and demo signals | codex | NEXT | Separate real treasury/proof data from samples before public participant acquisition |
+| 9 | TikTok / Instagram participation loop | growth | READY | Run four variants of each locked short-form series and measure qualified map actions per 1,000 views |
+| 10 | Creator Journey attribution rail | product/growth | ALPHA_CANON_LOCKED | Build tracked redirects, Journey + ActionIntent, passwordless Mission Pass, native-browser wallet resume, duplicate merging, and split completion reporting before performance bonuses |
 
 ## Safe Automatic Work
 

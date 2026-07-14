@@ -26,6 +26,7 @@ import { getSentinelAnalyticsSource, getSentinelRecommendation, getSentinelReaso
 import { alertError, alertPayout, alertVerification } from '@/lib/telegram';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
 import { sendWalletPush } from '@/lib/web-push';
+import { finalizeAttributionForVerifiedDare } from '@/lib/creator-attribution-server';
 
 const activeChain = getBaseChain();
 const rpcUrl = getBaseRpcUrl();
@@ -600,6 +601,17 @@ export async function finalizeVerifiedDare(
     return { dare: nextDare, didFinalize: true };
   });
   const updatedDare = finalization.dare;
+
+  // Resumable attribution hook: the verified Dare row remains authoritative.
+  // This runs for the CAS winner and idempotent losers, so a retry repairs a
+  // prior attribution-storage outage without blocking or duplicating payout.
+  await finalizeAttributionForVerifiedDare(updatedDare, verifiedAt).catch((attributionError) => {
+    console.error(
+      '[ATTRIBUTION] Verified completion write failed:',
+      attributionError instanceof Error ? attributionError.message : attributionError
+    );
+    return null;
+  });
 
   // Idempotent loser: the winner already performed all durable and external
   // finalization side effects. Return the authoritative row without duplicating

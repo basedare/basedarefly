@@ -3,7 +3,7 @@ type: content_canon
 system: basedare-brain
 status: AUTHORITATIVE
 created_at: 2026-07-11
-updated_at: 2026-07-11
+updated_at: 2026-07-13
 owner: BaseDare founder
 ---
 
@@ -115,6 +115,29 @@ Never reuse a number from an old post or doc.
 4. **Buyer stories** — a business asked a question, got a verified answer + receipt.
 5. **Building in public** — founder voice: what shipped, what broke, what was learned.
 
+## Attention-to-participation doctrine (locked)
+
+TikTok and Instagram are narrated entrances to the playable map, not vanity-reach
+channels. The durable loop is:
+
+`live map state -> artifact-led episode -> tracked map action -> participation ->
+place memory / receipt -> next episode`
+
+The initial audience problem is: **"I am somewhere new, I do not know many people, and I
+want something worthwhile to do in the next two hours."** Make the viewer the subject;
+the map, protocol, and verification system are supporting machinery.
+
+The three recurring short-form series are:
+
+1. **PeeBear's Next Two Hours** — one best live option and at most two alternatives.
+2. **Rumor or Real?** — a safe local question moves from uncertainty to an honest outcome.
+3. **Worth It Right Now?** — a current place question receives a timestamped field answer.
+
+Their full anatomy, research loop, 30-day test, and scorecard live in
+`short-form-participation-loop.md`. Every episode still belongs to exactly one content
+pillar and must pass every claim, rights, safety, freshness, and approval rule in this
+canon.
+
 ## Proof assets & rights
 
 **Default rule: only post assets that BaseDare owns or has explicit consent to reuse.**
@@ -135,7 +158,8 @@ Never reuse a number from an old post or doc.
 
 ## Weekly cadence (the whole machine)
 
-`real artifact → Fable drafts (max 3 posts) → factual check against this canon →
-founder approval → manual post → log in performance-ledger.md`
+`live map state → real artifact → Fable drafts within a tested series (max 3 posts) →
+factual check against this canon → founder approval → manual post → tracked map action →
+log in performance-ledger.md`
 
 No autonomous posting, replies, DMs, or promises. Ever. See `approval-queue.md`.

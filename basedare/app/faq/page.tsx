@@ -49,6 +49,10 @@ const FAQ_ITEMS = [
     a: "To **play**: no. You sign in with your **phone — one tap, passkey, done**. No app, no seed phrase, no 'gm ser'. Complete dares, check in, get paid — the blockchain is just plumbing, the same way nobody thinks about Venmo's database. To **fund** a dare you need USDC today — unless you're a **venue or business**, in which case we can invoice you the normal way and handle the on-chain part for you. Ask us."
   },
   {
+    q: "What is a Mission Pass?",
+    a: "A **Mission Pass** is a private link that saves an activity you chose, so you can reopen the same mission and map context in Safari, Chrome, or another device. It is especially useful when Instagram or TikTok might lose your place. Email it to yourself, share it, or copy the link, then find saved passes under **Your Missions**. It does **not** claim a reward, prove your identity, connect a wallet, or authorize payment. If you use email, it is only for pass delivery and recovery — not automatic marketing consent."
+  },
+  {
     q: "What's a @baretag?",
     a: "Your **handle on the grid** — the name that shows up next to your check-ins, proofs, and dares. Claim yours on `/claim-tag`. Short, clean handles go first and they go **forever**, so the founding cohort of a city gets the good ones. Nobody who joins in six months can take yours."
   },

@@ -115,11 +115,29 @@ The strongest marketing asset is the live map, not a brand manifesto.
 
 Recurring content formats:
 
-- **Three things to do today** — direct links to live actions.
-- **Someone just sparked this place** — one approved mark and why it helps.
-- **Can you verify this?** — one small rewarded local question.
-- **Weekend route** — a short sequence friends can complete together.
-- **What changed here?** — before/after place memory or freshness update.
+- **PeeBear's Next Two Hours** — narrate one best live action and at most two alternatives.
+- **Rumor or Real?** — turn one safe local question into a mission and honest outcome.
+- **Worth It Right Now?** — answer one current place question with a timestamped receipt.
+
+Use TikTok and Instagram as narrated entrances to a live, populated map state. The full
+format factory, episode anatomy, rights gate, and 30-day test live in
+`brain-vault/06-social/short-form-participation-loop.md`.
+
+### In-app browser continuity
+
+TikTok and Instagram commonly open BaseDare inside their own webviews. A browser-local
+session cannot be the attribution source of truth. After a newcomer starts, joins,
+claims, or saves an action, offer a non-blocking **Take this quest with you** prompt with
+**Email me the pass**, **Send mission pass**, **Copy private link**, and **Keep
+exploring** actions. The social webview remains an anonymous discovery-and-handoff
+surface; wallet connection, claims, proof and funding resume in an ordinary browser.
+The server-side Journey, ActionIntent lock, Mission Pass, duplicate recovery, creator
+reporting categories, and privacy rules live in
+`brain-vault/05-playbooks/creator-attribution-journey.md`.
+
+Do not force a wallet, social login, share destination or hidden account at this moment;
+do not use device fingerprinting or imply that a web page can reliably force Safari or
+Chrome to open.
 
 External outreach remains review-required. Prioritize warm community admins, hostel/coworking groups, activity organizers and small local accounts that can send people into one specific action. Do not send a generic “join our platform” message.
 

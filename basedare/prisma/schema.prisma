@@ -1148,3 +1148,164 @@ model MeetupBlock {
   @@unique([blockerBaretagId, blockedBaretagId])
   @@index([blockerBaretagId])
 }
+
+// ============================================================================
+// CREATOR JOURNEYS + MISSION PASSES (ALPHA)
+// Separate from Dare.inviteToken, economic referrals, NextAuth User, and wallet
+// authorization. This rail records discovery -> saved intent -> verified IRL
+// completion without turning a marketing link into a claim or payment key.
+// Raw email addresses are never stored; MissionPass.emailHmac is a keyed digest.
+// ============================================================================
+model CreatorAttributionLink {
+  id                 String   @id @default(cuid())
+  slug               String   @unique
+  creatorCode        String
+  contentCode        String
+  campaignCode       String?
+  targetType         String
+  targetId           String
+  targetHref         String
+  participationOwner Boolean  @default(false)
+  active             Boolean  @default(true)
+  createdBy          String?
+  createdAt          DateTime @default(now())
+
+  touches AttributionTouch[]
+
+  @@index([creatorCode, createdAt])
+  @@index([targetType, targetId, active])
+}
+
+model AttributionJourney {
+  id             String   @id @default(cuid())
+  cookieHash     String   @unique
+  status         String   @default("ACTIVE")
+  participantKey String?
+  firstReferrer  String?
+  userAgentClass String?
+  firstSeenAt    DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  expiresAt      DateTime
+
+  touches       AttributionTouch[]
+  intents       ActionIntent[]
+  missionPasses MissionPass[]
+  events        AttributionEvent[]
+
+  @@index([participantKey, lastSeenAt])
+  @@index([status, expiresAt])
+}
+
+model AttributionTouch {
+  id           String   @id @default(cuid())
+  journeyId    String
+  linkId       String?
+  creatorCode  String?
+  contentCode  String?
+  campaignCode String?
+  targetType   String
+  targetId     String
+  targetHref   String
+  referrer     String?
+  occurredAt   DateTime @default(now())
+
+  journey           AttributionJourney      @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  link              CreatorAttributionLink? @relation(fields: [linkId], references: [id], onDelete: SetNull)
+  primaryForIntents ActionIntent[]          @relation("IntentPrimaryTouch")
+  events            AttributionEvent[]
+
+  @@index([journeyId, occurredAt])
+  @@index([linkId, occurredAt])
+  @@index([creatorCode, occurredAt])
+  @@index([targetType, targetId, occurredAt])
+}
+
+model ActionIntent {
+  id                String    @id @default(cuid())
+  journeyId         String
+  primaryTouchId    String?
+  targetType        String
+  targetId          String
+  targetHref        String
+  titleSnapshot     String?
+  state             String    @default("LOCKED")
+  participantKey    String?
+  walletAddress     String?
+  canonicalIntentId String?
+  lockedAt          DateTime  @default(now())
+  expiresAt         DateTime
+  boundAt           DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  journey         AttributionJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  primaryTouch    AttributionTouch?  @relation("IntentPrimaryTouch", fields: [primaryTouchId], references: [id], onDelete: SetNull)
+  canonicalIntent ActionIntent?      @relation("IntentMerge", fields: [canonicalIntentId], references: [id], onDelete: SetNull)
+  mergedIntents   ActionIntent[]     @relation("IntentMerge")
+  missionPasses   MissionPass[]
+  events          AttributionEvent[]
+
+  @@unique([journeyId, targetType, targetId])
+  @@index([participantKey, state, updatedAt])
+  @@index([walletAddress, targetType, targetId])
+  @@index([targetType, targetId, state])
+  @@index([canonicalIntentId])
+}
+
+model MissionPass {
+  id             String    @id @default(cuid())
+  journeyId      String
+  actionIntentId String?
+  tokenHash      String    @unique
+  emailHmac      String?
+  purpose        String    @default("ACTION")
+  deliveryMethod String
+  state          String    @default("ISSUED")
+  expiresAt      DateTime
+  issuedAt       DateTime  @default(now())
+  deliveredAt    DateTime?
+  openedAt       DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  journey      AttributionJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  actionIntent ActionIntent?      @relation(fields: [actionIntentId], references: [id], onDelete: Cascade)
+  events       AttributionEvent[]
+
+  @@index([emailHmac, state, issuedAt])
+  @@index([actionIntentId, issuedAt])
+  @@index([journeyId, issuedAt])
+  @@index([state, expiresAt])
+}
+
+// Append-only conversion ledger. Rows are never rewritten; dedupeKey prevents
+// retries/races from creating a second authoritative event.
+model AttributionEvent {
+  id             String   @id @default(cuid())
+  eventType      String
+  dedupeKey      String   @unique
+  journeyId      String?
+  touchId        String?
+  actionIntentId String?
+  missionPassId  String?
+  creatorCode    String?
+  contentCode    String?
+  campaignCode   String?
+  participantKey String?
+  targetType     String?
+  targetId       String?
+  metadataJson   Json?
+  occurredAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  journey      AttributionJourney? @relation(fields: [journeyId], references: [id], onDelete: SetNull)
+  touch        AttributionTouch?   @relation(fields: [touchId], references: [id], onDelete: SetNull)
+  actionIntent ActionIntent?       @relation(fields: [actionIntentId], references: [id], onDelete: SetNull)
+  missionPass  MissionPass?        @relation(fields: [missionPassId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, occurredAt])
+  @@index([creatorCode, occurredAt])
+  @@index([targetType, targetId, occurredAt])
+  @@index([participantKey, occurredAt])
+}
