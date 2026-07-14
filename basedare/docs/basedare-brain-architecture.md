@@ -78,6 +78,13 @@ This order matters because BaseDare should create real demand pull before adding
   - creator submits proof
   - verification settles
   - place memory compounds
+- The earned access graph may build on that memory, but must preserve three identities:
+  - Mayor = earned place contribution, never venue authority
+  - Ambassador = venue-authorized representation, scoped and revocable
+  - Host = authorization for one gathering, mission, or Spark Window
+- Official venue contact paths are free map utility. Store purpose, source, consent basis, response hours, and last confirmation; surface only active verified routes.
+- Concierge must begin with player intent. Rank or venue history may unlock a request path, never a guaranteed introduction or unsolicited cold-DM market.
+- Do not build general access tiers or a venue subscription until the three-venue pilot proves contact response, verified arrivals, redemptions, repeats, and acceptable complaint rates.
 
 ## Design Principles
 

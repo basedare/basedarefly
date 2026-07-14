@@ -29,8 +29,10 @@ DECLARE
   app_tables TEXT[] := ARRAY[
     'User',
     'Dare',
+    'DareProofAttempt',
     'CreatorReview',
     'Venue',
+    'VenueContactRoute',
     'BaseCashVenueCredit',
     'FounderEvent',
     'VenueReportEvent',

@@ -1,4 +1,5 @@
 import type { VenueProfileSummary } from '@/lib/venue-profile';
+import type { VenueContactRouteSummary } from '@/lib/venue-contact-routes';
 
 export type { VenueLegend, VenueProfileSummary } from '@/lib/venue-profile';
 
@@ -356,6 +357,7 @@ export type VenueDetail = {
   checkInRadiusMeters: number;
   memorySummary: VenueMemorySummary | null;
   profile: VenueProfileSummary;
+  officialContacts: VenueContactRouteSummary[];
   memoryHistory: VenueMemorySummary[];
   tagSummary: VenueTagSummary;
   reviewSignal: VenueReviewSignalSummary;

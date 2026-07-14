@@ -32,6 +32,7 @@ import { getFirstSparkWindow } from '@/lib/first-spark-window';
 import { getActiveVenuePerk, getVenuePerkSnapshot } from '@/lib/venue-perks';
 import { CURATED_SIARGAO_VENUES, ensureCuratedVenueRecords, getCuratedVenueSlugsNear } from '@/lib/curated-venues';
 import { deriveVenueHandle, isBaseCashPilotVenue } from '@/lib/venue-handles';
+import type { VenueContactChannel } from '@/lib/venue-contact-routes';
 import type {
   VenueActivationInsight,
   VenueRoiSnapshot,
@@ -242,6 +243,20 @@ function buildCuratedVenueDetailFallback(slug: string): VenueDetail | null {
       country: venue.country,
       metadataJson: null,
     }),
+    officialContacts: venue.instagramHandle
+      ? [
+          {
+            id: `curated:${venue.slug}:instagram`,
+            channel: 'INSTAGRAM',
+            label: 'Official Instagram',
+            purpose: 'Updates and general inquiries',
+            url: `https://www.instagram.com/${venue.instagramHandle.replace(/^@/, '')}/`,
+            responseHours: null,
+            source: 'PUBLIC_OFFICIAL_PROFILE',
+            lastConfirmedAt: '2026-07-14T00:00:00.000Z',
+          },
+        ]
+      : [],
     address: venue.address,
     city: venue.city,
     country: venue.country,
@@ -1960,6 +1975,25 @@ async function getVenueDetailBySlugFromDatabase(
       claimedBy: true,
       claimRequestTag: true,
       claimRequestStatus: true,
+      contactRoutes: {
+        where: {
+          active: true,
+          isPublic: true,
+          verificationStatus: 'VERIFIED',
+          lastConfirmedAt: { not: null },
+        },
+        orderBy: [{ sortOrder: 'asc' }, { lastConfirmedAt: 'desc' }],
+        select: {
+          id: true,
+          channel: true,
+          label: true,
+          purpose: true,
+          url: true,
+          responseHours: true,
+          source: true,
+          lastConfirmedAt: true,
+        },
+      },
       memories: {
         orderBy: { bucketStartAt: 'desc' },
         take: 7,
@@ -2251,6 +2285,16 @@ async function getVenueDetailBySlugFromDatabase(
       country: venue.country,
       metadataJson: venue.metadataJson,
     }),
+    officialContacts: venue.contactRoutes.map((contact) => ({
+      id: contact.id,
+      channel: contact.channel as VenueContactChannel,
+      label: contact.label,
+      purpose: contact.purpose,
+      url: contact.url,
+      responseHours: contact.responseHours,
+      source: contact.source,
+      lastConfirmedAt: contact.lastConfirmedAt!.toISOString(),
+    })),
     address: venue.address,
     city: venue.city,
     country: venue.country,

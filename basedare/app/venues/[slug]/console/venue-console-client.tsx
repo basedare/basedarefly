@@ -10,6 +10,7 @@ import type { FirstSparkWindowSummary, VenueDetail, VenuePerkLite, VenueQrPayloa
 import type { VenueLegendKey, VenueProfileSummary } from '@/lib/venue-profile';
 import LiveActivationCard from '@/components/venues/LiveActivationCard';
 import VenueAutopilotPanel from '@/components/venues/VenueAutopilotPanel';
+import VenueContactEditor from '@/components/venues/VenueContactEditor';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { formatPhp } from '@/lib/basecash-shared';
@@ -1210,6 +1211,12 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
               </div>
             </div>
           </div>
+
+          <VenueContactEditor
+            venueSlug={venue.slug}
+            initialContacts={venue.officialContacts}
+            canEdit={canEditVenueProfile}
+          />
 
           <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <div className={`${softCardClass} p-5 sm:p-8`}>

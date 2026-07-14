@@ -3,7 +3,7 @@ type: strategic_vision
 system: basedare-brain
 status: ACTIVE
 created_at: 2026-07-10
-updated_at: 2026-07-13
+updated_at: 2026-07-14
 owner: BaseDare
 ---
 
@@ -18,6 +18,22 @@ The consumer promise is simple: **explore, play, meet, earn.** People do not nee
 Verified Field Sprints are a revenue and seeding wedge, not the consumer identity of the product. Sponsors, venues, communities, and BaseDare treasury can fund useful activity, while free Community Sparks and social participation make the map fun when no payment is involved.
 
 The social graph is place-native: what someone completed, where they left trusted memory, which public activities they joined, and how they contributed to a place. It is not primarily a follower-count feed.
+
+## Earned venue access graph
+
+BaseDare can compound place memory into an **earned access graph**: useful verified contribution builds trust; trust can unlock the ability to request venue introductions, approved perks, and deeper local access; those outcomes create attributable arrivals and new receipts.
+
+This is not a purchased VIP club. Official public venue contacts stay free. Reputation is earned, never sold, and does not entitle a player to another person's attention. Higher access unlocks a structured request; the venue, ambassador, host, or creator remains opt-in.
+
+Keep authority explicit:
+
+- **Mayor** is earned from verified contribution to a place and never grants venue-representative authority.
+- **Ambassador** is explicitly authorized by the venue, with a narrow, revocable scope.
+- **Host** is explicitly authorized for a specific gathering, mission, or Spark Window.
+
+The working access ladder is **Explorer → Proven Player → Local Key → Venue Circle**. Unlock decisions are two-dimensional: global reliability and conduct plus venue-specific history and approval. Concierge follows declared intent; it does not push unsolicited introductions or create a cold-DM marketplace.
+
+Pilot this with three claimed venues, one verified contact set, one authorized ambassador, and one attributable perk each. Measure response, verified arrival, redemption, repeat visit, response time, and complaints before building a general hierarchy. The possible `$149–$299/month` venue partner product remains exploratory and does not replace the canonical `$2,500 Verified Field Sprint`.
 
 ## The decision
 

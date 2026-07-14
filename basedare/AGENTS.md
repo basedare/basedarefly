@@ -16,6 +16,14 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex earned venue access graph pilot (2026-07-14)
+- Brain canon now defines an earned access graph: useful verified contribution may unlock structured introduction/perk requests, never purchased reputation or entitlement to another person's attention. Mayor remains earned place reputation; Ambassador and Host require explicit, scoped, revocable venue authorization.
+- The first shipped primitive is official venue contact routing only: `VenueContactRoute`, `/api/venues/[slug]/contacts`, the venue-console editor, and a compact **Connect with venue** block on the public venue profile. Public reads fail closed to active, public, verified, confirmed routes; personal contacts require explicit consent.
+- Only the claimed venue wallet or a BaseDare moderator may publish routes. Mayors, provisional hosts, and contributors receive no contact-publishing authority. Previous active routes are archived instead of deleted.
+- La Sola has one seeded public official Instagram route. This is public-source curation, not a partnership claim.
+- General Ambassador/Host permissions, Explorer → Proven Player → Local Key → Venue Circle product tiers, concierge requests, perks, and redemptions remain deliberately unbuilt until a three-claimed-venue pilot proves response, verified arrivals, redemptions, repeat visits, and acceptable complaint rates.
+- No map renderer files were touched in this pass.
+
 ### Codex floating world-marker pass (2026-07-12)
 - User explicitly reassigned the map surface to Codex while Claude was out of credits and requested direct-to-main delivery.
 - `components/maps/RealWorldMap.tsx` now presents venue/activity sprites as frameless floating AR-style objects with silhouette cuts, world tethers, and ground glows; real venue names and place-memory states remain intact.

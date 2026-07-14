@@ -2,7 +2,7 @@ import type { Session } from 'next-auth';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
-import { ArrowRight, BarChart3, CheckCircle2, Clock3, CreditCard, Flame, MapPin, ShieldCheck, Sparkles, Users, Waves, Zap } from 'lucide-react';
+import { ArrowRight, BarChart3, CalendarDays, CheckCircle2, Clock3, CreditCard, ExternalLink, Flame, Globe2, Instagram, Mail, MapPin, MessageCircle, Phone, ShieldCheck, Sparkles, Users, Waves, Zap } from 'lucide-react';
 import { authOptions } from '@/lib/auth-options';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import {
@@ -20,6 +20,7 @@ import SparkRunCard from '@/components/venues/SparkRunCard';
 import VenueMarkButton from '@/components/venues/VenueMarkButton';
 import VenueHostPanel from '@/components/venues/VenueHostPanel';
 import SquircleLink from '@/components/ui/SquircleLink';
+import { formatVenueContactConfirmedAt, formatVenueContactSource, type VenueContactChannel } from '@/lib/venue-contact-routes';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -29,6 +30,24 @@ const softCardClass =
 
 const insetCardClass =
   'rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.26)]';
+
+function VenueContactIcon({ channel }: { channel: VenueContactChannel }) {
+  switch (channel) {
+    case 'INSTAGRAM':
+      return <Instagram className="h-4 w-4" />;
+    case 'EMAIL':
+      return <Mail className="h-4 w-4" />;
+    case 'PHONE':
+      return <Phone className="h-4 w-4" />;
+    case 'RESERVATION':
+      return <CalendarDays className="h-4 w-4" />;
+    case 'WHATSAPP':
+    case 'MESSENGER':
+      return <MessageCircle className="h-4 w-4" />;
+    default:
+      return <Globe2 className="h-4 w-4" />;
+  }
+}
 
 function getVenueActivationState(dare: {
   streamerHandle: string | null;
@@ -438,6 +457,55 @@ export default async function VenueDetailPage(
                       {venue.liveSession?.campaignLabel ?? 'Venue check-in live'}
                     </span>
                   </div>
+
+                  {venue.officialContacts.length > 0 ? (
+                    <div className="mt-5 rounded-[22px] border border-cyan-300/16 bg-[linear-gradient(145deg,rgba(34,211,238,0.08)_0%,rgba(8,8,16,0.76)_46%,rgba(16,185,129,0.05)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_16px_30px_rgba(0,0,0,0.18)]">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100/72">Connect with venue</p>
+                          <p className="mt-1 text-sm leading-6 text-white/54">
+                            Use the venue&apos;s preferred official route. The venue controls availability and response time.
+                          </p>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/18 bg-emerald-500/[0.08] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          Verified routes
+                        </span>
+                      </div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {venue.officialContacts.map((contact) => (
+                          <a
+                            key={contact.id}
+                            href={contact.url}
+                            target={contact.url.startsWith('https://') ? '_blank' : undefined}
+                            rel={contact.url.startsWith('https://') ? 'noopener noreferrer' : undefined}
+                            className="group flex min-h-14 items-center gap-3 rounded-2xl border border-white/[0.08] bg-black/24 px-3.5 py-3 transition hover:-translate-y-px hover:border-cyan-200/26 hover:bg-cyan-500/[0.07]"
+                          >
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-200/16 bg-cyan-500/[0.08] text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                              <VenueContactIcon channel={contact.channel} />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-center gap-1.5 text-sm font-black text-white">
+                                {contact.label}
+                                <ExternalLink className="h-3.5 w-3.5 text-white/26 transition group-hover:text-cyan-200/70" />
+                              </span>
+                              <span className="mt-0.5 block truncate text-xs text-white/46">
+                                {contact.purpose ?? 'Official venue contact'}
+                              </span>
+                              {contact.responseHours ? (
+                                <span className="mt-0.5 block truncate text-[10px] text-cyan-100/48">
+                                  Response hours · {contact.responseHours}
+                                </span>
+                              ) : null}
+                              <span className="mt-1 block text-[9px] font-semibold uppercase tracking-[0.13em] text-emerald-100/55">
+                                {formatVenueContactSource(contact.source)} · {formatVenueContactConfirmedAt(contact.lastConfirmedAt)}
+                              </span>
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
 
                   {/* Proof-page identity strip — frames the page as the venue's BaseDare proof page. */}
                   <div className="mt-5 rounded-2xl border border-[#f5c518]/16 bg-[#f5c518]/[0.05] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">

@@ -222,6 +222,7 @@ model Venue {
   reviews             VenueReview[]
   roomMessages        VenueRoomMessage[]
   roomPresences       VenueRoomPresence[]
+  contactRoutes       VenueContactRoute[]
   reportEvents        VenueReportEvent[]
   reportLeads         VenueReportLead[]
   founderEvents       FounderEvent[]
@@ -237,6 +238,35 @@ model Venue {
   @@index([claimedBy])
   @@index([discoveryScoutId])
   @@index([activeScoutId])
+}
+
+model VenueContactRoute {
+  id                 String   @id @default(cuid())
+  venueId            String
+  channel            String
+  label              String
+  purpose            String?
+  url                String
+  responseHours      String?
+  source             String
+  sourceUrl          String?
+  consentBasis       String
+  isPersonal         Boolean  @default(false)
+  isPublic           Boolean  @default(false)
+  active             Boolean  @default(true)
+  verificationStatus String   @default("PENDING")
+  verifiedAt         DateTime?
+  verifiedBy         String?
+  lastConfirmedAt    DateTime?
+  sortOrder          Int      @default(0)
+  createdBy          String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  venue              Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, active, isPublic, verificationStatus, sortOrder])
+  @@index([venueId, channel])
+  @@index([lastConfirmedAt])
 }
 
 model BaseCashVenueCredit {

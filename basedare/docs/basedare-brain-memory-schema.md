@@ -83,6 +83,90 @@ Suggested fields:
 - `createdAt`
 - `updatedAt`
 
+For public venue contact routes, additionally record:
+- `purpose`
+- `responseHours`
+- `source`
+- `sourceUrl`
+- `consentBasis`
+- `verificationStatus`
+- `verifiedAt`
+- `verifiedBy`
+- `lastConfirmedAt`
+- `isPersonal`
+- `isPublic`
+- `active`
+
+Only active, public, verified routes may appear on a venue profile. Personal contact details require explicit consent. A route must not imply that the venue is a BaseDare partner.
+
+### 2A. Venue Access Relationship
+
+Represents a scoped relationship that can open a real-world door without conflating reputation with authority.
+
+Suggested fields:
+- `id`
+- `venueId`
+- `walletAddress`
+- `relationshipType`
+  - `MAYOR`
+  - `AMBASSADOR`
+  - `HOST`
+- `scope`
+- `authorizationSource`
+- `authorizedBy`
+- `authorizedAt`
+- `expiresAt`
+- `revokedAt`
+- `revokedBy`
+- `status`
+  - `EARNED`
+  - `PENDING_APPROVAL`
+  - `AUTHORIZED`
+  - `EXPIRED`
+  - `REVOKED`
+- `evidenceRefs`
+- `createdAt`
+- `updatedAt`
+
+Rules:
+- Mayor is an earned contribution signal, not permission to speak for a venue.
+- Ambassador and Host require explicit, scoped, revocable venue authorization.
+- No role controls venue ownership, settlement wallets, or approval of its own paid proof.
+
+### 2B. Access Request and Perk Redemption
+
+Represents intent-led concierge and measurable venue value.
+
+Suggested fields:
+- `id`
+- `venueId`
+- `requesterWallet`
+- `intent`
+  - `SOCIAL_TONIGHT`
+  - `RESERVATION`
+  - `LOCAL_ADVICE`
+  - `COLLABORATION`
+  - `EVENT_CONTACT`
+  - `ROUTE_HELP`
+- `requiredAccessLevel`
+  - `EXPLORER`
+  - `PROVEN_PLAYER`
+  - `LOCAL_KEY`
+  - `VENUE_CIRCLE`
+- `globalReliabilitySnapshot`
+- `venueHistorySnapshot`
+- `venueApprovalRequired`
+- `routedToRelationshipId`
+- `status`
+- `requestedAt`
+- `respondedAt`
+- `outcome`
+- `verifiedArrivalId`
+- `perkRedemptionId`
+- `complaintId`
+
+The access level unlocks the ability to request an introduction, not entitlement to attention. Perks require a venue-funded or sponsor-funded benefit plus attributable handshake/redemption evidence.
+
 ### 3. Outreach Attempt
 
 Represents one outbound contact attempt or follow-up.
