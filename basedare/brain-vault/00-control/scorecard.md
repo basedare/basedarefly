@@ -6,7 +6,7 @@ period_end: 2026-10-08
 status: ACTIVE
 owner: codex
 created_at: 2026-05-13
-updated_at: 2026-07-11
+updated_at: 2026-07-15
 ---
 
 # Scorecard
@@ -21,7 +21,10 @@ This scorecard tracks outcomes, not activity theater.
 | Local Signals / Local Tips | BUILT | Structured discovery embryo exists |
 | Sentinel remote review queue | BUILT | Reuse for uncertain Sprint proofs |
 | Place-memory rails | BUILT_PARTIAL | `VenueMemory` / `PlaceTag` exist; Sprint write path needs explicit test |
-| Universal consumer entry | IMPLEMENTED_LOCAL | `/join` plus plain-language nav/sign-in/how-it-works copy; preview/mobile verification pending |
+| Universal consumer entry | DEPLOYED | `/join` plus plain-language nav/sign-in/how-it-works copy are live; measure ordinary-user conversion |
+| Creator Journey + Mission Pass | ALPHA_LIVE | Production migration and RLS verified; portable cross-browser continuation/recovery smoke passed; Resend/domain and real social-webview device tests remain |
+| Official venue contact routes | BUILT | Active verified routes expose purpose, source, response hours and last confirmation without implying partnership |
+| Earned venue access graph | PILOT_GATED | Recruit three claimed venues before implementing general tiers, Ambassador tooling or venue subscriptions |
 | Money-first cold-wallet claim | READY_PREVIEW | Wallet-first claim rail implemented locally; migration + end-to-end preview smoke pending |
 | Venue-less submission proximity | READY_PREVIEW | Append-only location evidence and radius policy implemented locally; preview smoke pending |
 | Sponsor-usable media/data rights | PARTIAL | Display/promotion license exists; campaign commercial-use consent needs capture |

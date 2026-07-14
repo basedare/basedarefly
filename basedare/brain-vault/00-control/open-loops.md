@@ -3,7 +3,7 @@ type: open_loops
 status: ACTIVE
 owner: codex
 created_at: 2026-05-13
-updated_at: 2026-07-13
+updated_at: 2026-07-15
 ---
 
 # Open Loops
@@ -12,7 +12,7 @@ updated_at: 2026-07-13
 
 | Item | Type | Status | Owner | Link |
 | --- | --- | --- | --- | --- |
-| Universal consumer onboarding language | product_growth | IMPLEMENTED_LOCAL | codex | [[05-playbooks/playable-map-launch]] |
+| Universal consumer onboarding language | product_growth | DEPLOYED | codex | [[05-playbooks/playable-map-launch]] |
 | Money-first cold-wallet claim | product_gate | READY_PREVIEW | product/release | [[00-control/vision]] |
 | Venue-less proximity verification | verification_gate | READY_PREVIEW | product/release | [[00-control/vision]] |
 | Sponsor-usable media/data rights | legal_product_gate | PARTIAL | product/legal | [[00-control/vision]] |
@@ -21,7 +21,8 @@ updated_at: 2026-07-13
 | Three-market discovery tournament | experiment_design | GATED | codex | [[00-control/vision]] |
 | Playable-map micro-area alpha | experiment_design | NEXT | growth/product | [[05-playbooks/playable-map-launch]] |
 | Short-form participation format test | growth_experiment | READY | growth | [[06-social/short-form-participation-loop]] |
-| Creator Journey attribution rail | product_growth_gate | ALPHA_CANON_LOCKED | product/growth | [[05-playbooks/creator-attribution-journey]] |
+| Creator Journey attribution rail | product_growth_gate | ALPHA_LIVE | product/growth | [[05-playbooks/creator-attribution-journey]] |
+| Three-venue earned access pilot | experiment_design | NEEDS_PARTNERS | human | [[05-playbooks/earned-venue-access-graph]] |
 | Autonomous treasury and proof limits | operating_policy | NEXT | codex | [[00-control/vision]] |
 | Safe asynchronous dare template library | product_policy | NEXT | codex | [[00-control/vision]] |
 | Siargao venue Spark Audit invite | outreach_draft | PARKED | human | [[02-outreach/drafts/siargao-venue-spark-audit-invite]] |
@@ -39,9 +40,10 @@ updated_at: 2026-07-13
 | Dare-to-place-memory compounding | PARTIAL | Require every accepted proof to become timestamped mapped memory with a refresh date and receipt |
 | Autonomous treasury | NEXT | Define spend caps, multisig thresholds, fraud tripwires, pause rules, and audit logs |
 | Remote verification | READY_PREVIEW | Apply migrations and smoke-test submission proximity, then measure automated versus Sentinel review cost |
-| Consumer first action | IMPLEMENTED_LOCAL | Verify `/join` and plain-language global navigation, then measure map → action-open conversion |
+| Consumer first action | DEPLOYED | Measure `/join` and plain-language navigation → map → action-open conversion |
 | Short-form participation | READY | Run 12 artifact-led TikTok/Instagram episodes across three locked series; optimize for qualified map actions, not followers |
-| Cross-browser creator attribution | ALPHA_CANON_LOCKED | Build server Journeys, lock primary touch at ActionIntent, issue passwordless Mission Passes, resume wallet actions in an ordinary browser, merge duplicates at identity binding, and keep path-attributed completion separate from creator-mission participation |
+| Cross-browser creator attribution | ALPHA_LIVE | Portable share/copy continuation passed a production database-backed smoke. Verify the Resend domain before enabling email, then test real Instagram/TikTok → Safari/Chrome continuation on iOS and Android; keep performance bonuses disabled |
+| Earned venue access | PILOT_GATED | Official verified contact routes are live. Recruit three claimed venues, authorize one Ambassador and fund one attributable perk each, then measure response, arrival, redemption, repeat and complaint rates before building tiers or subscriptions |
 | Media/data rights | PARTIAL | Extend current display/promotion license to explicit sponsor-facing commercial use where needed |
 | Design-partner receipt | NEXT | Deliver Sprint #1 at cost/free; sell Sprint #2 only after the receipt exists |
 | Freshness / City Signal | NEXT | Timestamp every answer and define re-verification cadence from Sprint #1 |

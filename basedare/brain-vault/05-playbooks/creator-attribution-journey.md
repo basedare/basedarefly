@@ -380,6 +380,15 @@ BareTags, `Dare.inviteToken`, `Dare.referrer*`, and every payout split.
 
 ## Deployment gate
 
+Release status as of 2026-07-15:
+
+- the production migration is deployed and RLS coverage is verified;
+- `MISSION_PASS_HMAC_SECRET` is configured;
+- portable share/copy continuation, exact map-state recovery, `/missions` recovery, and forget/revoke passed a production database-backed smoke;
+- email remains intentionally hidden until Resend is installed and its sending domain is verified;
+- real Instagram/TikTok → Safari/Chrome handoff still requires iOS and Android device checks;
+- performance compensation remains disabled.
+
 1. Run `prisma migrate deploy` for
    `20260714090000_add_creator_journeys_mission_passes` before deploying the code.
 2. Configure `MISSION_PASS_HMAC_SECRET` (dedicated random value, at least 32 characters),
