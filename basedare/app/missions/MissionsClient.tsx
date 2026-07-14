@@ -7,6 +7,8 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
 import LiquidBackground from '@/components/LiquidBackground';
 
+const missionPassEmailEnabled = process.env.NEXT_PUBLIC_MISSION_PASS_EMAIL_ENABLED === 'true';
+
 type SavedMission = {
   id: string;
   targetType: string;
@@ -173,36 +175,38 @@ export default function MissionsClient() {
           )}
         </section>
 
-        <section className="mt-5 rounded-[26px] border border-cyan-300/15 bg-cyan-400/[0.045] p-5 sm:p-7">
-          <div className="flex gap-3">
-            <Mail className="mt-1 h-5 w-5 shrink-0 text-cyan-300" />
-            <div>
-              <h2 className="font-black">Opened BaseDare somewhere else?</h2>
-              <p className="mt-1 text-sm leading-6 text-white/45">Enter the same email. We will send a private, passwordless recovery pass without creating a BaseDare profile.</p>
+        {missionPassEmailEnabled ? (
+          <section className="mt-5 rounded-[26px] border border-cyan-300/15 bg-cyan-400/[0.045] p-5 sm:p-7">
+            <div className="flex gap-3">
+              <Mail className="mt-1 h-5 w-5 shrink-0 text-cyan-300" />
+              <div>
+                <h2 className="font-black">Opened BaseDare somewhere else?</h2>
+                <p className="mt-1 text-sm leading-6 text-white/45">Enter the same email. We will send a private, passwordless recovery pass without creating a BaseDare profile.</p>
+              </div>
             </div>
-          </div>
-          <form onSubmit={recover} className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
-              className="min-h-12 flex-1 rounded-xl border border-white/10 bg-black/35 px-4 text-sm outline-none placeholder:text-white/25 focus:border-cyan-300/35"
-            />
-            <button
-              type="submit"
-              disabled={sending}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-5 text-xs font-black uppercase tracking-[0.14em] text-cyan-100 disabled:opacity-50"
-            >
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-              Send pass
-            </button>
-          </form>
-          {message ? <p className="mt-3 text-xs leading-5 text-emerald-200">{message}</p> : null}
-          {error ? <p className="mt-3 text-xs leading-5 text-red-300">{error}</p> : null}
-        </section>
+            <form onSubmit={recover} className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                className="min-h-12 flex-1 rounded-xl border border-white/10 bg-black/35 px-4 text-sm outline-none placeholder:text-white/25 focus:border-cyan-300/35"
+              />
+              <button
+                type="submit"
+                disabled={sending}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-5 text-xs font-black uppercase tracking-[0.14em] text-cyan-100 disabled:opacity-50"
+              >
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                Send pass
+              </button>
+            </form>
+            {message ? <p className="mt-3 text-xs leading-5 text-emerald-200">{message}</p> : null}
+            {error ? <p className="mt-3 text-xs leading-5 text-red-300">{error}</p> : null}
+          </section>
+        ) : null}
 
         <p className="mt-6 flex items-start gap-2 text-xs leading-5 text-white/30">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />

@@ -7,6 +7,8 @@ import { createPortal } from 'react-dom';
 
 import { useSocialWebview } from '@/components/mission-pass/SocialWebviewProvider';
 
+const missionPassEmailEnabled = process.env.NEXT_PUBLIC_MISSION_PASS_EMAIL_ENABLED === 'true';
+
 type MissionPassSheetProps = {
   open: boolean;
   onClose: () => void;
@@ -219,31 +221,33 @@ export function MissionPassSheet({
               </div>
             ) : null}
 
-            <form onSubmit={sendEmail} className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-3">
-              <label htmlFor="mission-pass-email" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
-                Email me the pass
-              </label>
-              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                <input
-                  id="mission-pass-email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  className="min-h-12 flex-1 rounded-xl border border-white/10 bg-[#07080d] px-4 text-sm text-white outline-none placeholder:text-white/25 focus:border-[#ffe36a]/45"
-                />
-                <button
-                  type="submit"
-                  disabled={emailSending || preparing}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#f5c518] px-4 text-xs font-black uppercase tracking-[0.14em] text-[#15120c] transition hover:bg-[#ffe36a] disabled:opacity-50"
-                >
-                  {emailSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                  Send
-                </button>
-              </div>
-            </form>
+            {missionPassEmailEnabled ? (
+              <form onSubmit={sendEmail} className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-3">
+                <label htmlFor="mission-pass-email" className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
+                  Email me the pass
+                </label>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    id="mission-pass-email"
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    className="min-h-12 flex-1 rounded-xl border border-white/10 bg-[#07080d] px-4 text-sm text-white outline-none placeholder:text-white/25 focus:border-[#ffe36a]/45"
+                  />
+                  <button
+                    type="submit"
+                    disabled={emailSending || preparing}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#f5c518] px-4 text-xs font-black uppercase tracking-[0.14em] text-[#15120c] transition hover:bg-[#ffe36a] disabled:opacity-50"
+                  >
+                    {emailSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                    Send
+                  </button>
+                </div>
+              </form>
+            ) : null}
 
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button

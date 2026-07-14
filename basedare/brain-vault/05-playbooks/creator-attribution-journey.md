@@ -383,7 +383,9 @@ BareTags, `Dare.inviteToken`, `Dare.referrer*`, and every payout split.
 1. Run `prisma migrate deploy` for
    `20260714090000_add_creator_journeys_mission_passes` before deploying the code.
 2. Configure `MISSION_PASS_HMAC_SECRET` (dedicated random value, at least 32 characters),
-   `RESEND_API_KEY`, `MISSION_PASS_FROM_EMAIL`, and the production app URL.
+   `RESEND_API_KEY`, `MISSION_PASS_FROM_EMAIL`, and the production app URL. Set
+   `NEXT_PUBLIC_MISSION_PASS_EMAIL_ENABLED=true` only after the sending domain is
+   verified; portable share/copy passes remain available while email is disabled.
 3. Verify the sending domain in Resend; test actual Instagram and TikTok webviews plus
    Safari/Chrome continuation on real iOS and Android devices.
 4. Keep performance compensation disabled. Only `PATH_VERIFIED_COMPLETION` is eligible
