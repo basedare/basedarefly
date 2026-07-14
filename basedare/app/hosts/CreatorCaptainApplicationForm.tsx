@@ -1,89 +1,74 @@
 'use client';
 
-import { useMemo, useState, type FormEvent } from 'react';
-import { CheckCircle2, Loader2, Send } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
+import { ArrowRight, CheckCircle2, Loader2, Send } from 'lucide-react';
 
 import {
-  CREATOR_CAPTAIN_AUDIENCE_LABELS,
-  CREATOR_CAPTAIN_AUDIENCE_SIZES,
   CREATOR_CAPTAIN_AVAILABILITY,
   CREATOR_CAPTAIN_AVAILABILITY_LABELS,
-  CREATOR_CAPTAIN_CATEGORIES,
-  CREATOR_CAPTAIN_CATEGORY_LABELS,
-  CREATOR_CAPTAIN_HELP_MODE_LABELS,
   CREATOR_CAPTAIN_HELP_MODES,
-  CREATOR_CAPTAIN_PLATFORM_LABELS,
-  CREATOR_CAPTAIN_PLATFORMS,
   CREATOR_CAPTAIN_PAYOUT_LABELS,
   CREATOR_CAPTAIN_PAYOUTS,
-  type CreatorCaptainAudienceSize,
   type CreatorCaptainAvailability,
-  type CreatorCaptainCategory,
   type CreatorCaptainHelpMode,
-  type CreatorCaptainPlatform,
   type CreatorCaptainPayout,
 } from '@/lib/creator-captains';
 
 type FormState = {
-  creatorName: string;
+  operatorName: string;
   email: string;
   city: string;
-  primaryHandle: string;
-  primaryPlatform: CreatorCaptainPlatform;
-  socialLinks: string;
-  categories: CreatorCaptainCategory[];
+  contactHandle: string;
   helpModes: CreatorCaptainHelpMode[];
-  audienceSize: CreatorCaptainAudienceSize;
-  contentStyle: string;
-  dareIdeas: string;
+  localExperience: string;
+  supportPlan: string;
+  localAccess: string;
   availability: CreatorCaptainAvailability;
   expectedPayout: CreatorCaptainPayout;
-  walletAddress: string;
-  venueLead: string;
-  referralSource: string;
+  authorizationConfirmed: boolean;
   scoutCode: string;
   referredCreatorHandle: string;
+  referralSource: string;
   companyWebsite: string;
 };
 
 const INITIAL_FORM: FormState = {
-  creatorName: '',
+  operatorName: '',
   email: '',
   city: '',
-  primaryHandle: '',
-  primaryPlatform: 'tiktok',
-  socialLinks: '',
-  categories: ['nightlife'],
+  contactHandle: '',
   helpModes: ['venue_scout', 'proof_runner'],
-  audienceSize: '10k_50k',
-  contentStyle: '',
-  dareIdeas: '',
+  localExperience: '',
+  supportPlan: '',
+  localAccess: '',
   availability: 'this_month',
   expectedPayout: '150_300',
-  walletAddress: '',
-  venueLead: '',
-  referralSource: '',
+  authorizationConfirmed: false,
   scoutCode: '',
   referredCreatorHandle: '',
+  referralSource: '',
   companyWebsite: '',
 };
 
-const inputClass =
-  'w-full rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/24 focus:border-cyan-200/40 focus:bg-black/38';
-const labelClass = 'mb-2 block text-[10px] font-black uppercase tracking-[0.22em] text-white/45';
+const CAPABILITY_LABELS: Record<CreatorCaptainHelpMode, string> = {
+  venue_scout: 'Place scout',
+  warm_intro: 'Local introduction',
+  qr_setup: 'Venue handshake',
+  crowd_starter: 'Small gathering',
+  proof_runner: 'Proof support',
+  recap_runner: 'Field recap',
+};
 
-type CreatorCaptainApplicationFormProps = {
+const inputClass =
+  'w-full rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/30 focus:border-cyan-200/45 focus:bg-black/38 focus-visible:ring-2 focus-visible:ring-cyan-200/35';
+const labelClass = 'mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-white/58';
+
+type LocalPartnerApplicationFormProps = {
   initialScoutCode?: string;
   initialCreatorHandle?: string;
   initialSource?: string;
 };
-
-function toggleCategory(current: CreatorCaptainCategory[], category: CreatorCaptainCategory) {
-  if (current.includes(category)) {
-    return current.length === 1 ? current : current.filter((item) => item !== category);
-  }
-  return [...current, category].slice(0, 4);
-}
 
 function toggleHelpMode(current: CreatorCaptainHelpMode[], helpMode: CreatorCaptainHelpMode) {
   if (current.includes(helpMode)) {
@@ -92,23 +77,18 @@ function toggleHelpMode(current: CreatorCaptainHelpMode[], helpMode: CreatorCapt
   return [...current, helpMode].slice(0, 4);
 }
 
-function buildInitialForm(props: CreatorCaptainApplicationFormProps): FormState {
+function buildInitialForm(props: LocalPartnerApplicationFormProps): FormState {
   return {
     ...INITIAL_FORM,
-    primaryHandle: props.initialCreatorHandle || '',
+    contactHandle: props.initialCreatorHandle || '',
     referredCreatorHandle: props.initialCreatorHandle || '',
     scoutCode: props.initialScoutCode || '',
-    referralSource: props.initialSource || (props.initialScoutCode ? 'scout-referral' : ''),
+    referralSource: props.initialSource || (props.initialScoutCode ? 'scout-referral' : 'local-partner-page'),
   };
 }
 
-export default function CreatorCaptainApplicationForm(props: CreatorCaptainApplicationFormProps) {
-  const { initialCreatorHandle = '', initialScoutCode = '', initialSource = '' } = props;
-  const initialForm = useMemo(
-    () => buildInitialForm({ initialCreatorHandle, initialScoutCode, initialSource }),
-    [initialCreatorHandle, initialScoutCode, initialSource]
-  );
-  const [form, setForm] = useState<FormState>(initialForm);
+export default function CreatorCaptainApplicationForm(props: LocalPartnerApplicationFormProps) {
+  const [form, setForm] = useState<FormState>(() => buildInitialForm(props));
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -122,14 +102,36 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
       const response = await fetch('/api/creator-captains', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          applicationKind: 'local_partner',
+          creatorName: form.operatorName,
+          email: form.email,
+          city: form.city,
+          primaryHandle: form.contactHandle,
+          primaryPlatform: 'other',
+          socialLinks: '',
+          categories: ['travel'],
+          helpModes: form.helpModes,
+          audienceSize: 'under_1k',
+          contentStyle: form.localExperience,
+          dareIdeas: form.supportPlan,
+          availability: form.availability,
+          expectedPayout: form.expectedPayout,
+          walletAddress: '',
+          venueLead: form.localAccess,
+          referralSource: form.referralSource,
+          scoutCode: form.scoutCode,
+          referredCreatorHandle: form.referredCreatorHandle,
+          authorizationConfirmed: form.authorizationConfirmed,
+          companyWebsite: form.companyWebsite,
+        }),
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Application failed');
       }
       setSubmittedId(data.data?.id || 'received');
-      setForm(initialForm);
+      setForm(buildInitialForm(props));
     } catch (submitError: unknown) {
       setError(submitError instanceof Error ? submitError.message : 'Application failed');
     } finally {
@@ -143,21 +145,30 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(52,211,153,0.18),transparent_34%),radial-gradient(circle_at_82%_100%,rgba(34,211,238,0.14),transparent_38%)]" />
         <div className="relative">
           <CheckCircle2 className="h-12 w-12 text-emerald-200" />
-          <h2 className="mt-5 text-3xl font-black tracking-tight text-white">Application routed</h2>
-          <p className="mt-3 text-sm font-semibold leading-6 text-white/58">
-            Your Host application is in the operator queue. If it fits the first creator squad,
-            BaseDare will route you toward a pilot mission or follow-up.
+          <h2 className="mt-5 text-3xl font-black tracking-tight text-white">Local partner application received</h2>
+          <p className="mt-3 text-sm font-semibold leading-6 text-white/66">
+            BaseDare will contact you when an optional route, gathering, place handshake, or local operation matches what
+            you can safely support. Ordinary paid missions remain available separately on the map.
           </p>
-          <p className="mt-4 rounded-2xl border border-white/10 bg-black/22 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-white/50">
+          <p className="mt-4 rounded-2xl border border-white/10 bg-black/22 px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-white/58">
             Application ID: {submittedId}
           </p>
-          <button
-            type="button"
-            onClick={() => setSubmittedId(null)}
-            className="mt-5 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/70 transition hover:border-cyan-300/30 hover:text-cyan-100"
-          >
-            Submit another creator
-          </button>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/map"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-300/28 bg-yellow-300/[0.1] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-yellow-100 transition hover:border-yellow-300/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-200/70"
+            >
+              Find paid missions
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setSubmittedId(null)}
+              className="min-h-11 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white/72 transition hover:border-cyan-300/30 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
+            >
+              Submit another application
+            </button>
+          </div>
         </div>
       </section>
     );
@@ -171,21 +182,18 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(245,197,24,0.13),transparent_34%),radial-gradient(circle_at_88%_24%,rgba(168,85,247,0.16),transparent_34%)]" />
       <div className="relative grid gap-5">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.26em] text-yellow-200/70">Apply</p>
-          <h2 className="mt-2 text-3xl font-black tracking-tight text-white">Founding Host</h2>
-          <p className="mt-2 text-sm font-semibold leading-6 text-white/52">
-            Tell us where you create, what you would actually do, and which venue lane you can unlock.
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-yellow-200/78">Optional operator role</p>
+          <h2 className="mt-2 text-3xl font-black tracking-tight text-white">Local partner application</h2>
+          <p className="mt-2 text-sm font-semibold leading-6 text-white/60">
+            Tell us where you can help and what you are equipped to support. Social reach is not a requirement.
           </p>
         </div>
 
         {form.scoutCode ? (
           <div className="rounded-[20px] border border-cyan-300/18 bg-cyan-300/[0.06] p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/58">
-              Scout referral attached
-            </p>
-            <p className="mt-2 text-sm font-bold leading-6 text-cyan-50/72">
-              Scout code <span className="text-cyan-100">{form.scoutCode}</span>
-              {form.referredCreatorHandle ? ` routed this host invite for ${form.referredCreatorHandle}.` : ' routed this host invite.'}
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100/66">Referral attached</p>
+            <p className="mt-2 text-sm font-bold leading-6 text-cyan-50/76">
+              Scout code <span className="text-cyan-100">{form.scoutCode}</span> is attached to this application.
             </p>
           </div>
         ) : null}
@@ -194,18 +202,20 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
           className="hidden"
           tabIndex={-1}
           autoComplete="off"
+          aria-hidden="true"
           value={form.companyWebsite}
           onChange={(event) => setForm((current) => ({ ...current, companyWebsite: event.target.value }))}
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label>
-            <span className={labelClass}>Creator name</span>
+            <span className={labelClass}>Your name</span>
             <input
               required
+              autoComplete="name"
               className={inputClass}
-              value={form.creatorName}
-              onChange={(event) => setForm((current) => ({ ...current, creatorName: event.target.value }))}
+              value={form.operatorName}
+              onChange={(event) => setForm((current) => ({ ...current, operatorName: event.target.value }))}
               placeholder="Your name"
             />
           </label>
@@ -214,6 +224,7 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
             <input
               required
               type="email"
+              autoComplete="email"
               className={inputClass}
               value={form.email}
               onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
@@ -222,99 +233,33 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
           </label>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-[1fr_0.78fr]">
+        <div className="grid gap-4 sm:grid-cols-[1fr_0.8fr]">
           <label>
-            <span className={labelClass}>Primary handle</span>
+            <span className={labelClass}>City or area</span>
             <input
               required
-              className={inputClass}
-              value={form.primaryHandle}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  primaryHandle: event.target.value,
-                  referredCreatorHandle: current.referredCreatorHandle || event.target.value,
-                }))
-              }
-              placeholder="@handle"
-            />
-          </label>
-          <label>
-            <span className={labelClass}>Main platform</span>
-            <select
-              className={inputClass}
-              value={form.primaryPlatform}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, primaryPlatform: event.target.value as CreatorCaptainPlatform }))
-              }
-            >
-              {CREATOR_CAPTAIN_PLATFORMS.map((platform) => (
-                <option key={platform} value={platform}>
-                  {CREATOR_CAPTAIN_PLATFORM_LABELS[platform]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label>
-            <span className={labelClass}>City</span>
-            <input
-              required
+              autoComplete="address-level2"
               className={inputClass}
               value={form.city}
               onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
-              placeholder="Manila, Miami, Austin..."
+              placeholder="Siargao, Manila, Miami..."
             />
           </label>
           <label>
-            <span className={labelClass}>Audience</span>
-            <select
+            <span className={labelClass}>Contact handle</span>
+            <input
               className={inputClass}
-              value={form.audienceSize}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, audienceSize: event.target.value as CreatorCaptainAudienceSize }))
-              }
-            >
-              {CREATOR_CAPTAIN_AUDIENCE_SIZES.map((size) => (
-                <option key={size} value={size}>
-                  {CREATOR_CAPTAIN_AUDIENCE_LABELS[size]}
-                </option>
-              ))}
-            </select>
+              value={form.contactHandle}
+              onChange={(event) => setForm((current) => ({ ...current, contactHandle: event.target.value }))}
+              placeholder="Optional"
+            />
           </label>
         </div>
 
-        <label>
-          <span className={labelClass}>Creator lane</span>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {CREATOR_CAPTAIN_CATEGORIES.map((category) => {
-              const active = form.categories.includes(category);
-              return (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={() =>
-                    setForm((current) => ({ ...current, categories: toggleCategory(current.categories, category) }))
-                  }
-                  className={`min-h-11 rounded-2xl border px-3 py-2 text-center text-[10px] font-black uppercase leading-tight tracking-[0.1em] transition ${
-                    active
-                      ? 'border-cyan-300/35 bg-cyan-300/[0.12] text-cyan-100'
-                      : 'border-white/10 bg-white/[0.035] text-white/42 hover:text-white'
-                  }`}
-                >
-                  {CREATOR_CAPTAIN_CATEGORY_LABELS[category]}
-                </button>
-              );
-            })}
-          </div>
-        </label>
-
-        <label>
-          <span className={labelClass}>Host help</span>
-          <p className="-mt-1 mb-3 text-xs font-semibold leading-5 text-white/42">
-            Pick the offline jobs you can safely help with. Exact live location stays private.
+        <fieldset>
+          <legend className={labelClass}>What can you support?</legend>
+          <p className="-mt-1 mb-3 text-xs font-semibold leading-5 text-white/50">
+            Choose up to four. Only select work you can perform safely and legitimately.
           </p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {CREATOR_CAPTAIN_HELP_MODES.map((helpMode) => {
@@ -323,51 +268,54 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
                 <button
                   key={helpMode}
                   type="button"
+                  aria-pressed={active}
                   onClick={() =>
                     setForm((current) => ({ ...current, helpModes: toggleHelpMode(current.helpModes, helpMode) }))
                   }
-                  className={`min-h-11 rounded-2xl border px-3 py-2 text-center text-[10px] font-black uppercase leading-tight tracking-[0.1em] transition ${
+                  className={`min-h-12 rounded-2xl border px-3 py-2 text-center text-[11px] font-black uppercase leading-tight tracking-[0.08em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-200/70 ${
                     active
                       ? 'border-yellow-300/35 bg-yellow-300/[0.12] text-yellow-100'
-                      : 'border-white/10 bg-white/[0.035] text-white/42 hover:text-white'
+                      : 'border-white/10 bg-white/[0.035] text-white/55 hover:text-white'
                   }`}
                 >
-                  {CREATOR_CAPTAIN_HELP_MODE_LABELS[helpMode]}
+                  {CAPABILITY_LABELS[helpMode]}
                 </button>
               );
             })}
           </div>
+        </fieldset>
+
+        <label>
+          <span className={labelClass}>Relevant local experience</span>
+          <textarea
+            required
+            minLength={12}
+            className={`${inputClass} min-h-[108px] resize-none leading-6`}
+            value={form.localExperience}
+            onChange={(event) => setForm((current) => ({ ...current, localExperience: event.target.value }))}
+            placeholder="Tell us what you know locally and any similar work you have handled. No follower count needed."
+          />
         </label>
 
         <label>
-          <span className={labelClass}>Other social links</span>
+          <span className={labelClass}>What could you support safely?</span>
+          <textarea
+            required
+            minLength={12}
+            className={`${inputClass} min-h-[108px] resize-none leading-6`}
+            value={form.supportPlan}
+            onChange={(event) => setForm((current) => ({ ...current, supportPlan: event.target.value }))}
+            placeholder="For example: verify a walking route, introduce a willing venue manager, or help set up an approved place handshake."
+          />
+        </label>
+
+        <label>
+          <span className={labelClass}>Useful local access</span>
           <input
             className={inputClass}
-            value={form.socialLinks}
-            onChange={(event) => setForm((current) => ({ ...current, socialLinks: event.target.value }))}
-            placeholder="TikTok, Instagram, YouTube, X..."
-          />
-        </label>
-
-        <label>
-          <span className={labelClass}>What kind of content do you actually make?</span>
-          <textarea
-            required
-            className={`${inputClass} min-h-[108px] resize-none leading-6`}
-            value={form.contentStyle}
-            onChange={(event) => setForm((current) => ({ ...current, contentStyle: event.target.value }))}
-            placeholder="Nightlife clips, street interviews, food missions, challenges, travel finds..."
-          />
-        </label>
-
-        <label>
-          <span className={labelClass}>What dares would you actually do?</span>
-          <textarea
-            required
-            className={`${inputClass} min-h-[108px] resize-none leading-6`}
-            value={form.dareIdeas}
-            onChange={(event) => setForm((current) => ({ ...current, dareIdeas: event.target.value }))}
-            placeholder="Give us 2-3 missions that would be fun, filmable, and safe to verify."
+            value={form.localAccess}
+            onChange={(event) => setForm((current) => ({ ...current, localAccess: event.target.value }))}
+            placeholder="Optional: community, venue, route, or organization you can legitimately access"
           />
         </label>
 
@@ -389,7 +337,7 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
             </select>
           </label>
           <label>
-            <span className={labelClass}>Expected mission payout</span>
+            <span className={labelClass}>Expected operator fee</span>
             <select
               className={inputClass}
               value={form.expectedPayout}
@@ -406,42 +354,24 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
           </label>
         </div>
 
-        <label>
-          <span className={labelClass}>Venue you could activate</span>
+        <label className="flex cursor-pointer gap-3 rounded-[20px] border border-white/10 bg-black/24 p-4">
           <input
-            className={inputClass}
-            value={form.venueLead}
-            onChange={(event) => setForm((current) => ({ ...current, venueLead: event.target.value }))}
-            placeholder="A bar, beach club, gym, food spot, event, or city place you know"
+            required
+            type="checkbox"
+            checked={form.authorizationConfirmed}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, authorizationConfirmed: event.target.checked }))
+            }
+            className="mt-1 h-5 w-5 shrink-0 accent-[#f5c518]"
           />
+          <span className="text-sm font-semibold leading-6 text-white/66">
+            I will only accept work I am legally authorized, permitted, and practically equipped to perform. I understand
+            that applying does not guarantee paid work.
+          </span>
         </label>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label>
-            <span className={labelClass}>Wallet address</span>
-            <input
-              className={inputClass}
-              value={form.walletAddress}
-              onChange={(event) => setForm((current) => ({ ...current, walletAddress: event.target.value }))}
-              placeholder="Optional for now"
-            />
-          </label>
-          <label>
-            <span className={labelClass}>Referral source</span>
-            <input
-              className={inputClass}
-              value={form.referralSource}
-              onChange={(event) => setForm((current) => ({ ...current, referralSource: event.target.value }))}
-              placeholder="Scout, X, friend, venue, Base..."
-            />
-          </label>
-        </div>
-
-        <input type="hidden" value={form.scoutCode} name="scoutCode" />
-        <input type="hidden" value={form.referredCreatorHandle} name="referredCreatorHandle" />
-
         {error ? (
-          <div className="rounded-2xl border border-red-300/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">
+          <div role="alert" className="rounded-2xl border border-red-300/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">
             {error}
           </div>
         ) : null}
@@ -449,10 +379,10 @@ export default function CreatorCaptainApplicationForm(props: CreatorCaptainAppli
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-[20px] border border-yellow-200/30 bg-[linear-gradient(180deg,#ffe66f_0%,#f5c518_45%,#b97800_100%)] px-5 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-black shadow-[0_18px_34px_rgba(245,197,24,0.22),inset_0_1px_0_rgba(255,255,255,0.6)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-[20px] border border-yellow-200/30 bg-[linear-gradient(180deg,#ffe66f_0%,#f5c518_45%,#b97800_100%)] px-5 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-black shadow-[0_18px_34px_rgba(245,197,24,0.22),inset_0_1px_0_rgba(255,255,255,0.6)] transition hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          Apply as host
+          Apply as local partner
         </button>
       </div>
     </form>

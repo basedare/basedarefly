@@ -27,11 +27,12 @@ import {
 import { alertCreatorCaptainApplication } from '@/lib/telegram';
 
 const CreatorCaptainApplicationSchema = z.object({
+  applicationKind: z.enum(['creator', 'local_partner']).optional().default('creator'),
   creatorName: z.string().min(2).max(120),
   email: z.string().email().max(180),
   city: z.string().min(2).max(140),
-  primaryHandle: z.string().min(2).max(140),
-  primaryPlatform: z.enum(CREATOR_CAPTAIN_PLATFORMS),
+  primaryHandle: z.string().max(140).optional().default(''),
+  primaryPlatform: z.enum(CREATOR_CAPTAIN_PLATFORMS).optional().default('other'),
   socialLinks: z.string().max(700).optional().default(''),
   categories: z.array(z.enum(CREATOR_CAPTAIN_CATEGORIES)).min(1).max(4),
   helpModes: z.array(z.enum(CREATOR_CAPTAIN_HELP_MODES)).min(1).max(4).optional().default(['venue_scout']),
@@ -45,6 +46,7 @@ const CreatorCaptainApplicationSchema = z.object({
   referralSource: z.string().max(180).optional().default(''),
   scoutCode: z.string().max(80).optional().default(''),
   referredCreatorHandle: z.string().max(140).optional().default(''),
+  authorizationConfirmed: z.boolean().optional().default(false),
   companyWebsite: z.string().max(240).optional().default(''),
 });
 
@@ -153,6 +155,12 @@ export async function POST(request: NextRequest) {
     if (input.companyWebsite) {
       return NextResponse.json({ success: true, data: { received: true } });
     }
+    if (input.applicationKind === 'local_partner' && !input.authorizationConfirmed) {
+      return NextResponse.json(
+        { success: false, error: 'Confirm that you are authorized and equipped to perform the local work you accept.' },
+        { status: 400, headers: createRateLimitHeaders(rateLimit) }
+      );
+    }
 
     const creatorName = normalizeText(input.creatorName);
     const email = input.email.toLowerCase();
@@ -186,14 +194,18 @@ export async function POST(request: NextRequest) {
       dareIdeas,
     });
 
+    const isLocalPartner = input.applicationKind === 'local_partner';
+    const applicantLabel = primaryHandle || creatorName;
     const event = await prisma.founderEvent.create({
       data: {
         eventType: CREATOR_CAPTAIN_EVENT_TYPE,
-        source: referralSource || 'creator-captain-form',
-        subjectType: 'creator_captain',
+        source: referralSource || (isLocalPartner ? 'local-partner-form' : 'creator-captain-form'),
+        subjectType: isLocalPartner ? 'local_partner' : 'creator_captain',
         subjectId: null,
         dedupeKey: `creator-captain:${Date.now()}:${randomUUID()}`,
-        title: `${primaryHandle} applied as a Founding Dare Captain`,
+        title: isLocalPartner
+          ? `${applicantLabel} applied as a BaseDare Local Partner`
+          : `${applicantLabel} applied as a Founding Dare Captain`,
         status: 'NEW',
         actor: email,
         href: '/admin/creator-captains',
@@ -214,6 +226,8 @@ export async function POST(request: NextRequest) {
           walletAddress: walletAddress || null,
           venueLead,
           referralSource,
+          applicationKind: input.applicationKind,
+          authorizationConfirmed: input.authorizationConfirmed,
           scoutAttribution: scoutCode
             ? {
                 scoutCode,
@@ -257,6 +271,8 @@ export async function POST(request: NextRequest) {
       venueLead,
       priorityScore: priority.score,
       priorityReasons: priority.reasons,
+      authorizationConfirmed: input.authorizationConfirmed,
+      applicationKind: input.applicationKind,
     }).catch((error) => {
       console.error('[CREATOR_CAPTAIN] Telegram alert failed:', error);
     });

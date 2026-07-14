@@ -866,6 +866,7 @@ ${htmlLink(appUrl(`/admin/activation-intakes?leadId=${encodeURIComponent(data.le
 
 export async function alertCreatorCaptainApplication(data: {
   applicationId: string;
+  applicationKind?: 'creator' | 'local_partner';
   creatorName: string;
   email: string;
   city: string;
@@ -879,7 +880,9 @@ export async function alertCreatorCaptainApplication(data: {
   venueLead?: string | null;
   priorityScore: number;
   priorityReasons: string[];
+  authorizationConfirmed?: boolean;
 }): Promise<boolean> {
+  const isLocalPartner = data.applicationKind === 'local_partner';
   const categoryLine = data.categories
     .map((category) => CREATOR_CAPTAIN_CATEGORY_LABELS[category as keyof typeof CREATOR_CAPTAIN_CATEGORY_LABELS] || category)
     .join(', ');
@@ -888,23 +891,30 @@ export async function alertCreatorCaptainApplication(data: {
     .join(', ');
   const details = [
     `Contact: ${escapeHtml(data.creatorName)} &lt;${escapeHtml(data.email)}&gt;`,
-    `Handle: <code>${escapeHtml(data.primaryHandle)}</code> · Platform: ${escapeHtml(CREATOR_CAPTAIN_PLATFORM_LABELS[data.primaryPlatform as keyof typeof CREATOR_CAPTAIN_PLATFORM_LABELS] || data.primaryPlatform)}`,
-    `City: ${escapeHtml(data.city)} · Audience: ${escapeHtml(CREATOR_CAPTAIN_AUDIENCE_LABELS[data.audienceSize as keyof typeof CREATOR_CAPTAIN_AUDIENCE_LABELS] || data.audienceSize)}`,
-    `Lane: ${escapeHtml(categoryLine || 'unknown')} · Available: ${escapeHtml(CREATOR_CAPTAIN_AVAILABILITY_LABELS[data.availability as keyof typeof CREATOR_CAPTAIN_AVAILABILITY_LABELS] || data.availability)}`,
-    helpModeLine ? `Captain help: ${escapeHtml(helpModeLine)}` : null,
-    `Expected payout: ${escapeHtml(CREATOR_CAPTAIN_PAYOUT_LABELS[data.expectedPayout as keyof typeof CREATOR_CAPTAIN_PAYOUT_LABELS] || data.expectedPayout)}`,
-    data.venueLead ? `Venue lead: ${escapeHtml(compactText(data.venueLead, 180))}` : null,
+    data.primaryHandle
+      ? `Handle: <code>${escapeHtml(data.primaryHandle)}</code>${isLocalPartner ? '' : ` · Platform: ${escapeHtml(CREATOR_CAPTAIN_PLATFORM_LABELS[data.primaryPlatform as keyof typeof CREATOR_CAPTAIN_PLATFORM_LABELS] || data.primaryPlatform)}`}`
+      : null,
+    isLocalPartner
+      ? `City: ${escapeHtml(data.city)} · Available: ${escapeHtml(CREATOR_CAPTAIN_AVAILABILITY_LABELS[data.availability as keyof typeof CREATOR_CAPTAIN_AVAILABILITY_LABELS] || data.availability)}`
+      : `City: ${escapeHtml(data.city)} · Audience: ${escapeHtml(CREATOR_CAPTAIN_AUDIENCE_LABELS[data.audienceSize as keyof typeof CREATOR_CAPTAIN_AUDIENCE_LABELS] || data.audienceSize)}`,
+    isLocalPartner
+      ? null
+      : `Lane: ${escapeHtml(categoryLine || 'unknown')} · Available: ${escapeHtml(CREATOR_CAPTAIN_AVAILABILITY_LABELS[data.availability as keyof typeof CREATOR_CAPTAIN_AVAILABILITY_LABELS] || data.availability)}`,
+    helpModeLine ? `${isLocalPartner ? 'Local support' : 'Captain help'}: ${escapeHtml(helpModeLine)}` : null,
+    `${isLocalPartner ? 'Expected operator fee' : 'Expected payout'}: ${escapeHtml(CREATOR_CAPTAIN_PAYOUT_LABELS[data.expectedPayout as keyof typeof CREATOR_CAPTAIN_PAYOUT_LABELS] || data.expectedPayout)}`,
+    data.venueLead ? `${isLocalPartner ? 'Local access' : 'Venue lead'}: ${escapeHtml(compactText(data.venueLead, 180))}` : null,
+    isLocalPartner ? `Authorization confirmed: ${data.authorizationConfirmed ? 'yes' : 'no'}` : null,
     `Priority: ${data.priorityScore}/100 · ${escapeHtml(data.priorityReasons.join(', '))}`,
   ].filter(Boolean);
 
   const message = `
-🎥 <b>CREATOR CAPTAIN APPLICATION</b>
+${isLocalPartner ? '🧭 <b>LOCAL PARTNER APPLICATION</b>' : '🎥 <b>CREATOR CAPTAIN APPLICATION</b>'}
 
-<b>${escapeHtml(data.primaryHandle)}</b>
+<b>${escapeHtml(data.primaryHandle || data.creatorName)}</b>
 ${details.join('\n')}
 Application: <code>${escapeHtml(data.applicationId)}</code>
 
-${htmlLink(appUrl(`/admin/creator-captains?applicationId=${encodeURIComponent(data.applicationId)}`), 'Open creator queue')} · ${htmlLink(appUrl('/hosts'), 'Public form')} · ${htmlLink(appUrl('/admin/activation-intakes'), 'Activation queue')}
+${htmlLink(appUrl(`/admin/creator-captains?applicationId=${encodeURIComponent(data.applicationId)}`), isLocalPartner ? 'Open partner queue' : 'Open creator queue')} · ${htmlLink(appUrl('/hosts'), 'Public form')} · ${htmlLink(appUrl('/admin/activation-intakes'), 'Activation queue')}
 `.trim();
 
   return sendMessage(message);
