@@ -1,11 +1,11 @@
-# Graph Report - basedare  (2026-07-15)
+# Graph Report - .  (2026-07-15)
 
 ## Corpus Check
-- 819 files · ~1,378,520 words
+- 820 files · ~1,378,772 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3057 nodes · 3896 edges · 635 communities detected
+- 3059 nodes · 3897 edges · 635 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -659,22 +659,22 @@
 10. `escapeHtml()` - 17 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `GET()` --calls--> `statusFilter()`  [EXTRACTED]
-  basedare/app/api/p/[pack]/board/route.ts → basedare/app/api/admin/local-signals/route.ts
 - `GET()` --calls--> `fetchThreadsForWallet()`  [EXTRACTED]
-  basedare/app/api/p/[pack]/board/route.ts → basedare/app/api/inbox/route.ts
+  app/api/p/[pack]/board/route.ts → app/api/inbox/route.ts
 - `GET()` --calls--> `fetchActiveMessages()`  [EXTRACTED]
-  basedare/app/api/p/[pack]/board/route.ts → basedare/app/api/inbox/route.ts
+  app/api/p/[pack]/board/route.ts → app/api/inbox/route.ts
 - `GET()` --calls--> `localSignalsFallback()`  [EXTRACTED]
-  basedare/app/api/p/[pack]/board/route.ts → basedare/app/api/local-signals/route.ts
+  app/api/p/[pack]/board/route.ts → app/api/local-signals/route.ts
 - `GET()` --calls--> `fetchSupportThreads()`  [EXTRACTED]
-  basedare/app/api/p/[pack]/board/route.ts → basedare/app/api/admin/inbox/route.ts
+  app/api/p/[pack]/board/route.ts → app/api/admin/inbox/route.ts
+- `GET()` --calls--> `fetchMessages()`  [EXTRACTED]
+  app/api/p/[pack]/board/route.ts → app/api/admin/inbox/route.ts
 
 ## Communities
 
 ### Community 0 - "Community 0"
 Cohesion: 0.01
-Nodes (161): applyReviewRateLimit(), applyReviewReportRateLimit(), asJsonRecord(), asMetadataRecord(), authorizeInboxRequest(), baseCashReceiptUrl(), buildActionResults(), buildFallbackCreators() (+153 more)
+Nodes (205): applyReviewRateLimit(), applyReviewReportRateLimit(), asJsonRecord(), asMetadataRecord(), asRecord(), authorizeInboxRequest(), awardVotersOnOverride(), baseCashReceiptUrl() (+197 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.02
@@ -685,296 +685,296 @@ Cohesion: 0.03
 Nodes (20): buildBrandPortalLaunchHref(), buildLaunchHandoffMemo(), buildLaunchHref(), buildMissionRouteMemoLines(), buildPatch(), draftNumber(), formatDate(), formatDateTime() (+12 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.07
-Nodes (44): asRecord(), awardVotersOnOverride(), buildActivationReceipt(), buildCaptainProofMissionPacket(), buildCreateHref(), buildCreatorRecommendations(), buildInviteDraft(), buildInvoiceMemo() (+36 more)
-
-### Community 4 - "Community 4"
 Cohesion: 0.05
 Nodes (17): fetchAppeals(), fetchDares(), formatAddress(), formatStatusTimestamp(), formatTimeLeft(), formatTimelineMoment(), getClaimLoopState(), getDareResponseAuthHeaders() (+9 more)
 
-### Community 5 - "Community 5"
+### Community 4 - "Community 4"
 Cohesion: 0.13
 Nodes (44): alertActivationIntake(), alertActivationIntakeFollowUpQueue(), alertActivationIntakeStatusUpdate(), alertBaseCashCreditPending(), alertBigPledge(), alertCaptainMissionProofSubmitted(), alertClaimRequestSubmission(), alertCreatorCaptainApplication() (+36 more)
 
-### Community 6 - "Community 6"
+### Community 5 - "Community 5"
 Cohesion: 0.08
 Nodes (40): buildCuratedVenueDetailFallback(), buildEmptyReviewSignal(), buildEmptyVenueReportPipeline(), buildReviewSignalFromRows(), buildVenueActivationInsight(), buildVenueCommandCenterSummary(), buildVenueExperienceModes(), buildVenueHandshakeValue() (+32 more)
 
-### Community 7 - "Community 7"
+### Community 6 - "Community 6"
 Cohesion: 0.12
 Nodes (42): answerCallbackQuery(), buildCallbackData(), callTelegramApi(), clearState(), escapeTelegramHtml(), fetchDareByShortId(), fetchLeaderboard(), fetchNearbyDares() (+34 more)
 
-### Community 8 - "Community 8"
+### Community 7 - "Community 7"
 Cohesion: 0.11
 Nodes (24): addCreatorSignal(), asRecord(), buildCreatorReliability(), buildFirstSparkMissionControlReport(), buildGuestPerks(), buildMissionRows(), buildPilotTargets(), buildRecapPreview() (+16 more)
 
-### Community 9 - "Community 9"
+### Community 8 - "Community 8"
 Cohesion: 0.15
 Nodes (26): addEnvCheck(), addressesMatch(), addRuntimeQueuesCheck(), buildActivationCheck(), buildMoneyRailsSettlementSnapshot(), buildPaidActivationSmokeSnapshot(), buildProductionSafetyReport(), buildQueueSummary() (+18 more)
 
-### Community 10 - "Community 10"
+### Community 9 - "Community 9"
 Cohesion: 0.19
 Nodes (26): appBaseUrl(), asRecord(), buildActivationCloseRoomAbsoluteHref(), buildActivationCloseRoomAdminState(), buildActivationCloseRoomFromEvent(), buildActivationCloseRoomHref(), buildActivationCloseRoomToken(), buildMailtoHref() (+18 more)
 
-### Community 11 - "Community 11"
+### Community 10 - "Community 10"
 Cohesion: 0.09
 Nodes (6): buildBidHref(), buildCreateHref(), clamp(), displayCreatorTag(), getAvatarStyle(), load()
 
-### Community 12 - "Community 12"
+### Community 11 - "Community 11"
 Cohesion: 0.18
 Nodes (21): buildCommandSignal(), buildDareLedgerEvents(), buildDurableLedgerEvent(), buildFounderScoreboardPulse(), buildFounderScoreboardReport(), dareHref(), dedupeLedgerEvents(), durableEventDetail() (+13 more)
 
-### Community 13 - "Community 13"
+### Community 12 - "Community 12"
 Cohesion: 0.14
 Nodes (17): appBaseUrl(), baseCashPilotMode(), buildBaseCashReceiptUrl(), cleanOptional(), createBaseCashReceiptCode(), createBaseCashVenueCredit(), getBaseCashCreditById(), getBaseCashCreditByIdOrCode() (+9 more)
 
-### Community 14 - "Community 14"
+### Community 13 - "Community 13"
 Cohesion: 0.1
 Nodes (4): buildSparkWindowDraft(), buildSparkWindowPreview(), clampTargetCheckIns(), handleSaveSparkWindow()
 
-### Community 15 - "Community 15"
+### Community 14 - "Community 14"
 Cohesion: 0.23
 Nodes (20): addHours(), findActiveVenueBySlug(), getActor(), getVenueRoomSnapshot(), getWhoHere(), isPublicCheckIn(), mapRoomMessage(), normalizeWallet() (+12 more)
 
-### Community 16 - "Community 16"
+### Community 15 - "Community 15"
 Cohesion: 0.21
 Nodes (20): buildActivationHandoff(), buildCurrentCommand(), buildLeadPriority(), buildNextAction(), buildOpportunity(), buildPipeline(), buildPitch(), buildRouteClusters() (+12 more)
 
-### Community 17 - "Community 17"
+### Community 16 - "Community 16"
 Cohesion: 0.17
 Nodes (16): applyJourneyCookie(), applyParticipantCookie(), assertEmailDeliveryAllowed(), bindDareIntentToWallet(), clearAttributionCookies(), cookieOptions(), ensureAttributionJourney(), forgetSavedMissions() (+8 more)
 
-### Community 18 - "Community 18"
+### Community 17 - "Community 17"
 Cohesion: 0.21
 Nodes (15): buildProofSubmitStorageKey(), getProofAuthHeaders(), getUnknownErrorMessage(), handleAppeal(), handleCameraCapture(), handleDrop(), handleFileInputChange(), handleFileSelect() (+7 more)
 
-### Community 19 - "Community 19"
+### Community 18 - "Community 18"
 Cohesion: 0.18
 Nodes (12): asRecord(), buildActivationFunnelSummary(), checkAndSendActivationIntakeFollowUpAlert(), cleanString(), countBy(), eventTitle(), findStuckActivationIntakes(), markActivationIntakeLaunchedFromCampaign() (+4 more)
 
-### Community 20 - "Community 20"
+### Community 19 - "Community 19"
 Cohesion: 0.19
 Nodes (15): adminHref(), asRecord(), buildActivationIntakePriority(), buildDailyCommandLoopReport(), buildMetric(), buildPlaceTagReviewPressure(), buildVenueLeadPriority(), command() (+7 more)
 
-### Community 21 - "Community 21"
+### Community 20 - "Community 20"
 Cohesion: 0.13
 Nodes (4): buildVenueCreatorChatHref(), formatVenueRadarLocation(), getActivationPackage(), getActivationPackageForTier()
 
-### Community 22 - "Community 22"
+### Community 21 - "Community 21"
 Cohesion: 0.26
 Nodes (10): buildCaptainInvitePath(), buildCaptainMissionActivationHref(), buildCaptainMissionPacket(), buildScoutReferralCode(), buildVenuePitchPacket(), normalizeLeadUrl(), normalizeScoutCode(), normalizeScoutHandle() (+2 more)
 
-### Community 23 - "Community 23"
+### Community 22 - "Community 22"
 Cohesion: 0.22
 Nodes (12): approveDareWithPayout(), calculatePayouts(), enforceRefereeBalanceCap(), ensureApprovedPlaceTagForVerifiedDare(), ensureCampaignWritebackForVerifiedDare(), finalizeVerifiedDare(), getCompletionWalletAddress(), getDareReceiptActor() (+4 more)
 
-### Community 24 - "Community 24"
+### Community 23 - "Community 23"
 Cohesion: 0.15
 Nodes (2): formatCompactVenueMetric(), formatMetricDelta()
 
-### Community 25 - "Community 25"
+### Community 24 - "Community 24"
 Cohesion: 0.32
 Nodes (13): buildPushPayload(), cleanEnvValue(), configureWebPush(), getPushClientConfig(), getPushDeliveryConfig(), readBase64UrlEnv(), readPushDeliveryConfig(), recordPushDelivery() (+5 more)
 
-### Community 26 - "Community 26"
+### Community 25 - "Community 25"
 Cohesion: 0.3
 Nodes (13): buildStorageKey(), buildWalletActionAuthHeaders(), buildWalletActionMessage(), buildWalletSessionMessage(), buildWalletSessionStorageKey(), clearWalletActionAuth(), clearWalletSessionAuth(), isWalletActionFresh() (+5 more)
 
-### Community 27 - "Community 27"
+### Community 26 - "Community 26"
 Cohesion: 0.17
 Nodes (2): isOpenDare(), scoreVenueDare()
 
-### Community 28 - "Community 28"
+### Community 27 - "Community 27"
 Cohesion: 0.37
 Nodes (12): asRecord(), buildDefaultFirstSparkWindow(), cleanCounter(), cleanIsoString(), cleanString(), cleanTargetCheckIns(), deriveFirstSparkWindowState(), getFirstSparkWindow() (+4 more)
 
-### Community 29 - "Community 29"
+### Community 28 - "Community 28"
 Cohesion: 0.27
 Nodes (12): buildActivationReplayComposerHref(), buildActivationReplayCreateHref(), buildRepeatActivationComposerHref(), buildRepeatActivationCreateHref(), buildVenueActivationComposerHref(), buildVenueActivationCreateHref(), buildVenueActivationIntakeHref(), buildVenueChallengeCreateHref() (+4 more)
 
-### Community 30 - "Community 30"
+### Community 29 - "Community 29"
 Cohesion: 0.32
 Nodes (11): ensureBus(), makeCtx(), makeNoise(), makeReverbIR(), noiseSweep(), note(), playFund(), playPayout() (+3 more)
 
-### Community 31 - "Community 31"
+### Community 30 - "Community 30"
 Cohesion: 0.29
 Nodes (10): authorizeAdminRequest(), createAdminSessionCookieValue(), getAdminSecret(), getAdminSessionSigningSecret(), getModeratorWallets(), getSessionWallet(), isValidAdminSecretCandidate(), signAdminSessionPayload() (+2 more)
 
-### Community 32 - "Community 32"
+### Community 31 - "Community 31"
 Cohesion: 0.28
 Nodes (10): buildReviewSummary(), compactWallet(), creatorLabel(), getSpotVaultSnapshot(), getVenueReviewEligibility(), getVenueReviewSnapshot(), isVenueReviewTableMissingError(), normalizeSpotVaultWallet() (+2 more)
 
-### Community 33 - "Community 33"
+### Community 32 - "Community 32"
 Cohesion: 0.21
 Nodes (4): ChatInbox(), formatTime(), initialTarget(), shortWallet()
 
-### Community 34 - "Community 34"
+### Community 33 - "Community 33"
 Cohesion: 0.32
 Nodes (10): dismiss(), hasSeenInstallPrompt(), install(), isStandaloneDisplayMode(), onBeforeInstallPrompt(), onInstalled(), readInstallPromptFlag(), rememberInstallPromptDismissed() (+2 more)
 
-### Community 35 - "Community 35"
+### Community 34 - "Community 34"
 Cohesion: 0.24
 Nodes (7): cleanVapidPublicKey(), getGeolocationPermissionState(), getReadyServiceWorkerRegistration(), readCurrentPushLocation(), urlBase64ToUint8Array(), useWalletPushSubscription(), withTimeout()
 
-### Community 36 - "Community 36"
+### Community 35 - "Community 35"
 Cohesion: 0.23
 Nodes (7): dedupeActivities(), normalizeActivityTitle(), parseUtcOffsetMinutes(), roundCoord3(), shapeDare(), shapeMeetup(), tonightWindow()
 
-### Community 37 - "Community 37"
+### Community 36 - "Community 36"
 Cohesion: 0.17
 Nodes (0):
 
-### Community 38 - "Community 38"
+### Community 37 - "Community 37"
 Cohesion: 0.18
 Nodes (0):
 
-### Community 39 - "Community 39"
+### Community 38 - "Community 38"
 Cohesion: 0.2
 Nodes (3): DropInvitePage(), EMPTY_ROSTER(), generateMetadata()
 
-### Community 40 - "Community 40"
+### Community 39 - "Community 39"
 Cohesion: 0.22
 Nodes (4): formatPathNumber(), handlePointerLeave(), handlePointerUp(), squirclePath()
 
-### Community 41 - "Community 41"
+### Community 40 - "Community 40"
 Cohesion: 0.44
 Nodes (10): asRecord(), buildVenuePerkUnlock(), cleanExpiresInHours(), cleanString(), getActiveVenuePerk(), getVenuePerkSnapshot(), markVenuePerkRedeemedInMetadata(), normalizeVenuePerk() (+2 more)
 
-### Community 42 - "Community 42"
+### Community 41 - "Community 41"
 Cohesion: 0.27
 Nodes (5): buildCreatorCaptainMissionPacket(), firstMatchingCategory(), firstMatchingHelpMode(), normalizeCreatorHandle(), normalizeText()
 
-### Community 43 - "Community 43"
+### Community 42 - "Community 42"
 Cohesion: 0.24
 Nodes (4): formatPathNumber(), handlePointerLeave(), handlePointerUp(), squirclePath()
 
-### Community 44 - "Community 44"
+### Community 43 - "Community 43"
 Cohesion: 0.27
 Nodes (5): clamp(), handleReveal(), loadNearbyVenues(), mapNearbyVenuesToPoints(), requestLocationLock()
 
-### Community 45 - "Community 45"
+### Community 44 - "Community 44"
 Cohesion: 0.22
 Nodes (2): getCameraErrorMessage(), startCamera()
 
-### Community 46 - "Community 46"
+### Community 45 - "Community 45"
 Cohesion: 0.42
 Nodes (9): buildComposed(), composePassport(), computeStreakDays(), detectDataSignals(), normalizeWallet(), recordExplicitMission(), resolveMissionCompletion(), sumLedgerPoints() (+1 more)
 
-### Community 47 - "Community 47"
+### Community 46 - "Community 46"
 Cohesion: 0.38
 Nodes (9): buildSummary(), getVenueReportPipelineSummary(), intentFromEvent(), latestAt(), queueVenueReportAlert(), recordVenueReportEvent(), recordVenueReportLead(), shouldAlertVenueReportEvent() (+1 more)
 
-### Community 48 - "Community 48"
+### Community 47 - "Community 47"
 Cohesion: 0.47
 Nodes (9): getCurrentStepKey(), getDareLifecycleModel(), getDareLifecycleType(), getNextActionCopy(), getStatusTone(), getStepSequence(), getTerminalLabel(), isOpenHandle() (+1 more)
 
-### Community 49 - "Community 49"
+### Community 48 - "Community 48"
 Cohesion: 0.61
 Nodes (6): addToRemoveQueue(), dispatch(), genId(), reducer(), toast(), useToast()
 
-### Community 50 - "Community 50"
+### Community 49 - "Community 49"
 Cohesion: 0.28
 Nodes (3): trackFormStart(), updateBrandMemory(), updateField()
 
-### Community 51 - "Community 51"
+### Community 50 - "Community 50"
 Cohesion: 0.22
 Nodes (0):
 
-### Community 52 - "Community 52"
+### Community 51 - "Community 51"
 Cohesion: 0.31
 Nodes (5): handleOpenFullBuilder(), handleSubmit(), openComposer(), resetComposer(), resolvePlaceAnchor()
 
-### Community 53 - "Community 53"
+### Community 52 - "Community 52"
 Cohesion: 0.33
 Nodes (4): clearFileInputs(), handleCameraCapture(), handleProofFileSelected(), handleSubmit()
 
-### Community 54 - "Community 54"
+### Community 53 - "Community 53"
 Cohesion: 0.28
 Nodes (3): calculateReputation(), calculateTier(), getNextTierInfo()
 
-### Community 55 - "Community 55"
+### Community 54 - "Community 54"
 Cohesion: 0.33
 Nodes (7): buildLeadPriority(), formatStatusTimestamp(), getActionCenter(), getClaimLoopState(), hoursSince(), isModeratorWallet(), walletsMatch()
 
-### Community 56 - "Community 56"
+### Community 55 - "Community 55"
 Cohesion: 0.42
 Nodes (8): buildFallbackActivation(), buildSparkRun(), formatCompact(), getPrimaryCta(), getSecondaryCta(), getStateCopy(), getStepState(), resolveMomentumState()
 
-### Community 57 - "Community 57"
+### Community 56 - "Community 56"
 Cohesion: 0.39
 Nodes (8): buildContext(), cleanText(), getArchetypeLabel(), getPlaceChallengeTemplates(), hydrateTemplate(), hydrateText(), inferPlaceChallengeArchetype(), normalizeParts()
 
-### Community 58 - "Community 58"
+### Community 57 - "Community 57"
 Cohesion: 0.36
 Nodes (6): extractWallet(), getSessionWallet(), getViewerWallet(), resolveHostBaretag(), resolveSessionBaretag(), resolveViewerBaretag()
 
-### Community 59 - "Community 59"
+### Community 58 - "Community 58"
 Cohesion: 0.28
 Nodes (3): evaluateProximity(), review(), targetCoordsReview()
 
-### Community 60 - "Community 60"
+### Community 59 - "Community 59"
 Cohesion: 0.33
 Nodes (6): annotatePrimaryTags(), deriveIdentityHandle(), getPrimaryScore(), getStatusWeight(), selectPrimaryTag(), toTimestamp()
 
-### Community 61 - "Community 61"
+### Community 60 - "Community 60"
 Cohesion: 0.39
 Nodes (7): founderLedgerDedupeKey(), isMissingFounderEventStorage(), normalizeJson(), recordDareFounderEventSafe(), recordFounderEvent(), recordFounderEventSafe(), safeAmount()
 
-### Community 62 - "Community 62"
+### Community 61 - "Community 61"
 Cohesion: 0.39
 Nodes (7): asRecord(), formatLocalSignalDistance(), isRecord(), normalizeStatus(), numberValue(), serializeLocalSignal(), stringValue()
 
-### Community 63 - "Community 63"
+### Community 62 - "Community 62"
 Cohesion: 0.33
 Nodes (6): calculateDistance(), decodeGeohash(), encodeGeohash(), getNeighborGeohashes(), isWithinRadius(), toRadians()
 
-### Community 64 - "Community 64"
+### Community 63 - "Community 63"
 Cohesion: 0.29
 Nodes (2): isBackgroundTone(), readStoredTone()
 
-### Community 65 - "Community 65"
+### Community 64 - "Community 64"
 Cohesion: 0.29
 Nodes (2): fetchLeaderboard(), mapAPIToLeaderboard()
 
-### Community 66 - "Community 66"
+### Community 65 - "Community 65"
 Cohesion: 0.25
 Nodes (0):
 
-### Community 67 - "Community 67"
+### Community 66 - "Community 66"
 Cohesion: 0.5
 Nodes (7): callCommandAPI(), callQueryAPI(), handleCommand(), isNaturalLanguageQuery(), main(), poll(), sendMessage()
 
-### Community 68 - "Community 68"
+### Community 67 - "Community 67"
 Cohesion: 0.43
 Nodes (7): createVenuePresenceSignal(), getActiveVenuePresence(), getBoundingBox(), getUtcDayWindow(), normalizeDuration(), readVisibility(), shortWallet()
 
-### Community 69 - "Community 69"
+### Community 68 - "Community 68"
 Cohesion: 0.36
 Nodes (6): getNormalizedExtension(), getProofTypeFromMimeType(), MediaUploadError, uploadPublicMediaFile(), validateSupportedImageFile(), validateSupportedMediaFile()
 
-### Community 70 - "Community 70"
+### Community 69 - "Community 69"
 Cohesion: 0.29
 Nodes (2): safeEqual(), verifyParticipantCookieValue()
 
-### Community 71 - "Community 71"
+### Community 70 - "Community 70"
 Cohesion: 0.25
 Nodes (0):
 
-### Community 72 - "Community 72"
+### Community 71 - "Community 71"
 Cohesion: 0.43
 Nodes (6): evaluateApproval(), evaluateClaimEligibility(), isOpenHandle(), isPendingClaimStale(), isRealCreatorHandle(), resolveApprovalHandle()
 
-### Community 73 - "Community 73"
+### Community 72 - "Community 72"
 Cohesion: 0.29
 Nodes (0):
 
-### Community 74 - "Community 74"
+### Community 73 - "Community 73"
 Cohesion: 0.29
 Nodes (1): generateMetadata()
 
-### Community 75 - "Community 75"
+### Community 74 - "Community 74"
 Cohesion: 0.33
 Nodes (2): fetchMatchesForCampaign(), toggleCampaignMatches()
+
+### Community 75 - "Community 75"
+Cohesion: 0.29
+Nodes (0):
 
 ### Community 76 - "Community 76"
 Cohesion: 0.29
@@ -985,64 +985,64 @@ Cohesion: 0.29
 Nodes (0):
 
 ### Community 78 - "Community 78"
-Cohesion: 0.29
-Nodes (0):
-
-### Community 79 - "Community 79"
 Cohesion: 0.48
 Nodes (4): copyValue(), shareProof(), shareToX(), trackShare()
 
-### Community 80 - "Community 80"
+### Community 79 - "Community 79"
 Cohesion: 0.33
 Nodes (2): getFailedStaticAssetUrl(), isRecoverableStaticAssetFailure()
 
-### Community 81 - "Community 81"
+### Community 80 - "Community 80"
 Cohesion: 0.33
 Nodes (2): getConnectorMeta(), getWalletConnectErrorMessage()
 
-### Community 82 - "Community 82"
+### Community 81 - "Community 81"
 Cohesion: 0.38
 Nodes (3): commit(), handleClick(), handlePointerUp()
 
-### Community 83 - "Community 83"
+### Community 82 - "Community 82"
 Cohesion: 0.33
 Nodes (2): markAllAsRead(), markAsRead()
 
-### Community 84 - "Community 84"
+### Community 83 - "Community 83"
 Cohesion: 0.33
 Nodes (2): clamp(), getCreatorAvatarStyle()
 
-### Community 85 - "Community 85"
+### Community 84 - "Community 84"
 Cohesion: 0.48
 Nodes (5): asMetadataRecord(), buildVenueProfile(), compactSentence(), readString(), readStringArray()
 
-### Community 86 - "Community 86"
+### Community 85 - "Community 85"
 Cohesion: 0.71
 Nodes (6): getAuthorizedWalletForRequest(), getVerifiedSessionWallet(), getVerifiedWalletSessionSignature(), getVerifiedWalletSignature(), normalizeWallet(), verifyWalletMessage()
 
-### Community 87 - "Community 87"
+### Community 86 - "Community 86"
 Cohesion: 0.52
 Nodes (6): asRecord(), cleanToken(), findCaptainMissionEventByToken(), getCaptainMissionByToken(), mapCaptainMissionEvent(), stringArrayValue()
 
-### Community 88 - "Community 88"
+### Community 87 - "Community 87"
 Cohesion: 0.52
 Nodes (6): asRecord(), deriveVenueHandle(), formatVenueHandle(), getMetadataHandle(), isBaseCashPilotVenue(), normalizeVenueHandle()
 
-### Community 89 - "Community 89"
+### Community 88 - "Community 88"
 Cohesion: 0.43
 Nodes (4): buildCampaignMatch(), candidatePlatforms(), normalizePlatforms(), splitNicheValues()
 
-### Community 90 - "Community 90"
+### Community 89 - "Community 89"
 Cohesion: 0.43
 Nodes (3): calculateSuccessfulSettlement(), getManagedFieldSprintEconomics(), roundUsd()
+
+### Community 90 - "Community 90"
+Cohesion: 0.29
+Nodes (0):
 
 ### Community 91 - "Community 91"
 Cohesion: 0.29
 Nodes (0):
 
 ### Community 92 - "Community 92"
-Cohesion: 0.29
-Nodes (0):
+Cohesion: 0.33
+Nodes (1): ChatSidebar()
 
 ### Community 93 - "Community 93"
 Cohesion: 0.33
@@ -1070,163 +1070,163 @@ Nodes (0):
 
 ### Community 99 - "Community 99"
 Cohesion: 0.33
-Nodes (1): ChatSidebar()
+Nodes (0):
 
 ### Community 100 - "Community 100"
 Cohesion: 0.33
 Nodes (0):
 
 ### Community 101 - "Community 101"
-Cohesion: 0.33
-Nodes (0):
-
-### Community 102 - "Community 102"
 Cohesion: 0.4
 Nodes (2): buildGlowVars(), parseHsl()
 
-### Community 103 - "Community 103"
+### Community 102 - "Community 102"
 Cohesion: 0.33
 Nodes (0):
 
-### Community 104 - "Community 104"
+### Community 103 - "Community 103"
 Cohesion: 0.6
 Nodes (5): clamp(), deriveCreatorTrustProfile(), getAudienceScore(), getTrustLabel(), getTrustSummary()
 
-### Community 105 - "Community 105"
+### Community 104 - "Community 104"
 Cohesion: 0.67
 Nodes (5): appendParam(), buildCreatorMissionActivationHref(), buildMissionActivationHref(), buildVenueMissionActivationHref(), normalizeCreator()
 
-### Community 106 - "Community 106"
+### Community 105 - "Community 105"
 Cohesion: 0.6
 Nodes (5): clean(), getActivationFunnelAttribution(), getActivationFunnelSessionKey(), randomId(), trackActivationFunnelEvent()
 
-### Community 107 - "Community 107"
+### Community 106 - "Community 106"
 Cohesion: 0.53
 Nodes (4): getApprovedTagSummaryMap(), getRecentApprovedPlaceTagsByVenueId(), getRecentPendingPlaceTagsByVenueIdForWallet(), isPlaceTagTableMissingError()
 
-### Community 108 - "Community 108"
+### Community 107 - "Community 107"
 Cohesion: 0.47
 Nodes (3): compact(), normalizeVenueContactRoute(), normalizeVenueContactUrl()
 
-### Community 109 - "Community 109"
+### Community 108 - "Community 108"
 Cohesion: 0.4
 Nodes (2): getBaseCashPhpPerUsdc(), quoteBaseCashVenueCredit()
 
-### Community 110 - "Community 110"
+### Community 109 - "Community 109"
 Cohesion: 0.33
 Nodes (0):
 
-### Community 111 - "Community 111"
+### Community 110 - "Community 110"
 Cohesion: 0.4
 Nodes (0):
 
-### Community 112 - "Community 112"
+### Community 111 - "Community 111"
 Cohesion: 0.6
 Nodes (3): main(), seedPilotSession(), upsertSeededPlace()
+
+### Community 112 - "Community 112"
+Cohesion: 0.4
+Nodes (0):
 
 ### Community 113 - "Community 113"
 Cohesion: 0.4
 Nodes (0):
 
 ### Community 114 - "Community 114"
-Cohesion: 0.4
-Nodes (0):
-
-### Community 115 - "Community 115"
 Cohesion: 0.5
 Nodes (2): handleKeyDown(), handleSuggestionClick()
 
-### Community 116 - "Community 116"
+### Community 115 - "Community 115"
 Cohesion: 0.5
 Nodes (2): computeStartTime(), handleSubmit()
 
-### Community 117 - "Community 117"
+### Community 116 - "Community 116"
 Cohesion: 0.4
 Nodes (0):
 
-### Community 118 - "Community 118"
+### Community 117 - "Community 117"
 Cohesion: 0.5
 Nodes (2): load(), toLiveCreators()
 
-### Community 119 - "Community 119"
+### Community 118 - "Community 118"
 Cohesion: 0.4
 Nodes (0):
 
-### Community 120 - "Community 120"
+### Community 119 - "Community 119"
 Cohesion: 0.7
 Nodes (4): cleanup(), createTestDare(), runTests(), testVerification()
 
-### Community 121 - "Community 121"
+### Community 120 - "Community 120"
 Cohesion: 0.7
 Nodes (4): getSiargaoNightGuide(), getSiargaoWeekday(), isSiargaoVenueFeaturedTonight(), venueMatches()
 
-### Community 122 - "Community 122"
+### Community 121 - "Community 121"
 Cohesion: 0.4
 Nodes (0):
 
-### Community 123 - "Community 123"
+### Community 122 - "Community 122"
 Cohesion: 0.7
 Nodes (4): getAuthorizedProofSubmitterWallet(), getVerifiedSessionWallet(), getVerifiedWalletSignature(), normalizeAuthorizedWallets()
 
-### Community 124 - "Community 124"
+### Community 123 - "Community 123"
 Cohesion: 0.8
 Nodes (4): buildActivationStoryBrief(), clean(), hasActivationBrandMemory(), normalizeActivationBrandMemory()
 
-### Community 125 - "Community 125"
+### Community 124 - "Community 124"
 Cohesion: 0.4
 Nodes (0):
 
-### Community 126 - "Community 126"
+### Community 125 - "Community 125"
 Cohesion: 0.7
 Nodes (4): isInternalApiAuthorized(), timingSafeEqualStrings(), verifyCronSecret(), verifyInternalApiKey()
 
-### Community 127 - "Community 127"
+### Community 126 - "Community 126"
 Cohesion: 0.5
 Nodes (2): getClientPerformanceHints(), shouldPreferLightweightClient()
 
-### Community 128 - "Community 128"
+### Community 127 - "Community 127"
 Cohesion: 0.5
 Nodes (2): buildCampaignTruth(), toIso()
 
-### Community 129 - "Community 129"
+### Community 128 - "Community 128"
 Cohesion: 0.4
 Nodes (0):
 
-### Community 130 - "Community 130"
+### Community 129 - "Community 129"
 Cohesion: 0.7
 Nodes (4): getErrorCode(), getErrorMessage(), getInboxApiError(), getSafeDetail()
 
-### Community 131 - "Community 131"
+### Community 130 - "Community 130"
 Cohesion: 0.7
 Nodes (4): buildXSharePayload(), formatAmount(), getBaseDareUrl(), normalizeHandle()
 
-### Community 132 - "Community 132"
+### Community 131 - "Community 131"
 Cohesion: 0.6
 Nodes (3): checkAndSendVenueLeadFollowUpAlert(), maybeSendVenueLeadActivationDigest(), notifyAssignedLeadOwners()
 
-### Community 133 - "Community 133"
+### Community 132 - "Community 132"
 Cohesion: 0.6
 Nodes (3): normalizeSignalRoomChatId(), normalizeSignalRoomUrl(), normalizeTelegramHandle()
 
-### Community 134 - "Community 134"
+### Community 133 - "Community 133"
 Cohesion: 0.6
 Nodes (3): getRiskLevel(), isContentAllowed(), moderateDare()
 
-### Community 135 - "Community 135"
+### Community 134 - "Community 134"
 Cohesion: 0.5
 Nodes (2): canAcquireSettlement(), preSettleStates()
 
-### Community 136 - "Community 136"
+### Community 135 - "Community 135"
 Cohesion: 0.7
 Nodes (4): getAuthorizedDareResponseWallet(), getVerifiedSessionWallet(), getVerifiedWalletSignature(), normalizeAuthorizedWallets()
 
-### Community 137 - "Community 137"
+### Community 136 - "Community 136"
 Cohesion: 0.6
 Nodes (3): compareSettlements(), findBountySettlementEvent(), getStartBlock()
 
-### Community 138 - "Community 138"
+### Community 137 - "Community 137"
 Cohesion: 0.7
 Nodes (4): getBaseChain(), getBaseNetworkConfig(), getBaseRpcUrl(), isBaseMainnet()
+
+### Community 138 - "Community 138"
+Cohesion: 0.4
+Nodes (0):
 
 ### Community 139 - "Community 139"
 Cohesion: 0.4
@@ -1237,15 +1237,15 @@ Cohesion: 0.4
 Nodes (0):
 
 ### Community 141 - "Community 141"
-Cohesion: 0.4
-Nodes (0):
-
-### Community 142 - "Community 142"
 Cohesion: 0.5
 Nodes (2): getBoardSections(), startOfTodayUtc()
 
-### Community 143 - "Community 143"
+### Community 142 - "Community 142"
 Cohesion: 0.4
+Nodes (0):
+
+### Community 143 - "Community 143"
+Cohesion: 0.5
 Nodes (0):
 
 ### Community 144 - "Community 144"
@@ -1253,16 +1253,16 @@ Cohesion: 0.5
 Nodes (0):
 
 ### Community 145 - "Community 145"
-Cohesion: 0.5
-Nodes (0):
-
-### Community 146 - "Community 146"
 Cohesion: 0.67
 Nodes (2): _getCurrentPage(), PagesContent()
 
-### Community 147 - "Community 147"
+### Community 146 - "Community 146"
 Cohesion: 0.67
 Nodes (2): buildAuditPlan(), clean()
+
+### Community 147 - "Community 147"
+Cohesion: 0.5
+Nodes (0):
 
 ### Community 148 - "Community 148"
 Cohesion: 0.5
@@ -1277,52 +1277,52 @@ Cohesion: 0.5
 Nodes (0):
 
 ### Community 151 - "Community 151"
-Cohesion: 0.5
-Nodes (0):
-
-### Community 152 - "Community 152"
 Cohesion: 0.67
 Nodes (2): trackStart(), updateField()
+
+### Community 152 - "Community 152"
+Cohesion: 0.5
+Nodes (0):
 
 ### Community 153 - "Community 153"
 Cohesion: 0.5
 Nodes (0):
 
 ### Community 154 - "Community 154"
-Cohesion: 0.5
-Nodes (0):
-
-### Community 155 - "Community 155"
 Cohesion: 0.67
 Nodes (2): buildInitialForm(), handleSubmit()
+
+### Community 155 - "Community 155"
+Cohesion: 0.5
+Nodes (0):
 
 ### Community 156 - "Community 156"
 Cohesion: 0.5
 Nodes (0):
 
 ### Community 157 - "Community 157"
-Cohesion: 0.5
-Nodes (0):
-
-### Community 158 - "Community 158"
 Cohesion: 0.67
 Nodes (2): PeebareConfetti(), triggerPeebareConfetti()
 
-### Community 159 - "Community 159"
+### Community 158 - "Community 158"
 Cohesion: 0.67
 Nodes (2): dismiss(), writeDismissed()
 
-### Community 160 - "Community 160"
+### Community 159 - "Community 159"
 Cohesion: 0.67
 Nodes (2): toggleShame(), triggerDamage()
 
-### Community 161 - "Community 161"
+### Community 160 - "Community 160"
 Cohesion: 0.67
 Nodes (2): seeded(), seededRange()
 
-### Community 162 - "Community 162"
+### Community 161 - "Community 161"
 Cohesion: 0.5
 Nodes (0):
+
+### Community 162 - "Community 162"
+Cohesion: 0.5
+Nodes (1): MetallicPaint()
 
 ### Community 163 - "Community 163"
 Cohesion: 0.5
@@ -1338,171 +1338,171 @@ Nodes (2): formatActivityTiming(), getActivityMeta()
 
 ### Community 166 - "Community 166"
 Cohesion: 0.5
-Nodes (1): MetallicPaint()
-
-### Community 167 - "Community 167"
-Cohesion: 0.5
 Nodes (0):
 
-### Community 168 - "Community 168"
+### Community 167 - "Community 167"
 Cohesion: 0.83
 Nodes (3): getAutopilotMove(), getToneClasses(), VenueAutopilotPanel()
 
-### Community 169 - "Community 169"
+### Community 168 - "Community 168"
 Cohesion: 0.83
 Nodes (3): formatCompact(), getReceiptState(), SparkReceiptCard()
 
-### Community 170 - "Community 170"
+### Community 169 - "Community 169"
 Cohesion: 0.67
 Nodes (2): handleSubmit(), validate()
 
-### Community 171 - "Community 171"
+### Community 170 - "Community 170"
 Cohesion: 0.67
 Nodes (2): CreatorProofPassport(), formatCompactNumber()
 
-### Community 172 - "Community 172"
+### Community 171 - "Community 171"
 Cohesion: 0.83
 Nodes (3): getRefereeAddress(), main(), normalizePrivateKey()
 
-### Community 173 - "Community 173"
+### Community 172 - "Community 172"
 Cohesion: 0.83
 Nodes (3): confirm(), main(), requireAddress()
 
-### Community 174 - "Community 174"
+### Community 173 - "Community 173"
 Cohesion: 0.83
 Nodes (3): getAuthorizedDareImageWallet(), getVerifiedSessionWallet(), getVerifiedWalletSignature()
 
-### Community 175 - "Community 175"
+### Community 174 - "Community 174"
 Cohesion: 0.83
 Nodes (3): getAppSettings(), getPublicAppSettings(), updateAppSettings()
 
-### Community 176 - "Community 176"
+### Community 175 - "Community 175"
 Cohesion: 0.83
 Nodes (3): buildTrackedVenueReportHref(), getVenueReportSessionKey(), trackVenueReportEvent()
 
-### Community 177 - "Community 177"
+### Community 176 - "Community 176"
 Cohesion: 0.83
 Nodes (3): getConfiguredRefereePrivateKey(), getRefereeAccount(), normalizePrivateKey()
 
-### Community 178 - "Community 178"
+### Community 177 - "Community 177"
 Cohesion: 0.83
 Nodes (3): createDatabaseBackedBounty(), generateInviteToken(), generateShortId()
 
-### Community 179 - "Community 179"
+### Community 178 - "Community 178"
 Cohesion: 0.83
 Nodes (3): buildCreatorHandleVariants(), normalizeCreatorHandle(), toDisplayCreatorHandle()
 
-### Community 180 - "Community 180"
+### Community 179 - "Community 179"
 Cohesion: 0.67
 Nodes (2): normalizePlaceIdentity(), selectNearbyPlaceMatch()
 
-### Community 181 - "Community 181"
+### Community 180 - "Community 180"
 Cohesion: 0.67
 Nodes (2): buildVenueGuestMission(), includesAny()
 
-### Community 182 - "Community 182"
+### Community 181 - "Community 181"
 Cohesion: 0.67
 Nodes (2): computeScoutRake(), round2()
 
-### Community 183 - "Community 183"
+### Community 182 - "Community 182"
 Cohesion: 0.83
 Nodes (3): getAuthorizedCreatorProfileWallet(), getVerifiedSessionWallet(), getVerifiedWalletSignature()
 
-### Community 184 - "Community 184"
+### Community 183 - "Community 183"
 Cohesion: 0.83
 Nodes (3): getAuthorizedBountyWallet(), getVerifiedSessionWallet(), getVerifiedWalletSignature()
 
-### Community 185 - "Community 185"
+### Community 184 - "Community 184"
 Cohesion: 0.67
 Nodes (2): hashMarkWord(), normalizeMarkWord()
 
-### Community 186 - "Community 186"
+### Community 185 - "Community 185"
 Cohesion: 0.5
 Nodes (1): BountyPlaceResolutionError
 
-### Community 187 - "Community 187"
+### Community 186 - "Community 186"
 Cohesion: 0.83
 Nodes (3): getAuthorizedCreatorReviewWallet(), getVerifiedSessionWallet(), getVerifiedWalletSignature()
 
-### Community 188 - "Community 188"
+### Community 187 - "Community 187"
 Cohesion: 0.83
 Nodes (3): accrueScoutRakeForVenuePayment(), isUniqueViolation(), writeRakeEvent()
 
-### Community 189 - "Community 189"
+### Community 188 - "Community 188"
 Cohesion: 0.5
 Nodes (0):
 
-### Community 190 - "Community 190"
+### Community 189 - "Community 189"
 Cohesion: 0.83
 Nodes (3): isHapticsSupported(), stopHaptic(), triggerHaptic()
 
-### Community 191 - "Community 191"
+### Community 190 - "Community 190"
 Cohesion: 0.67
 Nodes (2): classifySocialWebview(), isSocialWebview()
 
-### Community 192 - "Community 192"
+### Community 191 - "Community 191"
 Cohesion: 0.5
 Nodes (0):
 
-### Community 193 - "Community 193"
+### Community 192 - "Community 192"
 Cohesion: 0.67
 Nodes (2): findOverlap(), haveCrossedPaths()
 
-### Community 194 - "Community 194"
+### Community 193 - "Community 193"
 Cohesion: 0.83
 Nodes (3): findDareForModeration(), loadDare(), moderateDareDecision()
 
-### Community 195 - "Community 195"
+### Community 194 - "Community 194"
 Cohesion: 0.67
 Nodes (2): reconcileFundingDare(), toExpectedAmountUnits()
 
-### Community 196 - "Community 196"
+### Community 195 - "Community 195"
 Cohesion: 0.67
 Nodes (2): clawbackScoutRakeForPayment(), round2()
 
-### Community 197 - "Community 197"
+### Community 196 - "Community 196"
 Cohesion: 0.5
 Nodes (0):
 
-### Community 198 - "Community 198"
+### Community 197 - "Community 197"
 Cohesion: 1.0
 Nodes (2): getEndpointLimiter(), middleware()
 
-### Community 199 - "Community 199"
+### Community 198 - "Community 198"
 Cohesion: 1.0
 Nodes (2): getPrivateKey(), normalizePrivateKey()
 
-### Community 200 - "Community 200"
+### Community 199 - "Community 199"
 Cohesion: 1.0
 Nodes (2): generateShortId(), main()
 
-### Community 201 - "Community 201"
+### Community 200 - "Community 200"
 Cohesion: 0.67
 Nodes (1): PeebareLogo()
 
-### Community 202 - "Community 202"
+### Community 201 - "Community 201"
 Cohesion: 0.67
 Nodes (1): LiveBountyPot()
 
-### Community 203 - "Community 203"
+### Community 202 - "Community 202"
 Cohesion: 0.67
 Nodes (1): RotatingHero()
 
-### Community 204 - "Community 204"
+### Community 203 - "Community 203"
 Cohesion: 0.67
 Nodes (1): Peebare3D()
 
-### Community 205 - "Community 205"
+### Community 204 - "Community 204"
 Cohesion: 0.67
 Nodes (1): RankBadge()
 
-### Community 206 - "Community 206"
+### Community 205 - "Community 205"
 Cohesion: 0.67
 Nodes (1): ShareWinButton()
 
-### Community 207 - "Community 207"
+### Community 206 - "Community 206"
 Cohesion: 0.67
 Nodes (1): PeebareBountySpray()
+
+### Community 207 - "Community 207"
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 208 - "Community 208"
 Cohesion: 0.67
@@ -1518,19 +1518,19 @@ Nodes (0):
 
 ### Community 211 - "Community 211"
 Cohesion: 0.67
-Nodes (0):
+Nodes (1): Skeleton()
 
 ### Community 212 - "Community 212"
 Cohesion: 0.67
-Nodes (1): Skeleton()
+Nodes (1): Badge()
 
 ### Community 213 - "Community 213"
 Cohesion: 0.67
-Nodes (1): Badge()
+Nodes (1): Toaster()
 
 ### Community 214 - "Community 214"
 Cohesion: 0.67
-Nodes (1): Toaster()
+Nodes (0):
 
 ### Community 215 - "Community 215"
 Cohesion: 0.67
@@ -1542,19 +1542,19 @@ Nodes (0):
 
 ### Community 217 - "Community 217"
 Cohesion: 0.67
-Nodes (0):
+Nodes (1): ShareModal()
 
 ### Community 218 - "Community 218"
 Cohesion: 0.67
-Nodes (1): ShareModal()
+Nodes (1): DareTimer()
 
 ### Community 219 - "Community 219"
 Cohesion: 0.67
-Nodes (1): DareTimer()
+Nodes (1): cn()
 
 ### Community 220 - "Community 220"
 Cohesion: 0.67
-Nodes (1): cn()
+Nodes (0):
 
 ### Community 221 - "Community 221"
 Cohesion: 0.67
@@ -1562,11 +1562,11 @@ Nodes (0):
 
 ### Community 222 - "Community 222"
 Cohesion: 0.67
-Nodes (0):
+Nodes (1): firstParam()
 
 ### Community 223 - "Community 223"
 Cohesion: 0.67
-Nodes (1): firstParam()
+Nodes (0):
 
 ### Community 224 - "Community 224"
 Cohesion: 0.67
@@ -1593,12 +1593,12 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 230 - "Community 230"
-Cohesion: 0.67
-Nodes (0):
-
-### Community 231 - "Community 231"
 Cohesion: 1.0
 Nodes (2): handleConnect(), handleRetry()
+
+### Community 231 - "Community 231"
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 232 - "Community 232"
 Cohesion: 0.67
@@ -1613,12 +1613,12 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 235 - "Community 235"
-Cohesion: 0.67
-Nodes (0):
-
-### Community 236 - "Community 236"
 Cohesion: 1.0
 Nodes (2): BackgroundLayers(), shouldSkipGlobalBackground()
+
+### Community 236 - "Community 236"
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 237 - "Community 237"
 Cohesion: 0.67
@@ -1661,32 +1661,32 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 247 - "Community 247"
-Cohesion: 0.67
-Nodes (0):
-
-### Community 248 - "Community 248"
 Cohesion: 1.0
 Nodes (2): formatCompact(), SparkRunCard()
+
+### Community 248 - "Community 248"
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 249 - "Community 249"
 Cohesion: 0.67
 Nodes (0):
 
 ### Community 250 - "Community 250"
-Cohesion: 0.67
-Nodes (0):
-
-### Community 251 - "Community 251"
 Cohesion: 1.0
 Nodes (2): normalizeWallet(), useActiveWallet()
 
-### Community 252 - "Community 252"
+### Community 251 - "Community 251"
 Cohesion: 1.0
 Nodes (2): confirmAction(), main()
 
-### Community 253 - "Community 253"
+### Community 252 - "Community 252"
 Cohesion: 1.0
 Nodes (2): runTests(), testWithRealDare()
+
+### Community 253 - "Community 253"
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 254 - "Community 254"
 Cohesion: 0.67
@@ -1709,44 +1709,44 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 259 - "Community 259"
-Cohesion: 0.67
-Nodes (0):
-
-### Community 260 - "Community 260"
 Cohesion: 1.0
 Nodes (2): openDare(), pendingClaim()
 
-### Community 261 - "Community 261"
+### Community 260 - "Community 260"
 Cohesion: 1.0
 Nodes (2): escapeHtml(), sendMissionPassEmail()
 
-### Community 262 - "Community 262"
+### Community 261 - "Community 261"
 Cohesion: 1.0
 Nodes (2): isBrandMissionTag(), isPaidMission()
 
-### Community 263 - "Community 263"
+### Community 262 - "Community 262"
 Cohesion: 1.0
 Nodes (2): sleep(), submitBountyCreation()
+
+### Community 263 - "Community 263"
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 264 - "Community 264"
 Cohesion: 0.67
 Nodes (0):
 
 ### Community 265 - "Community 265"
-Cohesion: 0.67
-Nodes (0):
-
-### Community 266 - "Community 266"
 Cohesion: 1.0
 Nodes (2): authorizeBaseCashVenueRequest(), getSessionWallet()
 
-### Community 267 - "Community 267"
+### Community 266 - "Community 266"
 Cohesion: 1.0
 Nodes (2): getBountyModeSnapshot(), isBountySimulationMode()
 
-### Community 268 - "Community 268"
+### Community 267 - "Community 267"
 Cohesion: 1.0
 Nodes (2): formatCompactReviewDuration(), getPlaceTagReviewState()
+
+### Community 268 - "Community 268"
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 269 - "Community 269"
 Cohesion: 0.67
@@ -1761,27 +1761,27 @@ Cohesion: 0.67
 Nodes (0):
 
 ### Community 272 - "Community 272"
-Cohesion: 0.67
-Nodes (0):
-
-### Community 273 - "Community 273"
 Cohesion: 1.0
 Nodes (2): normalizeWalletAddress(), walletFromOAuthProfile()
 
-### Community 274 - "Community 274"
+### Community 273 - "Community 273"
 Cohesion: 1.0
 Nodes (2): resolveVenueRole(), visitorResult()
 
-### Community 275 - "Community 275"
+### Community 274 - "Community 274"
 Cohesion: 1.0
 Nodes (2): drawProofReceipt(), receiptRow()
+
+### Community 275 - "Community 275"
+Cohesion: 0.67
+Nodes (0):
 
 ### Community 276 - "Community 276"
 Cohesion: 0.67
 Nodes (0):
 
 ### Community 277 - "Community 277"
-Cohesion: 0.67
+Cohesion: 1.0
 Nodes (0):
 
 ### Community 278 - "Community 278"
@@ -3213,117 +3213,119 @@ Cohesion: 1.0
 Nodes (0):
 
 ## Knowledge Gaps
-- **Thin community `Community 278`** (2 nodes): `next.config.ts`, `ensureVercelParentAlias()`
+- **Thin community `Community 277`** (2 nodes): `ensureVercelParentAlias()`, `next.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 279`** (2 nodes): `App()`, `App.jsx`
+- **Thin community `Community 278`** (2 nodes): `App()`, `App.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 280`** (2 nodes): `index.ts`, `createPageUrl()`
+- **Thin community `Community 279`** (2 nodes): `createPageUrl()`, `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 281`** (2 nodes): `Footer.jsx`, `Footer()`
+- **Thin community `Community 280`** (2 nodes): `Footer()`, `Footer.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 282`** (2 nodes): `ConveyorBar.jsx`, `ConveyorBar()`
+- **Thin community `Community 281`** (2 nodes): `ConveyorBar()`, `ConveyorBar.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 283`** (2 nodes): `WalletConnectModal.jsx`, `WalletConnectModal()`
+- **Thin community `Community 282`** (2 nodes): `WalletConnectModal.jsx`, `WalletConnectModal()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 284`** (2 nodes): `AppLoader()`, `AppLoader.jsx`
+- **Thin community `Community 283`** (2 nodes): `AppLoader()`, `AppLoader.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 285`** (2 nodes): `MobileNav.jsx`, `MobileNav()`
+- **Thin community `Community 284`** (2 nodes): `MobileNav()`, `MobileNav.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 286`** (2 nodes): `HallOfShame.jsx`, `HallOfShame()`
+- **Thin community `Community 285`** (2 nodes): `HallOfShame()`, `HallOfShame.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 287`** (2 nodes): `calendar.jsx`, `Calendar()`
+- **Thin community `Community 286`** (2 nodes): `Calendar()`, `calendar.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 288`** (2 nodes): `carousel.jsx`, `useCarousel()`
+- **Thin community `Community 287`** (2 nodes): `useCarousel()`, `carousel.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 289`** (2 nodes): `context-menu.jsx`, `ContextMenuShortcut()`
+- **Thin community `Community 288`** (2 nodes): `ContextMenuShortcut()`, `context-menu.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 290`** (2 nodes): `dropdown-menu.jsx`, `DropdownMenuShortcut()`
+- **Thin community `Community 289`** (2 nodes): `DropdownMenuShortcut()`, `dropdown-menu.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 291`** (2 nodes): `toast.jsx`, `Toast()`
+- **Thin community `Community 290`** (2 nodes): `toast.jsx`, `Toast()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 292`** (2 nodes): `sidebar.jsx`, `useSidebar()`
+- **Thin community `Community 291`** (2 nodes): `sidebar.jsx`, `useSidebar()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 293`** (2 nodes): `sonner.jsx`, `Toaster()`
+- **Thin community `Community 292`** (2 nodes): `sonner.jsx`, `Toaster()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 294`** (2 nodes): `ProofCinemaModal.jsx`, `ProofCinemaModal()`
+- **Thin community `Community 293`** (2 nodes): `ProofCinemaModal()`, `ProofCinemaModal.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 295`** (2 nodes): `DareCard.jsx`, `DareCard()`
+- **Thin community `Community 294`** (2 nodes): `DareCard()`, `DareCard.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 296`** (2 nodes): `use-mobile.jsx`, `useIsMobile()`
+- **Thin community `Community 295`** (2 nodes): `use-mobile.jsx`, `useIsMobile()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 297`** (2 nodes): `Privacy.jsx`, `Privacy()`
+- **Thin community `Community 296`** (2 nodes): `Privacy()`, `Privacy.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 298`** (2 nodes): `Layout.jsx`, `Layout()`
+- **Thin community `Community 297`** (2 nodes): `Layout()`, `Layout.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 299`** (2 nodes): `DareChat.jsx`, `DareChatPage()`
+- **Thin community `Community 298`** (2 nodes): `DareChatPage()`, `DareChat.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 300`** (2 nodes): `AboutPage()`, `About.jsx`
+- **Thin community `Community 299`** (2 nodes): `AboutPage()`, `About.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 301`** (2 nodes): `NotFound.jsx`, `NotFoundPage()`
+- **Thin community `Community 300`** (2 nodes): `NotFoundPage()`, `NotFound.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 302`** (2 nodes): `FAQ.jsx`, `FAQPage()`
+- **Thin community `Community 301`** (2 nodes): `FAQPage()`, `FAQ.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 303`** (2 nodes): `Chat.jsx`, `ChatPage()`
+- **Thin community `Community 302`** (2 nodes): `ChatPage()`, `Chat.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 304`** (2 nodes): `Streamers.jsx`, `StreamersPage()`
+- **Thin community `Community 303`** (2 nodes): `Streamers.jsx`, `StreamersPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 305`** (2 nodes): `CreateDare.jsx`, `CreateDarePage()`
+- **Thin community `Community 304`** (2 nodes): `CreateDarePage()`, `CreateDare.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 306`** (2 nodes): `Terms.jsx`, `Terms()`
+- **Thin community `Community 305`** (2 nodes): `Terms.jsx`, `Terms()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 307`** (2 nodes): `Leaderboard.jsx`, `LeaderboardPage()`
+- **Thin community `Community 306`** (2 nodes): `LeaderboardPage()`, `Leaderboard.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 308`** (2 nodes): `MyDares.jsx`, `MyDaresPage()`
+- **Thin community `Community 307`** (2 nodes): `MyDaresPage()`, `MyDares.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 309`** (2 nodes): `Home.jsx`, `HomePage()`
+- **Thin community `Community 308`** (2 nodes): `HomePage()`, `Home.jsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 310`** (2 nodes): `robots.ts`, `robots()`
+- **Thin community `Community 309`** (2 nodes): `robots.ts`, `robots()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 311`** (2 nodes): `sitemap.ts`, `sitemap()`
+- **Thin community `Community 310`** (2 nodes): `sitemap.ts`, `sitemap()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 312`** (2 nodes): `layout.tsx`, `RootLayout()`
+- **Thin community `Community 311`** (2 nodes): `layout.tsx`, `RootLayout()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 313`** (2 nodes): `manifest.ts`, `manifest()`
+- **Thin community `Community 312`** (2 nodes): `manifest.ts`, `manifest()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 314`** (2 nodes): `not-found.tsx`, `NotFound()`
+- **Thin community `Community 313`** (2 nodes): `not-found.tsx`, `NotFound()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 315`** (2 nodes): `waitlist-client.tsx`, `WaitlistClient()`
+- **Thin community `Community 314`** (2 nodes): `waitlist-client.tsx`, `WaitlistClient()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 316`** (2 nodes): `page.tsx`, `WaitlistPage()`
+- **Thin community `Community 315`** (2 nodes): `page.tsx`, `WaitlistPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 317`** (2 nodes): `ActivationFunnelTracker()`, `ActivationFunnelTracker.tsx`
+- **Thin community `Community 316`** (2 nodes): `ActivationFunnelTracker()`, `ActivationFunnelTracker.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 318`** (2 nodes): `page.tsx`, `ContactPage()`
+- **Thin community `Community 317`** (2 nodes): `page.tsx`, `ContactPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 319`** (2 nodes): `page.tsx`, `JoinBaseDarePage()`
+- **Thin community `Community 318`** (2 nodes): `page.tsx`, `JoinBaseDarePage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 320`** (2 nodes): `layout.tsx`, `VerifyLayout()`
+- **Thin community `Community 319`** (2 nodes): `layout.tsx`, `VerifyLayout()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 321`** (2 nodes): `page.tsx`, `ClaimTagPage()`
+- **Thin community `Community 320`** (2 nodes): `page.tsx`, `ClaimTagPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 322`** (2 nodes): `PortalStats.tsx`, `PortalStats()`
+- **Thin community `Community 321`** (2 nodes): `PortalStats.tsx`, `PortalStats()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 323`** (2 nodes): `PortalGates.tsx`, `connectWallet()`
+- **Thin community `Community 322`** (2 nodes): `PortalGates.tsx`, `connectWallet()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 324`** (2 nodes): `layout.tsx`, `StreamersLayout()`
+- **Thin community `Community 323`** (2 nodes): `layout.tsx`, `StreamersLayout()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 325`** (2 nodes): `page.tsx`, `StreamersRedirect()`
+- **Thin community `Community 324`** (2 nodes): `page.tsx`, `StreamersRedirect()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 326`** (2 nodes): `page.tsx`, `HandshakeFallback()`
+- **Thin community `Community 325`** (2 nodes): `page.tsx`, `HandshakeFallback()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 327`** (2 nodes): `page.tsx`, `TermsOfChaos()`
+- **Thin community `Community 326`** (2 nodes): `page.tsx`, `TermsOfChaos()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 328`** (2 nodes): `page.backup.tsx`, `LeaderboardPage()`
+- **Thin community `Community 327`** (2 nodes): `page.backup.tsx`, `LeaderboardPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 329`** (2 nodes): `page.tsx`, `AboutPage()`
+- **Thin community `Community 328`** (2 nodes): `page.tsx`, `AboutPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 330`** (2 nodes): `BackToMapButton()`, `BackToMapButton.tsx`
+- **Thin community `Community 329`** (2 nodes): `BackToMapButton.tsx`, `BackToMapButton()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 331`** (2 nodes): `VenuePageShell.tsx`, `VenuePageShell()`
+- **Thin community `Community 330`** (2 nodes): `VenuePageShell.tsx`, `VenuePageShell()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 331`** (2 nodes): `loading.tsx`, `VenueLoading()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 332`** (2 nodes): `VenueRecapActions.tsx`, `VenueRecapActions()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 333`** (2 nodes): `createCredit()`, `BaseCashVenueCreditClient.tsx`
+- **Thin community `Community 333`** (2 nodes): `BaseCashVenueCreditClient.tsx`, `createCredit()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 334`** (2 nodes): `VenueReportTrackedLink.tsx`, `VenueReportTrackedLink()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -3353,11 +3355,11 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 347`** (2 nodes): `deployFixture()`, `base-dare-bounty-v2.test.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 348`** (2 nodes): `dare-id-integrity.test.js`, `generateOnChainDareId()`
+- **Thin community `Community 348`** (2 nodes): `generateOnChainDareId()`, `dare-id-integrity.test.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 349`** (2 nodes): `deployFixture()`, `base-dare-bounty.test.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 350`** (2 nodes): `uploadToIPFS.ts`, `uploadToIPFS()`
+- **Thin community `Community 350`** (2 nodes): `uploadToIPFS()`, `uploadToIPFS.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 351`** (2 nodes): `handler()`, `AppLoader.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -3439,7 +3441,7 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 390`** (2 nodes): `CosmicLayer.tsx`, `CosmicLayer()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 391`** (2 nodes): `BlackHoleAura.tsx`, `BlackHoleAura()`
+- **Thin community `Community 391`** (2 nodes): `BlackHoleAura()`, `BlackHoleAura.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 392`** (2 nodes): `GalaxyBackground.tsx`, `GalaxyBackground()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -3477,7 +3479,7 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 409`** (2 nodes): `TechSpecs.tsx`, `TechSpecs()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 410`** (2 nodes): `BlackHolePeeBear.tsx`, `BlackHolePeeBear()`
+- **Thin community `Community 410`** (2 nodes): `BlackHolePeeBear()`, `BlackHolePeeBear.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 411`** (2 nodes): `PeeBearConveyor.tsx`, `formatBounty()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -3489,7 +3491,7 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 415`** (2 nodes): `MobileLightningFlash.tsx`, `MobileLightningFlash()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 416`** (2 nodes): `BountyQRCode.tsx`, `BountyQRCode()`
+- **Thin community `Community 416`** (2 nodes): `BountyQRCode()`, `BountyQRCode.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 417`** (2 nodes): `stake-card.tsx`, `StakeCard()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -3503,13 +3505,13 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 422`** (2 nodes): `GalaxyBackground()`, `BackupBackground.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 423`** (2 nodes): `BlackHolePortal.tsx`, `random()`
+- **Thin community `Community 423`** (2 nodes): `random()`, `BlackHolePortal.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 424`** (2 nodes): `SpotlightCard.tsx`, `SpotlightCard()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 425`** (2 nodes): `TruthProtocol.tsx`, `syncMode()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 426`** (2 nodes): `BaseDareLogo.tsx`, `BaseDareLogo()`
+- **Thin community `Community 426`** (2 nodes): `BaseDareLogo()`, `BaseDareLogo.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 427`** (2 nodes): `PeeBearOrb.tsx`, `roarCycle()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -3589,47 +3591,47 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 465`** (2 nodes): `upgrade_test_brand.js`, `main()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 466`** (2 nodes): `deep_debug.js`, `main()`
+- **Thin community `Community 466`** (2 nodes): `main()`, `deep_debug.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 467`** (2 nodes): `test_with_trace.js`, `main()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 468`** (2 nodes): `test_stake_flow.js`, `main()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 469`** (2 nodes): `check-referee.ts`, `main()`
+- **Thin community `Community 469`** (2 nodes): `main()`, `check-referee.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 470`** (2 nodes): `execute_test_stake.js`, `main()`
+- **Thin community `Community 470`** (2 nodes): `main()`, `execute_test_stake.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 471`** (2 nodes): `deploy_protocol.js`, `main()`
+- **Thin community `Community 471`** (2 nodes): `main()`, `deploy_protocol.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 472`** (2 nodes): `debug_usdc.js`, `main()`
+- **Thin community `Community 472`** (2 nodes): `main()`, `debug_usdc.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 473`** (2 nodes): `check_bytecode.js`, `main()`
+- **Thin community `Community 473`** (2 nodes): `main()`, `check_bytecode.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 474`** (2 nodes): `deploy.js`, `main()`
+- **Thin community `Community 474`** (2 nodes): `main()`, `deploy.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 475`** (2 nodes): `debug_bounty.js`, `main()`
+- **Thin community `Community 475`** (2 nodes): `main()`, `debug_bounty.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 476`** (2 nodes): `test_fresh.js`, `main()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 477`** (2 nodes): `test_bounty_v2.js`, `main()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 478`** (2 nodes): `deploy_bounty.js`, `main()`
+- **Thin community `Community 478`** (2 nodes): `main()`, `deploy_bounty.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 479`** (2 nodes): `test_live_bounty.js`, `main()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 480`** (2 nodes): `deploy_mainnet_now.js`, `main()`
+- **Thin community `Community 480`** (2 nodes): `main()`, `deploy_mainnet_now.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 481`** (2 nodes): `test_final.js`, `main()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 482`** (2 nodes): `create_test_streamer.js`, `main()`
+- **Thin community `Community 482`** (2 nodes): `main()`, `create_test_streamer.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 483`** (2 nodes): `check_mainnet_balance.js`, `main()`
+- **Thin community `Community 483`** (2 nodes): `main()`, `check_mainnet_balance.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 484`** (2 nodes): `og-proof-card.tsx`, `titleFontSize()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 485`** (2 nodes): `sentinel-queue.ts`, `checkAndSendSentinelQueueAlert()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 486`** (2 nodes): `creator-tag-resolver.ts`, `findPrimaryCreatorTagForWallet()`
+- **Thin community `Community 486`** (2 nodes): `findPrimaryCreatorTagForWallet()`, `creator-tag-resolver.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 487`** (2 nodes): `proof-review-reason.ts`, `composeReviewReason()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -3647,23 +3649,23 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 494`** (2 nodes): `markets.ts`, `getMarket()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 495`** (2 nodes): `home-active-venues.ts`, `cloneActiveVenueFallbacks()`
+- **Thin community `Community 495`** (2 nodes): `cloneActiveVenueFallbacks()`, `home-active-venues.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 496`** (2 nodes): `creator-reviews.ts`, `isCreatorReviewTableMissingError()`
+- **Thin community `Community 496`** (2 nodes): `isCreatorReviewTableMissingError()`, `creator-reviews.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 497`** (2 nodes): `map-adventure-policy.ts`, `getAdventurePlaceSprite()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 498`** (2 nodes): `capture-proof-location.ts`, `captureProofLocation()`
+- **Thin community `Community 498`** (2 nodes): `captureProofLocation()`, `capture-proof-location.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 499`** (2 nodes): `dare-status.ts`, `getPostFundingDareStatus()`
+- **Thin community `Community 499`** (2 nodes): `getPostFundingDareStatus()`, `dare-status.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 500`** (2 nodes): `dare-id.ts`, `generateOnChainDareId()`
+- **Thin community `Community 500`** (2 nodes): `generateOnChainDareId()`, `dare-id.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 501`** (2 nodes): `wallet-connect.ts`, `getPreferredWalletConnector()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 502`** (2 nodes): `tonight.test.ts`, `act()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 503`** (2 nodes): `ipfs.ts`, `uploadProofToIpfs()`
+- **Thin community `Community 503`** (2 nodes): `uploadProofToIpfs()`, `ipfs.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 504`** (1 nodes): `prisma.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -3931,10 +3933,6 @@ Nodes (0):
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `GET()` connect `Community 0` to `Community 3`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `POST()` connect `Community 0` to `Community 3`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.01 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
@@ -3942,6 +3940,10 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.03 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
-- **Should `Community 4` be split into smaller, more focused modules?**
   _Cohesion score 0.05 - nodes in this community are weakly interconnected._
+- **Should `Community 4` be split into smaller, more focused modules?**
+  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
+- **Should `Community 5` be split into smaller, more focused modules?**
+  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
+- **Should `Community 6` be split into smaller, more focused modules?**
+  _Cohesion score 0.12 - nodes in this community are weakly interconnected._

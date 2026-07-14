@@ -2063,7 +2063,18 @@ async function getVenueDetailBySlugFromDatabase(
     return null;
   }
 
-  const [scansLastHour, uniqueVisitorRows, recentCheckIns, recentTags, pendingOwnTags, completedDares] = await Promise.all([
+  const [
+    scansLastHour,
+    uniqueVisitorRows,
+    recentCheckIns,
+    recentTags,
+    pendingOwnTags,
+    completedDares,
+    topCreatorsByVenue,
+    reviewSignalMap,
+    tagSummaryMap,
+    reportPipeline,
+  ] = await Promise.all([
     prisma.venueCheckIn.count({
       where: {
         venueId: venue.id,
@@ -2139,14 +2150,14 @@ async function getVenueDetailBySlugFromDatabase(
         },
       },
     }),
+    getTopCreatorsForVenueIds([venue.id]),
+    getVenueReviewSignalMap(
+      [venue.id],
+      new Map([[venue.id, venue._count.checkIns]])
+    ),
+    getApprovedTagSummaryMap([venue.id]),
+    getVenueReportPipelineSummary(venue.id),
   ]);
-  const topCreatorsByVenue = await getTopCreatorsForVenueIds([venue.id]);
-  const reviewSignalMap = await getVenueReviewSignalMap(
-    [venue.id],
-    new Map([[venue.id, venue._count.checkIns]])
-  );
-
-  const tagSummaryMap = await getApprovedTagSummaryMap([venue.id]);
   const tagSummary = getVenueTagSummary(tagSummaryMap, venue.id);
   const activeDares = venue.dares.map(mapActiveDare);
   const paidActivationCount = venue.dares.filter((dare) => Boolean(dare.linkedCampaign?.brand.name)).length;
@@ -2253,7 +2264,6 @@ async function getVenueDetailBySlugFromDatabase(
     topCreators,
     activationInsight,
   });
-  const reportPipeline = await getVenueReportPipelineSummary(venue.id);
   const firstSparkWindow = getFirstSparkWindow(venue.metadataJson, {
     activePerk,
     liveSession,
