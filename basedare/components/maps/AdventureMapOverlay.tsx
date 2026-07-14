@@ -8,6 +8,7 @@ import {
   Footprints,
   Loader2,
   Map,
+  MoonStar,
   Sparkles,
   Users,
   X,
@@ -16,6 +17,7 @@ import type {
   TonightActivity,
   TonightSnapshot,
 } from "@/components/maps/useTonightActivity";
+import { getSiargaoNightGuide } from "@/lib/siargao-nightlife";
 
 type AdventureMapOverlayProps = {
   enabled: boolean;
@@ -38,7 +40,7 @@ type AdventureMapOverlayProps = {
   onGuideOpenChange: (open: boolean) => void;
 };
 
-export type MapAttentionIntent = "meet" | "discover" | "now";
+export type MapAttentionIntent = "meet" | "discover" | "now" | "tonight";
 
 export type MapAttentionPlaceSuggestion = {
   slug: string;
@@ -131,12 +133,13 @@ export default function AdventureMapOverlay({
 }: AdventureMapOverlayProps) {
   const [guideLineIndex, setGuideLineIndex] = useState(0);
   const [guideSpeechOpen, setGuideSpeechOpen] = useState(false);
+  const nightGuide = getSiargaoNightGuide();
   const rankedActivities = useMemo(() => {
     const activities = [...(snapshot?.activities ?? [])];
     if (intent === "meet") {
       return activities.filter((activity) => activity.type === "meetup");
     }
-    if (intent === "now") {
+    if (intent === "now" || intent === "tonight") {
       return activities.sort((a, b) => {
         const aTime = a.startsAt ? new Date(a.startsAt).getTime() : 0;
         const bTime = b.startsAt ? new Date(b.startsAt).getTime() : 0;
@@ -161,6 +164,10 @@ export default function AdventureMapOverlay({
         ? focalActivity
           ? `${focalActivity.title} is your strongest live option.`
           : "No fake urgency. I’m looking for a useful move now."
+        : intent === "tonight"
+        ? focalActivity
+          ? `${focalActivity.title} is confirmed for tonight.`
+          : `${nightGuide.headline} is the usual ${nightGuide.weekday} rhythm.`
         : intent === "discover"
         ? "Purple stones mark reviewed clues, not random pins."
         : "Tell me what would make your next two hours better.";
@@ -174,7 +181,14 @@ export default function AdventureMapOverlay({
         : "Your first verified place will start a permanent trail.",
       ...PEEBEAR_FIELD_LINES,
     ];
-  }, [focalActivity, goingCount, intent, trailCount]);
+  }, [
+    focalActivity,
+    goingCount,
+    intent,
+    nightGuide.headline,
+    nightGuide.weekday,
+    trailCount,
+  ]);
 
   return (
     <>
@@ -290,7 +304,7 @@ export default function AdventureMapOverlay({
             <h2 className="mt-2 max-w-[18rem] pr-7 text-lg font-black leading-5 text-white sm:text-xl sm:leading-6">
               What would make your next two hours better?
             </h2>
-            <p className="mt-2 text-xs leading-5 text-white/52">
+            <p className="mt-2 hidden text-xs leading-5 text-white/52 sm:block">
               Pick a mood. I’ll narrow the map to three useful possibilities.
             </p>
             <div className="mt-3 grid gap-2">
@@ -316,6 +330,33 @@ export default function AdventureMapOverlay({
                   <ChevronRight className="h-4 w-4 text-white/28 transition group-hover:text-cyan-100" />
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!enabled) onToggle();
+                  onGuideOpenChange(false);
+                  onPanelOpenChange(true);
+                }}
+                className="group flex min-h-10 items-center gap-2 rounded-[14px] border border-[#f5c518]/18 bg-[#f5c518]/[0.055] px-2.5 py-1.5 text-left transition hover:border-[#f5c518]/34 hover:bg-[#f5c518]/[0.09]"
+              >
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border border-[#f5c518]/18 bg-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                  <MoonStar className="h-3.5 w-3.5 text-[#f8dd72]" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[11px] font-black text-white">
+                    See what’s on tonight
+                  </span>
+                  <span className="mt-0.5 line-clamp-1 block text-[9px] font-semibold text-white/44">
+                    Usual island rhythm + confirmed events
+                  </span>
+                </span>
+                {activityCount > 0 ? (
+                  <span className="shrink-0 rounded-full border border-[#f5c518]/16 bg-[#f5c518]/[0.07] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-[#f8dd72]/72">
+                    {activityCount} live
+                  </span>
+                ) : null}
+                <ChevronRight className="h-4 w-4 shrink-0 text-white/28 transition group-hover:text-[#f8dd72]" />
+              </button>
               <button
                 type="button"
                 onClick={() => onGuideOpenChange(false)}
@@ -358,6 +399,8 @@ export default function AdventureMapOverlay({
                     ? "People, without the social gamble"
                     : intent === "discover"
                     ? "A place worth having a story about"
+                    : intent === "tonight"
+                    ? "The island’s usual rhythm, checked against live events"
                     : "Something useful you can do now"}
                 </p>
               </div>
@@ -467,7 +510,7 @@ export default function AdventureMapOverlay({
             </button>
 
             <p className="text-[9px] font-black uppercase tracking-[0.24em] text-cyan-100/52">
-              {focalActivity ? "PeeBear found nearby" : "Field scan"}
+              {focalActivity ? "PeeBear found nearby" : "Tonight in Siargao"}
             </p>
             {focalActivity ? (
               <button
@@ -495,28 +538,24 @@ export default function AdventureMapOverlay({
                   {getActivityMeta(focalActivity)}
                 </span>
               </button>
-            ) : loading ? (
-              <div className="mt-3 flex items-center gap-2 rounded-[18px] border border-white/8 bg-white/[0.035] px-3.5 py-4 text-sm font-bold text-white/52">
-                <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
-                Reading the nearby field...
-              </div>
-            ) : error ? (
-              <div className="mt-3 rounded-[18px] border border-amber-200/12 bg-amber-300/[0.045] px-3.5 py-4">
-                <p className="text-sm font-black text-white">
-                  The live layer did not refresh.
-                </p>
-                <p className="mt-1.5 text-xs leading-5 text-white/48">
-                  {error} The map and saved place memory still work normally.
-                </p>
-              </div>
             ) : (
-              <div className="mt-3 rounded-[18px] border border-white/8 bg-white/[0.035] px-3.5 py-4">
-                <p className="text-sm font-black text-white">
-                  Nothing public is scheduled nearby yet.
+              <div className="mt-3 rounded-[18px] border border-[#f5c518]/16 bg-[#f5c518]/[0.045] px-3.5 py-4">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#f8dd72]/64">
+                  Usual {nightGuide.weekday} rhythm
+                </p>
+                <p className="mt-1.5 text-base font-black text-white">
+                  {nightGuide.headline}
                 </p>
                 <p className="mt-1.5 text-xs leading-5 text-white/48">
-                  Honest zero. Pick a place to start a free meetup, or seed a
-                  paid Dare.
+                  {nightGuide.lateVenue} is the late option every night, usually {nightGuide.lateHoursLabel}.
+                  Monthly raves and pop-ups appear here when they are confirmed.
+                </p>
+                <p className="mt-2 border-t border-white/8 pt-2 text-[9px] font-semibold leading-4 text-white/36">
+                  {loading
+                    ? "Checking confirmed one-offs now."
+                    : error
+                    ? `The live event scan did not refresh: ${error}`
+                    : "No confirmed one-off is published nearby yet."} {nightGuide.disclaimer}
                 </p>
               </div>
             )}

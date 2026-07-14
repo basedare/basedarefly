@@ -57,7 +57,9 @@ type TonightCenter = {
 
 const TONIGHT_REFRESH_MS = 120_000;
 const TONIGHT_FETCH_DEBOUNCE_MS = 420;
-const TONIGHT_REQUEST_TIMEOUT_MS = 8_000;
+// Leave room for a cold serverless/database wake-up. The UI renders the usual
+// local rhythm immediately, so this longer ceiling never blocks the visitor.
+const TONIGHT_REQUEST_TIMEOUT_MS = 12_000;
 
 function roundCenter(value: number) {
   return Math.round(value * 1000) / 1000;

@@ -59,6 +59,7 @@ import {
   type AdventureSpriteKind,
 } from '@/lib/map-adventure-policy';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import { isSiargaoVenueFeaturedTonight } from '@/lib/siargao-nightlife';
 import type { VenueLegend, VenueMemorySummary, VenueProfileSummary, VenueSessionSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import ProofReel from '@/components/maps/ProofReel';
@@ -3044,25 +3045,8 @@ function getMarkerVenueLabel(value?: string | null) {
   return normalized.length > 30 ? `${normalized.slice(0, 27).trim()}...` : normalized;
 }
 
-// General Luna's weekly venue-night rotation (founder field intel:
-// brain-vault/03-insights/city-signals/siargao-venue-night-map.md). Each venue
-// owns a night; the map surfaces the island's real rhythm — never synthetic
-// activity. Keyed by Date.getDay() (0 = Sunday).
-const VENUE_NIGHT_ROTATION: Record<number, RegExp> = {
-  0: /happiness/i,
-  1: /mama[\s-]?coco/i,
-  2: /barbosa|barrel/i,
-  3: /mama[\s-]?coco|barbosa/i,
-  4: /bed[\s-]?(?:and|&|n)[\s-]?brew/i,
-  5: /barbosa/i,
-  6: /harana/i,
-};
-
 function isVenueNightTonight(name?: string | null, slug?: string | null) {
-  if (typeof window === 'undefined') return false;
-  const pattern = VENUE_NIGHT_ROTATION[new Date().getDay()];
-  if (!pattern) return false;
-  return pattern.test(name ?? '') || pattern.test(slug ?? '');
+  return isSiargaoVenueFeaturedTonight({ name, slug });
 }
 
 function createPeebearMarkerHtml({
@@ -3589,7 +3573,13 @@ export default function RealWorldMap() {
     selectedPlace?.placeId && !isCuratedFallbackVenueId(selectedPlace.placeId)
       ? selectedPlace.placeId
       : undefined;
-  const showStartProofDock = !selectedPlace && !startProofDockDismissed;
+  const showStartProofDock =
+    mapAttentionIntent === 'discover' &&
+    !mapAttentionGuideOpen &&
+    !adventurePanelOpen &&
+    !selectedPlace &&
+    !selectedMeetup &&
+    !startProofDockDismissed;
 
   useEffect(() => {
     setPrivateMapSpots(loadPrivateMapSpots());
@@ -3769,8 +3759,16 @@ export default function RealWorldMap() {
     if (!adventureEnabled) {
       setAdventurePanelOpen(false);
     }
-    const savedIntent = window.localStorage.getItem(MAP_ATTENTION_INTENT_STORAGE_KEY);
-    if (savedIntent === 'meet' || savedIntent === 'discover' || savedIntent === 'now') {
+    // Intent is contextual, not a permanent profile. Preserve it only while the
+    // current browser tab is alive so a future visit begins with the question.
+    window.localStorage.removeItem(MAP_ATTENTION_INTENT_STORAGE_KEY);
+    const savedIntent = window.sessionStorage.getItem(MAP_ATTENTION_INTENT_STORAGE_KEY);
+    if (
+      savedIntent === 'meet' ||
+      savedIntent === 'discover' ||
+      savedIntent === 'now' ||
+      savedIntent === 'tonight'
+    ) {
       setMapAttentionIntent(savedIntent);
     }
   }, []);
@@ -3786,14 +3784,24 @@ export default function RealWorldMap() {
       }
       if (typeof window !== 'undefined') {
         if (intent) {
-          window.localStorage.setItem(MAP_ATTENTION_INTENT_STORAGE_KEY, intent);
+          window.sessionStorage.setItem(MAP_ATTENTION_INTENT_STORAGE_KEY, intent);
         } else {
-          window.localStorage.removeItem(MAP_ATTENTION_INTENT_STORAGE_KEY);
+          window.sessionStorage.removeItem(MAP_ATTENTION_INTENT_STORAGE_KEY);
         }
       }
       triggerHaptic('selection');
     },
     [adventureCenter.latitude, adventureCenter.longitude]
+  );
+
+  const handleAdventurePanelOpenChange = useCallback(
+    (open: boolean) => {
+      if (open && mapAttentionIntent !== 'tonight') {
+        handleMapAttentionIntentChange('tonight');
+      }
+      setAdventurePanelOpen(open);
+    },
+    [handleMapAttentionIntentChange, mapAttentionIntent]
   );
 
   const handleAdventureModeToggle = useCallback(() => {
@@ -6610,6 +6618,14 @@ export default function RealWorldMap() {
 
       if (mapAttentionIntent === 'meet') return socialScore + liveScore + proofCount;
       if (mapAttentionIntent === 'now') return liveScore + socialScore / 2 + (proofCount > 0 ? 8 : 0);
+      if (mapAttentionIntent === 'tonight') {
+        return (
+          (isVenueNightTonight(place.name, place.slug) ? 120 : 0) +
+          liveScore +
+          socialScore +
+          proofCount
+        );
+      }
       return discoveryScore + Math.min(14, proofCount * 2) + liveScore / 3;
     };
 
@@ -7423,7 +7439,14 @@ export default function RealWorldMap() {
     ? MAP_INTENT_SEARCH_CHIPS.filter((chip) => chip !== 'Proof').slice(0, 4)
     : MAP_INTENT_SEARCH_CHIPS;
   const mobileMapFilterCount = activeMapFilterIsScoped ? filteredNearbyPlaces.length : nearbyPlaces.length;
-  const showNearbyDareTray = showNearbyDarePanel && !(isMobileViewport && Boolean(selectedPlace));
+  const showNearbyDareTray =
+    (mapAttentionIntent === 'meet' ||
+      mapAttentionIntent === 'now' ||
+      mapAttentionIntent === 'tonight') &&
+    !mapAttentionGuideOpen &&
+    !adventurePanelOpen &&
+    showNearbyDarePanel &&
+    !(isMobileViewport && Boolean(selectedPlace));
   const hasSaveSpotPanel = Boolean(saveSpotDraft || selectedPrivateMapSpot);
   const showCompactSelectedPlacePanel = Boolean(
     isMobileViewport && selectedPlace && !selectedPlacePanelExpanded && !hasSaveSpotPanel
@@ -8421,12 +8444,14 @@ export default function RealWorldMap() {
       activationLabel: getVenueActivationMarkerLabel(selectedCommandCenter),
       legends: selectedVenueProfile?.legends,
       categories: selectedPlace.categories,
-      liveTonight: isVenueNightTonight(selectedPlace.name, selectedPlace.slug),
+      liveTonight:
+        mapAttentionIntent === 'tonight' &&
+        isVenueNightTonight(selectedPlace.name, selectedPlace.slug),
       mayorTag: selectedPlace.slug
         ? nearbyPlaces.find((place) => place.slug === selectedPlace.slug)?.mayor?.tag ?? null
         : null,
     });
-  }, [nearbyPlaces, selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
+  }, [mapAttentionIntent, nearbyPlaces, selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
   const currentLocationMarkerHtml = useMemo(
     () => createCurrentLocationMarkerHtml({ centered: isUserCentered, heading: userHeading }),
     [isUserCentered, userHeading]
@@ -8683,7 +8708,9 @@ export default function RealWorldMap() {
           activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
           legends: place.profile?.legends,
           categories: place.categories,
-          liveTonight: isVenueNightTonight(place.name, place.slug),
+          liveTonight:
+            mapAttentionIntent === 'tonight' &&
+            isVenueNightTonight(place.name, place.slug),
           mayorTag: place.mayor?.tag ?? null,
         }),
         className: `basedare-maplibre-marker basedare-maplibre-marker--venue${
@@ -8787,7 +8814,6 @@ export default function RealWorldMap() {
         onClick: () => {
           setTargetCenter([userLocation.latitude, userLocation.longitude]);
           setTargetZoom(Math.max(Math.round(mapZoom), 14));
-          if (adventureMode) setAdventurePanelOpen((current) => !current);
         },
       });
     }
@@ -8879,6 +8905,7 @@ export default function RealWorldMap() {
     handleAdventureActivitySelect,
     localSignals,
     mapAttentionSuggestedSlugSet,
+    mapAttentionIntent,
     saveSpotDraft,
     selectedPlace,
     selectedPlaceMarkerHtml,
@@ -10251,7 +10278,7 @@ export default function RealWorldMap() {
                       aria-expanded={adventurePanelOpen}
                       onClick={() => {
                         if (!adventureMode) handleAdventureModeToggle();
-                        setAdventurePanelOpen((current) => !current);
+                        handleAdventurePanelOpenChange(!adventurePanelOpen);
                         triggerHaptic('selection');
                       }}
                       className="map-status-pill map-status-pill--tonight"
@@ -10494,7 +10521,7 @@ export default function RealWorldMap() {
               snapshot={tonightActivity.snapshot}
               obscured={Boolean(selectedPlace || selectedMeetup)}
               onToggle={handleAdventureModeToggle}
-              onPanelOpenChange={setAdventurePanelOpen}
+              onPanelOpenChange={handleAdventurePanelOpenChange}
               onSelectActivity={handleAdventureActivitySelect}
               onExploreSecrets={handleExploreSecrets}
               intent={mapAttentionIntent}

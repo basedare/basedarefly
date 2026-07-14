@@ -3,7 +3,7 @@ type: growth_playbook
 system: basedare-brain
 status: ACTIVE
 created_at: 2026-07-11
-updated_at: 2026-07-11
+updated_at: 2026-07-14
 owner: BaseDare
 ---
 
@@ -49,6 +49,19 @@ Minimum playable inventory:
 - 12+ places with recent, understandable memory
 
 Every item must answer one of four intents: **explore, play, meet, earn**.
+
+## Intent before recommendation
+
+The “What would make your next two hours better?” question is a consent boundary,
+not decorative onboarding. Before a visitor answers, the map may show neutral
+categories, live counts, and objects, but it must not name a “best next” venue,
+push a first-proof location, or auto-open a nearby recommendation.
+
+After the visitor chooses an intent — including an explicit “See what’s on
+tonight” tap — BaseDare may rank and name relevant places or activities. Free
+roam must remain a real no-recommendation path. A pre-intent paid placement is a
+future exception only when it is explicitly funded, clearly labelled
+**Promoted**, frequency-capped, and never presented as PeeBear’s organic advice.
 
 ## First cohorts
 
