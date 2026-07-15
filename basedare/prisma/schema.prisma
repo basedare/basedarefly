@@ -227,6 +227,7 @@ model Venue {
   reportLeads         VenueReportLead[]
   founderEvents       FounderEvent[]
   baseCashCredits     BaseCashVenueCredit[]
+  fieldStationLinks   CreatorAttributionLink[] @relation("FieldStationHostVenue")
   discoveryScout      Scout?              @relation("VenueDiscoveryScout", fields: [discoveryScoutId], references: [id])
   activeScout         Scout?              @relation("VenueActiveScout", fields: [activeScoutId], references: [id])
 
@@ -1157,23 +1158,33 @@ model MeetupBlock {
 // Raw email addresses are never stored; MissionPass.emailHmac is a keyed digest.
 // ============================================================================
 model CreatorAttributionLink {
-  id                 String   @id @default(cuid())
-  slug               String   @unique
-  creatorCode        String
-  contentCode        String
-  campaignCode       String?
-  targetType         String
-  targetId           String
-  targetHref         String
-  participationOwner Boolean  @default(false)
-  active             Boolean  @default(true)
-  createdBy          String?
-  createdAt          DateTime @default(now())
+  id                    String   @id @default(cuid())
+  serialNumber          Int      @unique @default(autoincrement())
+  slug                  String   @unique
+  creatorCode           String
+  contentCode           String
+  campaignCode          String?
+  targetType            String
+  targetId              String
+  targetHref            String
+  participationOwner    Boolean  @default(false)
+  stationCode           String?
+  stationHostVenueId    String?
+  attentionMode         String?
+  fallbackAttentionMode String?
+  minimumDensity        Int?
+  densityRadiusKm       Float?
+  active                Boolean  @default(true)
+  createdBy             String?
+  createdAt             DateTime @default(now())
 
-  touches AttributionTouch[]
+  touches          AttributionTouch[]
+  stationHostVenue Venue?             @relation("FieldStationHostVenue", fields: [stationHostVenueId], references: [id], onDelete: SetNull)
 
   @@index([creatorCode, createdAt])
   @@index([targetType, targetId, active])
+  @@index([stationCode, active, createdAt])
+  @@index([stationHostVenueId, active])
 }
 
 model AttributionJourney {
@@ -1197,50 +1208,61 @@ model AttributionJourney {
 }
 
 model AttributionTouch {
-  id           String   @id @default(cuid())
-  journeyId    String
-  linkId       String?
-  creatorCode  String?
-  contentCode  String?
-  campaignCode String?
-  targetType   String
-  targetId     String
-  targetHref   String
-  referrer     String?
-  occurredAt   DateTime @default(now())
+  id                     String   @id @default(cuid())
+  journeyId              String
+  linkId                  String?
+  creatorCode             String?
+  contentCode             String?
+  campaignCode            String?
+  targetType              String
+  targetId                String
+  targetHref              String
+  referrer                String?
+  stationCode             String?
+  stationHostVenueId      String?
+  requestedAttentionMode  String?
+  attentionMode           String?
+  densityCount            Int?
+  fallbackApplied         Boolean?
+  occurredAt              DateTime @default(now())
 
   journey           AttributionJourney      @relation(fields: [journeyId], references: [id], onDelete: Cascade)
   link              CreatorAttributionLink? @relation(fields: [linkId], references: [id], onDelete: SetNull)
   primaryForIntents ActionIntent[]          @relation("IntentPrimaryTouch")
+  stationForIntents ActionIntent[]          @relation("IntentStationTouch")
   events            AttributionEvent[]
 
   @@index([journeyId, occurredAt])
   @@index([linkId, occurredAt])
   @@index([creatorCode, occurredAt])
+  @@index([stationCode, occurredAt])
   @@index([targetType, targetId, occurredAt])
 }
 
 model ActionIntent {
-  id                String    @id @default(cuid())
-  journeyId         String
-  primaryTouchId    String?
-  targetType        String
-  targetId          String
-  targetHref        String
-  titleSnapshot     String?
-  state             String    @default("LOCKED")
-  participantKey    String?
-  walletAddress     String?
-  canonicalIntentId String?
-  lockedAt          DateTime  @default(now())
-  expiresAt         DateTime
-  boundAt           DateTime?
-  completedAt       DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  journeyId          String
+  primaryTouchId     String?
+  stationTouchId     String?
+  targetType         String
+  targetId           String
+  targetHref         String
+  destinationVenueId String?
+  titleSnapshot      String?
+  state              String    @default("LOCKED")
+  participantKey     String?
+  walletAddress      String?
+  canonicalIntentId  String?
+  lockedAt           DateTime  @default(now())
+  expiresAt          DateTime
+  boundAt            DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   journey         AttributionJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
   primaryTouch    AttributionTouch?  @relation("IntentPrimaryTouch", fields: [primaryTouchId], references: [id], onDelete: SetNull)
+  stationTouch    AttributionTouch?  @relation("IntentStationTouch", fields: [stationTouchId], references: [id], onDelete: SetNull)
   canonicalIntent ActionIntent?      @relation("IntentMerge", fields: [canonicalIntentId], references: [id], onDelete: SetNull)
   mergedIntents   ActionIntent[]     @relation("IntentMerge")
   missionPasses   MissionPass[]
@@ -1250,6 +1272,8 @@ model ActionIntent {
   @@index([participantKey, state, updatedAt])
   @@index([walletAddress, targetType, targetId])
   @@index([targetType, targetId, state])
+  @@index([stationTouchId])
+  @@index([destinationVenueId, state])
   @@index([canonicalIntentId])
 }
 
@@ -1282,22 +1306,26 @@ model MissionPass {
 // Append-only conversion ledger. Rows are never rewritten; dedupeKey prevents
 // retries/races from creating a second authoritative event.
 model AttributionEvent {
-  id             String   @id @default(cuid())
-  eventType      String
-  dedupeKey      String   @unique
-  journeyId      String?
-  touchId        String?
-  actionIntentId String?
-  missionPassId  String?
-  creatorCode    String?
-  contentCode    String?
-  campaignCode   String?
-  participantKey String?
-  targetType     String?
-  targetId       String?
-  metadataJson   Json?
-  occurredAt     DateTime @default(now())
-  createdAt      DateTime @default(now())
+  id                 String   @id @default(cuid())
+  eventType          String
+  dedupeKey          String   @unique
+  journeyId          String?
+  touchId            String?
+  actionIntentId     String?
+  missionPassId      String?
+  creatorCode        String?
+  contentCode        String?
+  campaignCode       String?
+  stationCode        String?
+  stationHostVenueId String?
+  attentionMode      String?
+  destinationVenueId String?
+  participantKey     String?
+  targetType         String?
+  targetId           String?
+  metadataJson       Json?
+  occurredAt         DateTime @default(now())
+  createdAt          DateTime @default(now())
 
   journey      AttributionJourney? @relation(fields: [journeyId], references: [id], onDelete: SetNull)
   touch        AttributionTouch?   @relation(fields: [touchId], references: [id], onDelete: SetNull)
@@ -1306,6 +1334,9 @@ model AttributionEvent {
 
   @@index([eventType, occurredAt])
   @@index([creatorCode, occurredAt])
+  @@index([stationCode, occurredAt])
+  @@index([stationHostVenueId, occurredAt])
+  @@index([destinationVenueId, occurredAt])
   @@index([targetType, targetId, occurredAt])
   @@index([participantKey, occurredAt])
 }

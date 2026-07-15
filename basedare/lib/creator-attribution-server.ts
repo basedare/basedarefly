@@ -29,6 +29,7 @@ import {
 } from '@/lib/mission-pass-crypto';
 import { prisma } from '@/lib/prisma';
 import { classifySocialWebview } from '@/lib/social-webview';
+import { resolveDestinationVenueId } from '@/lib/field-station-server';
 
 const ACTIVE_INTENT_STATES = ['LOCKED', 'BOUND'] as const;
 
@@ -136,6 +137,13 @@ export async function recordAttributionRedirect(
     targetType: string;
     targetId: string;
     targetHref: string;
+    stationCode?: string | null;
+    stationHostVenueId?: string | null;
+    requestedAttentionMode?: string | null;
+    attentionMode?: string | null;
+    densityCount?: number | null;
+    fallbackApplied?: boolean;
+    fallbackReason?: string | null;
   }
 ) {
   const resolved = await ensureAttributionJourney(request);
@@ -151,23 +159,55 @@ export async function recordAttributionRedirect(
         targetId: link.targetId,
         targetHref: link.targetHref,
         referrer: request.headers.get('referer')?.slice(0, 1024) ?? null,
+        stationCode: link.stationCode ?? null,
+        stationHostVenueId: link.stationHostVenueId ?? null,
+        requestedAttentionMode: link.requestedAttentionMode ?? null,
+        attentionMode: link.attentionMode ?? null,
+        densityCount: link.densityCount ?? null,
+        fallbackApplied: link.fallbackApplied ?? null,
       },
     });
+    const sharedEvent = {
+      journeyId: resolved.journey.id,
+      touchId: touch.id,
+      creatorCode: link.creatorCode,
+      contentCode: link.contentCode,
+      campaignCode: link.campaignCode,
+      stationCode: link.stationCode ?? null,
+      stationHostVenueId: link.stationHostVenueId ?? null,
+      attentionMode: link.attentionMode ?? null,
+      participantKey: resolved.journey.participantKey,
+      targetType: link.targetType,
+      targetId: link.targetId,
+    };
     await tx.attributionEvent.create({
       data: {
         eventType: 'TOUCH_RECORDED',
         dedupeKey: `touch:${touch.id}`,
-        journeyId: resolved.journey.id,
-        touchId: touch.id,
-        creatorCode: link.creatorCode,
-        contentCode: link.contentCode,
-        campaignCode: link.campaignCode,
-        participantKey: resolved.journey.participantKey,
-        targetType: link.targetType,
-        targetId: link.targetId,
-        metadataJson: { referrer: touch.referrer },
+        ...sharedEvent,
+        metadataJson: {
+          referrer: touch.referrer,
+          densityCount: link.densityCount ?? null,
+          fallbackApplied: link.fallbackApplied ?? false,
+          fallbackReason: link.fallbackReason ?? null,
+        },
       },
     });
+    if (link.stationCode) {
+      await tx.attributionEvent.create({
+        data: {
+          eventType: 'STATION_SCAN',
+          dedupeKey: `station-scan:${touch.id}`,
+          ...sharedEvent,
+          metadataJson: {
+            requestedAttentionMode: link.requestedAttentionMode ?? null,
+            densityCount: link.densityCount ?? null,
+            fallbackApplied: link.fallbackApplied ?? false,
+            fallbackReason: link.fallbackReason ?? null,
+          },
+        },
+      });
+    }
   });
   return resolved;
 }
@@ -207,7 +247,7 @@ export async function lockActionIntent(request: NextRequest, input: AttributionT
           targetId: target.targetId,
         },
       },
-      include: { primaryTouch: true },
+      include: { primaryTouch: true, stationTouch: true },
     });
 
     if (existing && ['LOCKED', 'BOUND', 'COMPLETED'].includes(existing.state) && isUnexpired(existing.expiresAt, now)) {
@@ -222,12 +262,23 @@ export async function lockActionIntent(request: NextRequest, input: AttributionT
       },
       orderBy: { occurredAt: 'desc' },
     });
+    const stationTouch = await tx.attributionTouch.findFirst({
+      where: {
+        journeyId: resolved.journey.id,
+        stationCode: { not: null },
+        occurredAt: { lte: now },
+      },
+      orderBy: { occurredAt: 'desc' },
+    });
+    const destinationVenueId = await resolveDestinationVenueId(tx, target);
     const expiresAt = new Date(now.getTime() + INTENT_TTL_MS);
     const intent = existing
       ? await tx.actionIntent.update({
           where: { id: existing.id },
           data: {
             primaryTouchId: primaryTouch?.id ?? existing.primaryTouchId,
+            stationTouchId: stationTouch?.id ?? existing.stationTouchId,
+            destinationVenueId: destinationVenueId ?? existing.destinationVenueId,
             targetHref: target.targetHref,
             titleSnapshot: target.titleSnapshot ?? existing.titleSnapshot,
             state: 'LOCKED',
@@ -237,17 +288,19 @@ export async function lockActionIntent(request: NextRequest, input: AttributionT
             boundAt: null,
             completedAt: null,
           },
-          include: { primaryTouch: true },
+          include: { primaryTouch: true, stationTouch: true },
         })
       : await tx.actionIntent.create({
           data: {
             journeyId: resolved.journey.id,
             primaryTouchId: primaryTouch?.id ?? null,
+            stationTouchId: stationTouch?.id ?? null,
+            destinationVenueId,
             participantKey: resolved.journey.participantKey,
             ...target,
             expiresAt,
           },
-          include: { primaryTouch: true },
+          include: { primaryTouch: true, stationTouch: true },
         });
 
     await tx.attributionEvent.create({
@@ -260,6 +313,10 @@ export async function lockActionIntent(request: NextRequest, input: AttributionT
         creatorCode: intent.primaryTouch?.creatorCode ?? null,
         contentCode: intent.primaryTouch?.contentCode ?? null,
         campaignCode: intent.primaryTouch?.campaignCode ?? null,
+        stationCode: intent.stationTouch?.stationCode ?? null,
+        stationHostVenueId: intent.stationTouch?.stationHostVenueId ?? null,
+        attentionMode: intent.stationTouch?.attentionMode ?? null,
+        destinationVenueId: intent.destinationVenueId,
         participantKey: intent.participantKey,
         targetType: intent.targetType,
         targetId: intent.targetId,
@@ -286,7 +343,7 @@ export async function issueMissionPass(input: {
         ...(resolved.journey.participantKey ? [{ participantKey: resolved.journey.participantKey }] : []),
       ],
     },
-    include: { primaryTouch: true },
+    include: { primaryTouch: true, stationTouch: true },
   });
   if (
     !intent ||
@@ -325,6 +382,10 @@ export async function issueMissionPass(input: {
         creatorCode: intent.primaryTouch?.creatorCode ?? null,
         contentCode: intent.primaryTouch?.contentCode ?? null,
         campaignCode: intent.primaryTouch?.campaignCode ?? null,
+        stationCode: intent.stationTouch?.stationCode ?? null,
+        stationHostVenueId: intent.stationTouch?.stationHostVenueId ?? null,
+        attentionMode: intent.stationTouch?.attentionMode ?? null,
+        destinationVenueId: intent.destinationVenueId,
         participantKey: intent.participantKey,
         targetType: intent.targetType,
         targetId: intent.targetId,
@@ -350,6 +411,9 @@ export async function markMissionPassDelivery(passId: string, delivered: boolean
       data: delivered
         ? { state: 'DELIVERED', deliveredAt: now }
         : { state: 'DELIVERY_FAILED' },
+      include: {
+        actionIntent: { include: { primaryTouch: true, stationTouch: true } },
+      },
     });
     await tx.attributionEvent.createMany({
       data: [{
@@ -358,6 +422,14 @@ export async function markMissionPassDelivery(passId: string, delivered: boolean
         journeyId: missionPass.journeyId,
         actionIntentId: missionPass.actionIntentId,
         missionPassId: missionPass.id,
+        touchId: missionPass.actionIntent?.primaryTouchId ?? null,
+        creatorCode: missionPass.actionIntent?.primaryTouch?.creatorCode ?? null,
+        contentCode: missionPass.actionIntent?.primaryTouch?.contentCode ?? null,
+        campaignCode: missionPass.actionIntent?.primaryTouch?.campaignCode ?? null,
+        stationCode: missionPass.actionIntent?.stationTouch?.stationCode ?? null,
+        stationHostVenueId: missionPass.actionIntent?.stationTouch?.stationHostVenueId ?? null,
+        attentionMode: missionPass.actionIntent?.stationTouch?.attentionMode ?? null,
+        destinationVenueId: missionPass.actionIntent?.destinationVenueId ?? null,
         metadataJson: { deliveryMethod: missionPass.deliveryMethod },
       }],
       skipDuplicates: true,
@@ -374,6 +446,7 @@ export async function issueRecoveryMissionPass(request: NextRequest, email: stri
 
   const currentIntent = await prisma.actionIntent.findFirst({
     where: { journeyId: resolved.journey.id, state: { in: [...ACTIVE_INTENT_STATES] } },
+    include: { primaryTouch: true, stationTouch: true },
     orderBy: { updatedAt: 'desc' },
   });
   const priorPass = currentIntent
@@ -404,6 +477,14 @@ export async function issueRecoveryMissionPass(request: NextRequest, email: stri
         journeyId,
         actionIntentId: currentIntent?.id ?? null,
         missionPassId: created.id,
+        touchId: currentIntent?.primaryTouchId ?? null,
+        creatorCode: currentIntent?.primaryTouch?.creatorCode ?? null,
+        contentCode: currentIntent?.primaryTouch?.contentCode ?? null,
+        campaignCode: currentIntent?.primaryTouch?.campaignCode ?? null,
+        stationCode: currentIntent?.stationTouch?.stationCode ?? null,
+        stationHostVenueId: currentIntent?.stationTouch?.stationHostVenueId ?? null,
+        attentionMode: currentIntent?.stationTouch?.attentionMode ?? null,
+        destinationVenueId: currentIntent?.destinationVenueId ?? null,
         targetType: currentIntent?.targetType ?? null,
         targetId: currentIntent?.targetId ?? null,
         metadataJson: { deliveryMethod: 'EMAIL', purpose: 'RECOVERY' },
@@ -425,7 +506,9 @@ export async function consumeMissionPass(token: string) {
   const tokenHash = hashOpaqueToken(token);
   const existing = await prisma.missionPass.findUnique({
     where: { tokenHash },
-    include: { actionIntent: true },
+    include: {
+      actionIntent: { include: { primaryTouch: true, stationTouch: true } },
+    },
   });
   if (!existing) return { status: 'INVALID' as const };
   if (existing.revokedAt || existing.state === 'REVOKED') return { status: 'REVOKED' as const };
@@ -437,7 +520,9 @@ export async function consumeMissionPass(token: string) {
     const missionPass = await tx.missionPass.update({
       where: { id: existing.id },
       data: { state: 'OPENED', openedAt: existing.openedAt ?? now },
-      include: { actionIntent: true },
+      include: {
+        actionIntent: { include: { primaryTouch: true, stationTouch: true } },
+      },
     });
     await tx.attributionJourney.update({
       where: { id: missionPass.journeyId },
@@ -493,6 +578,14 @@ export async function consumeMissionPass(token: string) {
         journeyId: missionPass.journeyId,
         actionIntentId: missionPass.actionIntentId,
         missionPassId: missionPass.id,
+        touchId: missionPass.actionIntent?.primaryTouchId ?? null,
+        creatorCode: missionPass.actionIntent?.primaryTouch?.creatorCode ?? null,
+        contentCode: missionPass.actionIntent?.primaryTouch?.contentCode ?? null,
+        campaignCode: missionPass.actionIntent?.primaryTouch?.campaignCode ?? null,
+        stationCode: missionPass.actionIntent?.stationTouch?.stationCode ?? null,
+        stationHostVenueId: missionPass.actionIntent?.stationTouch?.stationHostVenueId ?? null,
+        attentionMode: missionPass.actionIntent?.stationTouch?.attentionMode ?? null,
+        destinationVenueId: missionPass.actionIntent?.destinationVenueId ?? null,
         participantKey,
         targetType: missionPass.actionIntent?.targetType ?? null,
         targetId: missionPass.actionIntent?.targetId ?? null,
@@ -633,7 +726,7 @@ export async function bindDareIntentToWallet(request: NextRequest, dareId: strin
         ...(journey ? [{ journeyId: journey.id }] : []),
       ],
     },
-    include: { primaryTouch: true },
+    include: { primaryTouch: true, stationTouch: true },
     orderBy: { lockedAt: 'asc' },
   });
   if (!intent) return null;
@@ -653,6 +746,10 @@ export async function bindDareIntentToWallet(request: NextRequest, dareId: strin
       creatorCode: intent.primaryTouch?.creatorCode ?? null,
       contentCode: intent.primaryTouch?.contentCode ?? null,
       campaignCode: intent.primaryTouch?.campaignCode ?? null,
+      stationCode: intent.stationTouch?.stationCode ?? null,
+      stationHostVenueId: intent.stationTouch?.stationHostVenueId ?? null,
+      attentionMode: intent.stationTouch?.attentionMode ?? null,
+      destinationVenueId: intent.destinationVenueId,
       participantKey: intent.participantKey,
       targetType: intent.targetType,
       targetId: intent.targetId,
@@ -674,7 +771,7 @@ export async function finalizeAttributionForVerifiedDare(dare: Dare, occurredAt:
             walletAddress,
             state: { in: ['BOUND', 'COMPLETED'] },
           },
-          include: { primaryTouch: true },
+          include: { primaryTouch: true, stationTouch: true },
           orderBy: { lockedAt: 'asc' },
         })
       : null;
@@ -694,6 +791,10 @@ export async function finalizeAttributionForVerifiedDare(dare: Dare, occurredAt:
           creatorCode: pathIntent.primaryTouch?.creatorCode ?? null,
           contentCode: pathIntent.primaryTouch?.contentCode ?? null,
           campaignCode: pathIntent.primaryTouch?.campaignCode ?? null,
+          stationCode: pathIntent.stationTouch?.stationCode ?? null,
+          stationHostVenueId: pathIntent.stationTouch?.stationHostVenueId ?? null,
+          attentionMode: pathIntent.stationTouch?.attentionMode ?? null,
+          destinationVenueId: pathIntent.destinationVenueId,
           participantKey: pathIntent.participantKey,
           targetType: 'DARE',
           targetId: dare.id,

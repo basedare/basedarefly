@@ -94,7 +94,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "How do venue check-ins work?",
-    a: "At partner venues, the venue console can show a rotating QR. You scan it to prove presence, and we can combine that with time-window and nearby location checks. Translation: harder to fake, better for live dares, and way less interesting to scammers."
+    a: "At venues with a live Venue Pass, the rotating pass and nearby location create stronger presence evidence. Your **first QR + GPS check-in at each venue earns 20 Signal Points**; the unique venue rule prevents farming. A verified check-in also opens the local room, makes **Crossed Paths** possible, adds to your visit history, and unlocks a venue perk when one is actually live. It does not automatically promise cash — paid rewards still come from funded dares."
   },
   {
     q: "My dare got rejected immediately. Why?",

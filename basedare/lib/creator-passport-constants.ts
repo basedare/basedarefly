@@ -99,6 +99,16 @@ export const MAX_MISSION_STYLES = 5;
 /** Signal Points awarded for a proof-gated vault review (reputation only). */
 export const VAULT_REVIEW_POINTS = 40;
 
+/**
+ * First high-trust visit to a venue. This is deliberately smaller than a
+ * proof-gated vault review and can only be awarded once per wallet + venue.
+ */
+export const VERIFIED_VENUE_CHECK_IN_POINTS = 20;
+
+export function getVenueCheckInSignalPoints(proofLevel: string | null | undefined) {
+  return proofLevel === 'QR_AND_GPS' ? VERIFIED_VENUE_CHECK_IN_POINTS : 0;
+}
+
 export type PassportMissionState = MissionDef & { complete: boolean };
 
 export type ComposedPassport = {

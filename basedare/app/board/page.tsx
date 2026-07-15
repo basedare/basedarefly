@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, MapPin, Radio } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Compass, Flag, MapPin, MoonStar, Radio, Sparkles, Users } from 'lucide-react';
 import { getBoardSections, type Flyer, type FlyerStamp, type FlyerTone } from '@/lib/board';
+import { FieldStationEntryBeacon, FieldStationTrackedLink } from '@/components/field-stations/FieldStationTrackedLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,7 @@ const PAPER_GRAIN =
 
 const TILTS = [-1.5, 1.1, -0.7, 1.4, -1.2, 0.8];
 
-function FlyerCard({ flyer, index, tone }: { flyer: Flyer; index: number; tone: FlyerTone }) {
+function FlyerCard({ flyer, index, tone, fieldStation = false }: { flyer: Flyer; index: number; tone: FlyerTone; fieldStation?: boolean }) {
   const note = NOTE_TONE[tone];
   const tilt = TILTS[index % TILTS.length];
   const usePin = index % 3 !== 0;
@@ -68,8 +69,12 @@ function FlyerCard({ flyer, index, tone }: { flyer: Flyer; index: number; tone: 
         />
       )}
 
-      <Link
+      <FieldStationTrackedLink
         href={flyer.href}
+        enabled={fieldStation}
+        eventType="STATION_TARGET_OPENED"
+        targetType="PAGE"
+        targetId={`flyer:${flyer.id}`}
         className={`relative flex flex-col overflow-hidden rounded-[18px] border ${note.edge} p-4 shadow-[0_24px_46px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_34px_64px_rgba(0,0,0,0.6)] sm:p-5`}
         style={{ background: note.wash }}
       >
@@ -119,12 +124,12 @@ function FlyerCard({ flyer, index, tone }: { flyer: Flyer; index: number; tone: 
           {flyer.kind === 'RECEIPT' ? 'See receipt' : 'Open'}
           <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
         </span>
-      </Link>
+      </FieldStationTrackedLink>
     </div>
   );
 }
 
-function BoardSection({ title, subtitle, flyers, tone }: { title: string; subtitle: string; flyers: Flyer[]; tone: FlyerTone }) {
+function BoardSection({ title, subtitle, flyers, tone, fieldStation = false }: { title: string; subtitle: string; flyers: Flyer[]; tone: FlyerTone; fieldStation?: boolean }) {
   if (flyers.length === 0) return null;
   return (
     <section className="mt-10">
@@ -134,14 +139,25 @@ function BoardSection({ title, subtitle, flyers, tone }: { title: string; subtit
       </div>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {flyers.map((flyer, index) => (
-          <FlyerCard key={flyer.id} flyer={flyer} index={index} tone={tone} />
+          <FlyerCard key={flyer.id} flyer={flyer} index={index} tone={tone} fieldStation={fieldStation} />
         ))}
       </div>
     </section>
   );
 }
 
-export default async function BoardPage() {
+type BoardSearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function BoardPage({ searchParams }: { searchParams: BoardSearchParams }) {
+  const params = await searchParams;
+  const fieldStation = firstParam(params.field) === '1';
+  const stationLabel = firstParam(params.stationLabel);
+  const attention = (firstParam(params.attention) ?? 'ask').toLowerCase();
+  const answerFirst = fieldStation && (attention === 'ask' || attention === 'nearby');
   const sections = await getBoardSections();
   const total =
     sections.tonight.length + sections.rewards.length + sections.receipts.length + sections.placesLitUp.length;
@@ -152,6 +168,7 @@ export default async function BoardPage() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[46vh] bg-[radial-gradient(circle_at_50%_0%,rgba(5,5,12,0.55),transparent_70%)]" />
 
       <section className="relative z-10 mx-auto max-w-6xl px-4 pb-24 pt-20 sm:px-6 md:pt-24">
+        {fieldStation ? <FieldStationEntryBeacon attentionMode={attention} /> : null}
         <div className="mb-6">
           <Link
             href="/"
@@ -164,7 +181,7 @@ export default async function BoardPage() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.09] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-[#f8dd72]">
             <Radio className="h-3.5 w-3.5" />
-            The Board
+            {stationLabel ? `${stationLabel} · Field Station` : 'The Board'}
           </div>
           <h1 className="mt-4 text-4xl font-black uppercase italic tracking-tight text-white md:text-6xl">
             What&apos;s on<br />
@@ -175,7 +192,46 @@ export default async function BoardPage() {
           </p>
         </div>
 
-        {total === 0 ? (
+        {answerFirst ? (
+          <div className="mx-auto mt-10 max-w-2xl rounded-[28px] border border-[#f5c518]/18 bg-[radial-gradient(circle_at_100%_0%,rgba(34,211,238,.11),transparent_35%),linear-gradient(180deg,rgba(18,20,31,.96),rgba(6,7,14,.98))] p-5 shadow-[0_28px_70px_rgba(0,0,0,.5)] sm:p-7">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#f8dd72]/70">PeeBear asks first</p>
+            <h2 className="mt-2 text-2xl font-black text-white">What would make your next two hours better?</h2>
+            <p className="mt-2 text-sm leading-6 text-white/48">Choose one and the map will reveal a small useful set around this station.</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {[
+                ['social', 'Meet people', 'Public, bounded activities', Users],
+                ['mystery', 'Find something interesting', 'Places with a story', Sparkles],
+                ['reward', 'Do something now', 'Live, nearby and low-friction', Flag],
+                ['tonight', 'See what’s on tonight', 'Usual rhythm + confirmed events', MoonStar],
+              ].map(([mode, label, detail, Icon]) => {
+                const next = new URLSearchParams();
+                for (const [key, raw] of Object.entries(params)) {
+                  const value = firstParam(raw);
+                  if (value) next.set(key, value);
+                }
+                next.set('attention', String(mode));
+                return (
+                  <FieldStationTrackedLink
+                    key={String(mode)}
+                    href={`/map?${next.toString()}`}
+                    eventType="STATION_ATTENTION_SELECTED"
+                    attentionMode={String(mode)}
+                    targetType="PAGE"
+                    targetId="map"
+                    className="group flex min-h-20 items-center gap-3 rounded-2xl border border-white/9 bg-white/[0.035] px-4 transition hover:-translate-y-0.5 hover:border-cyan-100/24 hover:bg-cyan-300/[0.05]"
+                  >
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-black/30"><Icon className="h-4 w-4 text-cyan-100" /></span>
+                    <span className="min-w-0 flex-1"><span className="block text-sm font-black text-white">{String(label)}</span><span className="mt-1 block text-[11px] text-white/42">{String(detail)}</span></span>
+                    <ArrowRight className="h-4 w-4 text-white/25 transition group-hover:text-cyan-100" />
+                  </FieldStationTrackedLink>
+                );
+              })}
+              <FieldStationTrackedLink href={`/map?${new URLSearchParams(Object.entries(params).flatMap(([key, raw]) => { const value = firstParam(raw); return value ? [[key, value]] : []; })).toString()}`} eventType="STATION_ATTENTION_SELECTED" attentionMode="NEARBY" targetType="PAGE" targetId="map" className="group flex min-h-16 items-center gap-3 rounded-2xl border border-emerald-100/13 bg-emerald-300/[0.035] px-4 sm:col-span-2">
+                <Compass className="h-4 w-4 text-emerald-100" /><span className="flex-1 text-sm font-black text-white">Free roam</span><span className="text-[10px] text-white/38">No suggestions</span><ArrowRight className="h-4 w-4 text-white/25" />
+              </FieldStationTrackedLink>
+            </div>
+          </div>
+        ) : total === 0 ? (
           <div className="mx-auto mt-12 max-w-md rounded-[24px] border border-white/10 bg-black/40 p-8 text-center backdrop-blur-md">
             <p className="text-sm font-bold leading-6 text-white/60">
               The board&apos;s quiet right now. Be the first to light up a venue —{' '}
@@ -184,10 +240,10 @@ export default async function BoardPage() {
           </div>
         ) : (
           <>
-            <BoardSection title="Tonight" subtitle="Live now" flyers={sections.tonight} tone="cyan" />
-            <BoardSection title="Rewards" subtitle="Open paid dares" flyers={sections.rewards} tone="gold" />
-            <BoardSection title="Receipts" subtitle="Verified proof" flyers={sections.receipts} tone="emerald" />
-            <BoardSection title="Places lit up" subtitle="Recent verified activity" flyers={sections.placesLitUp} tone="violet" />
+            <BoardSection title="Tonight" subtitle="Live now" flyers={sections.tonight} tone="cyan" fieldStation={fieldStation} />
+            <BoardSection title="Rewards" subtitle="Open paid dares" flyers={sections.rewards} tone="gold" fieldStation={fieldStation} />
+            <BoardSection title="Receipts" subtitle="Verified proof" flyers={sections.receipts} tone="emerald" fieldStation={fieldStation} />
+            <BoardSection title="Places lit up" subtitle="Recent verified activity" flyers={sections.placesLitUp} tone="violet" fieldStation={fieldStation} />
           </>
         )}
       </section>

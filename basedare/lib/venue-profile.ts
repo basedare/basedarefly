@@ -8,6 +8,8 @@ export type VenueLegendKey =
   | 'music'
   | 'hotel'
   | 'surf'
+  | 'fitness'
+  | 'wellness'
   | 'sport'
   | 'park'
   | 'viewpoint'
@@ -102,11 +104,25 @@ const VENUE_LEGENDS: Record<VenueLegendKey, VenueLegend & { keywords: string[]; 
     keywords: ['hotel', 'resort', 'villa', 'hostel', 'stay'],
     story: 'arrival, hospitality, and travel-proof moments',
   },
+  fitness: {
+    key: 'fitness',
+    label: 'Fitness',
+    emoji: '🏋️',
+    keywords: ['gym', 'fitness', 'crossfit', 'weight', 'strength', 'hiit', 'kettlebell', 'training'],
+    story: 'training, movement, strength, and performance proof',
+  },
+  wellness: {
+    key: 'wellness',
+    label: 'Wellness',
+    emoji: '✧',
+    keywords: ['wellness', 'pilates', 'yoga', 'massage', 'spa', 'sauna', 'recovery', 'physio', 'barre', 'breathwork'],
+    story: 'movement, recovery, calm rituals, and wellbeing proof',
+  },
   sport: {
     key: 'sport',
     label: 'Sport',
     emoji: '⚡',
-    keywords: ['gym', 'fitness', 'run', 'sport', 'court', 'parkour', 'yoga', 'training'],
+    keywords: ['run', 'sport', 'court', 'parkour', 'tennis', 'padel', 'pickleball'],
     story: 'movement, challenge, and performance proof',
   },
   park: {

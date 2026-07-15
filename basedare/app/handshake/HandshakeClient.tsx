@@ -59,6 +59,10 @@ type CheckInResult = {
     checkInCount: number;
     uniqueVisitorCount: number;
   };
+  reputation: {
+    pointsAwarded: number;
+    firstVerifiedVisit: boolean;
+  };
   perk: VenuePerkUnlock | null;
 };
 
@@ -423,7 +427,7 @@ export default function HandshakeClient() {
                 </h1>
                 <p className="mt-3 max-w-xl text-sm leading-6 text-white/58 sm:text-base">
                   {venue
-                    ? `Prove you are at ${venue.name}${venueLocation ? ` in ${venueLocation}` : ''}. QR plus GPS earns the stronger proof level.`
+                    ? `Prove you are at ${venue.name}${venueLocation ? ` in ${venueLocation}` : ''}. Your first QR + GPS visit here earns 20 Signal Points and unlocks the place layer.`
                     : venueError || 'Loading venue memory...'}
                 </p>
               </div>
@@ -492,6 +496,21 @@ export default function HandshakeClient() {
                 placeholder="@yourtag"
                 className="mt-2 w-full rounded-[22px] border border-white/10 bg-black/34 px-4 py-3 text-sm font-semibold text-white outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.22)] placeholder:text-white/24 focus:border-cyan-200/34"
               />
+            </div>
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-3">
+              <div className="rounded-[20px] border border-[#f8dd72]/18 bg-[#f8dd72]/[0.07] px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#f8dd72]/72">Reputation</p>
+                <p className="mt-1 text-sm font-bold text-white">+20 Signal first visit</p>
+              </div>
+              <div className="rounded-[20px] border border-cyan-200/16 bg-cyan-300/[0.06] px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100/62">Social</p>
+                <p className="mt-1 text-sm font-bold text-white">Room + Crossed Paths</p>
+              </div>
+              <div className="rounded-[20px] border border-emerald-200/16 bg-emerald-300/[0.06] px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100/62">Venue</p>
+                <p className="mt-1 text-sm font-bold text-white">Live perk when offered</p>
+              </div>
             </div>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
@@ -573,6 +592,22 @@ export default function HandshakeClient() {
                     <p className="mt-1 text-2xl font-black text-cyan-100">{result.memory.uniqueVisitorCount}</p>
                     <p className="text-xs text-white/42">unique today</p>
                   </div>
+                </div>
+                <div className={`mt-4 rounded-[20px] border px-4 py-3 ${
+                  result.reputation.pointsAwarded > 0
+                    ? 'border-[#f8dd72]/24 bg-[#f8dd72]/[0.09]'
+                    : 'border-white/10 bg-black/20'
+                }`}>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/38">
+                    Signal reward
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-white">
+                    {result.reputation.pointsAwarded > 0
+                      ? `+${result.reputation.pointsAwarded} Signal Points — first verified visit logged.`
+                      : result.proofLevel === 'QR_AND_GPS'
+                        ? 'Venue memory refreshed. Your one-time points for this place were already claimed.'
+                        : 'QR presence logged. Add GPS next time to qualify for the venue Signal reward.'}
+                  </p>
                 </div>
                 {result.perk ? (
                   <div className="mt-4 overflow-hidden rounded-[24px] border border-[#f8dd72]/28 bg-[linear-gradient(180deg,rgba(248,221,114,0.14),rgba(8,10,18,0.92))] p-4 shadow-[0_18px_34px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1)]">

@@ -70,6 +70,9 @@ const venueLegendOptions: Array<{ key: VenueLegendKey; label: string; emoji: str
   { key: 'nightlife', label: 'Nightlife', emoji: '💃' },
   { key: 'music', label: 'Music', emoji: '🎵' },
   { key: 'hotel', label: 'Hotel', emoji: '🛎️' },
+  { key: 'fitness', label: 'Fitness', emoji: '🏋️' },
+  { key: 'sport', label: 'Sport', emoji: '⚡' },
+  { key: 'wellness', label: 'Wellness', emoji: '✧' },
   { key: 'park', label: 'Park', emoji: '🌿' },
   { key: 'landmark', label: 'Landmark', emoji: '📍' },
 ];

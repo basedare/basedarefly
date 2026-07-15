@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="BaseDare wellness hologram">
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#fff1ad"/>
+      <stop offset="0.4" stop-color="#f5c518"/>
+      <stop offset="1" stop-color="#7d3d08"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#e9dcff"/>
+      <stop offset="0.38" stop-color="#9f78ff"/>
+      <stop offset="1" stop-color="#37136b"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0" stop-color="#096374"/>
+      <stop offset="0.5" stop-color="#4ce8f5"/>
+      <stop offset="1" stop-color="#096374"/>
+    </linearGradient>
+    <linearGradient id="dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#35405a"/>
+      <stop offset="0.55" stop-color="#111523"/>
+      <stop offset="1" stop-color="#05070d"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="128" cy="224" rx="71" ry="12" fill="#4ce8f5" opacity="0.16"/>
+  <ellipse cx="128" cy="220" rx="56" ry="9" fill="none" stroke="url(#cyan)" stroke-width="4"/>
+  <path d="m68 197 19-18h82l19 18-15 22H83Z" fill="url(#dark)" stroke="#05070d" stroke-width="6"/>
+  <path d="M91 188h74l-9 13h-56Z" fill="#1a2432" stroke="#46e4f1" stroke-width="3"/>
+  <path d="M128 65c28 23 34 49 18 76-6 10-12 17-18 22-7-6-13-13-18-22-16-27-10-53 18-76Z" fill="url(#gold)" stroke="#3a1b05" stroke-width="6"/>
+  <path d="M88 87c29 9 45 28 47 57 1 13-1 23-5 31-10-2-20-8-29-17-23-22-27-46-13-71Z" fill="url(#violet)" stroke="#24103f" stroke-width="6"/>
+  <path d="M168 87c-29 9-45 28-47 57-1 13 1 23 5 31 10-2 20-8 29-17 23-22 27-46 13-71Z" fill="url(#violet)" stroke="#24103f" stroke-width="6"/>
+  <path d="M67 125c25-1 45 10 59 32 6 10 9 20 9 29-12 2-24 0-36-6-27-13-38-31-32-55Z" fill="url(#gold)" stroke="#3a1b05" stroke-width="6"/>
+  <path d="M189 125c-25-1-45 10-59 32-6 10-9 20-9 29 12 2 24 0 36-6 27-13 38-31 32-55Z" fill="url(#gold)" stroke="#3a1b05" stroke-width="6"/>
+  <path d="M109 141c5 7 11 11 19 11 8 0 15-4 20-11" fill="none" stroke="#4ce8f5" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="128" cy="114" r="8" fill="#111523" stroke="#4ce8f5" stroke-width="4"/>
+</svg>

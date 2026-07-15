@@ -19,6 +19,7 @@ import type {
 } from "@/components/maps/useTonightActivity";
 import type { AdventureSpriteKind } from "@/lib/map-adventure-policy";
 import { getSiargaoNightGuide } from "@/lib/siargao-nightlife";
+import type { AdventureSpriteKind } from "@/lib/map-adventure-policy";
 
 type AdventureMapOverlayProps = {
   enabled: boolean;
@@ -39,6 +40,8 @@ type AdventureMapOverlayProps = {
   onSelectPlace: (slug: string) => void;
   onOpenTrail: () => void;
   onGuideOpenChange: (open: boolean) => void;
+  fieldStationLabel?: string | null;
+  fieldStationFallback?: boolean;
 };
 
 export type MapAttentionIntent = "meet" | "discover" | "now" | "tonight";
@@ -131,16 +134,32 @@ export default function AdventureMapOverlay({
   onSelectPlace,
   onOpenTrail,
   onGuideOpenChange,
+  fieldStationLabel,
+  fieldStationFallback = false,
 }: AdventureMapOverlayProps) {
   const [guideLineIndex, setGuideLineIndex] = useState(0);
   const [guideSpeechOpen, setGuideSpeechOpen] = useState(false);
   const nightGuide = getSiargaoNightGuide();
+  const confirmedTonightActivities = useMemo(
+    () =>
+      [...(snapshot?.activities ?? [])]
+        .filter((activity) => activity.type === "meetup")
+        .sort((a, b) => {
+          const aTime = a.startsAt ? new Date(a.startsAt).getTime() : 0;
+          const bTime = b.startsAt ? new Date(b.startsAt).getTime() : 0;
+          return aTime - bTime;
+        }),
+    [snapshot?.activities]
+  );
   const rankedActivities = useMemo(() => {
     const activities = [...(snapshot?.activities ?? [])];
     if (intent === "meet") {
       return activities.filter((activity) => activity.type === "meetup");
     }
-    if (intent === "now" || intent === "tonight") {
+    if (intent === "tonight") {
+      return confirmedTonightActivities;
+    }
+    if (intent === "now") {
       return activities.sort((a, b) => {
         const aTime = a.startsAt ? new Date(a.startsAt).getTime() : 0;
         const bTime = b.startsAt ? new Date(b.startsAt).getTime() : 0;
@@ -148,9 +167,9 @@ export default function AdventureMapOverlay({
       });
     }
     return [];
-  }, [intent, snapshot?.activities]);
+  }, [confirmedTonightActivities, intent, snapshot?.activities]);
   const focalActivity = rankedActivities[0] ?? null;
-  const activityCount = snapshot?.totals.activities ?? 0;
+  const confirmedTonightCount = confirmedTonightActivities.length;
   const goingCount = snapshot?.totals.going ?? 0;
   const showPanel = enabled && panelOpen && !obscured;
   const showIntentCard = !obscured && !intent && guideOpen;
@@ -247,13 +266,9 @@ export default function AdventureMapOverlay({
                 <Map className="h-3.5 w-3.5" />
               )}
               <span>
-                {loading && !snapshot
-                  ? "Checking nearby"
-                  : error && !snapshot
-                  ? "Tonight unavailable"
-                  : activityCount > 0
-                  ? `Tonight · ${activityCount}`
-                  : "Quiet nearby"}
+                {confirmedTonightCount > 0
+                  ? `Tonight · ${confirmedTonightCount}`
+                  : "Tonight"}
               </span>
               {goingCount > 0 ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/18 bg-emerald-300/[0.09] px-2 py-0.5 text-emerald-100">
@@ -300,7 +315,7 @@ export default function AdventureMapOverlay({
               <X className="h-3.5 w-3.5" />
             </button>
             <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#f8dd72]/70">
-              PeeBear reads the field
+              {fieldStationLabel ? `${fieldStationLabel} · Field Station` : "PeeBear reads the field"}
             </p>
             <h2 className="mt-2 max-w-[18rem] pr-7 text-lg font-black leading-5 text-white sm:text-xl sm:leading-6">
               What would make your next two hours better?
@@ -308,6 +323,11 @@ export default function AdventureMapOverlay({
             <p className="mt-2 hidden text-xs leading-5 text-white/52 sm:block">
               Pick a mood. I’ll narrow the map to three useful possibilities.
             </p>
+            {fieldStationFallback ? (
+              <p className="mt-2 rounded-xl border border-cyan-200/12 bg-cyan-300/[0.05] px-3 py-2 text-[10px] leading-4 text-cyan-50/62">
+                That specific layer is quiet nearby right now, so I’m starting with useful choices instead.
+              </p>
+            ) : null}
             <div className="mt-3 grid gap-2">
               {INTENT_OPTIONS.map((option) => (
                 <button
@@ -335,6 +355,7 @@ export default function AdventureMapOverlay({
                 type="button"
                 onClick={() => {
                   if (!enabled) onToggle();
+                  onIntentChange("tonight");
                   onGuideOpenChange(false);
                   onPanelOpenChange(true);
                 }}
@@ -351,9 +372,9 @@ export default function AdventureMapOverlay({
                     Usual island rhythm + confirmed events
                   </span>
                 </span>
-                {activityCount > 0 ? (
+                {confirmedTonightCount > 0 ? (
                   <span className="shrink-0 rounded-full border border-[#f5c518]/16 bg-[#f5c518]/[0.07] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-[#f8dd72]/72">
-                    {activityCount} live
+                    {confirmedTonightCount} confirmed
                   </span>
                 ) : null}
                 <ChevronRight className="h-4 w-4 shrink-0 text-white/28 transition group-hover:text-[#f8dd72]" />
@@ -393,7 +414,7 @@ export default function AdventureMapOverlay({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.22em] text-cyan-100/52">
-                  For your next move
+                  {fieldStationLabel ? `${fieldStationLabel} sent you here` : "For your next move"}
                 </p>
                 <p className="mt-1 text-sm font-black text-white">
                   {intent === "meet"
@@ -511,90 +532,114 @@ export default function AdventureMapOverlay({
             </button>
 
             <p className="text-[9px] font-black uppercase tracking-[0.24em] text-cyan-100/52">
-              {focalActivity ? "PeeBear found nearby" : "Tonight in Siargao"}
+              Tonight in Siargao
             </p>
-            {focalActivity ? (
-              <button
-                type="button"
-                onClick={() => onSelectActivity(focalActivity)}
-                className="mt-2.5 block w-full rounded-[19px] border border-[#f5c518]/20 bg-[linear-gradient(180deg,rgba(245,197,24,0.105),rgba(255,255,255,0.025))] px-3.5 py-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.13]"
-              >
-                <span className="flex items-start justify-between gap-3">
-                  <span className="min-w-0">
-                    <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-[#f8dd72]/72">
-                      {focalActivity.type === "dare"
-                        ? "Live Dare"
-                        : "Free meetup"}
+            <div className="mt-3 rounded-[18px] border border-[#f5c518]/16 bg-[#f5c518]/[0.045] px-3.5 py-4">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#f8dd72]/64">
+                Usual {nightGuide.weekday} rhythm
+              </p>
+              <p className="mt-1.5 text-base font-black text-white">
+                {nightGuide.headline}
+              </p>
+              <p className="mt-1.5 text-xs leading-5 text-white/48">
+                {nightGuide.lateVenue} is the late option every night, usually {nightGuide.lateHoursLabel}.
+                Monthly raves and pop-ups appear below only when they are confirmed.
+              </p>
+              <p className="mt-2 border-t border-white/8 pt-2 text-[9px] font-semibold leading-4 text-white/36">
+                {nightGuide.disclaimer}
+              </p>
+            </div>
+
+            {confirmedTonightActivities.length > 0 ? (
+              <div className="mt-2.5 grid gap-2">
+                <p className="px-1 text-[8px] font-black uppercase tracking-[0.18em] text-cyan-100/48">
+                  Confirmed additions
+                </p>
+                {confirmedTonightActivities.slice(0, 2).map((activity) => (
+                  <button
+                    key={`${activity.type}:${activity.id}`}
+                    type="button"
+                    onClick={() => onSelectActivity(activity)}
+                    className="block w-full rounded-[17px] border border-cyan-100/14 bg-cyan-300/[0.045] px-3 py-3 text-left transition hover:border-cyan-100/28 hover:bg-cyan-300/[0.075]"
+                  >
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="min-w-0">
+                        <span className="line-clamp-2 block text-xs font-black leading-4 text-white">
+                          {activity.title}
+                        </span>
+                        <span className="mt-1 block text-[9px] font-bold text-white/48">
+                          {activity.place.label} · {getActivityMeta(activity)}
+                        </span>
+                      </span>
+                      <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-cyan-100/62" />
                     </span>
-                    <span className="mt-1.5 line-clamp-2 block text-sm font-black leading-5 text-white">
-                      {focalActivity.title}
-                    </span>
-                    <span className="mt-1.5 block text-[11px] font-bold text-white/52">
-                      {focalActivity.place.label}
-                    </span>
-                  </span>
-                  <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-[#f8dd72]" />
-                </span>
-                <span className="mt-3 block rounded-full border border-white/10 bg-black/22 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-white/68">
-                  {getActivityMeta(focalActivity)}
-                </span>
-              </button>
-            ) : (
-              <div className="mt-3 rounded-[18px] border border-[#f5c518]/16 bg-[#f5c518]/[0.045] px-3.5 py-4">
-                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#f8dd72]/64">
-                  Usual {nightGuide.weekday} rhythm
-                </p>
-                <p className="mt-1.5 text-base font-black text-white">
-                  {nightGuide.headline}
-                </p>
-                <p className="mt-1.5 text-xs leading-5 text-white/48">
-                  {nightGuide.lateVenue} is the late option every night, usually {nightGuide.lateHoursLabel}.
-                  Monthly raves and pop-ups appear here when they are confirmed.
-                </p>
-                <p className="mt-2 border-t border-white/8 pt-2 text-[9px] font-semibold leading-4 text-white/36">
-                  {loading
-                    ? "Checking confirmed one-offs now."
-                    : error
-                    ? `The live event scan did not refresh: ${error}`
-                    : "No confirmed one-off is published nearby yet."} {nightGuide.disclaimer}
-                </p>
+                  </button>
+                ))}
               </div>
+            ) : (
+              <p className="mt-2.5 rounded-[14px] border border-white/8 bg-black/20 px-3 py-2 text-[9px] font-semibold leading-4 text-white/38">
+                {loading
+                  ? "Checking confirmed one-offs now."
+                  : error
+                  ? `Confirmed events could not refresh: ${error}`
+                  : "No confirmed one-off event is published nearby yet."}
+              </p>
             )}
           </div>
         ) : null}
       </div>
 
       {!showIntentCard ? (
-        <button
-          type="button"
-          onClick={() => {
-            setGuideSpeechOpen(true);
-            if (guideSpeechOpen) {
-              setGuideLineIndex((current) => (current + 1) % guideLines.length);
-            }
-          }}
-          aria-label="Ask PeeBear for another field hint"
-          className={`pointer-events-auto absolute right-4 z-[16] flex max-w-[min(18rem,calc(100%-2rem))] items-end gap-2 text-left md:bottom-6 md:right-6 ${
+        <div
+          className={`pointer-events-auto absolute right-4 z-[16] flex max-w-[min(20rem,calc(100%-2rem))] items-end gap-2 text-left md:bottom-6 md:right-6 ${
             obscured ? "bottom-28" : "bottom-5"
           }`}
         >
-          {guideSpeechOpen ? (
-            <span className="mb-2 max-w-[12rem] rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.96),rgba(5,7,14,0.98))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/86 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl sm:max-w-[15rem]">
-              {guideLines[guideLineIndex % guideLines.length]}
-            </span>
+          {enabled && !guideOpen && !showPanel && !obscured ? (
+            <button
+              type="button"
+              onClick={() => {
+                setGuideSpeechOpen(false);
+                onPanelOpenChange(false);
+                onIntentChange(null);
+                onGuideOpenChange(true);
+              }}
+              aria-label="Open the PeeBear guide"
+              className="mb-1 inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[linear-gradient(180deg,rgba(35,28,12,0.94),rgba(7,8,15,0.97))] px-3 text-[9px] font-black uppercase tracking-[0.12em] text-[#fff0a8] shadow-[0_14px_30px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl transition hover:border-[#f5c518]/42"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
+              Ask PeeBear
+            </button>
           ) : null}
-          <span className="adventure-guide-orb shrink-0" aria-hidden="true">
-            <Image
-              src="/assets/peebear-head.webp"
-              alt=""
-              width={1200}
-              height={670}
-              unoptimized
-              className="adventure-guide-face"
-            />
-            <span className="adventure-guide-orb__spark" />
-          </span>
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              setGuideSpeechOpen(true);
+              if (guideSpeechOpen) {
+                setGuideLineIndex((current) => (current + 1) % guideLines.length);
+              }
+            }}
+            aria-label="Ask PeeBear for another field hint"
+            className="flex items-end gap-2 text-left"
+          >
+            {guideSpeechOpen ? (
+              <span className="mb-2 max-w-[12rem] rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.96),rgba(5,7,14,0.98))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/86 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl sm:max-w-[15rem]">
+                {guideLines[guideLineIndex % guideLines.length]}
+              </span>
+            ) : null}
+            <span className="adventure-guide-orb shrink-0" aria-hidden="true">
+              <Image
+                src="/assets/peebear-head.webp"
+                alt=""
+                width={1200}
+                height={670}
+                unoptimized
+                className="adventure-guide-face"
+              />
+              <span className="adventure-guide-orb__spark" />
+            </span>
+          </button>
+        </div>
       ) : null}
     </>
   );

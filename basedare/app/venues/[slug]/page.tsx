@@ -19,6 +19,7 @@ import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 import SparkRunCard from '@/components/venues/SparkRunCard';
 import VenueMarkButton from '@/components/venues/VenueMarkButton';
 import VenueHostPanel from '@/components/venues/VenueHostPanel';
+import VenueCheckInButton from '@/components/venues/VenueCheckInButton';
 import SquircleLink from '@/components/ui/SquircleLink';
 import { formatVenueContactConfirmedAt, formatVenueContactSource, type VenueContactChannel } from '@/lib/venue-contact-routes';
 
@@ -454,7 +455,9 @@ export default async function VenueDetailPage(
                     </span>
                     <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/14 bg-cyan-500/[0.06] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                       <Waves className="h-4 w-4 text-cyan-300" />
-                      {venue.liveSession?.campaignLabel ?? 'Venue check-in live'}
+                      {venue.liveSession?.status === 'LIVE'
+                        ? venue.liveSession.campaignLabel ?? 'Venue pass live'
+                        : 'Venue pass not live'}
                     </span>
                   </div>
 
@@ -544,13 +547,17 @@ export default async function VenueDetailPage(
                   <div className={`${softCardClass} px-5 py-5`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">You&apos;re here</p>
-                    <h2 className="mt-2 text-2xl font-black text-white">Leave proof, earn the perk</h2>
+                    <h2 className="mt-2 text-2xl font-black text-white">Check in. Unlock the place.</h2>
                     <p className="mt-2 text-sm leading-6 text-white/58">
-                      {venue.activePerk
-                        ? `Live perk: ${venue.activePerk.title}`
-                        : 'Proof goes in the vault. Perks unlock when the venue is live.'}
+                      Check-in is quick presence. Proof is the photo or clip that becomes permanent place memory.
                     </p>
                     <div className="mt-5 grid gap-2">
+                      <VenueCheckInButton
+                        venueId={venue.id}
+                        venueName={venue.name}
+                        live={venue.liveSession?.status === 'LIVE'}
+                        perkTitle={venue.activePerk?.title}
+                      />
                       <VenueMarkButton
                         placeId={venue.id}
                         placeName={venue.name}

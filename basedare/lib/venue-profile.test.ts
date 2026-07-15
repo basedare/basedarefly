@@ -27,3 +27,22 @@ test('a real surf place still receives the surf legend', () => {
 
   assert.equal(profile.legends.some((legend) => legend.key === 'surf'), true);
 });
+
+test('fitness, sport, and wellness remain distinct venue identities', () => {
+  const gym = buildVenueProfile({
+    name: 'PrimeFit Gym',
+    categories: ['fitness', 'gym', 'weight-training'],
+  });
+  const padel = buildVenueProfile({
+    name: 'Padel & Palms',
+    categories: ['sport', 'padel', 'sports-court'],
+  });
+  const recovery = buildVenueProfile({
+    name: 'Vultun',
+    categories: ['wellness', 'pilates', 'massage', 'recovery'],
+  });
+
+  assert.equal(gym.legends.some((legend) => legend.key === 'fitness'), true);
+  assert.equal(padel.legends.some((legend) => legend.key === 'sport'), true);
+  assert.equal(recovery.legends.some((legend) => legend.key === 'wellness'), true);
+});

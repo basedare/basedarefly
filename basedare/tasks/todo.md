@@ -1,5 +1,29 @@
 # BaseDare Todo
 
+### Task — Field Station acquisition alpha (2026-07-15)
+- Owner: Codex
+- Goal: Turn permissioned physical QR placements into localized, answer-first discovery entrances with honest station and destination receipts.
+
+### Plan
+- [x] Extend tracked links with station, attention, density, host, and print serial metadata.
+- [x] Resolve each scan against live local density and fall back to a neutral nearby entry when the promise is under-stocked.
+- [x] Carry immutable station context through intents, Mission Passes, verified completions, and venue check-ins.
+- [x] Add station/creative reporting with separate host and destination receipts.
+- [x] Add H-level, four-module-quiet-zone, vector QR generation around the existing short `/go/` URL.
+- [x] Add localized answer-first Board/map entry and focused funnel instrumentation.
+
+### Verification
+- [x] Prisma validate/generate and migration review
+- [x] Focused policy and station tests
+- [x] App/test TypeScript checks
+- [x] Touched-source ESLint
+- [x] Production safety and production build
+- [x] Graphify rebuild
+
+### Review
+- Outcome: Field Station acquisition alpha is implemented locally: immutable station QRs resolve live density, preserve answer-first consent, carry attribution through Mission Pass and verified action, and report host acquisition separately from destination outcomes.
+- Follow-ups: Real printed-QR scan tests and station placement permission remain physical pilot gates.
+
 ## Working Template
 
 Use this section for active non-trivial tasks.

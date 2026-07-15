@@ -116,6 +116,14 @@ Each scan can add to:
 4. The system should improve foot-traffic measurement without feeling corporate.
 5. QR should complement GPS, not necessarily replace it.
 
+### Alpha reward rule
+
+- A player earns **20 Signal Points once per unique venue** for the first confirmed `QR_AND_GPS` check-in.
+- QR-only presence may refresh live venue context but earns no Signal Points.
+- Repeat visits may refresh venue memory, room access, Crossed Paths, and an explicitly live perk; they do not farm reputation.
+- Check-in never implies a cash reward. Cash comes only from a funded dare with its own proof and payout terms.
+- `PointsEvent(walletAddress, type, sourceId)` is the idempotent accounting boundary, with the venue ID as `sourceId`.
+
 ## Scan Types
 
 ### Static QR

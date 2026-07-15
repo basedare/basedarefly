@@ -21,6 +21,8 @@ import {
   getActiveVenuePerk,
   writeVenuePerkSnapshotToMetadata,
 } from '@/lib/venue-perks';
+import { recordStationVerifiedVenueArrival } from '@/lib/field-station-server';
+import { awardVenueCheckInReward } from '@/lib/venue-check-in-rewards';
 
 const VenueCheckInSchema = z.object({
   venueId: z.string().min(1),
@@ -335,6 +337,16 @@ export async function POST(request: NextRequest) {
       occurredAt: result.checkIn.scannedAt,
     });
 
+    await recordStationVerifiedVenueArrival(request, {
+      venueId: venue.id,
+      checkInId: result.checkIn.id,
+      occurredAt: result.checkIn.scannedAt,
+      participantKey: `wallet:${walletAddress}`,
+    }).catch((attributionError) => {
+      console.error('[FIELD_STATION] Verified-arrival attribution failed:', attributionError);
+      return null;
+    });
+
     const checkInActor = parsed.data.tag?.trim() || `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
     await publishVenueRoomReceipt({
       venueId: venue.id,
@@ -349,6 +361,12 @@ export async function POST(request: NextRequest) {
       const receiptMessage = receiptError instanceof Error ? receiptError.message : 'Unknown receipt error';
       console.error('[VENUE_CHECK_IN] Room receipt failed:', receiptMessage);
       return null;
+    });
+
+    const reputationReward = await awardVenueCheckInReward({
+      walletAddress,
+      venueId: venue.id,
+      proofLevel,
     });
 
     return NextResponse.json({
@@ -368,6 +386,7 @@ export async function POST(request: NextRequest) {
           checkInCount: result.memory.checkInCount,
           uniqueVisitorCount: result.memory.uniqueVisitorCount,
         },
+        reputation: reputationReward,
         perk: result.perkUnlock,
       },
     });

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="BaseDare board rental hologram">
+  <defs>
+    <linearGradient id="orange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#ffd08a"/>
+      <stop offset="0.38" stop-color="#ff7a3d"/>
+      <stop offset="1" stop-color="#8d251b"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#e5d5ff"/>
+      <stop offset="0.35" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#32105f"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#fff0a6"/>
+      <stop offset="0.42" stop-color="#f5c518"/>
+      <stop offset="1" stop-color="#7a3905"/>
+    </linearGradient>
+    <linearGradient id="dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#34405a"/>
+      <stop offset="0.5" stop-color="#111624"/>
+      <stop offset="1" stop-color="#05070d"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="128" cy="225" rx="73" ry="12" fill="#45e3f0" opacity="0.16"/>
+  <ellipse cx="128" cy="221" rx="58" ry="9" fill="none" stroke="#43e5f3" stroke-width="4"/>
+  <path d="m64 197 18-18h92l18 18-16 22H80Z" fill="url(#dark)" stroke="#05070d" stroke-width="6"/>
+  <path d="M83 188h90l-11 15H95Z" fill="#182332" stroke="#43e5f3" stroke-width="3"/>
+  <g transform="rotate(-8 102 112)">
+    <path d="M83 30c15 13 25 31 27 54l7 72c2 25-7 38-25 40-18-2-26-15-22-40l7-72c2-23 4-41 6-54Z" fill="url(#orange)" stroke="#34130d" stroke-width="7"/>
+    <path d="M91 47v127" stroke="#fff0c4" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+    <path d="M76 145c11 7 23 7 35 0" fill="none" stroke="#43e5f3" stroke-width="5"/>
+  </g>
+  <g transform="rotate(9 152 116)">
+    <path d="M144 38c15 14 23 31 24 54l5 67c2 24-7 36-25 38-18-3-25-16-20-39l8-67c3-23 5-40 8-53Z" fill="url(#violet)" stroke="#1d0d38" stroke-width="7"/>
+    <path d="m149 71 10 18-15 17 13 19-16 19" fill="none" stroke="#43e5f3" stroke-width="5" stroke-linecap="round"/>
+    <path d="m137 155 14 13 16-13" fill="none" stroke="#f5c518" stroke-width="5"/>
+  </g>
+  <path d="M68 173h120M77 151h102" stroke="url(#gold)" stroke-width="9" stroke-linecap="round"/>
+  <path d="M79 151v43M177 151v43" stroke="#6d3709" stroke-width="9" stroke-linecap="round"/>
+</svg>

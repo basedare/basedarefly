@@ -60,6 +60,11 @@ import {
 } from '@/lib/map-adventure-policy';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { isSiargaoVenueFeaturedTonight } from '@/lib/siargao-nightlife';
+import { VERIFIED_VENUE_CHECK_IN_POINTS } from '@/lib/creator-passport-constants';
+import {
+  fieldStationAttentionToMapIntent,
+  mapIntentToFieldStationAttention,
+} from '@/lib/field-station-policy';
 import type { VenueLegend, VenueMemorySummary, VenueProfileSummary, VenueSessionSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import ProofReel from '@/components/maps/ProofReel';
@@ -3402,6 +3407,7 @@ export default function RealWorldMap() {
   const [venuePresenceLoading, setVenuePresenceLoading] = useState(false);
   const [viewportCenter, setViewportCenter] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
+  const [openingVenueSlug, setOpeningVenueSlug] = useState<string | null>(null);
   const [proofAutoOpenKey, setProofAutoOpenKey] = useState<string | null>(null);
   const [selectedPlacePanelExpanded, setSelectedPlacePanelExpanded] = useState(false);
   const [mapSheetDrag, setMapSheetDrag] = useState<MapSheetDragState | null>(null);
@@ -3431,7 +3437,13 @@ export default function RealWorldMap() {
   useEffect(() => {
     setProofReelOpen(false);
     setMeetupComposerOpen(false);
+    setOpeningVenueSlug(null);
   }, [selectedPlace?.placeId, selectedPlace?.slug]);
+  useEffect(() => {
+    if (!openingVenueSlug) return;
+    const retryTimer = window.setTimeout(() => setOpeningVenueSlug(null), 10_000);
+    return () => window.clearTimeout(retryTimer);
+  }, [openingVenueSlug]);
   const [crossedPathsPeople, setCrossedPathsPeople] = useState<
     { tag: string; pfpUrl: string | null; lastCrossedAt: string }[]
   >([]);
@@ -3545,6 +3557,12 @@ export default function RealWorldMap() {
   const deepLinkedDareShortId = searchParams.get('dare');
   const showTraceParam = searchParams.get('trace') === '1';
   const showMatchesParam = searchParams.get('matches') === '1';
+  const fieldStationEntry = searchParams.get('field') === '1';
+  const fieldStationLabel = searchParams.get('stationLabel');
+  const fieldStationFallback = searchParams.get('fallback') === '1';
+  const fieldStationAttention = searchParams.get('attention');
+  const fieldStationMapIntent = fieldStationAttentionToMapIntent(fieldStationAttention);
+  const stationEventKeysRef = useRef(new Set<string>());
   const adventureCenter = useMemo(
     () =>
       viewportCenter ??
@@ -3762,20 +3780,88 @@ export default function RealWorldMap() {
     // Intent is contextual, not a permanent profile. Preserve it only while the
     // current browser tab is alive so a future visit begins with the question.
     window.localStorage.removeItem(MAP_ATTENTION_INTENT_STORAGE_KEY);
-    const savedIntent = window.sessionStorage.getItem(MAP_ATTENTION_INTENT_STORAGE_KEY);
-    if (
-      savedIntent === 'meet' ||
-      savedIntent === 'discover' ||
-      savedIntent === 'now' ||
-      savedIntent === 'tonight'
-    ) {
-      setMapAttentionIntent(savedIntent);
+    if (fieldStationEntry) {
+      setMapAttentionIntent(fieldStationMapIntent);
+      setMapAttentionGuideOpen(true);
+    } else {
+      const savedIntent = window.sessionStorage.getItem(MAP_ATTENTION_INTENT_STORAGE_KEY);
+      if (
+        savedIntent === 'meet' ||
+        savedIntent === 'discover' ||
+        savedIntent === 'now' ||
+        savedIntent === 'tonight'
+      ) {
+        setMapAttentionIntent(savedIntent);
+      }
     }
-  }, []);
+  }, [fieldStationEntry, fieldStationMapIntent]);
+
+  const postFieldStationEvent = useCallback((input: {
+    eventType: 'STATION_ENTRY_RENDERED' | 'STATION_ATTENTION_SELECTED' | 'STATION_TARGET_OPENED';
+    attentionMode?: string | null;
+    targetType?: string | null;
+    targetId?: string | null;
+    targetHref?: string | null;
+  }) => {
+    if (!fieldStationEntry) return;
+    const key = `${input.eventType}:${input.attentionMode ?? ''}:${input.targetType ?? ''}:${input.targetId ?? ''}`;
+    if (stationEventKeysRef.current.has(key)) return;
+    stationEventKeysRef.current.add(key);
+    void fetch('/api/attribution/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+      keepalive: true,
+    }).catch(() => {
+      stationEventKeysRef.current.delete(key);
+    });
+  }, [fieldStationEntry]);
+
+  useEffect(() => {
+    if (!fieldStationEntry) return;
+    postFieldStationEvent({
+      eventType: 'STATION_ENTRY_RENDERED',
+      attentionMode: fieldStationAttention,
+      targetType: 'PAGE',
+      targetId: 'map',
+      targetHref: `/map${window.location.search}`,
+    });
+  }, [fieldStationAttention, fieldStationEntry, postFieldStationEvent]);
+
+  useEffect(() => {
+    if (!selectedPlace?.slug) return;
+    postFieldStationEvent({
+      eventType: 'STATION_TARGET_OPENED',
+      attentionMode: mapIntentToFieldStationAttention(mapAttentionIntent),
+      targetType: 'PAGE',
+      targetId: `venue:${selectedPlace.slug}`,
+      targetHref: `/map?place=${encodeURIComponent(selectedPlace.slug)}`,
+    });
+  }, [mapAttentionIntent, postFieldStationEvent, selectedPlace?.slug]);
+
+  useEffect(() => {
+    if (!selectedMeetup?.id) return;
+    postFieldStationEvent({
+      eventType: 'STATION_TARGET_OPENED',
+      attentionMode: mapIntentToFieldStationAttention(mapAttentionIntent),
+      targetType: 'MEETUP',
+      targetId: selectedMeetup.id,
+      targetHref: `/map?meetup=1&meetupId=${encodeURIComponent(selectedMeetup.id)}`,
+    });
+  }, [mapAttentionIntent, postFieldStationEvent, selectedMeetup?.id]);
 
   const handleMapAttentionIntentChange = useCallback(
     (intent: MapAttentionIntent | null) => {
       setMapAttentionIntent(intent);
+      if (intent) {
+        postFieldStationEvent({
+          eventType: 'STATION_ATTENTION_SELECTED',
+          attentionMode: mapIntentToFieldStationAttention(intent),
+          targetType: 'PAGE',
+          targetId: 'map',
+          targetHref: `/map${typeof window !== 'undefined' ? window.location.search : ''}`,
+        });
+      }
       if (intent === 'discover') {
         setSelectedPlace(null);
         setSelectedMeetup(null);
@@ -3791,7 +3877,7 @@ export default function RealWorldMap() {
       }
       triggerHaptic('selection');
     },
-    [adventureCenter.latitude, adventureCenter.longitude]
+    [adventureCenter.latitude, adventureCenter.longitude, postFieldStationEvent]
   );
 
   const handleAdventurePanelOpenChange = useCallback(
@@ -7596,6 +7682,10 @@ export default function RealWorldMap() {
           : ''
       }`
     : null;
+  useEffect(() => {
+    if (!selectedVenueHref) return;
+    router.prefetch(selectedVenueHref);
+  }, [router, selectedVenueHref]);
   const selectedFundDareHref =
     selectedPlace?.slug
       ? buildVenueChallengeCreateHref({
@@ -8359,6 +8449,13 @@ export default function RealWorldMap() {
 
   const handleAdventureActivitySelect = useCallback(
     (activity: TonightActivity) => {
+      postFieldStationEvent({
+        eventType: 'STATION_TARGET_OPENED',
+        attentionMode: mapIntentToFieldStationAttention(mapAttentionIntent),
+        targetType: activity.type === 'meetup' ? 'MEETUP' : 'DARE',
+        targetId: activity.id,
+        targetHref: activity.href,
+      });
       setAdventurePanelOpen(false);
       setTargetCenter([activity.place.lat, activity.place.lng]);
       setTargetZoom(15);
@@ -8387,7 +8484,7 @@ export default function RealWorldMap() {
 
       router.push(activity.href);
     },
-    [meetups, router]
+    [mapAttentionIntent, meetups, postFieldStationEvent, router]
   );
 
   const handleExploreSecrets = useCallback(() => {
@@ -8408,9 +8505,16 @@ export default function RealWorldMap() {
         triggerHaptic('warning');
         return;
       }
+      postFieldStationEvent({
+        eventType: 'STATION_TARGET_OPENED',
+        attentionMode: mapIntentToFieldStationAttention(mapAttentionIntent),
+        targetType: 'PAGE',
+        targetId: `venue:${slug}`,
+        targetHref: `/map?place=${encodeURIComponent(slug)}`,
+      });
       focusExistingPlace(place);
     },
-    [focusExistingPlace, nearbyPlaceBySlug]
+    [focusExistingPlace, mapAttentionIntent, nearbyPlaceBySlug, postFieldStationEvent]
   );
 
   const handleOpenPersonalTrail = useCallback(() => {
@@ -9037,16 +9141,6 @@ export default function RealWorldMap() {
       </div>
     ) : null;
   const selectedCheckInLive = selectedPlace?.liveSession?.status === 'LIVE';
-  const selectedCheckInStatusLabel =
-    selectedPlace && selectedPlace.liveSession === undefined && selectedPlaceActiveDaresLoading
-      ? 'Checking'
-      : selectedCheckInLive
-        ? 'Live QR'
-        : 'QR required';
-  const selectedCheckInCountToday =
-    selectedPlace?.memorySummary?.checkInCount ??
-    selectedPlace?.commandCenter?.metrics.uniqueVisitorsToday ??
-    0;
   const selectedPlaceTakeProofButton =
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <TagPlaceButton
@@ -9210,17 +9304,29 @@ export default function RealWorldMap() {
     ) : null;
 
   const selectedPlaceOpenVenueButton =
-    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlace.slug ? (
+    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlace.slug && selectedVenueHref ? (
       <Link
-        href={`/venues/${selectedPlace.slug}${
-          isCreatorSource
-            ? `?source=creator${deepLinkedDareShortId ? `&dare=${encodeURIComponent(deepLinkedDareShortId)}` : ''}`
-            : ''
+        href={selectedVenueHref}
+        prefetch
+        onFocus={() => router.prefetch(selectedVenueHref)}
+        onPointerDown={() => router.prefetch(selectedVenueHref)}
+        onClick={(event) => {
+          if (openingVenueSlug === selectedPlace.slug) {
+            event.preventDefault();
+            return;
+          }
+          setOpeningVenueSlug(selectedPlace.slug ?? null);
+        }}
+        className={`map-primary-action-button map-primary-action-button--venue ${
+          openingVenueSlug === selectedPlace.slug ? 'is-opening' : ''
         }`}
-        className="map-primary-action-button map-primary-action-button--venue"
         aria-label={`Open venue page for ${selectedPlace.name}`}
+        aria-busy={openingVenueSlug === selectedPlace.slug}
       >
-        <span>Open venue</span>
+        {openingVenueSlug === selectedPlace.slug ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+        ) : null}
+        <span>{openingVenueSlug === selectedPlace.slug ? 'Opening…' : 'Open venue'}</span>
       </Link>
     ) : null;
 
@@ -9279,9 +9385,37 @@ export default function RealWorldMap() {
           {selectedPlacePrimaryAction}
           {selectedPlaceOpenVenueButton}
         </div>
-        {selectedPlaceHasLiveDare ? null : (
-          <p className="venue-cta-hint">Check in with GPS + QR to leave verified proof.</p>
+        {selectedCheckInLive ? (
+          <button
+            type="button"
+            onClick={handleLaunchVenueCheckIn}
+            disabled={checkInLaunching}
+            className="group flex min-h-[52px] w-full items-center gap-3 rounded-[20px] border border-[#f8dd72]/24 bg-[radial-gradient(circle_at_12%_0%,rgba(248,221,114,0.18),transparent_34%),linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(34,211,238,0.08)_48%,rgba(7,11,18,0.94)_100%)] px-3.5 py-2.5 text-left shadow-[0_14px_28px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.24)] transition hover:-translate-y-px hover:border-[#f8dd72]/42 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+            aria-label={`Check in at ${selectedPlace.name}`}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border border-[#f8dd72]/22 bg-[#f8dd72]/10 text-[#f8dd72]">
+              {checkInLaunching ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-white">
+                {checkInLaunching ? 'Opening venue pass…' : 'Check in here'}
+              </span>
+              <span className="mt-0.5 block truncate text-[10px] font-semibold text-white/48">
+                First QR + GPS visit +{VERIFIED_VENUE_CHECK_IN_POINTS} Signal Points · room · Crossed Paths
+              </span>
+            </span>
+            <span className="rounded-full border border-cyan-200/16 bg-cyan-300/[0.07] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-cyan-100/74">
+              Live
+            </span>
+          </button>
+        ) : selectedPlaceHasLiveDare ? null : (
+          <p className="venue-cta-hint">Take proof to add permanent place memory.</p>
         )}
+        {checkInLaunchState ? (
+          <p className={`venue-cta-hint ${checkInLaunchState.type === 'error' ? '!text-rose-200/82' : ''}`}>
+            {checkInLaunchState.message}
+          </p>
+        ) : null}
         <div
           className={`venue-action-rail venue-action-rail--primary venue-action-rail--utility ${selectedPlaceUtilityRailColumns} ${
             selectedPlaceFundIsActivationCta ? 'venue-action-rail--utility-solo' : ''
@@ -9475,59 +9609,6 @@ export default function RealWorldMap() {
         ) : null}
       </div>
     ) : null;
-  const selectedPlaceCheckInRail = selectedPlace?.slug && selectedCheckInLive ? (
-    <div className="map-panel-section mt-3 rounded-[22px] border border-cyan-300/16 bg-[linear-gradient(180deg,rgba(34,211,238,0.1)_0%,rgba(7,12,18,0.9)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)]">
-      <div className="grid grid-cols-[1fr_auto] items-center gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-cyan-100/82">
-            <ShieldCheck className="h-3.5 w-3.5 text-cyan-200" />
-            Check-In
-          </div>
-          <p className="mt-1.5 truncate text-sm font-semibold text-white">
-            {selectedCheckInLive ? 'Scan the venue QR to check in.' : 'Venue QR is not live yet.'}
-          </p>
-        </div>
-        <span className="rounded-full border border-cyan-300/20 bg-cyan-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
-          {selectedCheckInStatusLabel}
-        </span>
-      </div>
-
-      <div className="mt-3 grid grid-cols-[1fr_auto] items-center gap-2 rounded-[18px] border border-white/8 bg-black/18 px-3 py-2.5">
-        <div className="min-w-0">
-          <div className="flex flex-wrap gap-1.5">
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
-              {selectedPlace.checkInRadiusMeters ?? 120}m
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
-              {selectedCheckInCountToday} today
-            </span>
-          </div>
-          <p className="mt-1.5 truncate text-xs text-white/54">
-            {selectedCheckInLive ? 'Verified check-ins only.' : 'Opens when the venue QR is live.'}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleLaunchVenueCheckIn}
-          disabled={checkInLaunching}
-          className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-cyan-200/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.2)_0%,rgba(7,14,20,0.94)_100%)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-50 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)] transition hover:-translate-y-[1px] hover:border-cyan-100/42 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
-        >
-          {checkInLaunching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-          {checkInLaunching ? 'Opening' : selectedCheckInLive ? 'Check in' : 'QR'}
-        </button>
-      </div>
-
-      {checkInLaunchState ? (
-        <p
-          className={`mt-2 text-xs leading-5 ${
-            checkInLaunchState.type === 'error' ? 'text-rose-200/82' : 'text-cyan-100/78'
-          }`}
-        >
-          {checkInLaunchState.message}
-        </p>
-      ) : null}
-    </div>
-  ) : null;
   const selectedPresenceActiveCount =
     selectedPresenceSummary?.activeCount ?? (activePresenceIsSelectedVenue ? 1 : 0);
   const selectedPlacePresenceRail = selectedPlace ? (
@@ -10532,6 +10613,8 @@ export default function RealWorldMap() {
               onSelectPlace={handleMapAttentionPlaceSelect}
               onOpenTrail={handleOpenPersonalTrail}
               onGuideOpenChange={setMapAttentionGuideOpen}
+              fieldStationLabel={fieldStationLabel}
+              fieldStationFallback={fieldStationFallback}
             />
 
             {/* Free meetup layer (Stage 3) — layer filter + legend. Only mounts
@@ -11427,8 +11510,6 @@ export default function RealWorldMap() {
                   ) : null}
 
                   {selectedSaveSpotRail}
-
-                  {selectedPlaceCheckInRail}
 
                   {selectedPlacePresenceRail}
 
@@ -14907,6 +14988,20 @@ export default function RealWorldMap() {
             linear-gradient(180deg, #c785ff 0%, #934fd7 52%, #4b1d78 100%) !important;
         }
 
+        :global(.venue-action-rail--primary .map-primary-action-button--venue.is-opening) {
+          cursor: progress;
+          border-color: rgba(236, 189, 255, 0.82) !important;
+          box-shadow:
+            0 0 24px rgba(199, 133, 255, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.38),
+            inset 0 -12px 16px rgba(0, 0, 0, 0.28) !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button--venue.is-opening > svg) {
+          display: block !important;
+          flex: 0 0 auto;
+        }
+
         @media (max-width: 767px) {
           :global(.venue-action-rail--primary) {
             gap: 0.24rem !important;
@@ -16092,7 +16187,19 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--cafe) {
-          background-image: url('/assets/map/holograms/cafe.webp');
+          background-image: url('/assets/map/holograms/cafe-v2.svg');
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--fitness) {
+          background-image: url('/assets/map/holograms/fitness.svg');
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--rental) {
+          background-image: url('/assets/map/holograms/rental.svg');
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--wellness) {
+          background-image: url('/assets/map/holograms/wellness.svg');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--fitness) {

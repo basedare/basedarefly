@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="BaseDare fitness hologram">
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#fff1a6"/>
+      <stop offset="0.36" stop-color="#f5c518"/>
+      <stop offset="0.75" stop-color="#a95a08"/>
+      <stop offset="1" stop-color="#4d2104"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#6f7896"/>
+      <stop offset="0.38" stop-color="#1d263a"/>
+      <stop offset="1" stop-color="#070a11"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0" stop-color="#086476"/>
+      <stop offset="0.5" stop-color="#50edf8"/>
+      <stop offset="1" stop-color="#086476"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="128" cy="223" rx="72" ry="12" fill="#4ce8f5" opacity="0.16"/>
+  <ellipse cx="128" cy="220" rx="57" ry="9" fill="none" stroke="url(#cyan)" stroke-width="4"/>
+  <path d="m69 197 18-18h82l18 18-15 22H84Z" fill="url(#steel)" stroke="#06080e" stroke-width="6"/>
+  <path d="m88 190 9-8h62l9 8-10 10H98Z" fill="#15202d" stroke="#42dfef" stroke-width="3"/>
+  <g transform="rotate(-17 128 118)">
+    <rect x="76" y="106" width="104" height="24" rx="11" fill="url(#gold)" stroke="#2a1303" stroke-width="6"/>
+    <rect x="42" y="84" width="37" height="68" rx="8" fill="url(#steel)" stroke="#06080e" stroke-width="7"/>
+    <rect x="56" y="77" width="30" height="82" rx="8" fill="url(#gold)" stroke="#2a1303" stroke-width="6"/>
+    <path d="M64 88h14M64 148h14" stroke="#fff0a0" stroke-width="5" stroke-linecap="round"/>
+    <rect x="177" y="84" width="37" height="68" rx="8" fill="url(#steel)" stroke="#06080e" stroke-width="7"/>
+    <rect x="170" y="77" width="30" height="82" rx="8" fill="url(#gold)" stroke="#2a1303" stroke-width="6"/>
+    <path d="M178 88h14M178 148h14" stroke="#fff0a0" stroke-width="5" stroke-linecap="round"/>
+    <rect x="104" y="104" width="48" height="28" rx="11" fill="#111827" stroke="#43e5f3" stroke-width="4"/>
+    <path d="m119 111 10 10m0-10-10 10" stroke="#f5c518" stroke-width="5" stroke-linecap="round"/>
+    <path d="M138 111v10" stroke="#43e5f3" stroke-width="5" stroke-linecap="round"/>
+  </g>
+</svg>

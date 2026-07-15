@@ -58,7 +58,7 @@ async function detectDataSignals(wallet: string): Promise<{
 }> {
   const where = { walletAddress: { equals: wallet, mode: 'insensitive' as const } };
 
-  const [tag, approvedMarkCount, recentMarks] = await Promise.all([
+  const [tag, approvedMarkCount, recentMarks, recentCheckIns] = await Promise.all([
     prisma.streamerTag.findFirst({
       where,
       select: { id: true, completedDares: true, status: true },
@@ -70,13 +70,26 @@ async function detectDataSignals(wallet: string): Promise<{
       orderBy: { submittedAt: 'desc' },
       take: 120,
     }),
+    prisma.venueCheckIn.findMany({
+      where: {
+        ...where,
+        status: 'CONFIRMED',
+        proofLevel: 'QR_AND_GPS',
+      },
+      select: { scannedAt: true },
+      orderBy: { scannedAt: 'desc' },
+      take: 120,
+    }),
   ]);
 
   return {
     hasTag: Boolean(tag && tag.status !== 'REVOKED'),
     hasProof: (tag?.completedDares ?? 0) > 0,
     hasMark: approvedMarkCount > 0,
-    streakDays: computeStreakDays(recentMarks.map((mark) => mark.submittedAt)),
+    streakDays: computeStreakDays([
+      ...recentMarks.map((mark) => mark.submittedAt),
+      ...recentCheckIns.map((checkIn) => checkIn.scannedAt),
+    ]),
   };
 }
 
