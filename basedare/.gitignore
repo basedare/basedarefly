@@ -13,6 +13,10 @@
 # testing
 /coverage
 
+# local Graphify runtime + generated extraction cache
+/.venv-graphify*/
+/graphify-out/cache/
+
 # Pack Mark seed (real secret words — never commit)
 scripts/pack-seed.local.json
 

@@ -25,6 +25,7 @@
     "safety:ux": "node scripts/launch-gauntlet.mjs",
     "push:keys": "node scripts/generate-vapid-keys.mjs",
     "safety:static": "node scripts/static-production-safety.mjs",
+    "graphify:rebuild": "bash scripts/rebuild-graphify.sh",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {

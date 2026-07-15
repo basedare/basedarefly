@@ -5,7 +5,7 @@ This project has a graphify knowledge graph at graphify-out/.
 Rules:
 - Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
 - If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying code files in this session, run `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"` to keep the graph current
+- After modifying code files in this session, run `npm run graphify:rebuild` to keep the graph current. The script resolves the shared Python 3.11 Graphify runtime across Git worktrees and bootstraps it when missing.
 
 ## Product philosophy (read before building features / writing copy)
 Build *from the single aligned canon* in `docs/PHILOSOPHY.md` and `brain-vault/00-control/vision.md`. BaseDare is a remote, bounty-funded discovery network: safe dares pay contributors to create verified place intelligence; the map is the feed; place memory and verification are the assets being built; every batch must create a durable receipt; events are optional local-partner products; reputation now / token later; working beats perfect. If these two files ever conflict, reconcile them in the same change before continuing. Market evidence lives in `brain-vault/03-insights/`.
