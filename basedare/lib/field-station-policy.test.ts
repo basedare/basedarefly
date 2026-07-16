@@ -68,7 +68,7 @@ test('unavailable density fails to a neutral entry rather than an empty promise'
   assert.equal(result.fallbackReason, 'DENSITY_UNAVAILABLE');
 });
 
-test('station context preserves the local target while adding answer-first state', () => {
+test('station context preserves local query state while forcing the answer-first Board', () => {
   const href = appendFieldStationContextToHref({
     targetHref: '/map?place=cat-and-gun',
     stationCode: 'catangnan-01',
@@ -80,13 +80,17 @@ test('station context preserves the local target while adding answer-first state
     requestedAttention: 'TONIGHT',
     resolvedAttention: 'NEARBY',
     fallbackApplied: true,
+    minimumDensity: 3,
+    radiusKm: 2.5,
   });
   const url = new URL(href, 'https://basedare.local');
-  assert.equal(url.pathname, '/map');
+  assert.equal(url.pathname, '/board');
   assert.equal(url.searchParams.get('place'), 'cat-and-gun');
   assert.equal(url.searchParams.get('station'), 'catangnan-01');
   assert.equal(url.searchParams.get('attention'), 'nearby');
   assert.equal(url.searchParams.get('requestedAttention'), 'tonight');
+  assert.equal(url.searchParams.get('minimumDensity'), '3');
+  assert.equal(url.searchParams.get('radiusKm'), '2.5');
 });
 
 test('station policy normalizes modes, map intent, thresholds and serials', () => {

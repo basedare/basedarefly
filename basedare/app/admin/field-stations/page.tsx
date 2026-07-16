@@ -28,6 +28,13 @@ type Report = {
     contentCode: string | null;
     counts: Counts;
     timeToAction: { verifiedActions: number; medianMinutes: number } | null;
+    entryPerformance: { samples: number; medianMs: number } | null;
+    inventoryHealth: {
+      targetedScans: number;
+      fallbackScans: number;
+      fallbackRate: number;
+      lastHealthyAt: string | null;
+    } | null;
     receiptMeaning: string;
   }>;
   creativeReceipts: Array<{ contentCode: string; counts: Counts }>;
@@ -48,7 +55,7 @@ const EMPTY_FORM = {
   fallbackAttentionMode: 'NEARBY',
   minimumDensity: 3,
   densityRadiusKm: 3,
-  targetHref: '/map',
+  targetHref: '/board',
 };
 
 function count(counts: Counts, key: string) {
@@ -252,6 +259,8 @@ export default function FieldStationsAdminPage() {
                     <p className="mt-1 font-mono text-[10px] text-white/35">{receipt.stationCode} · {receipt.contentCode}</p>
                     <ReceiptMetrics counts={receipt.counts} />
                     {receipt.timeToAction ? <p className="mt-3 text-[10px] font-bold text-white/40">Median scan → verified action: <span className="text-white/70">{receipt.timeToAction.medianMinutes} min</span> · {receipt.timeToAction.verifiedActions} measured</p> : null}
+                    {receipt.entryPerformance ? <p className="mt-2 text-[10px] font-bold text-white/40">Median scan page render: <span className={receipt.entryPerformance.medianMs <= 1500 ? 'text-emerald-200' : 'text-amber-200'}>{receipt.entryPerformance.medianMs}ms</span> · {receipt.entryPerformance.samples} measured</p> : null}
+                    {receipt.inventoryHealth ? <p className="mt-2 text-[10px] font-bold text-white/40">Inventory fallback rate: <span className={receipt.inventoryHealth.fallbackRate > 40 ? 'text-amber-200' : 'text-emerald-200'}>{receipt.inventoryHealth.fallbackRate}%</span> · {receipt.inventoryHealth.fallbackScans}/{receipt.inventoryHealth.targetedScans} targeted scans{receipt.inventoryHealth.lastHealthyAt ? ` · last healthy ${new Date(receipt.inventoryHealth.lastHealthyAt).toLocaleString()}` : ''}</p> : null}
                   </article>
                 )) : <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-white/30">No station scans yet.</div>}
               </div>

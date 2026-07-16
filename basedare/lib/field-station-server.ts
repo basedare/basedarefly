@@ -21,8 +21,7 @@ import {
   resolveFieldStationAttention,
   type FieldStationAttentionMode,
 } from '@/lib/field-station-policy';
-import { calculateDistance } from '@/lib/geo';
-import { localSignalIsCurrentlyRelevant, serializeLocalSignal } from '@/lib/local-signals';
+import { evaluateStationInventory } from '@/lib/field-stations/inventory';
 import {
   JOURNEY_COOKIE_NAME,
   hashOpaqueToken,
@@ -67,127 +66,6 @@ const FIELD_STATION_EVENT_TYPES = new Set([
   'STATION_TARGET_OPENED',
 ]);
 
-function boundingBox(latitude: number, longitude: number, radiusKm: number) {
-  const latDelta = radiusKm / 110.574;
-  const lngDelta = radiusKm / (111.32 * Math.max(0.2, Math.cos((latitude * Math.PI) / 180)));
-  return {
-    latitude: { gte: latitude - latDelta, lte: latitude + latDelta },
-    longitude: { gte: longitude - lngDelta, lte: longitude + lngDelta },
-  };
-}
-
-function insideRadius(
-  origin: { latitude: number; longitude: number },
-  point: { latitude: number; longitude: number },
-  radiusKm: number
-) {
-  return calculateDistance(
-    origin.latitude,
-    origin.longitude,
-    point.latitude,
-    point.longitude
-  ) <= radiusKm;
-}
-
-async function countFieldStationDensity(input: {
-  attention: FieldStationAttentionMode;
-  latitude: number;
-  longitude: number;
-  radiusKm: number;
-}) {
-  if (input.attention === 'ASK' || input.attention === 'NEARBY') return 0;
-  const now = new Date();
-  const box = boundingBox(input.latitude, input.longitude, input.radiusKm);
-  const origin = { latitude: input.latitude, longitude: input.longitude };
-  const soon = new Date(now.getTime() + 18 * 60 * 60 * 1000);
-
-  if (input.attention === 'SOCIAL') {
-    const meetups = await prisma.meetup.findMany({
-      where: {
-        status: 'active',
-        startTime: { gte: new Date(now.getTime() - 2 * 60 * 60 * 1000), lte: soon },
-        approxLat: box.latitude,
-        approxLng: box.longitude,
-      },
-      select: { approxLat: true, approxLng: true },
-      take: 100,
-    });
-    return meetups.filter((item) => insideRadius(origin, {
-      latitude: item.approxLat,
-      longitude: item.approxLng,
-    }, input.radiusKm)).length;
-  }
-
-  if (input.attention === 'REWARD') {
-    const dares = await prisma.dare.findMany({
-      where: {
-        status: 'PENDING',
-        bounty: { gt: 0 },
-        latitude: box.latitude,
-        longitude: box.longitude,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-      },
-      select: { latitude: true, longitude: true },
-      take: 100,
-    });
-    return dares.filter((item) =>
-      item.latitude !== null && item.longitude !== null && insideRadius(origin, {
-        latitude: item.latitude,
-        longitude: item.longitude,
-      }, input.radiusKm)
-    ).length;
-  }
-
-  if (input.attention === 'MYSTERY') {
-    const signals = await prisma.founderEvent.findMany({
-      where: {
-        eventType: 'LOCAL_SIGNAL',
-        status: 'APPROVED',
-        occurredAt: { gte: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) },
-      },
-      orderBy: { occurredAt: 'desc' },
-      take: 200,
-    });
-    return signals.filter((signal) => {
-      const item = serializeLocalSignal(signal, origin);
-      return localSignalIsCurrentlyRelevant(item, now) &&
-        item.distanceKm !== null && item.distanceKm <= input.radiusKm;
-    }).length;
-  }
-
-  const [meetups, dares] = await Promise.all([
-    prisma.meetup.findMany({
-      where: {
-        status: 'active',
-        startTime: { gte: new Date(now.getTime() - 2 * 60 * 60 * 1000), lte: soon },
-        approxLat: box.latitude,
-        approxLng: box.longitude,
-      },
-      select: { approxLat: true, approxLng: true },
-      take: 100,
-    }),
-    prisma.dare.findMany({
-      where: {
-        status: 'PENDING',
-        latitude: box.latitude,
-        longitude: box.longitude,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-      },
-      select: { latitude: true, longitude: true },
-      take: 100,
-    }),
-  ]);
-  return meetups.filter((item) => insideRadius(origin, {
-    latitude: item.approxLat,
-    longitude: item.approxLng,
-  }, input.radiusKm)).length + dares.filter((item) =>
-    item.latitude !== null && item.longitude !== null && insideRadius(origin, {
-      latitude: item.latitude,
-      longitude: item.longitude,
-    }, input.radiusKm)
-  ).length;
-}
-
 export async function resolveFieldStationRedirect(
   link: FieldStationLink
 ): Promise<ResolvedFieldStationRedirect> {
@@ -212,12 +90,14 @@ export async function resolveFieldStationRedirect(
   let densityCount = 0;
   let densityAvailable = true;
   try {
-    densityCount = await countFieldStationDensity({
+    const inventory = await evaluateStationInventory({
       attention: requested,
       latitude: link.stationHostVenue.latitude,
       longitude: link.stationHostVenue.longitude,
       radiusKm,
+      minimumDensity,
     });
+    densityCount = inventory.qualifyingCount;
   } catch (error) {
     densityAvailable = false;
     console.error('[FIELD_STATION] Density resolution failed:', error);
@@ -240,6 +120,8 @@ export async function resolveFieldStationRedirect(
     requestedAttention: resolution.requestedAttention,
     resolvedAttention: resolution.resolvedAttention,
     fallbackApplied: resolution.fallbackApplied,
+    minimumDensity,
+    radiusKm,
   });
   return {
     isFieldStation: true,
@@ -300,6 +182,7 @@ export async function recordStationFunnelEvent(
     targetType?: string | null;
     targetId?: string | null;
     targetHref?: string | null;
+    clientRenderMs?: number | null;
   }
 ) {
   if (!FIELD_STATION_EVENT_TYPES.has(input.eventType)) {
@@ -337,7 +220,12 @@ export async function recordStationFunnelEvent(
       participantKey: context.journey.participantKey,
       targetType,
       targetId,
-      metadataJson: { targetHref },
+      metadataJson: {
+        targetHref,
+        ...(input.eventType === 'STATION_ENTRY_RENDERED' && input.clientRenderMs !== undefined
+          ? { clientRenderMs: input.clientRenderMs }
+          : {}),
+      },
     }],
     skipDuplicates: true,
   });
@@ -411,6 +299,44 @@ export async function buildFieldStationReport(periodDays: number) {
   const venueById = new Map(venues.map((venue) => [venue.id, venue]));
   const receipts = aggregateFieldStationReceiptCounts(events);
   const timeToAction = computeFieldStationTimeToAction(events);
+  const entryPerformance = new Map<string, number[]>();
+  const inventoryHealth = new Map<string, {
+    targetedScans: number;
+    fallbackScans: number;
+    lastHealthyAt: Date | null;
+  }>();
+  for (const event of events) {
+    if (event.eventType === 'STATION_ENTRY_RENDERED' && event.stationCode) {
+      const metadata = event.metadataJson && typeof event.metadataJson === 'object' && !Array.isArray(event.metadataJson)
+        ? event.metadataJson as Record<string, unknown>
+        : {};
+      const value = metadata.clientRenderMs;
+      if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+        const samples = entryPerformance.get(event.stationCode) ?? [];
+        samples.push(value);
+        entryPerformance.set(event.stationCode, samples);
+      }
+    }
+    if (event.eventType !== 'STATION_SCAN' || !event.stationCode) continue;
+    const metadata = event.metadataJson && typeof event.metadataJson === 'object' && !Array.isArray(event.metadataJson)
+      ? event.metadataJson as Record<string, unknown>
+      : {};
+    const requested = typeof metadata.requestedAttentionMode === 'string'
+      ? metadata.requestedAttentionMode.toUpperCase()
+      : '';
+    if (!['TONIGHT', 'MYSTERY', 'SOCIAL', 'REWARD'].includes(requested)) continue;
+    const current = inventoryHealth.get(event.stationCode) ?? {
+      targetedScans: 0,
+      fallbackScans: 0,
+      lastHealthyAt: null,
+    };
+    current.targetedScans += 1;
+    if (metadata.fallbackApplied === true) current.fallbackScans += 1;
+    else if (!current.lastHealthyAt || event.occurredAt > current.lastHealthyAt) {
+      current.lastHealthyAt = event.occurredAt;
+    }
+    inventoryHealth.set(event.stationCode, current);
+  }
   return {
     generatedAt: new Date().toISOString(),
     periodDays,
@@ -427,6 +353,26 @@ export async function buildFieldStationReport(periodDays: number) {
         contentCode: link?.contentCode ?? null,
         counts,
         timeToAction: timeToAction[stationCode] ?? null,
+        entryPerformance: (() => {
+          const samples = [...(entryPerformance.get(stationCode) ?? [])].sort((a, b) => a - b);
+          if (samples.length === 0) return null;
+          const middle = Math.floor(samples.length / 2);
+          const medianMs = samples.length % 2
+            ? samples[middle]
+            : Math.round((samples[middle - 1] + samples[middle]) / 2);
+          return { samples: samples.length, medianMs };
+        })(),
+        inventoryHealth: (() => {
+          const health = inventoryHealth.get(stationCode);
+          if (!health) return null;
+          return {
+            ...health,
+            fallbackRate: health.targetedScans > 0
+              ? Math.round((health.fallbackScans / health.targetedScans) * 1000) / 10
+              : 0,
+            lastHealthyAt: health.lastHealthyAt?.toISOString() ?? null,
+          };
+        })(),
         receiptMeaning: 'Acquisition outcomes from this host placement; not arrivals at the host.',
       };
     }),

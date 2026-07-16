@@ -11,6 +11,7 @@ function record(input: {
   targetType?: string | null;
   targetId?: string | null;
   targetHref?: string | null;
+  clientRenderMs?: number | null;
 }) {
   void fetch('/api/attribution/events', {
     method: 'POST',
@@ -28,6 +29,7 @@ export function FieldStationEntryBeacon({ attentionMode }: { attentionMode?: str
       targetType: 'PAGE',
       targetId: 'board',
       targetHref: window.location.pathname + window.location.search,
+      clientRenderMs: Math.max(0, Math.round(performance.now())),
     });
   }, [attentionMode]);
   return null;

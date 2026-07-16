@@ -204,9 +204,16 @@ export function appendFieldStationContextToHref(input: {
   requestedAttention: FieldStationAttentionMode;
   resolvedAttention: FieldStationAttentionMode;
   fallbackApplied: boolean;
+  minimumDensity: number;
+  radiusKm: number;
 }) {
   const safeHref = normalizeLocalTargetHref(input.targetHref);
   const url = new URL(safeHref, 'https://basedare.local');
+  // Every physical acquisition scan earns a fast answer before the heavy map.
+  // Keep compatible query state (for example a place slug), but use the Board
+  // as the landing surface. The map remains an explicit progressive enhancement.
+  url.pathname = '/board';
+  url.hash = '';
   url.searchParams.set('field', '1');
   url.searchParams.set('station', input.stationCode);
   url.searchParams.set('stationSerial', input.stationSerial);
@@ -214,6 +221,8 @@ export function appendFieldStationContextToHref(input: {
   url.searchParams.set('attention', input.resolvedAttention.toLowerCase());
   url.searchParams.set('lat', input.latitude.toFixed(6));
   url.searchParams.set('lng', input.longitude.toFixed(6));
+  url.searchParams.set('minimumDensity', String(normalizeMinimumDensity(input.minimumDensity)));
+  url.searchParams.set('radiusKm', String(normalizeDensityRadiusKm(input.radiusKm)));
   if (input.city) url.searchParams.set('city', input.city.slice(0, 100));
   if (input.fallbackApplied) {
     url.searchParams.set('fallback', '1');

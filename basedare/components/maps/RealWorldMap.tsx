@@ -16187,19 +16187,19 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--cafe) {
-          background-image: url('/assets/map/holograms/cafe-v2.svg');
+          background-image: url('/assets/map/holograms/cafe.webp');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--fitness) {
-          background-image: url('/assets/map/holograms/fitness.svg');
+          background-image: url('/assets/map/holograms/fitness.webp');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--rental) {
-          background-image: url('/assets/map/holograms/rental.svg');
+          background-image: url('/assets/map/holograms/rental.webp');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--wellness) {
-          background-image: url('/assets/map/holograms/wellness.svg');
+          background-image: url('/assets/map/holograms/wellness.webp');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--fitness) {

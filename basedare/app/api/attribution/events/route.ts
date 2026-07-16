@@ -14,6 +14,7 @@ const EventSchema = z.object({
   targetType: z.string().max(20).optional().nullable(),
   targetId: z.string().max(191).optional().nullable(),
   targetHref: z.string().max(1024).optional().nullable(),
+  clientRenderMs: z.number().int().min(0).max(120_000).optional().nullable(),
 });
 
 export async function POST(request: NextRequest) {

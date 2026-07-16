@@ -33,7 +33,7 @@ const StationSchema = z.object({
   densityRadiusKm: z.coerce.number().optional().default(3),
   targetType: z.string().max(20).optional().default('PAGE'),
   targetId: z.string().max(191).optional(),
-  targetHref: z.string().max(1024).optional().default('/map'),
+  targetHref: z.string().max(1024).optional().default('/board'),
 });
 
 function appUrl(request: NextRequest) {
