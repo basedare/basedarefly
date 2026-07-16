@@ -19,7 +19,6 @@ import type {
 } from "@/components/maps/useTonightActivity";
 import type { AdventureSpriteKind } from "@/lib/map-adventure-policy";
 import { getSiargaoNightGuide } from "@/lib/siargao-nightlife";
-import type { AdventureSpriteKind } from "@/lib/map-adventure-policy";
 
 type AdventureMapOverlayProps = {
   enabled: boolean;

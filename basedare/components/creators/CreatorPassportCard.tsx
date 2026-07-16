@@ -54,7 +54,7 @@ export function CreatorPassportCard({
       <div className="relative">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/70">Creator Passport</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/70">Creator record</p>
             <h2 className="mt-1 truncate text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">{displayTag}</h2>
             {vibeLine ? <p className="mt-1 truncate text-sm font-bold text-white/56">{vibeLine}</p> : null}
           </div>

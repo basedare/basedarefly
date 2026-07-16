@@ -101,7 +101,7 @@ export default function CreatorProofPassport({
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#f8dd72]">
               <ShieldCheck className="h-4 w-4" />
-              Proof Passport
+              Verified record
             </div>
             <h2 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
               Verified action history.
@@ -123,7 +123,7 @@ export default function CreatorProofPassport({
                 {trust?.score ?? 0}/100
               </div>
             </div>
-            <p className="mt-3 text-sm leading-6 text-white/54">{trust?.summary ?? 'First verified proof starts the passport.'}</p>
+            <p className="mt-3 text-sm leading-6 text-white/54">{trust?.summary ?? 'Your first verified proof starts this record.'}</p>
           </div>
         </div>
 

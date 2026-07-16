@@ -78,7 +78,7 @@ export default async function CreatorSignupPage({
           </p>
           {market && !market.live ? (
             <p className="mx-auto mt-3 max-w-md text-sm font-bold leading-6 text-emerald-200/80">
-              {market.name} is scouting — claim your passport now and you&apos;re first in line when it opens.
+              {market.name} is scouting — claim your tag now and you&apos;re first in line when it opens.
             </p>
           ) : null}
           {market?.live ? (

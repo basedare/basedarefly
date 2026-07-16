@@ -378,7 +378,7 @@ export default function CreatorOnboardPage() {
                 </div>
 
                 <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/34">
-                  {connected ? (saving ? 'Saving…' : 'Saved to your passport') : 'Preview — connect wallet to save'}
+                  {connected ? (saving ? 'Saving…' : 'Saved to your creator record') : 'Preview — connect wallet to save'}
                 </p>
               </div>
             ) : null}

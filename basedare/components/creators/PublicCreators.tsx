@@ -4,7 +4,7 @@ import React, { Suspense } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight, Star, UserRoundPlus, MapPin, Clock, Briefcase, Radio } from "lucide-react";
+import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight, Star, MapPin, Clock, Briefcase, Radio } from "lucide-react";
 import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import HoneyGooAccent from "@/components/HoneyGooAccent";
@@ -293,14 +293,14 @@ export default function CreatorsPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-2xl mx-auto">
-                <Link href="/hosts?source=creators-page" className="flex-1">
+                <Link href="/map?source=creators-page" className="flex-1">
                   <motion.button
                     whileTap={{ scale: 0.98 }}
                     className="w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border border-cyan-300/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(12,12,22,0.94)_100%)] text-cyan-50 text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_14px_22px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_14px_rgba(0,0,0,0.24)] hover:-translate-y-[1px] hover:border-cyan-200/40"
                   >
                     <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/30 to-transparent" />
-                    <UserRoundPlus className="w-4 h-4 text-cyan-200" />
-                    Become a Host
+                    <Briefcase className="w-4 h-4 text-cyan-200" />
+                    Find Paid Missions
                   </motion.button>
                 </Link>
                 <LiquidMetalButton
@@ -323,6 +323,12 @@ export default function CreatorsPage() {
                   </motion.button>
                 </Link>
               </div>
+              <p className="mt-4 text-[11px] font-bold text-white/38">
+                Supporting approved routes or local operations?{' '}
+                <Link href="/hosts?source=creators-page" className="text-cyan-100/70 underline decoration-cyan-200/25 underline-offset-4 transition hover:text-cyan-50">
+                  Apply as a Local Partner
+                </Link>
+              </p>
             </div>
           </div>
         </motion.div>
@@ -449,7 +455,7 @@ export default function CreatorsPage() {
                             href={`/creator/${plainTag}`}
                             className={ghostButtonClass}
                           >
-                            Passport
+                            Proof record
                           </Link>
                           <Link
                             href={inviteHref}
@@ -468,15 +474,15 @@ export default function CreatorsPage() {
                             {creatorFetchFailed ? "Creator rail is loading slowly." : "No creator availability signal yet."}
                           </p>
                           <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-white/52">
-                            No live availability yet. Claim your tag or become a host and this rail fills itself in.
+                            No live availability yet. Open the map for paid missions or claim your tag to appear here.
                           </p>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2 md:w-[22rem]">
                           <Link
-                            href="/hosts?source=creators-empty-state"
+                            href="/map?source=creators-empty-state"
                             className={`${ghostButtonClass} bd-tactile-button--cyan min-h-11 px-4 tracking-[0.13em]`}
                           >
-                            Become a Host
+                            Find Paid Missions
                           </Link>
                           <button
                             type="button"
@@ -571,17 +577,17 @@ export default function CreatorsPage() {
                 <div className={`${insetCardClass} p-8 text-center`}>
                   <p className="text-gray-500 font-mono text-xs">
                     {creatorFetchFailed
-                      ? "Creator API is slow right now. The host intake and tag claim rails still work."
+                      ? "Creator API is slow right now. The paid-mission map and tag claim rails still work."
                       : creators.length === 0
                         ? "No creators verified yet. Be the first!"
                         : "No creators match that search yet."}
                   </p>
                   <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
                     <Link
-                      href="/hosts?source=creators-empty-state"
+                      href="/map?source=creators-empty-state"
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-200/40"
                     >
-                      Become a Host <ArrowRight className="w-4 h-4" />
+                      Find Paid Missions <ArrowRight className="w-4 h-4" />
                     </Link>
                     <button
                       onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
