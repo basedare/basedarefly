@@ -39,7 +39,51 @@ test('surfboards are reserved for actual surf signals', () => {
   );
   assert.equal(SURF_SIGNAL_PATTERN.test('Hideaway boardwalk bar beside the dock'), false);
   assert.equal(SURF_SIGNAL_PATTERN.test('Green Waves Cafe'), false);
+  assert.equal(SURF_SIGNAL_PATTERN.test('surf-camp restaurant'), false);
   assert.equal(SURF_SIGNAL_PATTERN.test('Cloud 9 morning wave check'), true);
+});
+
+test('primary venue identity prevents restaurant and cafe surf false positives', () => {
+  assert.equal(
+    getAdventurePlaceSprite({
+      challengeLiveCount: 0,
+      categories: ['restaurant', 'surf-camp', 'pizza', 'social'],
+    }),
+    'cafe'
+  );
+  assert.equal(
+    getAdventurePlaceSprite({
+      challengeLiveCount: 0,
+      categories: ['cafe', 'breakfast', 'surf', 'work-friendly'],
+    }),
+    'cafe'
+  );
+  assert.equal(
+    getAdventurePlaceSprite({
+      challengeLiveCount: 0,
+      categories: ['surf', 'resort', 'restaurant'],
+    }),
+    'surf'
+  );
+});
+
+test('activity supply resolves into three restrained map families', () => {
+  assert.equal(
+    getAdventurePlaceSprite({ challengeLiveCount: 0, categories: ['fitness', 'gym', 'weights'] }),
+    'fitness'
+  );
+  assert.equal(
+    getAdventurePlaceSprite({ challengeLiveCount: 0, categories: ['surf-rental', 'surf-shop'] }),
+    'rental'
+  );
+  assert.equal(
+    getAdventurePlaceSprite({ challengeLiveCount: 0, categories: ['surf-school', 'surf-lessons'] }),
+    'rental'
+  );
+  assert.equal(
+    getAdventurePlaceSprite({ challengeLiveCount: 0, categories: ['wellness', 'pilates', 'massage'] }),
+    'wellness'
+  );
 });
 
 test('beaches, attractions, and outdoor activities use the palm marker', () => {

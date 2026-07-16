@@ -17,6 +17,7 @@ import type {
   TonightActivity,
   TonightSnapshot,
 } from "@/components/maps/useTonightActivity";
+import type { AdventureSpriteKind } from "@/lib/map-adventure-policy";
 import { getSiargaoNightGuide } from "@/lib/siargao-nightlife";
 
 type AdventureMapOverlayProps = {
@@ -47,7 +48,7 @@ export type MapAttentionPlaceSuggestion = {
   name: string;
   description: string;
   meta: string;
-  sprite: "beer" | "surf" | "palm" | "cafe" | "gathering" | "rumor" | "flag";
+  sprite: AdventureSpriteKind;
 };
 
 const INTENT_OPTIONS: Array<{

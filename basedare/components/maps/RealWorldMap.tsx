@@ -10154,7 +10154,7 @@ export default function RealWorldMap() {
                       closeSearchPopover();
                     }
                   }}
-                  placeholder="Search breakfast, coffee, beach..."
+                  placeholder="Search food, surf, fitness, massage..."
                   className="min-h-9 w-full bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none"
                 />
                 {searching ? <Loader2 className="h-4 w-4 animate-spin text-white/45" /> : null}
@@ -16093,6 +16093,18 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.adventure-sprite--cafe) {
           background-image: url('/assets/map/holograms/cafe.webp');
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--fitness) {
+          background-image: url('/assets/map/holograms/fitness.webp');
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--rental) {
+          background-image: url('/assets/map/holograms/rental.webp');
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--wellness) {
+          background-image: url('/assets/map/holograms/wellness.webp');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--gathering) {
