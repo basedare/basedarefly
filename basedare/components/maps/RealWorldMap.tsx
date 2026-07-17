@@ -7682,6 +7682,7 @@ export default function RealWorldMap() {
           : ''
       }`
     : null;
+  const selectedVenueActionsHref = selectedVenueHref ? `${selectedVenueHref}#venue-actions` : null;
   useEffect(() => {
     if (!selectedVenueHref) return;
     router.prefetch(selectedVenueHref);
@@ -9136,8 +9137,12 @@ export default function RealWorldMap() {
         <span className="venue-state-card__label">
           {selectedPlaceStateTrustWord} · {selectedPlaceStateActivityWord}
         </span>
-        <p className="venue-state-card__headline">{selectedPlaceStateHeadline}</p>
-        <p className="venue-state-card__support">{selectedPlaceStateSupport}</p>
+        {!isMobileViewport ? (
+          <>
+            <p className="venue-state-card__headline">{selectedPlaceStateHeadline}</p>
+            <p className="venue-state-card__support">{selectedPlaceStateSupport}</p>
+          </>
+        ) : null}
       </div>
     ) : null;
   const selectedCheckInLive = selectedPlace?.liveSession?.status === 'LIVE';
@@ -9304,12 +9309,12 @@ export default function RealWorldMap() {
     ) : null;
 
   const selectedPlaceOpenVenueButton =
-    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlace.slug && selectedVenueHref ? (
+    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlace.slug && selectedVenueActionsHref ? (
       <Link
-        href={selectedVenueHref}
+        href={selectedVenueActionsHref}
         prefetch
-        onFocus={() => router.prefetch(selectedVenueHref)}
-        onPointerDown={() => router.prefetch(selectedVenueHref)}
+        onFocus={() => router.prefetch(selectedVenueActionsHref)}
+        onPointerDown={() => router.prefetch(selectedVenueActionsHref)}
         onClick={(event) => {
           if (openingVenueSlug === selectedPlace.slug) {
             event.preventDefault();
@@ -9370,56 +9375,57 @@ export default function RealWorldMap() {
         ? 'venue-action-rail--two'
         : 'venue-action-rail--one';
 
-  const selectedPlaceActionRail =
+  const selectedPlaceLeadActionRail =
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <div
-        className={`venue-action-rail-stack flex flex-col gap-2 mt-3 ${
-          showCompactSelectedPlacePanel ? 'venue-action-rail-stack--compact-dock' : ''
-        }`}
+        className={`venue-action-rail venue-action-rail--primary venue-action-rail--lead grid ${
+          selectedPlaceOpenVenueButton ? 'venue-action-rail--lead-duo' : 'venue-action-rail--two'
+        } ${showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''}`}
       >
-        <div
-          className={`venue-action-rail venue-action-rail--primary venue-action-rail--lead grid ${
-            selectedPlaceOpenVenueButton ? 'venue-action-rail--lead-duo' : 'venue-action-rail--two'
-          } ${showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''}`}
-        >
-          {selectedPlacePrimaryAction}
-          {selectedPlaceOpenVenueButton}
-        </div>
-        {selectedCheckInLive ? (
-          <button
-            type="button"
-            onClick={handleLaunchVenueCheckIn}
-            disabled={checkInLaunching}
-            className="group flex min-h-[52px] w-full items-center gap-3 rounded-[20px] border border-[#f8dd72]/24 bg-[radial-gradient(circle_at_12%_0%,rgba(248,221,114,0.18),transparent_34%),linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(34,211,238,0.08)_48%,rgba(7,11,18,0.94)_100%)] px-3.5 py-2.5 text-left shadow-[0_14px_28px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.24)] transition hover:-translate-y-px hover:border-[#f8dd72]/42 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
-            aria-label={`Check in at ${selectedPlace.name}`}
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border border-[#f8dd72]/22 bg-[#f8dd72]/10 text-[#f8dd72]">
-              {checkInLaunching ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-white">
-                {checkInLaunching ? 'Opening venue pass…' : 'Check in here'}
-              </span>
-              <span className="mt-0.5 block truncate text-[10px] font-semibold text-white/48">
-                First QR + GPS visit +{VERIFIED_VENUE_CHECK_IN_POINTS} Signal Points · room · Crossed Paths
-              </span>
-            </span>
-            <span className="rounded-full border border-cyan-200/16 bg-cyan-300/[0.07] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-cyan-100/74">
-              Live
-            </span>
-          </button>
-        ) : selectedPlaceHasLiveDare ? null : (
-          <p className="venue-cta-hint">Take proof to add permanent place memory.</p>
-        )}
-        {checkInLaunchState ? (
-          <p className={`venue-cta-hint ${checkInLaunchState.type === 'error' ? '!text-rose-200/82' : ''}`}>
-            {checkInLaunchState.message}
-          </p>
-        ) : null}
+        {selectedPlacePrimaryAction}
+        {selectedPlaceOpenVenueButton}
+      </div>
+    ) : null;
+
+  const selectedPlaceCheckInAction =
+    selectedPlace && !selectedPlaceIsPrivateSpot && selectedCheckInLive ? (
+      <button
+        type="button"
+        onClick={handleLaunchVenueCheckIn}
+        disabled={checkInLaunching}
+        className="group flex min-h-[52px] w-full items-center gap-3 rounded-[20px] border border-[#f8dd72]/24 bg-[radial-gradient(circle_at_12%_0%,rgba(248,221,114,0.18),transparent_34%),linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(34,211,238,0.08)_48%,rgba(7,11,18,0.94)_100%)] px-3.5 py-2.5 text-left shadow-[0_14px_28px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.24)] transition hover:-translate-y-px hover:border-[#f8dd72]/42 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+        aria-label={`Check in at ${selectedPlace.name}`}
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border border-[#f8dd72]/22 bg-[#f8dd72]/10 text-[#f8dd72]">
+          {checkInLaunching ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-white">
+            {checkInLaunching ? 'Opening venue pass…' : 'Check in here'}
+          </span>
+          <span className="mt-0.5 block truncate text-[10px] font-semibold text-white/48">
+            First QR + GPS visit +{VERIFIED_VENUE_CHECK_IN_POINTS} Signal Points · room · Crossed Paths
+          </span>
+        </span>
+        <span className="rounded-full border border-cyan-200/16 bg-cyan-300/[0.07] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-cyan-100/74">
+          Live
+        </span>
+      </button>
+    ) : null;
+
+  const selectedPlaceCheckInMessage = checkInLaunchState ? (
+    <p className={`venue-cta-hint ${checkInLaunchState.type === 'error' ? '!text-rose-200/82' : ''}`}>
+      {checkInLaunchState.message}
+    </p>
+  ) : null;
+
+  const selectedPlaceSecondaryActionRail =
+    selectedPlace && !selectedPlaceIsPrivateSpot ? (
+      <div className="venue-action-rail-stack venue-action-rail-stack--secondary flex flex-col gap-2">
         <div
           className={`venue-action-rail venue-action-rail--primary venue-action-rail--utility ${selectedPlaceUtilityRailColumns} ${
             selectedPlaceFundIsActivationCta ? 'venue-action-rail--utility-solo' : ''
-          } grid ${showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''}`}
+          } grid`}
         >
           {selectedPlaceHasLiveDare ? selectedPlaceTakeProofButton : null}
           {selectedPlaceFundDareButton}
@@ -9437,6 +9443,19 @@ export default function RealWorldMap() {
             🤙 Start a free meetup here
           </button>
         ) : null}
+      </div>
+    ) : null;
+
+  const selectedPlaceActionRail =
+    selectedPlace && !selectedPlaceIsPrivateSpot ? (
+      <div className="venue-action-rail-stack flex flex-col gap-2">
+        {selectedPlaceLeadActionRail}
+        {selectedPlaceCheckInAction ??
+          (selectedPlaceHasLiveDare ? null : (
+            <p className="venue-cta-hint">Take proof to add permanent place memory.</p>
+          ))}
+        {selectedPlaceCheckInMessage}
+        {selectedPlaceSecondaryActionRail}
       </div>
     ) : null;
   const selectedSaveSpotRail =
@@ -11153,7 +11172,13 @@ export default function RealWorldMap() {
                 )}
               </div>
             ) : null}
-            <div className="absolute left-3 top-3 z-[9] flex flex-col gap-2 md:left-5 md:top-6">
+            <div
+              className={`map-navigation-controls absolute left-3 top-3 z-[9] flex flex-col gap-2 md:left-5 ${
+                mapAttentionGuideOpen || adventurePanelOpen
+                  ? 'map-navigation-controls--panel-open'
+                  : ''
+              }`}
+            >
               <button
                 type="button"
                 onClick={requestApproximateLocation}
@@ -11350,7 +11375,7 @@ export default function RealWorldMap() {
                           </div>
                         </div>
                       </div>
-                      {selectedPlaceActionRail}
+                      <div className="mt-2">{selectedPlaceLeadActionRail}</div>
                       {selectedSaveSpotRail}
                     </div>
                   </div>
@@ -11428,17 +11453,19 @@ export default function RealWorldMap() {
                         </p>
                       ) : null}
                       {selectedPlaceStateCard}
-                      {selectedMayor ? (
+                      {selectedMayor && !isMobileViewport ? (
                         <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#f8dd72]">
                           👑 Mayor @{selectedMayor.tag.replace(/^@/, '')} · {selectedMayor.proofCount} proofs / 30d
                         </div>
                       ) : null}
-                      <div className="mt-2 flex items-start gap-2 rounded-[16px] border border-white/10 bg-white/[0.045] px-3 py-2 text-xs leading-snug text-white/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] md:mt-3 md:rounded-[18px] md:text-sm md:leading-relaxed">
-                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
-                        <span className="line-clamp-1 min-w-0 md:line-clamp-2">
-                          {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
-                        </span>
-                      </div>
+                      {!isMobileViewport ? (
+                        <div className="mt-2 flex items-start gap-2 rounded-[16px] border border-white/10 bg-white/[0.045] px-3 py-2 text-xs leading-snug text-white/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] md:mt-3 md:rounded-[18px] md:text-sm md:leading-relaxed">
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
+                          <span className="line-clamp-1 min-w-0 md:line-clamp-2">
+                            {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {isImmersiveMobile ? (
@@ -11466,13 +11493,41 @@ export default function RealWorldMap() {
                       </button>
                     </div>
                   </div>
-                  {selectedPlaceActionRail}
+                  <div className="mt-2 md:mt-3">
+                    {isMobileViewport ? selectedPlaceLeadActionRail : selectedPlaceActionRail}
+                  </div>
                   </div>
 
                   <div
                     className="selected-place-panel-content min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
                     style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)' } : undefined}
                   >
+
+                  {isMobileViewport && !selectedPlaceIsPrivateSpot ? (
+                    <div className="selected-place-mobile-summary mt-1 rounded-[18px] border border-white/10 bg-white/[0.04] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                      <div className="flex min-w-0 items-center gap-2 text-[11px] text-white/58">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
+                        <span className="truncate">
+                          {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-[11px] font-semibold leading-4 text-white/56">
+                        {selectedPlaceStateSupport}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {isMobileViewport && selectedPlaceCheckInAction ? (
+                    <div className="mt-2">{selectedPlaceCheckInAction}</div>
+                  ) : null}
+
+                  {isMobileViewport && selectedPlaceCheckInMessage ? (
+                    <div className="mt-1">{selectedPlaceCheckInMessage}</div>
+                  ) : null}
+
+                  {isMobileViewport && selectedPlaceSecondaryActionRail ? (
+                    <div className="mt-2">{selectedPlaceSecondaryActionRail}</div>
+                  ) : null}
 
                   {adventureMode && selectedPlace.description ? (
                     <div className="map-panel-section mt-1 rounded-[22px] border border-violet-200/14 bg-[radial-gradient(circle_at_92%_0%,rgba(139,92,246,0.16),transparent_34%),linear-gradient(180deg,rgba(34,24,53,0.62),rgba(8,8,17,0.9))] px-4 py-3.5 shadow-[0_18px_34px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.07)]">
@@ -13038,6 +13093,23 @@ export default function RealWorldMap() {
           width: 100%;
           flex-direction: column;
           gap: 0.38rem;
+        }
+
+        .map-navigation-controls {
+          transition:
+            top 180ms ease,
+            left 180ms ease;
+        }
+
+        @media (min-width: 768px) {
+          .map-navigation-controls {
+            top: 8.75rem;
+          }
+
+          .map-navigation-controls--panel-open {
+            top: 1.25rem;
+            left: min(26rem, calc(100% - 5rem));
+          }
         }
 
         .map-status-rail {
@@ -17900,6 +17972,110 @@ export default function RealWorldMap() {
             filter: none !important;
             transition: none !important;
             will-change: auto !important;
+          }
+        }
+
+        /* Mobile place sheet: preserve the map as half of the experience.
+           The compact dock is the default; expanding reveals a true half-sheet
+           with primary actions fixed above a separately scrollable detail rail. */
+        @media (max-width: 767px) {
+          .selected-place-panel-wrap:not(.selected-place-panel-wrap--compact):not(.selected-place-panel-wrap--save-spot) {
+            right: 0.5rem;
+            bottom: calc(0.5rem + env(safe-area-inset-bottom));
+            left: 0.5rem;
+            width: auto;
+            height: 52%;
+            max-height: 52%;
+          }
+
+          .selected-place-panel-wrap:not(.selected-place-panel-wrap--compact):not(.selected-place-panel-wrap--save-spot)
+            .place-panel-popup,
+          .selected-place-panel-wrap:not(.selected-place-panel-wrap--compact):not(.selected-place-panel-wrap--save-spot)
+            .selected-place-panel-stack {
+            height: 100%;
+            max-height: 100% !important;
+          }
+
+          .selected-place-panel-wrap:not(.selected-place-panel-wrap--compact):not(.selected-place-panel-wrap--save-spot)
+            .selected-place-panel-header {
+            max-height: 48%;
+            padding: 0.35rem 0.75rem 0.55rem;
+          }
+
+          .selected-place-panel-header .map-sheet-drag-handle {
+            height: 1rem;
+            margin-bottom: 0.25rem;
+          }
+
+          .selected-place-panel-header .map-sheet-drag-bar {
+            height: 4px;
+            width: 3rem;
+          }
+
+          .selected-place-panel-header h3 {
+            font-size: 1.1rem;
+            line-height: 1;
+          }
+
+          .selected-place-panel-header .venue-state-card,
+          .selected-place-compact-dock .venue-state-card {
+            margin-top: 0.3rem;
+          }
+
+          .selected-place-panel-header .venue-state-card__label,
+          .selected-place-compact-dock .venue-state-card__label {
+            font-size: 0.5rem;
+            letter-spacing: 0.14em;
+          }
+
+          .selected-place-panel-header .venue-action-rail--lead {
+            margin-top: 0 !important;
+          }
+
+          .venue-action-rail--lead-duo {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .venue-action-rail--lead :global(.map-primary-action-button) {
+            min-height: 44px !important;
+            padding: 0.5rem 0.3rem !important;
+            font-size: 0.56rem !important;
+          }
+
+          .selected-place-panel-content {
+            min-height: 52%;
+            padding: 0.55rem 0.75rem calc(env(safe-area-inset-bottom) + 0.75rem) !important;
+            scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+            background: linear-gradient(180deg, rgba(8, 9, 18, 0.96), rgba(12, 10, 23, 0.98));
+          }
+
+          .selected-place-panel-content .venue-action-rail-stack--secondary {
+            gap: 0.35rem;
+          }
+
+          .selected-place-panel-content .venue-action-rail--utility :global(.map-primary-action-button) {
+            min-height: 42px !important;
+          }
+
+          .selected-place-compact-dock {
+            padding: 0.65rem 0.75rem 0.75rem !important;
+          }
+
+          .selected-place-compact-dock .map-sheet-drag-handle {
+            height: 0.8rem;
+            margin-bottom: 0.3rem;
+          }
+
+          .selected-place-compact-dock .venue-action-rail--lead {
+            margin-top: 0 !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .map-container-wrapper:not(.map-container-wrapper--immersive) {
+            height: 76dvh !important;
+            min-height: min(500px, calc(100dvh - 5rem)) !important;
           }
         }
 

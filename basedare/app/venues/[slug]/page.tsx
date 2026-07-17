@@ -544,7 +544,7 @@ export default async function VenueDetailPage(
                 </div>
 
                 <div className="grid min-w-0 gap-3 sm:min-w-[280px] sm:grid-cols-2 lg:grid-cols-1">
-                  <div className={`${softCardClass} px-5 py-5`}>
+                  <div id="venue-actions" className={`${softCardClass} scroll-mt-24 px-5 py-5`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">You&apos;re here</p>
                     <h2 className="mt-2 text-2xl font-black text-white">Check in. Unlock the place.</h2>

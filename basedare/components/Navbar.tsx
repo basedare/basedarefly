@@ -157,6 +157,11 @@ export default function Navbar() {
 
           {/* 3. RIGHT SIDE ACTIONS */}
           <div className="flex items-center gap-2 md:gap-3 z-50">
+            {isMapRoute ? (
+              <div className="order-0 relative hidden h-10 w-10 shrink-0 md:block">
+                <DeferredGlobalSearch isDesktopApp />
+              </div>
+            ) : null}
             <div className="order-1 hidden md:flex">
               <BackgroundToneToggle />
             </div>
@@ -195,9 +200,11 @@ export default function Navbar() {
           DESKTOP GLOBAL SEARCH
           Fixed to the left, parallel to the ViewToggle (which is top-24 right-6)
           ============================================ */}
-      <div className="hidden md:block fixed top-24 left-6 z-[90]">
-        <DeferredGlobalSearch isDesktopApp />
-      </div>
+      {!isMapRoute ? (
+        <div className="fixed left-6 top-24 z-[90] hidden md:block">
+          <DeferredGlobalSearch isDesktopApp />
+        </div>
+      ) : null}
 
       {/* === MOBILE MENU OVERLAY === */}
       <AnimatePresence>
