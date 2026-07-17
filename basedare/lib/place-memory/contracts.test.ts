@@ -9,6 +9,7 @@ import {
   paymentMethodV1Schema,
   PROOF_POLICY_DEFINITIONS,
   proofPolicyHash,
+  readStructuredAnswersSnapshot,
   type StructuredTargetContract,
 } from './contracts.ts';
 
@@ -131,6 +132,7 @@ test('structured snapshot supports several target answers with immutable policy 
   assert.equal(snapshot.answers.length, 2);
   assert.match(snapshot.structuredAnswersHash, /^[a-f0-9]{64}$/);
   assert.match(snapshot.proofPolicySnapshotHash, /^[a-f0-9]{64}$/);
+  assert.deepEqual(readStructuredAnswersSnapshot(snapshot.structuredAnswersJson), snapshot.answers);
 });
 
 test('structured snapshot rejects a policy body/hash that drifted from the server template', () => {

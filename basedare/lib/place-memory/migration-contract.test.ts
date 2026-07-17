@@ -23,6 +23,8 @@ test('migration enforces the accepted-attempt, conflict, serial, and target-lock
   assert.match(migration, /AssertionConflict_resolvedVersion_identity_fkey/);
   assert.match(migration, /AssertionConflict_one_active_per_assertion_key/);
   assert.match(migration, /WHERE "status" IN \('OPEN', 'NEEDS_CORROBORATION'\)/);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS "serialNumber" INTEGER/);
+  assert.match(migration, /PlaceTag_serialNumber_key/);
   assert.match(migration, /PlaceReceipt_global_serial_seq/);
   assert.match(migration, /DareAssertionTarget_configuration_guard/);
   assert.match(migration, /FOR UPDATE/);

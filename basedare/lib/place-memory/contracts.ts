@@ -423,7 +423,12 @@ export function readStructuredAnswersSnapshot(value: unknown): ValidatedStructur
 
   return snapshot.answers.map((answer) => {
     const value = parseStructuredValue(answer);
-    const expectedHash = placeValueHash({ ...answer, value });
+    const expectedHash = placeValueHash({
+      kind: answer.kind,
+      subjectKey: answer.subjectKey,
+      valueSchemaVersion: answer.valueSchemaVersion,
+      value,
+    });
     if (expectedHash !== answer.valueHash) throw new Error(`Structured answer hash mismatch for ${answer.targetId}.`);
     return { ...answer, subjectKey: validateSubjectKey(answer.kind, answer.subjectKey), value };
   });

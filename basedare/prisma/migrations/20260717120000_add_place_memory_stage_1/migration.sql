@@ -66,6 +66,16 @@ ALTER TABLE "DareProofAttempt"
   ADD COLUMN "proofPolicySnapshotJson" JSONB,
   ADD COLUMN "proofPolicySnapshotHash" TEXT;
 
+-- serialNumber was introduced in the Prisma model before this repository had
+-- a historical migration for it. Keep this additive migration safe for both
+-- clean databases and environments where the column was previously created
+-- with `prisma db push`.
+ALTER TABLE "PlaceTag"
+  ADD COLUMN IF NOT EXISTS "serialNumber" INTEGER;
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PlaceTag_serialNumber_key"
+  ON "PlaceTag"("serialNumber");
+
 ALTER TABLE "PlaceTag"
   ADD COLUMN "placeReceiptId" TEXT;
 
