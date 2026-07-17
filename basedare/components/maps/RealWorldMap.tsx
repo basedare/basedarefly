@@ -18032,11 +18032,11 @@ export default function RealWorldMap() {
             margin-top: 0 !important;
           }
 
-          .venue-action-rail--lead-duo {
+          :global(.venue-action-rail--lead-duo) {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
 
-          .venue-action-rail--lead-duo :global(.map-primary-action-button--venue) {
+          :global(.venue-action-rail--lead-duo .map-primary-action-button--venue) {
             grid-column: auto !important;
           }
 
