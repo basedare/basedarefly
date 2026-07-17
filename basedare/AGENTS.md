@@ -16,6 +16,14 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Place Memory Stage 1 vertical slice (2026-07-17)
+- Completed on `codex/place-memory-stage-1` for review. It is not migrated, deployed, or sent on-chain; migration-first release and the database-backed smoke below remain mandatory before production.
+- Stage 1 adds bounded structured Dare targets for opening windows, item prices, and payment methods; immutable proof/policy snapshots; append-only observations and assertion versions; explicit conflicts; refresh schedules; privacy-safe hashed Place Receipts; and deterministic Pulse recomputation.
+- Settlement remains authoritative: Place Memory finalization runs only inside the winning `VERIFIED` compare-and-set and uses the accepted, server-pinned proof attempt. It never invents a second payout or makes browser GPS sufficient proof.
+- Main files: `docs/specs/place-memory-stage-1-rfc.md`, `lib/place-memory/*`, `prisma/migrations/20260717120000_add_place_memory_stage_1`, `app/api/verify-proof/route.ts`, `lib/dare-approval.ts`, `components/SubmitEvidence.tsx`, and the new admin/public Place Memory routes.
+- Migration-first release is mandatory. Run `prisma migrate deploy` against a safe target before deploying code; then execute a database-backed concurrency smoke for target locking, finalization, conflicting observations, receipt integrity, and Pulse rebuild. The local environment had no disposable PostgreSQL instance, so that integration gate remains open.
+- The mobile selected-place sheet was tightened in the same branch so its action deck and lower Place Memory content split the viewport cleanly. Deliberately deferred: richer Place Memory map presentation, physical Field Station activation, autonomous/funded refresh procurement, sponsor commercial-reuse consent, and any new contract/token economics.
+
 ### Codex earned venue access graph pilot (2026-07-14)
 - Brain canon now defines an earned access graph: useful verified contribution may unlock structured introduction/perk requests, never purchased reputation or entitlement to another person's attention. Mayor remains earned place reputation; Ambassador and Host require explicit, scoped, revocable venue authorization.
 - The first shipped primitive is official venue contact routing only: `VenueContactRoute`, `/api/venues/[slug]/contacts`, the venue-console editor, and a compact **Connect with venue** block on the public venue profile. Public reads fail closed to active, public, verified, confirmed routes; personal contacts require explicit consent.

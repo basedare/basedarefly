@@ -7682,6 +7682,7 @@ export default function RealWorldMap() {
           : ''
       }`
     : null;
+  const selectedVenueActionsHref = selectedVenueHref ? `${selectedVenueHref}#venue-actions` : null;
   useEffect(() => {
     if (!selectedVenueHref) return;
     router.prefetch(selectedVenueHref);
@@ -9123,6 +9124,11 @@ export default function RealWorldMap() {
     : selectedPlaceHasVerifiedTrace
       ? 'Leave proof to keep it warm, or fund the first dare to activate it.'
       : 'Be the first to leave verified proof here, or fund the first dare to activate it.';
+  const selectedPlaceStateMobileSupport = selectedPlaceHasLiveDare
+    ? 'Join it or leave fresh proof.'
+    : selectedPlaceHasVerifiedTrace
+      ? 'Leave proof or fund the first dare.'
+      : 'Be first to prove it or fund a dare.';
   const selectedPlaceStateTone = selectedPlaceHasLiveDare
     ? 'venue-state-card--live'
     : selectedPlaceHasVerifiedTrace
@@ -9136,8 +9142,14 @@ export default function RealWorldMap() {
         <span className="venue-state-card__label">
           {selectedPlaceStateTrustWord} · {selectedPlaceStateActivityWord}
         </span>
-        <p className="venue-state-card__headline">{selectedPlaceStateHeadline}</p>
-        <p className="venue-state-card__support">{selectedPlaceStateSupport}</p>
+        {isMobileViewport ? (
+          <p className="venue-state-card__support">{selectedPlaceStateMobileSupport}</p>
+        ) : (
+          <>
+            <p className="venue-state-card__headline">{selectedPlaceStateHeadline}</p>
+            <p className="venue-state-card__support">{selectedPlaceStateSupport}</p>
+          </>
+        )}
       </div>
     ) : null;
   const selectedCheckInLive = selectedPlace?.liveSession?.status === 'LIVE';
@@ -9304,12 +9316,12 @@ export default function RealWorldMap() {
     ) : null;
 
   const selectedPlaceOpenVenueButton =
-    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlace.slug && selectedVenueHref ? (
+    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlace.slug && selectedVenueActionsHref ? (
       <Link
-        href={selectedVenueHref}
+        href={selectedVenueActionsHref}
         prefetch
-        onFocus={() => router.prefetch(selectedVenueHref)}
-        onPointerDown={() => router.prefetch(selectedVenueHref)}
+        onFocus={() => router.prefetch(selectedVenueActionsHref)}
+        onPointerDown={() => router.prefetch(selectedVenueActionsHref)}
         onClick={(event) => {
           if (openingVenueSlug === selectedPlace.slug) {
             event.preventDefault();
@@ -9370,10 +9382,10 @@ export default function RealWorldMap() {
         ? 'venue-action-rail--two'
         : 'venue-action-rail--one';
 
-  const selectedPlaceActionRail =
+  const selectedPlaceLeadActionRail =
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <div
-        className={`venue-action-rail-stack flex flex-col gap-2 mt-3 ${
+        className={`venue-action-rail-stack venue-action-rail-stack--lead flex flex-col gap-2 mt-3 ${
           showCompactSelectedPlacePanel ? 'venue-action-rail-stack--compact-dock' : ''
         }`}
       >
@@ -9381,6 +9393,11 @@ export default function RealWorldMap() {
           className={`venue-action-rail venue-action-rail--primary venue-action-rail--lead grid ${
             selectedPlaceOpenVenueButton ? 'venue-action-rail--lead-duo' : 'venue-action-rail--two'
           } ${showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''}`}
+          style={
+            isMobileViewport && selectedPlaceOpenVenueButton
+              ? { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+              : undefined
+          }
         >
           {selectedPlacePrimaryAction}
           {selectedPlaceOpenVenueButton}
@@ -9390,7 +9407,7 @@ export default function RealWorldMap() {
             type="button"
             onClick={handleLaunchVenueCheckIn}
             disabled={checkInLaunching}
-            className="group flex min-h-[52px] w-full items-center gap-3 rounded-[20px] border border-[#f8dd72]/24 bg-[radial-gradient(circle_at_12%_0%,rgba(248,221,114,0.18),transparent_34%),linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(34,211,238,0.08)_48%,rgba(7,11,18,0.94)_100%)] px-3.5 py-2.5 text-left shadow-[0_14px_28px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.24)] transition hover:-translate-y-px hover:border-[#f8dd72]/42 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+            className="venue-check-in-action group flex min-h-[52px] w-full items-center gap-3 rounded-[20px] border border-[#f8dd72]/24 bg-[radial-gradient(circle_at_12%_0%,rgba(248,221,114,0.18),transparent_34%),linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(34,211,238,0.08)_48%,rgba(7,11,18,0.94)_100%)] px-3.5 py-2.5 text-left shadow-[0_14px_28px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.24)] transition hover:-translate-y-px hover:border-[#f8dd72]/42 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
             aria-label={`Check in at ${selectedPlace.name}`}
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border border-[#f8dd72]/22 bg-[#f8dd72]/10 text-[#f8dd72]">
@@ -9416,6 +9433,11 @@ export default function RealWorldMap() {
             {checkInLaunchState.message}
           </p>
         ) : null}
+      </div>
+    ) : null;
+  const selectedPlaceSecondaryActionRail =
+    selectedPlace && !selectedPlaceIsPrivateSpot ? (
+      <div className="venue-action-rail-stack venue-action-rail-stack--secondary flex flex-col gap-2">
         <div
           className={`venue-action-rail venue-action-rail--primary venue-action-rail--utility ${selectedPlaceUtilityRailColumns} ${
             selectedPlaceFundIsActivationCta ? 'venue-action-rail--utility-solo' : ''
@@ -9438,6 +9460,13 @@ export default function RealWorldMap() {
           </button>
         ) : null}
       </div>
+    ) : null;
+  const selectedPlaceActionRail =
+    selectedPlace && !selectedPlaceIsPrivateSpot ? (
+      <>
+        {selectedPlaceLeadActionRail}
+        {selectedPlaceSecondaryActionRail}
+      </>
     ) : null;
   const selectedSaveSpotRail =
     saveSpotDraft || selectedPrivateMapSpot ? (
@@ -11350,7 +11379,7 @@ export default function RealWorldMap() {
                           </div>
                         </div>
                       </div>
-                      {selectedPlaceActionRail}
+                      {selectedPlaceLeadActionRail}
                       {selectedSaveSpotRail}
                     </div>
                   </div>
@@ -11433,7 +11462,7 @@ export default function RealWorldMap() {
                           👑 Mayor @{selectedMayor.tag.replace(/^@/, '')} · {selectedMayor.proofCount} proofs / 30d
                         </div>
                       ) : null}
-                      <div className="mt-2 flex items-start gap-2 rounded-[16px] border border-white/10 bg-white/[0.045] px-3 py-2 text-xs leading-snug text-white/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] md:mt-3 md:rounded-[18px] md:text-sm md:leading-relaxed">
+                      <div className="selected-place-panel-address mt-2 flex items-start gap-2 rounded-[16px] border border-white/10 bg-white/[0.045] px-3 py-2 text-xs leading-snug text-white/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] md:mt-3 md:rounded-[18px] md:text-sm md:leading-relaxed">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200/80" />
                         <span className="line-clamp-1 min-w-0 md:line-clamp-2">
                           {selectedPlace.address || formatCoordinateLabel(selectedPlace.latitude, selectedPlace.longitude)}
@@ -11466,13 +11495,15 @@ export default function RealWorldMap() {
                       </button>
                     </div>
                   </div>
-                  {selectedPlaceActionRail}
+                  {isMobileViewport ? selectedPlaceLeadActionRail : selectedPlaceActionRail}
                   </div>
 
                   <div
                     className="selected-place-panel-content min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:px-5 md:pb-6"
                     style={isMobileViewport ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)' } : undefined}
                   >
+
+                  {isMobileViewport ? selectedPlaceSecondaryActionRail : null}
 
                   {adventureMode && selectedPlace.description ? (
                     <div className="map-panel-section mt-1 rounded-[22px] border border-violet-200/14 bg-[radial-gradient(circle_at_92%_0%,rgba(139,92,246,0.16),transparent_34%),linear-gradient(180deg,rgba(34,24,53,0.62),rgba(8,8,17,0.9))] px-4 py-3.5 shadow-[0_18px_34px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.07)]">
@@ -12612,6 +12643,17 @@ export default function RealWorldMap() {
             max-height: min(82dvh, calc(100% - 1.5rem));
           }
 
+          .selected-place-panel-wrap:not(.selected-place-panel-wrap--compact):not(.selected-place-panel-wrap--save-spot) {
+            height: min(88dvh, calc(100% - 0.75rem));
+            max-height: min(88dvh, calc(100% - 0.75rem));
+          }
+
+          .selected-place-panel-wrap:not(.selected-place-panel-wrap--compact):not(.selected-place-panel-wrap--save-spot) > .place-panel-popup,
+          .selected-place-panel-wrap:not(.selected-place-panel-wrap--compact):not(.selected-place-panel-wrap--save-spot) .selected-place-panel-stack {
+            height: 100%;
+            max-height: 100% !important;
+          }
+
           .selected-place-panel-wrap--save-spot {
             bottom: calc(0.35rem + env(safe-area-inset-bottom));
             max-height: min(92dvh, calc(100% - 0.7rem));
@@ -12625,6 +12667,10 @@ export default function RealWorldMap() {
           }
 
           .selected-place-panel-content {
+            flex: 1 1 50%;
+            min-height: 50%;
+            border-top: 1px solid rgba(255, 255, 255, 0.055);
+            background: linear-gradient(180deg, rgba(24, 18, 42, 0.42), rgba(7, 9, 18, 0.16) 4.5rem);
             padding-bottom: calc(env(safe-area-inset-bottom) + 1.25rem) !important;
             scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 1.25rem);
             -webkit-overflow-scrolling: touch;
@@ -12633,7 +12679,65 @@ export default function RealWorldMap() {
           }
 
           .selected-place-panel-header {
-            max-height: min(42dvh, 18.75rem);
+            flex: 0 0 auto;
+            max-height: 50%;
+            padding: 0.55rem 0.75rem 0.65rem;
+          }
+
+          .selected-place-panel-header .map-sheet-drag-handle {
+            height: 1.25rem;
+            margin-bottom: 0.2rem;
+          }
+
+          .selected-place-panel-header h3 {
+            font-size: 1.2rem;
+            line-height: 1;
+          }
+
+          .selected-place-panel-header .venue-state-card {
+            margin-top: 0.38rem;
+          }
+
+          .selected-place-panel-header .venue-state-card__support {
+            margin-top: 0.2rem;
+            font-size: 0.72rem;
+            line-height: 1.2;
+          }
+
+          .selected-place-panel-header .venue-state-card__label {
+            font-size: 0.54rem;
+            letter-spacing: 0.14em;
+          }
+
+          .selected-place-panel-header .selected-place-panel-address {
+            margin-top: 0.42rem;
+            padding: 0.42rem 0.65rem;
+          }
+
+          .selected-place-panel-header .venue-action-rail-stack--lead {
+            margin-top: 0.5rem;
+          }
+
+          .selected-place-panel-header .venue-action-rail--lead-duo {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .selected-place-panel-header :global(.venue-action-rail--lead-duo .map-primary-action-button--venue) {
+            grid-column: auto !important;
+          }
+
+          .selected-place-panel-header .venue-action-rail--lead :global(.map-primary-action-button) {
+            min-height: 3rem !important;
+          }
+
+          .selected-place-panel-header .venue-check-in-action {
+            min-height: 46px;
+            border-radius: 16px;
+            padding: 0.4rem 0.65rem;
+          }
+
+          .selected-place-panel-content .venue-action-rail-stack--secondary {
+            margin: 0.7rem 0 0.85rem;
           }
 
           .selected-place-panel-wrap--save-spot .selected-place-panel-header {
@@ -15298,8 +15402,8 @@ export default function RealWorldMap() {
 
         @media (max-width: 480px) {
           .map-container-wrapper:not(.map-container-wrapper--immersive) {
-            height: 64dvh !important;
-            min-height: 420px !important;
+            height: 76dvh !important;
+            min-height: min(500px, calc(100dvh - 5rem)) !important;
           }
 
           .map-panel-shell,
@@ -15326,10 +15430,6 @@ export default function RealWorldMap() {
             will-change: auto !important;
           }
 
-          .selected-place-panel-header {
-            max-height: none;
-          }
-
           .selected-place-panel-wrap--save-spot .selected-place-panel-header {
             max-height: min(24dvh, 9.75rem);
           }
@@ -15342,7 +15442,11 @@ export default function RealWorldMap() {
             max-height: min(66dvh, calc(100dvh - 9.25rem));
           }
 
-          .selected-place-panel-content {
+          .selected-place-panel-stack:not(.selected-place-panel-stack--save-spot) > .selected-place-panel-content {
+            min-height: 50%;
+          }
+
+          .selected-place-panel-wrap--save-spot .selected-place-panel-content {
             min-height: 0;
           }
         }
@@ -15427,6 +15531,14 @@ export default function RealWorldMap() {
 
           :global(.venue-action-rail--primary .map-primary-action-button--venue) {
             grid-column: 1 / -1;
+          }
+
+          :global(.venue-action-rail--lead-duo) {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          :global(.venue-action-rail--lead-duo .map-primary-action-button--venue) {
+            grid-column: auto !important;
           }
 
           :global(.venue-action-rail--primary.venue-action-rail--four .map-primary-action-button--venue) {

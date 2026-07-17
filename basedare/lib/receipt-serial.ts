@@ -1,25 +1,23 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
-// App-unique advisory lock key for receipt serial allocation. The lock is
-// transaction-scoped (released automatically at commit/rollback) and
-// serializes every allocator across all approval paths, so max+1 can never
-// hand out the same serial twice — no retry loops needed.
-const RECEIPT_SERIAL_LOCK_KEY = 913824001;
-
 /**
  * Allocate the next receipt serial. MUST be called inside the same
- * transaction that creates or flips the PlaceTag to APPROVED — the serial is
- * an issued fact, and issuing it outside the approving transaction would
- * reopen the gap this module exists to close. The @unique constraint on
- * PlaceTag.serialNumber is the schema-level backstop.
+ * transaction that issues the approved PlaceTag or canonical PlaceReceipt.
+ * The migration initializes this shared PostgreSQL sequence strictly above
+ * every historical PlaceTag serial. Structured Dare completions allocate once
+ * and mirror that value onto their linked Spark; direct Spark approvals also
+ * draw from this same allocator.
  */
 export async function nextReceiptSerial(tx: Prisma.TransactionClient): Promise<number> {
-  // ::text cast because the function returns pg `void`, which $queryRaw
-  // cannot deserialize.
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(${RECEIPT_SERIAL_LOCK_KEY})::text`;
-  const max = await tx.placeTag.aggregate({ _max: { serialNumber: true } });
-  return (max._max.serialNumber ?? 0) + 1;
+  const rows = await tx.$queryRaw<Array<{ serial: bigint | number }>>`
+    SELECT nextval('"PlaceReceipt_global_serial_seq"') AS serial
+  `;
+  const serial = Number(rows[0]?.serial);
+  if (!Number.isSafeInteger(serial) || serial <= 0 || serial > 2_147_483_647) {
+    throw new Error('Receipt serial sequence returned an invalid value.');
+  }
+  return serial;
 }
 
 /**

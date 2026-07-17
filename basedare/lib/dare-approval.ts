@@ -27,6 +27,12 @@ import { alertError, alertPayout, alertVerification } from '@/lib/telegram';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
 import { sendWalletPush } from '@/lib/web-push';
 import { finalizeAttributionForVerifiedDare } from '@/lib/creator-attribution-server';
+import { finalizeStructuredPlaceMemory, rebuildVenuePulse } from '@/lib/place-memory/finalize';
+import {
+  assertAuthoritativeAttemptCandidate,
+  preferredApprovedAttemptId,
+} from '@/lib/place-memory/approved-attempt';
+import { buildSubmissionKey } from '@/lib/settlement-transition';
 
 const activeChain = getBaseChain();
 const rpcUrl = getBaseRpcUrl();
@@ -62,6 +68,7 @@ type RefereeBalanceClient = {
 
 type FinalizeVerifiedDareInput = {
   dareId: string;
+  proofAttemptId?: string | null;
   sourceContext: string;
   verifiedAt?: Date;
   verifyTxHash?: string | null;
@@ -304,14 +311,25 @@ async function ensureApprovedPlaceTagForVerifiedDare(
   verifiedAt: Date,
   proofMedia: string | null,
   proofHash: string | null,
-  reviewerWallet: string | null
+  reviewerWallet: string | null,
+  receiptLink?: {
+    receiptId: string;
+    serialNumber: number;
+    required: boolean;
+  },
 ) {
   if (!dare.venueId) {
+    if (receiptLink?.required) throw new Error('Structured completion is missing canonical venueId.');
     return;
   }
 
   const walletAddress = getCompletionWalletAddress(dare);
   if (!walletAddress || !proofMedia) {
+    if (receiptLink?.required) {
+      throw new Error(
+        `Structured completion cannot issue its Spark without ${!walletAddress ? 'walletAddress' : 'proofMedia'}.`,
+      );
+    }
     console.warn(
       `[PLACE_MEMORY] Skipping completion tag for dare ${dare.id} - missing ${!walletAddress ? 'walletAddress' : 'proofMedia'}`
     );
@@ -319,12 +337,60 @@ async function ensureApprovedPlaceTagForVerifiedDare(
   }
 
   try {
-    const existingTag = await tx.placeTag.findFirst({
+    const existingTags = await tx.placeTag.findMany({
       where: { linkedDareId: dare.id },
-      select: { id: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: 2,
+      select: { id: true, serialNumber: true, placeReceiptId: true },
     });
+    const existingTag = existingTags[0];
 
     if (existingTag) {
+      if (receiptLink) {
+        if (existingTags.length > 1) {
+          throw new Error('Structured completion has multiple linked Sparks. Resolve the duplicate before finalization.');
+        }
+        if (existingTag.serialNumber !== null && existingTag.serialNumber !== receiptLink.serialNumber) {
+          throw new Error('Existing Spark serial does not match its Place Receipt serial.');
+        }
+        if (existingTag.placeReceiptId && existingTag.placeReceiptId !== receiptLink.receiptId) {
+          throw new Error('Existing Spark is already linked to another Place Receipt.');
+        }
+        const otherApprovedTagCount = await tx.placeTag.count({
+          where: {
+            venueId: dare.venueId,
+            status: 'APPROVED',
+            id: { not: existingTag.id },
+          },
+        });
+        await tx.placeTag.update({
+          where: { id: existingTag.id },
+          data: {
+            walletAddress,
+            creatorTag: dare.streamerHandle ?? null,
+            status: 'APPROVED',
+            serialNumber: receiptLink.serialNumber,
+            placeReceiptId: receiptLink.receiptId,
+            caption: `Completed: ${dare.title}`,
+            proofMediaUrl: proofMedia,
+            proofCid: dare.proofCid,
+            proofHash,
+            proofType: inferProofType(proofMedia),
+            source: 'DARE_COMPLETION',
+            latitude: dare.latitude,
+            longitude: dare.longitude,
+            firstMark: otherApprovedTagCount === 0,
+            reviewedAt: verifiedAt,
+            reviewerWallet,
+            reviewReason: 'Auto-approved from verified dare completion',
+            metadataJson: {
+              sourceContext,
+              verifyTxHash: dare.verifyTxHash,
+              dareShortId: dare.shortId,
+            },
+          },
+        });
+      }
       return;
     }
 
@@ -337,7 +403,7 @@ async function ensureApprovedPlaceTagForVerifiedDare(
 
     // Already inside the dare-approval transaction, so the serial is issued
     // atomically with the APPROVED tag it belongs to.
-    const serialNumber = await nextReceiptSerial(tx);
+    const serialNumber = receiptLink?.serialNumber ?? (await nextReceiptSerial(tx));
 
     await tx.placeTag.create({
       data: {
@@ -346,6 +412,7 @@ async function ensureApprovedPlaceTagForVerifiedDare(
         creatorTag: dare.streamerHandle ?? null,
         status: 'APPROVED',
         serialNumber,
+        placeReceiptId: receiptLink?.receiptId ?? null,
         caption: `Completed: ${dare.title}`,
         vibeTags: [],
         proofMediaUrl: proofMedia,
@@ -371,6 +438,7 @@ async function ensureApprovedPlaceTagForVerifiedDare(
     });
   } catch (error) {
     if (isPlaceTagTableMissingError(error)) {
+      if (receiptLink?.required) throw error;
       console.warn('[PLACE_MEMORY] PlaceTag table unavailable, skipping completion tag creation');
       return;
     }
@@ -502,6 +570,89 @@ async function markDarePendingPayout(
   return prisma.dare.findUniqueOrThrow({ where: { id: dareId } });
 }
 
+async function resolveApprovedProofAttemptId(
+  tx: Prisma.TransactionClient,
+  input: {
+    dareId: string;
+    currentAttemptId: string | null;
+    requestedAttemptId: string | null;
+    structured: boolean;
+    expectedMediaIdentity: string | null;
+  },
+): Promise<string | null> {
+  const expectedSubmissionKey = buildSubmissionKey(input.dareId, input.expectedMediaIdentity);
+  if (input.structured && !expectedSubmissionKey) {
+    throw new Error('Structured Dare has no server-pinned media identity.');
+  }
+
+  const exactAttemptId = preferredApprovedAttemptId(input);
+  if (exactAttemptId) {
+    const exact = await tx.dareProofAttempt.findFirst({
+      where: { id: exactAttemptId, dareId: input.dareId },
+      select: {
+        id: true,
+        dareId: true,
+        submissionKey: true,
+        structuredAnswersJson: true,
+        structuredAnswersHash: true,
+        proofPolicySnapshotJson: true,
+        proofPolicySnapshotHash: true,
+      },
+    });
+    if (!exact) throw new Error('Approved proof attempt does not belong to this Dare.');
+    return assertAuthoritativeAttemptCandidate({
+      candidate: exact,
+      dareId: input.dareId,
+      expectedSubmissionKey,
+      structured: input.structured,
+    });
+  }
+
+  if (expectedSubmissionKey) {
+    const exactMediaAttempt = await tx.dareProofAttempt.findUnique({
+      where: {
+        dareId_submissionKey: {
+          dareId: input.dareId,
+          submissionKey: expectedSubmissionKey,
+        },
+      },
+      select: {
+        id: true,
+        dareId: true,
+        submissionKey: true,
+        structuredAnswersJson: true,
+        structuredAnswersHash: true,
+        proofPolicySnapshotJson: true,
+        proofPolicySnapshotHash: true,
+      },
+    });
+    if (!exactMediaAttempt) return null;
+    return assertAuthoritativeAttemptCandidate({
+      candidate: exactMediaAttempt,
+      dareId: input.dareId,
+      expectedSubmissionKey,
+      structured: input.structured,
+    });
+  }
+
+  // Legacy proof rows may predate stable media keys. They remain readable for
+  // backward compatibility, but structured Place Memory never uses this path.
+  const candidates = await tx.dareProofAttempt.findMany({
+    where: { dareId: input.dareId },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: 20,
+    select: {
+      id: true,
+      structuredAnswersJson: true,
+      proofPolicySnapshotJson: true,
+    },
+  });
+  const resolved = input.structured
+    ? candidates.find((candidate) => candidate.structuredAnswersJson && candidate.proofPolicySnapshotJson)
+    : candidates[0];
+  return resolved?.id ?? null;
+}
+
 export async function finalizeVerifiedDare(
   input: FinalizeVerifiedDareInput
 ): Promise<{
@@ -562,13 +713,40 @@ export async function finalizeVerifiedDare(
       },
       data: updateData,
     });
-    const nextDare = await tx.dare.findUniqueOrThrow({ where: { id: existingDare.id } });
+    let nextDare = await tx.dare.findUniqueOrThrow({ where: { id: existingDare.id } });
     if (claim.count === 0) {
       if (nextDare.status !== 'VERIFIED') {
         throw new Error(`Dare cannot be finalized from status ${nextDare.status}`);
       }
       return { dare: nextDare, didFinalize: false };
     }
+
+    const structuredTargetCount = await tx.dareAssertionTarget.count({
+      where: { dareId: nextDare.id },
+    });
+    const approvedProofAttemptId = await resolveApprovedProofAttemptId(tx, {
+      dareId: nextDare.id,
+      currentAttemptId: nextDare.approvedProofAttemptId,
+      requestedAttemptId: input.proofAttemptId ?? null,
+      structured: structuredTargetCount > 0,
+      expectedMediaIdentity: existingDare.proofCid ?? existingDare.videoUrl ?? null,
+    });
+    if (structuredTargetCount > 0 && !approvedProofAttemptId) {
+      throw new Error('Structured Dare cannot finalize without an authoritative proof attempt.');
+    }
+    if (approvedProofAttemptId && nextDare.approvedProofAttemptId !== approvedProofAttemptId) {
+      nextDare = await tx.dare.update({
+        where: { id: nextDare.id },
+        data: { approvedProofAttemptId },
+      });
+    }
+
+    const placeMemory = await finalizeStructuredPlaceMemory(tx, {
+      dare: nextDare,
+      approvedProofAttemptId,
+      verifiedAt,
+      settlementTxHash: input.verifyTxHash ?? nextDare.verifyTxHash ?? null,
+    });
 
     await ensureApprovedPlaceTagForVerifiedDare(
       tx,
@@ -577,8 +755,19 @@ export async function finalizeVerifiedDare(
       verifiedAt,
       proofMedia,
       proofHash,
-      input.moderatorAddress ?? null
+      input.moderatorAddress ?? null,
+      placeMemory.structured
+        ? {
+            receiptId: placeMemory.receiptId,
+            serialNumber: placeMemory.serialNumber,
+            required: true,
+          }
+        : undefined,
     );
+
+    if (placeMemory.structured) {
+      await rebuildVenuePulse(tx, placeMemory.venueId, verifiedAt);
+    }
 
     await syncStreamerTagAggregatesForDare(tx, nextDare);
 
