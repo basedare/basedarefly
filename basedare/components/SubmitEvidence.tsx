@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Upload, X, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw, Camera, Video } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useAccount, useSignMessage } from 'wagmi';
@@ -38,6 +38,18 @@ interface SubmitEvidenceProps {
   gatesLocation?: boolean;
   onVerificationComplete?: (result: { status: string; confidence?: number }) => void;
 }
+
+type AssertionTarget = {
+  id: string;
+  kind: 'OPENING_WINDOW' | 'ITEM_PRICE' | 'PAYMENT_METHOD';
+  subjectKey: string;
+  valueSchemaVersion: number;
+  required: boolean;
+  position: number;
+  displayConfigJson: Record<string, unknown> | null;
+};
+
+type StructuredDraft = Record<string, string | boolean>;
 
 type StoredProofSubmitAuth = {
   walletAddress: string;
@@ -77,7 +89,162 @@ export default function SubmitEvidence({
   const [cameraMode, setCameraMode] = useState<CameraCaptureMode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [assertionTargets, setAssertionTargets] = useState<AssertionTarget[]>([]);
+  const [structuredDrafts, setStructuredDrafts] = useState<Record<string, StructuredDraft>>({});
+  const [targetsLoaded, setTargetsLoaded] = useState(false);
+  const [targetsError, setTargetsError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setTargetsLoaded(false);
+    setTargetsError(null);
+    void fetch(`/api/dares/${encodeURIComponent(dareId)}/assertion-targets`, {
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        const payload = (await response.json()) as {
+          success?: boolean;
+          error?: string;
+          data?: { targets?: AssertionTarget[] };
+        };
+        if (!response.ok || payload.success !== true) {
+          throw new Error(payload.error || 'Unable to load mission questions.');
+        }
+        const targets = payload.data?.targets ?? [];
+        setAssertionTargets(targets);
+        setStructuredDrafts(
+          Object.fromEntries(
+            targets.map((target) => {
+              const display = target.displayConfigJson ?? {};
+              if (target.kind === 'OPENING_WINDOW') {
+                return [
+                  target.id,
+                  {
+                    closed: false,
+                    opens: '09:00',
+                    closes: '17:00',
+                    timezone:
+                      (typeof display.timezone === 'string' && display.timezone) ||
+                      Intl.DateTimeFormat().resolvedOptions().timeZone ||
+                      'UTC',
+                    note: '',
+                  },
+                ];
+              }
+              if (target.kind === 'ITEM_PRICE') {
+                return [
+                  target.id,
+                  {
+                    itemLabel:
+                      (typeof display.itemLabel === 'string' && display.itemLabel) ||
+                      target.subjectKey.replaceAll('_', ' '),
+                    amount: '',
+                    currency: (typeof display.currency === 'string' && display.currency) || 'PHP',
+                    unit: (typeof display.unit === 'string' && display.unit) || '',
+                    available: true,
+                  },
+                ];
+              }
+              return [
+                target.id,
+                { methodCode: target.subjectKey, accepted: true, evidenceContext: '' },
+              ];
+            }),
+          ),
+        );
+      })
+      .catch((loadError: unknown) => {
+        if (controller.signal.aborted) return;
+        setTargetsError(loadError instanceof Error ? loadError.message : 'Unable to load mission questions.');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setTargetsLoaded(true);
+      });
+    return () => controller.abort();
+  }, [dareId]);
+
+  const updateStructuredDraft = (
+    targetId: string,
+    field: string,
+    value: string | boolean,
+  ) => {
+    setStructuredDrafts((current) => ({
+      ...current,
+      [targetId]: { ...current[targetId], [field]: value },
+    }));
+  };
+
+  const buildStructuredAnswersForSubmit = () => {
+    if (!targetsLoaded) throw new Error('Mission questions are still loading.');
+    if (targetsError) throw new Error(targetsError);
+    if (assertionTargets.length === 0) return undefined;
+
+    return assertionTargets.map((target) => {
+      const draft = structuredDrafts[target.id] ?? {};
+      if (target.kind === 'OPENING_WINDOW') {
+        const closed = draft.closed === true;
+        const timezone = String(draft.timezone ?? '').trim();
+        if (!timezone) throw new Error('Choose a timezone for the opening-hours answer.');
+        return {
+          targetId: target.id,
+          value: {
+            closed,
+            opens: closed ? null : String(draft.opens ?? ''),
+            closes: closed ? null : String(draft.closes ?? ''),
+            timezone,
+            ...(String(draft.note ?? '').trim() ? { note: String(draft.note).trim() } : {}),
+          },
+        };
+      }
+      if (target.kind === 'ITEM_PRICE') {
+        const amount = String(draft.amount ?? '').trim();
+        const display = target.displayConfigJson ?? {};
+        const minorUnitScale =
+          typeof display.minorUnitScale === 'number' &&
+          Number.isInteger(display.minorUnitScale) &&
+          display.minorUnitScale >= 0 &&
+          display.minorUnitScale <= 3
+            ? display.minorUnitScale
+            : 2;
+        const amountPattern = minorUnitScale === 0
+          ? /^\d+$/
+          : new RegExp(`^\\d+(?:\\.\\d{1,${minorUnitScale}})?$`);
+        if (!amountPattern.test(amount)) {
+          throw new Error(
+            minorUnitScale === 0
+              ? 'Enter the item price as a whole amount.'
+              : `Enter the item price with at most ${minorUnitScale} decimal place${minorUnitScale === 1 ? '' : 's'}.`,
+          );
+        }
+        const [whole, fraction = ''] = amount.split('.');
+        const scale = 10 ** minorUnitScale;
+        const amountMinor = Number(whole) * scale + Number(fraction.padEnd(minorUnitScale, '0') || '0');
+        if (!Number.isSafeInteger(amountMinor)) throw new Error('The item price is too large.');
+        return {
+          targetId: target.id,
+          value: {
+            itemLabel: String(draft.itemLabel ?? '').trim(),
+            amountMinor,
+            currency: String(draft.currency ?? '').trim().toUpperCase(),
+            ...(String(draft.unit ?? '').trim() ? { unit: String(draft.unit).trim() } : {}),
+            available: draft.available !== false,
+          },
+        };
+      }
+      return {
+        targetId: target.id,
+        value: {
+          methodCode: target.subjectKey,
+          accepted: draft.accepted === true,
+          ...(String(draft.evidenceContext ?? '').trim()
+            ? { evidenceContext: String(draft.evidenceContext).trim() }
+            : {}),
+        },
+      };
+    });
+  };
   const readStoredProofAuth = (walletAddress: string): StoredProofSubmitAuth | null => {
     if (typeof window === 'undefined') return null;
 
@@ -181,6 +348,7 @@ export default function SubmitEvidence({
 
   const handleVerifyUploadedProof = async (videoUrl: string, proofAuthHeaders: Record<string, string>) => {
     setStatus('verifying');
+    const structuredAnswers = buildStructuredAnswersForSubmit();
 
     // Capture device location ONLY for proximity-gated (nearby IRL) dares, per
     // trusted parent-supplied metadata — STREAM/remote proofs are never prompted.
@@ -204,6 +372,7 @@ export default function SubmitEvidence({
           videoUrl,
           timestamp: Date.now(),
         },
+        ...(structuredAnswers ? { structuredAnswers } : {}),
         ...(location ? { location } : {}),
       }),
     });
@@ -377,6 +546,13 @@ export default function SubmitEvidence({
   const handleUploadAndVerify = async () => {
     if (!file || !dareId) return;
 
+    try {
+      buildStructuredAnswersForSubmit();
+    } catch (structuredError) {
+      setError(getUnknownErrorMessage(structuredError, 'Complete the mission questions first.'));
+      return;
+    }
+
     setStatus('uploading');
     setError(null);
     let uploadedVideoUrl: string | null = null;
@@ -527,6 +703,172 @@ export default function SubmitEvidence({
     if (status === 'idle' && !file) {
       fileInputRef.current?.click();
     }
+  };
+
+  const renderStructuredQuestions = () => {
+    if (!targetsLoaded) {
+      return (
+        <div className="rounded-2xl border border-cyan-300/12 bg-cyan-400/[0.05] px-4 py-3 text-left text-xs text-cyan-100">
+          Loading the place questions…
+        </div>
+      );
+    }
+    if (targetsError) {
+      return (
+        <div className="rounded-2xl border border-red-300/20 bg-red-500/[0.08] px-4 py-3 text-left text-xs text-red-100">
+          {targetsError} Refresh before submitting proof.
+        </div>
+      );
+    }
+    if (assertionTargets.length === 0) return null;
+
+    return (
+      <section
+        className="space-y-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.045] p-4 text-left"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200">
+            Answer for the map
+          </p>
+          <p className="mt-1 text-xs leading-5 text-white/60">
+            Give the exact answer you observed. Your media supports it; BaseDare versions it after approval.
+          </p>
+        </div>
+        {assertionTargets.map((target) => {
+          const draft = structuredDrafts[target.id] ?? {};
+          const display = target.displayConfigJson ?? {};
+          const label =
+            (typeof display.label === 'string' && display.label) ||
+            (target.kind === 'OPENING_WINDOW'
+              ? `${target.subjectKey} opening hours`
+              : target.kind === 'ITEM_PRICE'
+                ? `Price: ${target.subjectKey.replaceAll('_', ' ')}`
+                : `Accepts ${target.subjectKey.replaceAll('_', ' ')}?`);
+          const helpText = typeof display.helpText === 'string' ? display.helpText : null;
+
+          return (
+            <div key={target.id} className="rounded-xl border border-white/8 bg-black/25 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold text-white">{label}</p>
+                  {helpText ? <p className="mt-1 text-[11px] leading-4 text-white/45">{helpText}</p> : null}
+                </div>
+                {target.required ? (
+                  <span className="text-[9px] font-black uppercase tracking-[0.15em] text-cyan-200">Required</span>
+                ) : null}
+              </div>
+
+              {target.kind === 'OPENING_WINDOW' ? (
+                <div className="mt-3 space-y-3">
+                  <label className="flex items-center gap-2 text-xs text-white/70">
+                    <input
+                      type="checkbox"
+                      checked={draft.closed === true}
+                      onChange={(event) => updateStructuredDraft(target.id, 'closed', event.target.checked)}
+                      className="h-4 w-4 accent-cyan-400"
+                    />
+                    Closed that day
+                  </label>
+                  {draft.closed !== true ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="text-[10px] uppercase tracking-[0.12em] text-white/45">
+                        Opens
+                        <input
+                          type="time"
+                          value={String(draft.opens ?? '')}
+                          onChange={(event) => updateStructuredDraft(target.id, 'opens', event.target.value)}
+                          className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black px-2 text-sm text-white"
+                        />
+                      </label>
+                      <label className="text-[10px] uppercase tracking-[0.12em] text-white/45">
+                        Closes
+                        <input
+                          type="time"
+                          value={String(draft.closes ?? '')}
+                          onChange={(event) => updateStructuredDraft(target.id, 'closes', event.target.value)}
+                          className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black px-2 text-sm text-white"
+                        />
+                      </label>
+                    </div>
+                  ) : null}
+                  <input
+                    value={String(draft.note ?? '')}
+                    onChange={(event) => updateStructuredDraft(target.id, 'note', event.target.value)}
+                    placeholder="Optional note, e.g. kitchen closes earlier"
+                    aria-label={`${label} note`}
+                    maxLength={240}
+                    className="h-10 w-full rounded-lg border border-white/10 bg-black px-3 text-xs text-white placeholder:text-white/25"
+                  />
+                </div>
+              ) : target.kind === 'ITEM_PRICE' ? (
+                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_110px]">
+                  <input
+                    inputMode="decimal"
+                    value={String(draft.amount ?? '')}
+                    onChange={(event) => updateStructuredDraft(target.id, 'amount', event.target.value)}
+                    placeholder="Observed price"
+                    aria-label={`${label} observed price`}
+                    className="h-10 rounded-lg border border-white/10 bg-black px-3 text-sm text-white placeholder:text-white/25"
+                  />
+                  <input
+                    value={String(draft.currency ?? '')}
+                    onChange={(event) => updateStructuredDraft(target.id, 'currency', event.target.value.toUpperCase())}
+                    maxLength={3}
+                    aria-label="Currency"
+                    className="h-10 rounded-lg border border-white/10 bg-black px-3 text-sm uppercase text-white"
+                  />
+                  <label className="flex items-center gap-2 text-xs text-white/65 sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={draft.available !== false}
+                      onChange={(event) => updateStructuredDraft(target.id, 'available', event.target.checked)}
+                      className="h-4 w-4 accent-cyan-400"
+                    />
+                    Item is available now
+                  </label>
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => updateStructuredDraft(target.id, 'accepted', true)}
+                      className={`h-10 rounded-lg border text-xs font-bold ${
+                        draft.accepted === true
+                          ? 'border-emerald-300/40 bg-emerald-400/15 text-emerald-100'
+                          : 'border-white/10 bg-black text-white/45'
+                      }`}
+                    >
+                      Accepted
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateStructuredDraft(target.id, 'accepted', false)}
+                      className={`h-10 rounded-lg border text-xs font-bold ${
+                        draft.accepted === false
+                          ? 'border-amber-300/40 bg-amber-400/15 text-amber-100'
+                          : 'border-white/10 bg-black text-white/45'
+                      }`}
+                    >
+                      Not accepted
+                    </button>
+                  </div>
+                  <input
+                    value={String(draft.evidenceContext ?? '')}
+                    onChange={(event) => updateStructuredDraft(target.id, 'evidenceContext', event.target.value)}
+                    placeholder="Optional context — never enter card or account details"
+                    aria-label={`${label} evidence context`}
+                    maxLength={240}
+                    className="h-10 w-full rounded-lg border border-white/10 bg-black px-3 text-xs text-white placeholder:text-white/25"
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </section>
+    );
   };
 
   // Render verification status UI
@@ -805,13 +1147,14 @@ export default function SubmitEvidence({
                   {error}
                 </div>
               )}
+              {renderStructuredQuestions()}
               <SafetyWaiver checked={proofWaiverAccepted} onChange={setProofWaiverAccepted} context="proof" />
               <CosmicButton
                 onClick={(e) => {
                   e.stopPropagation();
                   handleUploadAndVerify();
                 }}
-                disabled={!!error || !proofWaiverAccepted}
+                disabled={!!error || !proofWaiverAccepted || !targetsLoaded || !!targetsError}
                 variant="gold"
                 size="md"
                 fullWidth
@@ -846,6 +1189,7 @@ export default function SubmitEvidence({
                 {error}
               </div>
             )}
+            <div className="w-full max-w-[420px]">{renderStructuredQuestions()}</div>
             <div className="w-full max-w-[280px]">
               <CosmicButton
                 onClick={(e) => {

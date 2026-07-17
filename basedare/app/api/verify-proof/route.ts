@@ -40,6 +40,11 @@ import { getRefereeAccount } from '@/lib/referee-wallet';
 import { checkAndSendSentinelQueueAlert } from '@/lib/sentinel-queue';
 import { getAuthorizedProofSubmitterWallet } from '@/lib/proof-submit-auth-server';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
+import {
+  buildStructuredSubmissionSnapshots,
+  rawStructuredAnswersSchema,
+  type StructuredTargetContract,
+} from '@/lib/place-memory/contracts';
 
 // Network selection based on environment
 const activeChain = getBaseChain();
@@ -105,6 +110,7 @@ const VerifyProofSchema = z.object({
     accuracy: z.number().nullable().optional(),
     capturedAt: z.union([z.number(), z.string()]).nullable().optional(),
   }).optional(),
+  structuredAnswers: rawStructuredAnswersSchema.optional(),
 });
 
 // ============================================================================
@@ -665,6 +671,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const assertionTargets = await prisma.dareAssertionTarget.findMany({
+      where: { dareId },
+      orderBy: [{ position: 'asc' }, { id: 'asc' }],
+      include: { proofPolicyVersion: true },
+    });
+    let structuredSubmission: ReturnType<typeof buildStructuredSubmissionSnapshots>;
+    try {
+      structuredSubmission = buildStructuredSubmissionSnapshots(
+        assertionTargets.map((target): StructuredTargetContract => ({
+          id: target.id,
+          kind: target.kind,
+          subjectKey: target.subjectKey,
+          valueSchemaVersion: target.valueSchemaVersion,
+          required: target.required,
+          position: target.position,
+          displayConfigJson: target.displayConfigJson,
+          proofPolicyVersion: {
+            identifier: target.proofPolicyVersion.identifier,
+            version: target.proofPolicyVersion.version,
+            canonicalPolicyJson: target.proofPolicyVersion.canonicalPolicyJson,
+            policyHash: target.proofPolicyVersion.policyHash,
+          },
+        })),
+        validation.data.structuredAnswers,
+      );
+    } catch (structuredError) {
+      const message = structuredError instanceof Error ? structuredError.message : 'Invalid structured answers.';
+      return NextResponse.json(
+        { success: false, error: message, code: 'INVALID_STRUCTURED_ANSWERS' },
+        { status: 400 },
+      );
+    }
+
     let proximity: ProximityResult | null = null;
     if (isIrlNearbyDare) {
       if (!hasEvaluableTarget(dare, isValidCoordinates)) {
@@ -737,10 +776,52 @@ export async function POST(req: NextRequest) {
     // dare's one legal next state in the SAME transaction. Therefore a crash can
     // leave neither write or both writes, never a recorded attempt with a PENDING
     // dare. The chain call and notifications happen only after this commit.
-    let transitionClaimed = false;
+    let transition: { claimed: boolean; attemptId: string } | null = null;
     try {
-      transitionClaimed = await prisma.$transaction(async (tx) => {
-        await tx.dareProofAttempt.create({
+      transition = await prisma.$transaction(async (tx) => {
+        // Serialize question configuration against proof intake. The admin
+        // configuration route takes the same Dare row lock, so either the
+        // configuration change wins first (and this request revalidates it) or
+        // this immutable proof snapshot wins first (and configuration locks).
+        await tx.$queryRaw`SELECT id FROM "Dare" WHERE id = ${dare.id} FOR UPDATE`;
+
+        if (structuredSubmission) {
+          const currentTargets = await tx.dareAssertionTarget.findMany({
+            where: { dareId: dare.id },
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+            include: { proofPolicyVersion: true },
+          });
+          const currentSnapshot = buildStructuredSubmissionSnapshots(
+            currentTargets.map((target): StructuredTargetContract => ({
+              id: target.id,
+              kind: target.kind,
+              subjectKey: target.subjectKey,
+              valueSchemaVersion: target.valueSchemaVersion,
+              required: target.required,
+              position: target.position,
+              displayConfigJson: target.displayConfigJson,
+              proofPolicyVersion: {
+                identifier: target.proofPolicyVersion.identifier,
+                version: target.proofPolicyVersion.version,
+                canonicalPolicyJson: target.proofPolicyVersion.canonicalPolicyJson,
+                policyHash: target.proofPolicyVersion.policyHash,
+              },
+            })),
+            structuredSubmission.answers.map((answer) => ({
+              targetId: answer.targetId,
+              value: answer.value,
+            })),
+          );
+          if (
+            !currentSnapshot ||
+            currentSnapshot.structuredAnswersHash !== structuredSubmission.structuredAnswersHash ||
+            currentSnapshot.proofPolicySnapshotHash !== structuredSubmission.proofPolicySnapshotHash
+          ) {
+            throw new Error('STRUCTURED_TARGETS_CHANGED');
+          }
+        }
+
+        const attempt = await tx.dareProofAttempt.create({
           data: {
             dareId: dare.id,
             // Actor attribution (P2): the authenticated submitter, or the assigned
@@ -771,6 +852,10 @@ export async function POST(req: NextRequest) {
             reason: verification.reason,
             decidedAt: proofNow,
             submissionKey,
+            structuredAnswersJson: structuredSubmission?.structuredAnswersJson as Prisma.InputJsonValue | undefined,
+            structuredAnswersHash: structuredSubmission?.structuredAnswersHash ?? null,
+            proofPolicySnapshotJson: structuredSubmission?.proofPolicySnapshotJson as Prisma.InputJsonValue | undefined,
+            proofPolicySnapshotHash: structuredSubmission?.proofPolicySnapshotHash ?? null,
           },
         });
 
@@ -789,7 +874,7 @@ export async function POST(req: NextRequest) {
               appealedAt: proofNow,
             },
           });
-          return claim.count === 1;
+          return { claimed: claim.count === 1, attemptId: attempt.id };
         }
         if (routeOutcome === 'SETTLE') {
           const claim = await tx.dare.updateMany({
@@ -805,7 +890,7 @@ export async function POST(req: NextRequest) {
               payoutLeaseAt: proofNow,
             },
           });
-          return claim.count === 1;
+          return { claimed: claim.count === 1, attemptId: attempt.id };
         }
 
         // Both a clear proximity rejection and a verifier failure are appealable
@@ -821,13 +906,22 @@ export async function POST(req: NextRequest) {
             manualReviewNeeded: false,
           },
         });
-        return claim.count === 1;
+        return { claimed: claim.count === 1, attemptId: attempt.id };
       });
     } catch (ledgerErr) {
       if (ledgerErr instanceof Prisma.PrismaClientKnownRequestError && ledgerErr.code === 'P2002') {
         // The winner committed evidence + state together. Return its current state;
         // never re-evaluate this media using a retry's new GPS/timestamp.
         return respondWithCurrentDareOutcome(dareId);
+      } else if (ledgerErr instanceof Error && ledgerErr.message === 'STRUCTURED_TARGETS_CHANGED') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'This mission changed while proof was being prepared. Reload it before submitting.',
+            code: 'STRUCTURED_TARGETS_CHANGED',
+          },
+          { status: 409 },
+        );
       } else {
         console.error('[LEDGER] atomic proof-attempt transition failed:', ledgerErr);
         return NextResponse.json(
@@ -837,7 +931,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!transitionClaimed) {
+    if (!transition?.claimed) {
       // A different submission won the state CAS. Its state is authoritative;
       // this attempt remains in the append-only ledger for dispute/audit history.
       return respondWithCurrentDareOutcome(dareId);
@@ -1087,6 +1181,7 @@ export async function POST(req: NextRequest) {
 
         await finalizeVerifiedDare({
           dareId,
+          proofAttemptId: transition.attemptId,
           sourceContext: 'VERIFY_PROOF',
           verifiedAt: completedAt,
           verifyTxHash: txHash,

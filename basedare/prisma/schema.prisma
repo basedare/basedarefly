@@ -8,6 +8,60 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum PlaceAssertionKind {
+  OPENING_WINDOW
+  ITEM_PRICE
+  PAYMENT_METHOD
+}
+
+enum PlaceAssertionState {
+  UNKNOWN
+  CURRENT
+  STALE
+  CONFLICTED
+}
+
+enum AssertionValidTimeBasis {
+  OBSERVED
+  REPORTED
+  INFERRED
+}
+
+enum AssertionConflictStatus {
+  OPEN
+  NEEDS_CORROBORATION
+  RESOLVED
+  DISMISSED
+}
+
+enum RefreshScheduleStatus {
+  SCHEDULED
+  NEEDS_REVIEW
+  LEASED
+  MISSION_CREATED
+  COMPLETED
+  CANCELLED
+}
+
+enum FieldStationStatus {
+  LATENT
+  ANCHORED
+  TRUSTED
+}
+
+enum PlacePulseState {
+  COLD
+  SIMMERING
+  IGNITING
+  BLAZING
+}
+
+enum PlaceReceiptOutcome {
+  MEMORY_CONFIRMED
+  MEMORY_UPDATED
+  CONFLICT_OPENED
+}
+
 model User {
   id              String     @id @default(cuid())
   walletAddress   String     @unique
@@ -20,84 +74,91 @@ model User {
 }
 
 model Dare {
-  id                  String    @id @default(cuid())
-  shortId             String?   @unique
-  onChainDareId       String?   @unique
-  title               String
-  missionMode         String?   @default("IRL")
-  tag                 String?
-  bounty              Float
-  upvoteCount         Int       @default(0)
-  streamerHandle      String?
-  status              String    @default("PENDING")
-  videoUrl            String?
-  imageUrl            String?
-  proofHash           String?
-  proofCid            String? // Store the IPFS CID from Pinata
-  imageCid            String?
-  requireSentinel     Boolean   @default(false)
-  sentinelVerified    Boolean   @default(false)
-  manualReviewNeeded  Boolean   @default(false)
-  creatorId           String?
-  streamId            String?
-  txHash              String?
-  isSimulated         Boolean   @default(false)
-  expiresAt           DateTime?
-  verifiedAt          DateTime?
-  verifyTxHash        String?
-  verifyConfidence    Float?
-  appealStatus        String?
-  appealReason        String?
-  appealedAt          DateTime?
-  referrerTag         String?
-  referrerAddress     String?
-  referrerPayout      Float?
-  stakerAddress       String?
-  venueId             String?
-  inviteToken         String?   @unique
-  claimDeadline       DateTime?
-  targetWalletAddress String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                     String                @id @default(cuid())
+  shortId                String?               @unique
+  onChainDareId          String?               @unique
+  title                  String
+  missionMode            String?               @default("IRL")
+  tag                    String?
+  bounty                 Float
+  upvoteCount            Int                   @default(0)
+  streamerHandle         String?
+  status                 String                @default("PENDING")
+  videoUrl               String?
+  imageUrl               String?
+  proofHash              String?
+  proofCid               String? // Store the IPFS CID from Pinata
+  imageCid               String?
+  requireSentinel        Boolean               @default(false)
+  sentinelVerified       Boolean               @default(false)
+  manualReviewNeeded     Boolean               @default(false)
+  creatorId              String?
+  streamId               String?
+  txHash                 String?
+  isSimulated            Boolean               @default(false)
+  expiresAt              DateTime?
+  verifiedAt             DateTime?
+  verifyTxHash           String?
+  verifyConfidence       Float?
+  appealStatus           String?
+  appealReason           String?
+  appealedAt             DateTime?
+  referrerTag            String?
+  referrerAddress        String?
+  referrerPayout         Float?
+  stakerAddress          String?
+  venueId                String?
+  inviteToken            String?               @unique
+  claimDeadline          DateTime?
+  targetWalletAddress    String?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
   // Self-expiring lease so only ONE retry-payouts worker processes a
   // PENDING_PAYOUT row at a time (set atomically via CAS; ignored once stale).
-  payoutLeaseAt       DateTime?
-  discoveryRadiusKm   Float?    @default(5)
-  geohash             String?
-  isNearbyDare        Boolean   @default(false)
-  latitude            Float?
-  locationLabel       String?
-  longitude           Float?
-  venue_key           String?
-  dare_text           String?
-  proof_media         String?
-  completed_at        DateTime?
-  reaction_count      Int       @default(0)
-  geo_bucket          String?
+  payoutLeaseAt          DateTime?
+  // The immutable proof body is never changed. This pointer records which
+  // same-Dare attempt the winning finalizer accepted.
+  approvedProofAttemptId String?               @unique
+  discoveryRadiusKm      Float?                @default(5)
+  geohash                String?
+  isNearbyDare           Boolean               @default(false)
+  latitude               Float?
+  locationLabel          String?
+  longitude              Float?
+  venue_key              String?
+  dare_text              String?
+  proof_media            String?
+  completed_at           DateTime?
+  reaction_count         Int                   @default(0)
+  geo_bucket             String?
   // Claim-to-attempt fields (for @everyone open dares)
-  claimedBy           String? // Wallet that claimed this dare
-  claimedAt           DateTime? // When it was claimed
-  claimExpiresAt      DateTime? // When the claim expires (24h window)
+  claimedBy              String? // Wallet that claimed this dare
+  claimedAt              DateTime? // When it was claimed
+  claimExpiresAt         DateTime? // When the claim expires (24h window)
   // Claim request fields (moderated claim flow for open dares)
-  claimRequestWallet  String? // Wallet requesting to claim
-  claimRequestTag     String? // Tag of the requester (e.g., @username)
-  claimRequestedAt    DateTime? // When request was submitted
-  claimRequestStatus  String? // PENDING, APPROVED, REJECTED
+  claimRequestWallet     String? // Wallet requesting to claim
+  claimRequestTag        String? // Tag of the requester (e.g., @username)
+  claimRequestedAt       DateTime? // When request was submitted
+  claimRequestStatus     String? // PENDING, APPROVED, REJECTED
   // Moderator decision fields
-  moderatorDecision   String? // APPROVED or REJECTED
-  moderatorAddress    String? // Wallet of moderator who decided
-  moderatedAt         DateTime? // When moderation happened
-  moderatorNote       String? // Optional note from moderator
+  moderatorDecision      String? // APPROVED or REJECTED
+  moderatorAddress       String? // Wallet of moderator who decided
+  moderatedAt            DateTime? // When moderation happened
+  moderatorNote          String? // Optional note from moderator
   // Vote threshold tracking
-  voteThreshold       Int       @default(5) // Votes needed for mod review
-  creator             User?     @relation(fields: [creatorId], references: [id])
-  venue               Venue?    @relation(fields: [venueId], references: [id])
-  linkedCampaign      Campaign? @relation("CampaignLinkedDare")
-  votes               Vote[]
-  comments            Comment[]
-  creatorReview       CreatorReview?
-  inboxThreads        InboxThread[]
-  proofAttempts       DareProofAttempt[]
+  voteThreshold          Int                   @default(5) // Votes needed for mod review
+  creator                User?                 @relation(fields: [creatorId], references: [id])
+  venue                  Venue?                @relation(fields: [venueId], references: [id])
+  linkedCampaign         Campaign?             @relation("CampaignLinkedDare")
+  votes                  Vote[]
+  comments               Comment[]
+  creatorReview          CreatorReview?
+  inboxThreads           InboxThread[]
+  proofAttempts          DareProofAttempt[]
+  approvedProofAttempt   DareProofAttempt?     @relation("ApprovedProofAttempt", fields: [approvedProofAttemptId], references: [id], onDelete: Restrict)
+  assertionTargets       DareAssertionTarget[]
+  placeReceipt           PlaceReceipt?
+  refreshSchedules       RefreshSchedule[]     @relation("RefreshMission")
 
   @@index([inviteToken])
   @@index([streamerHandle, status])
@@ -117,47 +178,94 @@ model Dare {
 // state; THIS is the audit log. Exact submitted coordinates are private
 // (server-only); public receipts expose only the proximity outcome.
 model DareProofAttempt {
-  id                 String    @id @default(cuid())
-  dareId             String
-  submitterWallet    String?
-  beneficiaryWallet  String?
-  source             String    @default("web") // web | internal | telegram | retry | appeal
-  systemActor        String?
+  id                      String    @id @default(cuid())
+  dareId                  String
+  submitterWallet         String?
+  beneficiaryWallet       String?
+  source                  String    @default("web") // web | internal | telegram | retry | appeal
+  systemActor             String?
   // Target snapshot at attempt time (never mutated after write).
-  targetLatitude     Float?
-  targetLongitude    Float?
-  allowedRadiusKm    Float?
+  targetLatitude          Float?
+  targetLongitude         Float?
+  allowedRadiusKm         Float?
   // Device-reported evidence (private — never exposed at precise resolution).
-  submittedLatitude  Float?
-  submittedLongitude Float?
-  accuracyM          Float?
-  capturedAt         DateTime?
-  receivedAt         DateTime  @default(now())
+  submittedLatitude       Float?
+  submittedLongitude      Float?
+  accuracyM               Float?
+  capturedAt              DateTime?
+  receivedAt              DateTime  @default(now())
   // Computed proximity result.
-  distanceKm         Float?
-  proximityDecision  String? // INSIDE | REVIEW | REJECT
-  proximityCode      String?
+  distanceKm              Float?
+  proximityDecision       String? // INSIDE | REVIEW | REJECT
+  proximityCode           String?
   // Media + overall attempt outcome.
-  mediaCid           String?
-  mediaHash          String?
-  verificationConfidence Float?
-  verificationReason String?
-  proximityReason    String?
-  decision           String? // e.g. AUTO_APPROVED | PENDING_REVIEW | REJECTED
-  reason             String?
-  decidedAt          DateTime?
+  mediaCid                String?
+  mediaHash               String?
+  verificationConfidence  Float?
+  verificationReason      String?
+  proximityReason         String?
+  decision                String? // e.g. AUTO_APPROVED | PENDING_REVIEW | REJECTED
+  reason                  String?
+  decidedAt               DateTime?
   // Stable per-(dare, media) idempotency key: `${dareId}:${proofCid||videoUrl}`.
   // NULL when no media is attached (Postgres treats NULLs as distinct, so
   // no-media rows never collide). The unique index blocks replaying the same
   // media to the same dare with a fresh location.
-  submissionKey      String?
-  createdAt          DateTime  @default(now())
+  submissionKey           String?
+  // Immutable, canonical server-validated structured-answer snapshot.
+  structuredAnswersJson   Json?
+  structuredAnswersHash   String?
+  // Immutable evaluated proof-policy snapshot. Legacy rows remain NULL.
+  proofPolicySnapshotJson Json?
+  proofPolicySnapshotHash String?
+  createdAt               DateTime  @default(now())
 
-  dare               Dare      @relation(fields: [dareId], references: [id], onDelete: Cascade)
+  dare                  Dare                   @relation(fields: [dareId], references: [id], onDelete: Cascade)
+  approvedForDare       Dare?                  @relation("ApprovedProofAttempt")
+  assertionObservations AssertionObservation[]
+  placeReceipt          PlaceReceipt?
 
   @@unique([dareId, submissionKey])
+  @@unique([dareId, id])
   @@index([dareId, createdAt])
   @@index([submitterWallet])
+}
+
+model ProofPolicyVersion {
+  id                  String                @id @default(cuid())
+  identifier          String
+  version             Int
+  canonicalPolicyJson Json
+  policyHash          String                @unique
+  activatedAt         DateTime              @default(now())
+  retiredAt           DateTime?
+  createdAt           DateTime              @default(now())
+  assertionTargets    DareAssertionTarget[]
+
+  @@unique([identifier, version])
+  @@index([identifier, activatedAt])
+}
+
+model DareAssertionTarget {
+  id                   String                 @id @default(cuid())
+  dareId               String
+  kind                 PlaceAssertionKind
+  subjectKey           String
+  valueSchemaVersion   Int                    @default(1)
+  required             Boolean                @default(true)
+  proofPolicyVersionId String
+  displayConfigJson    Json?
+  position             Int                    @default(0)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  dare                 Dare                   @relation(fields: [dareId], references: [id], onDelete: Cascade)
+  proofPolicyVersion   ProofPolicyVersion     @relation(fields: [proofPolicyVersionId], references: [id], onDelete: Restrict)
+  observations         AssertionObservation[]
+
+  @@unique([dareId, kind, subjectKey])
+  @@unique([dareId, position])
+  @@index([proofPolicyVersionId])
+  @@index([dareId, position])
 }
 
 model CreatorReview {
@@ -176,60 +284,63 @@ model CreatorReview {
 }
 
 model Venue {
-  id                  String           @id @default(cuid())
-  slug                String           @unique
-  name                String
-  description         String?
-  address             String?
-  city                String?
-  country             String?
-  latitude            Float
-  longitude           Float
-  geohash             String?
-  timezone            String           @default("UTC")
-  categories          String[]         @default([])
-  status              String           @default("ACTIVE")
-  isPartner           Boolean          @default(false)
-  partnerTier         String?
-  placeSource         String?
-  externalPlaceId     String?
-  qrMode              String           @default("ROTATING")
-  qrRotationSeconds   Int              @default(45)
-  checkInRadiusMeters Int              @default(120)
-  claimedBy           String?
-  claimedAt           DateTime?
-  claimRequestWallet  String?
-  claimRequestTag     String?
-  claimRequestedAt    DateTime?
-  claimRequestStatus  String?
-  moderatorAddress    String?
-  moderatedAt         DateTime?
-  moderatorNote       String?
-  hoursJson           Json?
-  metadataJson        Json?
-  discoveryScoutId    String?
-  activeScoutId       String?
+  id                   String                   @id @default(cuid())
+  slug                 String                   @unique
+  name                 String
+  description          String?
+  address              String?
+  city                 String?
+  country              String?
+  latitude             Float
+  longitude            Float
+  geohash              String?
+  timezone             String                   @default("UTC")
+  categories           String[]                 @default([])
+  status               String                   @default("ACTIVE")
+  isPartner            Boolean                  @default(false)
+  partnerTier          String?
+  placeSource          String?
+  externalPlaceId      String?
+  qrMode               String                   @default("ROTATING")
+  qrRotationSeconds    Int                      @default(45)
+  checkInRadiusMeters  Int                      @default(120)
+  claimedBy            String?
+  claimedAt            DateTime?
+  claimRequestWallet   String?
+  claimRequestTag      String?
+  claimRequestedAt     DateTime?
+  claimRequestStatus   String?
+  moderatorAddress     String?
+  moderatedAt          DateTime?
+  moderatorNote        String?
+  hoursJson            Json?
+  metadataJson         Json?
+  discoveryScoutId     String?
+  activeScoutId        String?
   activeRakeReviewedAt DateTime?
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
-  dares               Dare[]
-  campaigns           Campaign[]
-  inboxThreads        InboxThread[]
-  checkIns            VenueCheckIn[]
-  memories            VenueMemory[]
-  placeTags           PlaceTag[]
-  qrSessions          VenueQrSession[]
-  reviews             VenueReview[]
-  roomMessages        VenueRoomMessage[]
-  roomPresences       VenueRoomPresence[]
-  contactRoutes       VenueContactRoute[]
-  reportEvents        VenueReportEvent[]
-  reportLeads         VenueReportLead[]
-  founderEvents       FounderEvent[]
-  baseCashCredits     BaseCashVenueCredit[]
-  fieldStationLinks   CreatorAttributionLink[] @relation("FieldStationHostVenue")
-  discoveryScout      Scout?              @relation("VenueDiscoveryScout", fields: [discoveryScoutId], references: [id])
-  activeScout         Scout?              @relation("VenueActiveScout", fields: [activeScoutId], references: [id])
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  dares                Dare[]
+  campaigns            Campaign[]
+  inboxThreads         InboxThread[]
+  checkIns             VenueCheckIn[]
+  memories             VenueMemory[]
+  placeTags            PlaceTag[]
+  qrSessions           VenueQrSession[]
+  reviews              VenueReview[]
+  roomMessages         VenueRoomMessage[]
+  roomPresences        VenueRoomPresence[]
+  contactRoutes        VenueContactRoute[]
+  reportEvents         VenueReportEvent[]
+  reportLeads          VenueReportLead[]
+  founderEvents        FounderEvent[]
+  baseCashCredits      BaseCashVenueCredit[]
+  fieldStationLinks    CreatorAttributionLink[] @relation("FieldStationHostVenue")
+  fieldStationProfile  FieldStationProfile?
+  placeAssertions      PlaceAssertion[]
+  placeReceipts        PlaceReceipt[]
+  discoveryScout       Scout?                   @relation("VenueDiscoveryScout", fields: [discoveryScoutId], references: [id])
+  activeScout          Scout?                   @relation("VenueActiveScout", fields: [activeScoutId], references: [id])
 
   @@unique([placeSource, externalPlaceId])
   @@index([status])
@@ -242,7 +353,7 @@ model Venue {
 }
 
 model VenueContactRoute {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   venueId            String
   channel            String
   label              String
@@ -252,18 +363,18 @@ model VenueContactRoute {
   source             String
   sourceUrl          String?
   consentBasis       String
-  isPersonal         Boolean  @default(false)
-  isPublic           Boolean  @default(false)
-  active             Boolean  @default(true)
-  verificationStatus String   @default("PENDING")
+  isPersonal         Boolean   @default(false)
+  isPublic           Boolean   @default(false)
+  active             Boolean   @default(true)
+  verificationStatus String    @default("PENDING")
   verifiedAt         DateTime?
   verifiedBy         String?
   lastConfirmedAt    DateTime?
-  sortOrder          Int      @default(0)
+  sortOrder          Int       @default(0)
   createdBy          String
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  venue              Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  venue              Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
 
   @@index([venueId, active, isPublic, verificationStatus, sortOrder])
   @@index([venueId, channel])
@@ -271,30 +382,30 @@ model VenueContactRoute {
 }
 
 model BaseCashVenueCredit {
-  id                 String   @id @default(cuid())
-  venueId            String
-  buyerWallet        String
-  buyerTag           String?
-  receiptCode        String   @unique
-  denominationPhp    Int
-  serviceFeePhp      Int
-  totalPhp           Int
-  venueReceivablePhp Int
-  currencyPaid       String   @default("USDC")
-  chainId            Int      @default(8453)
-  txHash             String?
-  paymentStatus      String   @default("PENDING")
-  redemptionStatus   String   @default("ACTIVE")
-  settlementStatus   String   @default("UNSETTLED")
-  validFrom          DateTime @default(now())
-  expiresAt          DateTime
-  redeemedAt         DateTime?
-  redeemedBy         String?
+  id                  String    @id @default(cuid())
+  venueId             String
+  buyerWallet         String
+  buyerTag            String?
+  receiptCode         String    @unique
+  denominationPhp     Int
+  serviceFeePhp       Int
+  totalPhp            Int
+  venueReceivablePhp  Int
+  currencyPaid        String    @default("USDC")
+  chainId             Int       @default(8453)
+  txHash              String?
+  paymentStatus       String    @default("PENDING")
+  redemptionStatus    String    @default("ACTIVE")
+  settlementStatus    String    @default("UNSETTLED")
+  validFrom           DateTime  @default(now())
+  expiresAt           DateTime
+  redeemedAt          DateTime?
+  redeemedBy          String?
   settlementReference String?
-  metadataJson       Json?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  venue              Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  metadataJson        Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  venue               Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
 
   @@index([venueId, createdAt])
   @@index([venueId, paymentStatus, redemptionStatus])
@@ -330,17 +441,17 @@ model FounderEvent {
 }
 
 model VenueReportEvent {
-  id         String   @id @default(cuid())
-  venueId     String
-  leadId      String?
-  audience    String   @default("venue")
-  eventType   String
-  sessionKey  String?
-  channel     String?
+  id           String           @id @default(cuid())
+  venueId      String
+  leadId       String?
+  audience     String           @default("venue")
+  eventType    String
+  sessionKey   String?
+  channel      String?
   metadataJson Json?
-  createdAt   DateTime @default(now())
-  venue       Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  lead        VenueReportLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  createdAt    DateTime         @default(now())
+  venue        Venue            @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  lead         VenueReportLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   @@index([venueId, createdAt])
   @@index([venueId, eventType, createdAt])
@@ -348,24 +459,24 @@ model VenueReportEvent {
 }
 
 model VenueReportLead {
-  id          String   @id @default(cuid())
-  venueId      String
-  audience     String   @default("venue")
-  source       String   @default("REPORT")
-  intent       String?
-  sessionKey   String?
-  email        String
-  name         String?
-  organization String?
-  notes        String?
-  followUpStatus String @default("NEW")
+  id             String             @id @default(cuid())
+  venueId        String
+  audience       String             @default("venue")
+  source         String             @default("REPORT")
+  intent         String?
+  sessionKey     String?
+  email          String
+  name           String?
+  organization   String?
+  notes          String?
+  followUpStatus String             @default("NEW")
   ownerWallet    String?
   nextActionAt   DateTime?
-  contactedAt  DateTime @default(now())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  venue        Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  reportEvents VenueReportEvent[]
+  contactedAt    DateTime           @default(now())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  venue          Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  reportEvents   VenueReportEvent[]
 
   @@index([venueId, createdAt])
   @@index([venueId, audience, createdAt])
@@ -376,36 +487,38 @@ model VenueReportLead {
 }
 
 model PlaceTag {
-  id                String   @id @default(cuid())
+  id                String        @id @default(cuid())
   venueId           String
   walletAddress     String
   creatorTag        String?
-  status            String   @default("PENDING")
+  status            String        @default("PENDING")
   caption           String?
-  vibeTags          String[] @default([])
+  vibeTags          String[]      @default([])
   proofMediaUrl     String
   proofCid          String?
   proofHash         String?
-  proofType         String   @default("IMAGE")
-  source            String   @default("DIRECT_TAG")
+  proofType         String        @default("IMAGE")
+  source            String        @default("DIRECT_TAG")
   linkedDareId      String?
   hiddenPromptId    String?
   latitude          Float?
   longitude         Float?
   geoDistanceMeters Int?
-  heatContribution  Int      @default(10)
-  firstMark         Boolean  @default(false)
+  heatContribution  Int           @default(10)
+  firstMark         Boolean       @default(false)
   // Immutable global receipt serial — assigned exactly once, inside the same
   // transaction that makes the tag APPROVED. Never recomputed, never reused.
-  serialNumber      Int?     @unique
-  submittedAt       DateTime @default(now())
+  serialNumber      Int?          @unique
+  placeReceiptId    String?       @unique
+  submittedAt       DateTime      @default(now())
   reviewedAt        DateTime?
   reviewerWallet    String?
   reviewReason      String?
   metadataJson      Json?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  venue             Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  venue             Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  placeReceipt      PlaceReceipt? @relation(fields: [placeReceiptId], references: [id], onDelete: SetNull)
 
   @@index([venueId, submittedAt])
   @@index([venueId, status, submittedAt])
@@ -445,19 +558,19 @@ model VenueCheckIn {
 }
 
 model VenueReview {
-  id             String        @id @default(cuid())
-  venueId        String
-  walletAddress  String
-  tag            String?
-  checkInId      String?
-  verdict        String
-  note           String?
-  confirmations  Int           @default(0)
-  status         String        @default("ACTIVE")
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  venue          Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  checkIn        VenueCheckIn? @relation(fields: [checkInId], references: [id], onDelete: SetNull)
+  id            String        @id @default(cuid())
+  venueId       String
+  walletAddress String
+  tag           String?
+  checkInId     String?
+  verdict       String
+  note          String?
+  confirmations Int           @default(0)
+  status        String        @default("ACTIVE")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  venue         Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  checkIn       VenueCheckIn? @relation(fields: [checkInId], references: [id], onDelete: SetNull)
 
   @@unique([venueId, walletAddress])
   @@index([venueId, createdAt])
@@ -487,6 +600,209 @@ model VenueMemory {
 
   @@unique([venueId, bucketType, bucketStartAt])
   @@index([venueId, bucketStartAt])
+}
+
+// Capability/projection only. Venue remains the canonical place identity.
+model FieldStationProfile {
+  id                  String             @id @default(cuid())
+  venueId             String             @unique
+  status              FieldStationStatus @default(LATENT)
+  pulseState          PlacePulseState    @default(COLD)
+  pulseScore          Int                @default(0)
+  pulseComputedAt     DateTime?
+  pulseModelVersion   Int                @default(1)
+  pulseComponentsJson Json?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  venue               Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([pulseState, pulseScore])
+}
+
+model PlaceAssertion {
+  id               String                 @id @default(cuid())
+  venueId          String
+  kind             PlaceAssertionKind
+  subjectKey       String
+  state            PlaceAssertionState    @default(UNKNOWN)
+  currentVersionId String?                @unique
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  venue            Venue                  @relation(fields: [venueId], references: [id], onDelete: Restrict)
+  currentVersion   AssertionVersion?      @relation("CurrentAssertionVersion", fields: [currentVersionId], references: [id], onDelete: Restrict)
+  observations     AssertionObservation[]
+  versions         AssertionVersion[]     @relation("AssertionVersions")
+  conflicts        AssertionConflict[]
+  refreshSchedule  RefreshSchedule?
+
+  @@unique([venueId, kind, subjectKey])
+  @@unique([id, currentVersionId])
+  @@index([venueId, state])
+  @@index([kind, state])
+}
+
+model AssertionObservation {
+  id                 String                         @id @default(cuid())
+  assertionId        String
+  proofAttemptId     String
+  targetId           String
+  valueJson          Json
+  valueSchemaVersion Int
+  valueHash          String
+  observationHash    String                         @unique
+  observedAt         DateTime
+  createdAt          DateTime                       @default(now())
+  assertion          PlaceAssertion                 @relation(fields: [assertionId], references: [id], onDelete: Restrict)
+  proofAttempt       DareProofAttempt               @relation(fields: [proofAttemptId], references: [id], onDelete: Restrict)
+  target             DareAssertionTarget            @relation(fields: [targetId], references: [id], onDelete: Restrict)
+  versionSupports    AssertionVersionObservation[]
+  conflicts          AssertionConflictObservation[]
+  receipts           PlaceReceiptObservation[]
+
+  @@unique([proofAttemptId, assertionId])
+  @@unique([proofAttemptId, targetId])
+  @@index([assertionId, observedAt])
+  @@index([proofAttemptId])
+  @@index([targetId])
+  @@index([valueHash])
+}
+
+model AssertionVersion {
+  id                     String                         @id @default(cuid())
+  assertionId            String
+  valueJson              Json
+  valueSchemaVersion     Int
+  valueHash              String
+  effectiveFrom          DateTime?
+  effectiveTo            DateTime?
+  observedAt             DateTime
+  validTimeBasis         AssertionValidTimeBasis        @default(OBSERVED)
+  recordedAt             DateTime                       @default(now())
+  supersededAt           DateTime?
+  assertion              PlaceAssertion                 @relation("AssertionVersions", fields: [assertionId], references: [id], onDelete: Restrict)
+  currentForAssertion    PlaceAssertion?                @relation("CurrentAssertionVersion")
+  supportingObservations AssertionVersionObservation[]
+  previousInConflicts    AssertionConflict[]            @relation("ConflictPreviousVersion")
+  resolvedConflicts      AssertionConflict[]            @relation("ConflictResolvedVersion")
+  receipts               PlaceReceiptAssertionVersion[]
+
+  @@unique([assertionId, id])
+  @@index([assertionId, observedAt])
+  @@index([assertionId, supersededAt])
+  @@index([assertionId, valueHash])
+}
+
+model AssertionVersionObservation {
+  versionId     String
+  observationId String
+  linkedAt      DateTime             @default(now())
+  version       AssertionVersion     @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  observation   AssertionObservation @relation(fields: [observationId], references: [id], onDelete: Restrict)
+
+  @@id([versionId, observationId])
+  @@index([observationId])
+}
+
+model AssertionConflict {
+  id                String                         @id @default(cuid())
+  assertionId       String
+  previousVersionId String
+  resolvedVersionId String?
+  status            AssertionConflictStatus        @default(OPEN)
+  severity          Int                            @default(1)
+  reason            String
+  openedAt          DateTime                       @default(now())
+  reviewedAt        DateTime?
+  resolvedAt        DateTime?
+  reviewerIdentity  String?
+  resolution        String?
+  missionDraftJson  Json?
+  createdAt         DateTime                       @default(now())
+  updatedAt         DateTime                       @updatedAt
+  assertion         PlaceAssertion                 @relation(fields: [assertionId], references: [id], onDelete: Restrict)
+  previousVersion   AssertionVersion               @relation("ConflictPreviousVersion", fields: [previousVersionId], references: [id], onDelete: Restrict)
+  resolvedVersion   AssertionVersion?              @relation("ConflictResolvedVersion", fields: [resolvedVersionId], references: [id], onDelete: Restrict)
+  observations      AssertionConflictObservation[]
+
+  @@index([assertionId, status, openedAt])
+  @@index([previousVersionId])
+  @@index([resolvedVersionId])
+}
+
+model AssertionConflictObservation {
+  conflictId    String
+  observationId String
+  joinedAt      DateTime             @default(now())
+  conflict      AssertionConflict    @relation(fields: [conflictId], references: [id], onDelete: Cascade)
+  observation   AssertionObservation @relation(fields: [observationId], references: [id], onDelete: Restrict)
+
+  @@id([conflictId, observationId])
+  @@index([observationId])
+}
+
+model RefreshSchedule {
+  id               String                @id @default(cuid())
+  assertionId      String                @unique
+  status           RefreshScheduleStatus @default(SCHEDULED)
+  dueAt            DateTime
+  reason           String
+  priority         Int                   @default(0)
+  missionDraftJson Json?
+  futureDareId     String?
+  leaseOwner       String?
+  leaseExpiresAt   DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  assertion        PlaceAssertion        @relation(fields: [assertionId], references: [id], onDelete: Cascade)
+  futureDare       Dare?                 @relation("RefreshMission", fields: [futureDareId], references: [id], onDelete: SetNull)
+
+  @@index([status, dueAt, priority])
+  @@index([futureDareId])
+}
+
+model PlaceReceipt {
+  id                   String                         @id @default(cuid())
+  venueId              String
+  dareId               String                         @unique
+  proofAttemptId       String                         @unique
+  serialNumber         Int                            @unique
+  outcome              PlaceReceiptOutcome
+  contentHash          String                         @unique
+  settlementTxHash     String?
+  publicPayloadVersion Int                            @default(1)
+  publicPayloadJson    Json
+  issuedAt             DateTime                       @default(now())
+  createdAt            DateTime                       @default(now())
+  venue                Venue                          @relation(fields: [venueId], references: [id], onDelete: Restrict)
+  dare                 Dare                           @relation(fields: [dareId], references: [id], onDelete: Restrict)
+  proofAttempt         DareProofAttempt               @relation(fields: [proofAttemptId], references: [id], onDelete: Restrict)
+  placeTag             PlaceTag?
+  observations         PlaceReceiptObservation[]
+  assertionVersions    PlaceReceiptAssertionVersion[]
+
+  @@index([venueId, issuedAt])
+  @@index([outcome, issuedAt])
+}
+
+model PlaceReceiptObservation {
+  receiptId     String
+  observationId String
+  receipt       PlaceReceipt         @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  observation   AssertionObservation @relation(fields: [observationId], references: [id], onDelete: Restrict)
+
+  @@id([receiptId, observationId])
+  @@index([observationId])
+}
+
+model PlaceReceiptAssertionVersion {
+  receiptId String
+  versionId String
+  role      String           @default("CURRENT")
+  receipt   PlaceReceipt     @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  version   AssertionVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
+
+  @@id([receiptId, versionId])
+  @@index([versionId])
 }
 
 model VenueQrSession {
@@ -552,15 +868,15 @@ model VenueRoomPresence {
 }
 
 model AppSettings {
-  id                          String    @id @default("singleton")
-  sentinelEnabled             Boolean   @default(true)
-  sentinelPausedReason        String?
-  sentinelPendingAlertThreshold Int     @default(5)
-  lastSentinelQueueAlertSent  DateTime?
-  venueLeadAlertThreshold     Int       @default(2)
-  lastVenueLeadAlertSent      DateTime?
-  createdAt                   DateTime  @default(now())
-  updatedAt                   DateTime  @updatedAt
+  id                            String    @id @default("singleton")
+  sentinelEnabled               Boolean   @default(true)
+  sentinelPausedReason          String?
+  sentinelPendingAlertThreshold Int       @default(5)
+  lastSentinelQueueAlertSent    DateTime?
+  venueLeadAlertThreshold       Int       @default(2)
+  lastVenueLeadAlertSent        DateTime?
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
 }
 
 model Comment {
@@ -587,41 +903,41 @@ model Referral {
 }
 
 model StreamerTag {
-  id                   String    @id @default(cuid())
-  tag                  String    @unique
-  walletAddress        String
-  bio                  String?
-  pfpUrl               String?
-  pfpScale             Float     @default(1)
-  pfpOffsetX           Float     @default(50)
-  pfpOffsetY           Float     @default(50)
-  followerCount        Int?
-  tags                 String[]  @default([])
-  verificationMethod   String
-  identityPlatform     String?
-  identityHandle       String?
+  id                       String    @id @default(cuid())
+  tag                      String    @unique
+  walletAddress            String
+  bio                      String?
+  pfpUrl                   String?
+  pfpScale                 Float     @default(1)
+  pfpOffsetX               Float     @default(50)
+  pfpOffsetY               Float     @default(50)
+  followerCount            Int?
+  tags                     String[]  @default([])
+  verificationMethod       String
+  identityPlatform         String?
+  identityHandle           String?
   identityVerificationCode String?
-  verifiedAt           DateTime?
-  twitterId            String?   @unique
-  twitterHandle        String?
-  twitterVerified      Boolean   @default(false)
-  twitchId             String?   @unique
-  twitchHandle         String?
-  twitchVerified       Boolean   @default(false)
-  youtubeId            String?   @unique
-  youtubeHandle        String?
-  youtubeVerified      Boolean   @default(false)
-  kickHandle           String?
-  kickVerificationCode String?
-  kickVerified         Boolean   @default(false)
-  status               String    @default("PENDING")
-  revokedAt            DateTime?
-  revokedBy            String?
-  revokeReason         String?
-  totalEarned          Float     @default(0)
-  completedDares       Int       @default(0)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  verifiedAt               DateTime?
+  twitterId                String?   @unique
+  twitterHandle            String?
+  twitterVerified          Boolean   @default(false)
+  twitchId                 String?   @unique
+  twitchHandle             String?
+  twitchVerified           Boolean   @default(false)
+  youtubeId                String?   @unique
+  youtubeHandle            String?
+  youtubeVerified          Boolean   @default(false)
+  kickHandle               String?
+  kickVerificationCode     String?
+  kickVerified             Boolean   @default(false)
+  status                   String    @default("PENDING")
+  revokedAt                DateTime?
+  revokedBy                String?
+  revokeReason             String?
+  totalEarned              Float     @default(0)
+  completedDares           Int       @default(0)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   @@index([walletAddress])
   @@index([twitterHandle])
@@ -712,21 +1028,21 @@ model CampaignSlot {
 }
 
 model Scout {
-  id                 String         @id @default(cuid())
-  walletAddress      String         @unique
+  id                 String           @id @default(cuid())
+  walletAddress      String           @unique
   handle             String?
-  reputationScore    Int            @default(50)
-  totalCampaigns     Int            @default(0)
-  successfulSlots    Int            @default(0)
-  failedSlots        Int            @default(0)
-  tier               String         @default("BLOODHOUND")
-  totalDiscoveryRake Float          @default(0)
-  totalActiveRake    Float          @default(0)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  reputationScore    Int              @default(50)
+  totalCampaigns     Int              @default(0)
+  successfulSlots    Int              @default(0)
+  failedSlots        Int              @default(0)
+  tier               String           @default("BLOODHOUND")
+  totalDiscoveryRake Float            @default(0)
+  totalActiveRake    Float            @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
   slots              CampaignSlot[]
-  activeCreators     ScoutCreator[] @relation("ActiveScout")
-  discoveredCreators ScoutCreator[] @relation("DiscoveryScout")
+  activeCreators     ScoutCreator[]   @relation("ActiveScout")
+  discoveredCreators ScoutCreator[]   @relation("DiscoveryScout")
   discoveredVenues   Venue[]          @relation("VenueDiscoveryScout")
   activeVenues       Venue[]          @relation("VenueActiveScout")
   rakeEvents         ScoutRakeEvent[]
@@ -739,9 +1055,9 @@ model ScoutRakeEvent {
   id         String    @id @default(cuid())
   scoutId    String
   venueId    String?
-  kind       String    // DISCOVERY | ACTIVE
+  kind       String // DISCOVERY | ACTIVE
   sourceType String    @default("B2B_PAYMENT")
-  sourceId   String    // the settled payment id
+  sourceId   String // the settled payment id
   amount     Float
   status     String    @default("PENDING") // PENDING | VESTED | CLAWED_BACK
   vestsAt    DateTime?
@@ -964,24 +1280,24 @@ model InboxMessage {
 }
 
 model WebPushSubscription {
-  id         String   @id @default(cuid())
-  wallet     String
-  endpoint   String   @unique
-  p256dh     String
-  auth       String
-  topics     String[] @default(["wallet", "nearby"])
-  userAgent  String?
-  isActive   Boolean  @default(true)
-  lastLatitude  Float?
-  lastLongitude Float?
-  nearbyRadiusKm Float?  @default(5)
-  lastLocationAt DateTime?
-  lastNearbyPushAt DateTime?
+  id                String            @id @default(cuid())
+  wallet            String
+  endpoint          String            @unique
+  p256dh            String
+  auth              String
+  topics            String[]          @default(["wallet", "nearby"])
+  userAgent         String?
+  isActive          Boolean           @default(true)
+  lastLatitude      Float?
+  lastLongitude     Float?
+  nearbyRadiusKm    Float?            @default(5)
+  lastLocationAt    DateTime?
+  lastNearbyPushAt  DateTime?
   lastNearbyPushKey String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  lastSeenAt DateTime @default(now())
-  deliveries WebPushDelivery[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  lastSeenAt        DateTime          @default(now())
+  deliveries        WebPushDelivery[]
 
   @@index([wallet, isActive])
   @@index([lastSeenAt])
@@ -1096,18 +1412,18 @@ model PackClaim {
 // raw device GPS. Posting/RSVP require a session-owned claimed Baretag; viewing does not.
 // ============================================================================
 model Meetup {
-  id               String   @id @default(cuid())
-  creatorBaretagId String   // StreamerTag.id — server-derived from the session, never client-trusted
+  id               String         @id @default(cuid())
+  creatorBaretagId String // StreamerTag.id — server-derived from the session, never client-trusted
   title            String
-  type             String   // surf | skate | sunset | jam | dwmb | custom
-  venueId          String?  // optional Venue.id (public place binding)
-  placeLabel       String   // required public-place text (e.g. "Cloud 9 boardwalk")
-  approxLat        Float    // ROUNDED (~3dp) or the venue's public coord — never raw device GPS
+  type             String // surf | skate | sunset | jam | dwmb | custom
+  venueId          String? // optional Venue.id (public place binding)
+  placeLabel       String // required public-place text (e.g. "Cloud 9 boardwalk")
+  approxLat        Float // ROUNDED (~3dp) or the venue's public coord — never raw device GPS
   approxLng        Float
   startTime        DateTime
   note             String?
-  status           String   @default("active") // active | cancelled (expired derived at READ time from startTime)
-  createdAt        DateTime @default(now())
+  status           String         @default("active") // active | cancelled (expired derived at READ time from startTime)
+  createdAt        DateTime       @default(now())
   rsvps            MeetupRsvp[]
   reports          MeetupReport[]
 
@@ -1120,7 +1436,7 @@ model MeetupRsvp {
   id        String   @id @default(cuid())
   meetupId  String
   meetup    Meetup   @relation(fields: [meetupId], references: [id], onDelete: Cascade)
-  baretagId String   // StreamerTag.id — server-derived
+  baretagId String // StreamerTag.id — server-derived
   createdAt DateTime @default(now())
 
   @@unique([meetupId, baretagId]) // idempotent RSVP
@@ -1131,7 +1447,7 @@ model MeetupReport {
   id                String   @id @default(cuid())
   meetupId          String?
   meetup            Meetup?  @relation(fields: [meetupId], references: [id], onDelete: Cascade)
-  reportedBaretagId String?  // report a person and/or a meetup
+  reportedBaretagId String? // report a person and/or a meetup
   reporterBaretagId String
   reason            String
   createdAt         DateTime @default(now())
@@ -1210,21 +1526,21 @@ model AttributionJourney {
 model AttributionTouch {
   id                     String   @id @default(cuid())
   journeyId              String
-  linkId                  String?
-  creatorCode             String?
-  contentCode             String?
-  campaignCode            String?
-  targetType              String
-  targetId                String
-  targetHref              String
-  referrer                String?
-  stationCode             String?
-  stationHostVenueId      String?
-  requestedAttentionMode  String?
-  attentionMode           String?
-  densityCount            Int?
-  fallbackApplied         Boolean?
-  occurredAt              DateTime @default(now())
+  linkId                 String?
+  creatorCode            String?
+  contentCode            String?
+  campaignCode           String?
+  targetType             String
+  targetId               String
+  targetHref             String
+  referrer               String?
+  stationCode            String?
+  stationHostVenueId     String?
+  requestedAttentionMode String?
+  attentionMode          String?
+  densityCount           Int?
+  fallbackApplied        Boolean?
+  occurredAt             DateTime @default(now())
 
   journey           AttributionJourney      @relation(fields: [journeyId], references: [id], onDelete: Cascade)
   link              CreatorAttributionLink? @relation(fields: [linkId], references: [id], onDelete: SetNull)
