@@ -18036,6 +18036,10 @@ export default function RealWorldMap() {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
 
+          .venue-action-rail--lead-duo :global(.map-primary-action-button--venue) {
+            grid-column: auto !important;
+          }
+
           .venue-action-rail--lead :global(.map-primary-action-button) {
             min-height: 44px !important;
             padding: 0.5rem 0.3rem !important;
