@@ -9290,7 +9290,11 @@ export default function RealWorldMap() {
         }}
         buttonVariant="default"
         buttonLabel={
-          !selectedPlaceHasLiveDare && !selectedPlaceBaseCashHref ? 'Fund the first dare' : 'Fund dare'
+          isMobileViewport
+            ? 'Fund dare'
+            : !selectedPlaceHasLiveDare && !selectedPlaceBaseCashHref
+              ? 'Fund the first dare'
+              : 'Fund dare'
         }
         buttonClassName="map-primary-action-button map-primary-action-button--fund"
       />
@@ -9393,21 +9397,21 @@ export default function RealWorldMap() {
         type="button"
         onClick={handleLaunchVenueCheckIn}
         disabled={checkInLaunching}
-        className="group flex min-h-[52px] w-full items-center gap-3 rounded-[20px] border border-[#f8dd72]/24 bg-[radial-gradient(circle_at_12%_0%,rgba(248,221,114,0.18),transparent_34%),linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(34,211,238,0.08)_48%,rgba(7,11,18,0.94)_100%)] px-3.5 py-2.5 text-left shadow-[0_14px_28px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.24)] transition hover:-translate-y-px hover:border-[#f8dd72]/42 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+        className="venue-action-button--check-in group flex min-h-[52px] w-full items-center gap-3 rounded-[20px] border border-[#f8dd72]/24 bg-[radial-gradient(circle_at_12%_0%,rgba(248,221,114,0.18),transparent_34%),linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(34,211,238,0.08)_48%,rgba(7,11,18,0.94)_100%)] px-3.5 py-2.5 text-left shadow-[0_14px_28px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.24)] transition hover:-translate-y-px hover:border-[#f8dd72]/42 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
         aria-label={`Check in at ${selectedPlace.name}`}
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border border-[#f8dd72]/22 bg-[#f8dd72]/10 text-[#f8dd72]">
+        <span className="venue-action-button__icon flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border border-[#f8dd72]/22 bg-[#f8dd72]/10 text-[#f8dd72]">
           {checkInLaunching ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-white">
+        <span className="venue-action-button__copy min-w-0 flex-1">
+          <span className="venue-action-button__label block text-[11px] font-black uppercase tracking-[0.14em] text-white">
             {checkInLaunching ? 'Opening venue pass…' : 'Check in here'}
           </span>
-          <span className="mt-0.5 block truncate text-[10px] font-semibold text-white/48">
+          <span className="venue-action-button__meta mt-0.5 block truncate text-[10px] font-semibold text-white/48">
             First QR + GPS visit +{VERIFIED_VENUE_CHECK_IN_POINTS} Signal Points · room · Crossed Paths
           </span>
         </span>
-        <span className="rounded-full border border-cyan-200/16 bg-cyan-300/[0.07] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-cyan-100/74">
+        <span className="venue-action-button__badge rounded-full border border-cyan-200/16 bg-cyan-300/[0.07] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-cyan-100/74">
           Live
         </span>
       </button>
@@ -9418,6 +9422,51 @@ export default function RealWorldMap() {
       {checkInLaunchState.message}
     </p>
   ) : null;
+
+  const selectedPlaceMeetupButton =
+    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlace.slug ? (
+      <button
+        type="button"
+        onClick={() => {
+          triggerHaptic('selection');
+          setMeetupComposerOpen(true);
+        }}
+        className="venue-action-button--meetup mt-1 w-full rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 transition hover:border-white/22 hover:text-white/85"
+        aria-label={`Start a free meetup at ${selectedPlace.name}`}
+      >
+        <span aria-hidden="true">🤙</span>{' '}
+        <span className="venue-action-button__label">
+          {isMobileViewport ? 'Meetup' : 'Start a free meetup here'}
+        </span>
+      </button>
+    ) : null;
+
+  const selectedPlacePresenceAction =
+    selectedPlace && !selectedPlaceIsPrivateSpot && !selectedCheckInLive ? (
+      <button
+        type="button"
+        onClick={userLocation ? handleSignalPresence : requestApproximateLocation}
+        disabled={presenceSubmitting}
+        className="venue-action-button--presence inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-emerald-300/24 bg-[linear-gradient(180deg,rgba(16,185,129,0.18)_0%,rgba(8,14,14,0.92)_100%)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-emerald-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+        aria-label={
+          userLocation
+            ? activePresenceIsSelectedVenue
+              ? `Refresh your presence at ${selectedPlace.name}`
+              : `Show that you are at ${selectedPlace.name}`
+            : `Locate yourself near ${selectedPlace.name}`
+        }
+      >
+        <span className="venue-action-button__label">
+          {presenceSubmitting
+            ? 'Finding…'
+            : userLocation
+              ? activePresenceIsSelectedVenue
+                ? 'Refresh'
+                : "I'm here"
+              : 'Locate'}
+        </span>
+      </button>
+    ) : null;
 
   const selectedPlaceSecondaryActionRail =
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
@@ -9431,18 +9480,19 @@ export default function RealWorldMap() {
           {selectedPlaceFundDareButton}
           {selectedPlaceBaseCashButton}
         </div>
-        {selectedPlace.slug ? (
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('selection');
-              setMeetupComposerOpen(true);
-            }}
-            className="mt-1 w-full rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 transition hover:border-white/22 hover:text-white/85"
-          >
-            🤙 Start a free meetup here
-          </button>
-        ) : null}
+        {selectedPlaceMeetupButton}
+      </div>
+    ) : null;
+
+  const selectedPlaceMobileActionDeck =
+    selectedPlace && !selectedPlaceIsPrivateSpot ? (
+      <div className="selected-place-mobile-action-deck">
+        {selectedPlaceCheckInAction}
+        {selectedPlacePresenceAction}
+        {selectedPlaceHasLiveDare ? selectedPlaceTakeProofButton : null}
+        {selectedPlaceFundDareButton}
+        {selectedPlaceBaseCashButton}
+        {selectedPlaceMeetupButton}
       </div>
     ) : null;
 
@@ -9665,20 +9715,22 @@ export default function RealWorldMap() {
             {userLocation ? 'Approximate only. Exact location stays private.' : 'Location needed to signal.'}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={userLocation ? handleSignalPresence : requestApproximateLocation}
-          disabled={presenceSubmitting}
-          className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-emerald-300/24 bg-[linear-gradient(180deg,rgba(16,185,129,0.18)_0%,rgba(8,14,14,0.92)_100%)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-emerald-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
-        >
-          {presenceSubmitting ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : userLocation ? (
-            activePresenceIsSelectedVenue ? 'Refresh' : "I'm here"
-          ) : (
-            'Locate'
-          )}
-        </button>
+        {!isMobileViewport ? (
+          <button
+            type="button"
+            onClick={userLocation ? handleSignalPresence : requestApproximateLocation}
+            disabled={presenceSubmitting}
+            className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-emerald-300/24 bg-[linear-gradient(180deg,rgba(16,185,129,0.18)_0%,rgba(8,14,14,0.92)_100%)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-emerald-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+          >
+            {presenceSubmitting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : userLocation ? (
+              activePresenceIsSelectedVenue ? 'Refresh' : "I'm here"
+            ) : (
+              'Locate'
+            )}
+          </button>
+        ) : null}
       </div>
 
       {presenceSubmitState ? (
@@ -11496,6 +11548,7 @@ export default function RealWorldMap() {
                   <div className="mt-2 md:mt-3">
                     {isMobileViewport ? selectedPlaceLeadActionRail : selectedPlaceActionRail}
                   </div>
+                  {isMobileViewport ? selectedPlaceMobileActionDeck : null}
                   </div>
 
                   <div
@@ -11517,16 +11570,8 @@ export default function RealWorldMap() {
                     </div>
                   ) : null}
 
-                  {isMobileViewport && selectedPlaceCheckInAction ? (
-                    <div className="mt-2">{selectedPlaceCheckInAction}</div>
-                  ) : null}
-
                   {isMobileViewport && selectedPlaceCheckInMessage ? (
                     <div className="mt-1">{selectedPlaceCheckInMessage}</div>
-                  ) : null}
-
-                  {isMobileViewport && selectedPlaceSecondaryActionRail ? (
-                    <div className="mt-2">{selectedPlaceSecondaryActionRail}</div>
                   ) : null}
 
                   {adventureMode && selectedPlace.description ? (
@@ -17984,8 +18029,8 @@ export default function RealWorldMap() {
             bottom: calc(0.5rem + env(safe-area-inset-bottom));
             left: 0.5rem;
             width: auto;
-            height: 52%;
-            max-height: 52%;
+            height: 60%;
+            max-height: 60%;
           }
 
           .selected-place-panel-wrap:not(.selected-place-panel-wrap--compact):not(.selected-place-panel-wrap--save-spot)
@@ -17998,7 +18043,7 @@ export default function RealWorldMap() {
 
           .selected-place-panel-wrap:not(.selected-place-panel-wrap--compact):not(.selected-place-panel-wrap--save-spot)
             .selected-place-panel-header {
-            max-height: 48%;
+            max-height: 56%;
             padding: 0.35rem 0.75rem 0.55rem;
           }
 
@@ -18046,8 +18091,108 @@ export default function RealWorldMap() {
             font-size: 0.56rem !important;
           }
 
+          :global(.selected-place-mobile-action-deck) {
+            display: flex;
+            width: 100%;
+            gap: 0.28rem;
+            margin-top: 0.35rem;
+            overflow-x: auto;
+            overscroll-behavior-x: contain;
+            scrollbar-width: none;
+          }
+
+          :global(.selected-place-mobile-action-deck::-webkit-scrollbar) {
+            display: none;
+          }
+
+          :global(.selected-place-mobile-action-deck > *) {
+            flex: 1 0 4.65rem;
+            min-width: 4.65rem !important;
+            width: auto !important;
+            margin: 0 !important;
+          }
+
+          :global(.selected-place-mobile-action-deck .map-primary-action-button),
+          :global(.selected-place-mobile-action-deck .venue-action-button--check-in),
+          :global(.selected-place-mobile-action-deck .venue-action-button--presence),
+          :global(.selected-place-mobile-action-deck .venue-action-button--meetup) {
+            display: flex !important;
+            height: 42px !important;
+            min-height: 42px !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0 !important;
+            overflow: hidden !important;
+            border-radius: 14px !important;
+            padding: 0.32rem 0.2rem !important;
+            text-align: center !important;
+            font-size: clamp(0.42rem, 1.8vw, 0.5rem) !important;
+            font-weight: 900 !important;
+            line-height: 1.02 !important;
+            letter-spacing: 0.04em !important;
+            text-transform: uppercase !important;
+            box-shadow:
+              inset 0 1px 0 rgba(255, 255, 255, 0.14),
+              inset 0 -8px 12px rgba(0, 0, 0, 0.24),
+              0 8px 16px rgba(0, 0, 0, 0.2) !important;
+          }
+
+          :global(.selected-place-mobile-action-deck .map-primary-action-button > span),
+          :global(.selected-place-mobile-action-deck .venue-action-button__label) {
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            text-align: center;
+            text-wrap: balance;
+            white-space: normal;
+          }
+
+          :global(.selected-place-mobile-action-deck .map-primary-action-button > svg),
+          :global(.selected-place-mobile-action-deck .venue-action-button__icon),
+          :global(.selected-place-mobile-action-deck .venue-action-button__meta),
+          :global(.selected-place-mobile-action-deck .venue-action-button__badge),
+          :global(.selected-place-mobile-action-deck .venue-action-button--meetup > [aria-hidden='true']) {
+            display: none !important;
+          }
+
+          :global(.selected-place-mobile-action-deck .map-primary-action-button--proof) {
+            color: #17120b !important;
+            border-color: rgba(255, 232, 122, 0.56) !important;
+            background: linear-gradient(180deg, #ffe36a 0%, #d89f08 100%) !important;
+          }
+
+          :global(.selected-place-mobile-action-deck .map-primary-action-button--fund) {
+            color: #ecfeff !important;
+            border-color: rgba(125, 249, 255, 0.42) !important;
+            background: linear-gradient(180deg, rgba(34, 211, 238, 0.72), rgba(14, 78, 104, 0.96)) !important;
+          }
+
+          :global(.selected-place-mobile-action-deck .map-primary-action-button--pay) {
+            color: #ecfdf5 !important;
+            border-color: rgba(52, 211, 153, 0.4) !important;
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.68), rgba(6, 78, 59, 0.96)) !important;
+          }
+
+          :global(.selected-place-mobile-action-deck .venue-action-button--check-in) {
+            color: #fff8d7 !important;
+            border-color: rgba(248, 221, 114, 0.34) !important;
+            background: linear-gradient(180deg, rgba(245, 197, 24, 0.3), rgba(12, 31, 37, 0.96)) !important;
+          }
+
+          :global(.selected-place-mobile-action-deck .venue-action-button--presence) {
+            color: #d1fae5 !important;
+            border-color: rgba(110, 231, 183, 0.28) !important;
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.28), rgba(6, 52, 44, 0.96)) !important;
+          }
+
+          :global(.selected-place-mobile-action-deck .venue-action-button--meetup) {
+            color: rgba(255, 255, 255, 0.76) !important;
+            border-color: rgba(255, 255, 255, 0.14) !important;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(10, 11, 19, 0.96)) !important;
+          }
+
           .selected-place-panel-content {
-            min-height: 52%;
+            min-height: 44%;
             padding: 0.55rem 0.75rem calc(env(safe-area-inset-bottom) + 0.75rem) !important;
             scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
             border-top: 1px solid rgba(255, 255, 255, 0.07);
@@ -18073,6 +18218,12 @@ export default function RealWorldMap() {
 
           .selected-place-compact-dock .venue-action-rail--lead {
             margin-top: 0 !important;
+          }
+
+          :global(body:has(.selected-place-panel-wrap:not(.selected-place-panel-wrap--compact)) .map-board-entry) {
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
           }
         }
 
