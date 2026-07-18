@@ -3,7 +3,7 @@ type: growth_playbook
 system: basedare-brain
 status: ACTIVE
 created_at: 2026-07-11
-updated_at: 2026-07-14
+updated_at: 2026-07-18
 owner: BaseDare
 ---
 
@@ -35,6 +35,22 @@ Avoid leading with:
 - venue or brand operating terminology
 
 These concepts can appear after the user chooses an action that needs them.
+
+## Contribution comes after value
+
+Do not ask a cold explorer to perform unpaid map labour before BaseDare has helped them. The default place flow is:
+
+`open venue -> decide or visit -> check in/use the place -> optionally verify what changed`
+
+The honest motivation ladder for a generic place update is:
+
+1. help the next traveller make a better decision
+2. earn First Mark credit for the first approved update
+3. build visible reputation and venue history through approved contributions
+4. earn Signal Points or a venue perk only when that reward is explicitly shown before starting
+5. earn money only by joining and completing a funded mission
+
+Submission alone earns none of the approval-gated outcomes. Pending and rejected updates do not award First Mark, place reputation, or the `Wake a Spot` Signal Points mission. Contributor-intent links and nearby/on-site states may invite verification directly; ordinary remote map browsing leads with venue utility.
 
 ## Launch zone
 

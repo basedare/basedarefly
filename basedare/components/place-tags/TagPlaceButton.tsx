@@ -103,7 +103,7 @@ export default function TagPlaceButton({
   externalPlaceId,
   buttonClassName,
   buttonVariant = 'default',
-  buttonLabel = 'Take proof',
+  buttonLabel = 'Verify this place',
   autoOpenKey = null,
   onPlaceResolved,
   onTagSubmitted,
@@ -228,9 +228,9 @@ export default function TagPlaceButton({
     if (!geoSupported) return 'Location is not supported in this browser.';
     if (geoLoading) return 'Locating you near this place...';
     if (locationDenied)
-      return 'Proof needs location + venue QR. You can still browse the map — enable location in your browser settings when you want to leave proof.';
+      return 'A verified update needs location. You can still browse — enable location in your browser settings when you are ready to contribute.';
     if (geoError) return geoError;
-    if (coordinates) return 'Location locked. Proof will be checked against this place.';
+    if (coordinates) return 'Location locked. Your update will be checked against this place.';
     return 'Location helps verify that your device is near this place and supports the review.';
   }, [coordinates, geoError, geoLoading, geoSupported, locationDenied]);
 
@@ -238,7 +238,7 @@ export default function TagPlaceButton({
     if (authChecking || sessionStatus === 'loading') {
       return {
         title: 'Checking session',
-        description: 'Verifying your wallet-backed session before proof submission.',
+        description: 'Verifying your wallet-backed session before submission.',
         cta: 'Checking...',
       };
     }
@@ -254,7 +254,7 @@ export default function TagPlaceButton({
     if (hasWalletConnection && !hasVerifiedSession) {
       return {
         title: 'Wallet connected',
-        description: 'Your wallet is live. We will use it to submit this proof.',
+        description: 'Your wallet is live. We will attach it to this place update.',
         cta: 'Wallet ready',
       };
     }
@@ -301,8 +301,8 @@ export default function TagPlaceButton({
       clearFileInputs();
       setFile(null);
       toast({
-        title: 'Proof is too large',
-        description: 'Keep proof media under 120MB.',
+        title: 'File is too large',
+        description: 'Keep the photo or video under 120MB.',
         variant: 'destructive',
       });
       return;
@@ -330,7 +330,7 @@ export default function TagPlaceButton({
     if (hasWalletMismatch) {
       toast({
         title: 'Wallet mismatch',
-        description: 'Reconnect the same wallet you used for your current BaseDare session before submitting proof.',
+        description: 'Reconnect the same wallet you used for your current BaseDare session before submitting.',
         variant: 'destructive',
       });
       return;
@@ -339,7 +339,7 @@ export default function TagPlaceButton({
     if (!canAuthenticate) {
       toast({
         title: 'Wallet required',
-        description: 'Connect the wallet that owns your creator tag before submitting proof.',
+        description: 'Connect the wallet that owns your creator tag before submitting.',
         variant: 'destructive',
       });
       return;
@@ -347,8 +347,8 @@ export default function TagPlaceButton({
 
     if (!file) {
       toast({
-        title: 'Proof required',
-        description: 'Take a photo, record a video, or upload proof from the place.',
+        title: 'Photo or video required',
+        description: 'Capture or upload a current view from the place.',
         variant: 'destructive',
       });
       return;
@@ -490,15 +490,15 @@ export default function TagPlaceButton({
       setSubmittedReceipt({
         title: presenceVerified
           ? payload.data?.firstMark
-            ? `First proof verified at ${venueName}`
-            : `Proof verified at ${venueName}`
+            ? `First Mark verified at ${venueName}`
+            : `Place update verified at ${venueName}`
           : payload.data?.firstMark
-            ? `First proof submitted at ${venueName}`
-            : `Proof submitted at ${venueName}`,
+            ? `First Mark candidate submitted at ${venueName}`
+            : `Place update submitted at ${venueName}`,
         detail: presenceVerified
           ? 'A recent confirmed venue check-in matched this proof, so it is live on the map.'
           : payload.data?.firstMark
-            ? 'This is waiting for review. If approved, it becomes the first public proof for the venue.'
+            ? 'This is waiting for review. If approved, it earns the venue’s First Mark.'
             : 'This is waiting for review. If approved, the venue updates automatically.',
         // Point at the recap — the most receipt-like surface, where the proof
         // OG card unfurls when the link is shared.
@@ -513,13 +513,13 @@ export default function TagPlaceButton({
       setCaption('');
       setVibeTags('');
       toast({
-        title: presenceVerified ? 'Proof verified' : 'Proof submitted',
+        title: presenceVerified ? 'Update verified' : 'Update submitted',
         description: payload.data?.message || `${placeName} is waiting for review.`,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to submit proof';
+      const message = error instanceof Error ? error.message : 'Failed to submit place update';
       toast({
-        title: 'Could not submit proof',
+        title: 'Could not submit update',
         description: message,
         variant: 'destructive',
       });
@@ -595,11 +595,11 @@ export default function TagPlaceButton({
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-purple-300/24 bg-purple-500/[0.1] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] text-purple-100">
                     <Crosshair className="h-3.5 w-3.5" />
-                    Add place proof
+                    Verify this place
                   </div>
                   <h3 className="mt-4 text-2xl font-black text-white">{placeName}</h3>
                   <p className="mt-2 max-w-lg text-sm text-white/60">
-                    Leave fresh evidence for this place. Approved proof updates the map, your trail, and your reputation.
+                    Share a current photo or video after you visit. Approval is what makes it part of the map.
                   </p>
                 </div>
                 <button
@@ -616,19 +616,19 @@ export default function TagPlaceButton({
               {submitState === 'success' ? (
                 <div className="bd-puncture-surface bd-puncture-surface--emerald rounded-[24px] border border-emerald-500/20 p-5">
                   <p className="text-xs uppercase tracking-[0.24em] text-emerald-300">
-                    {submittedVerified ? 'Proof verified' : 'Proof pending'}
+                    {submittedVerified ? 'Update verified' : 'Update pending'}
                   </p>
                   <p className="mt-3 text-lg font-bold text-white">
-                    {submittedVerified ? 'Your proof is live on the map.' : 'Your proof is in review.'}
+                    {submittedVerified ? 'Your approved update is live on the map.' : 'Your update is in review.'}
                   </p>
                   <p className="mt-2 text-sm text-white/65">
                     {submittedVerified
                       ? submittedFirstMark
-                        ? 'A recent confirmed check-in matched it — you’re the first verified proof here.'
-                        : 'A recent confirmed check-in matched it. The place is already updated.'
+                        ? 'Your check-in verified it instantly — your First Mark is live here.'
+                        : 'Your check-in verified it instantly. The venue is already updated.'
                       : submittedFirstMark
-                        ? 'If this clears, you become the first verified proof here.'
-                        : 'If this clears, the place updates automatically.'}
+                        ? 'If approved, you earn the First Mark credit here.'
+                        : 'If this clears, the venue updates automatically.'}
                   </p>
                   <div className="mt-4 rounded-[18px] border border-white/10 bg-black/18 px-4 py-3">
                     <p className="text-[11px] uppercase tracking-[0.2em] text-white/42">
@@ -637,7 +637,7 @@ export default function TagPlaceButton({
                     <p className="mt-2 text-sm text-white/70">
                       {submittedVerified
                         ? 'A recent confirmed QR + location check-in matched this submission, so it was approved automatically.'
-                        : 'Referees review it. If it passes, the map and your trail show the verified proof.'}
+                        : 'Referees review it. If approved, the map and your trail show the verified update.'}
                     </p>
                     <p className="mt-2 text-xs text-white/48">
                       {submittedVerified
@@ -656,7 +656,7 @@ export default function TagPlaceButton({
                       timestamp={submittedReceipt.timestamp}
                       tone={submittedReceipt.tone}
                       emphasizeShare={submittedVerified}
-                      shareLabel="Share your proof"
+                      shareLabel="Share your update"
                       analyticsSource={submittedVerified ? 'place_tag_verified' : 'place_tag_pending'}
                       className="mt-4"
                     />
@@ -684,19 +684,26 @@ export default function TagPlaceButton({
                 </div>
               ) : (
                 <>
-                  <div className="mb-4 rounded-[20px] border border-cyan-200/14 bg-cyan-300/[0.055] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/62">What you get</p>
-                    <p className="mt-1.5 text-xs leading-5 text-white/58">
-                      Approved proof becomes place memory, extends your public trail, and creates a shareable receipt. Your first approved place proof completes Wake a Spot (+150 Signal Points). This unpaid public contribution requires a BareTag; paid missions show a USDC reward and use their own claim flow.
+                  <div className="rounded-[22px] border border-cyan-300/14 bg-[linear-gradient(135deg,rgba(34,211,238,0.07),rgba(245,197,24,0.045),rgba(8,10,20,0.72))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-100/78">
+                      What an approved update does
                     </p>
+                    <ol className="mt-3 space-y-2 text-sm leading-5 text-white/68">
+                      <li><span className="mr-2 font-black text-white/32">01</span>Helps the next traveller make a better decision.</li>
+                      <li><span className="mr-2 font-black text-white/32">02</span>The first approved update earns First Mark credit.</li>
+                      <li><span className="mr-2 font-black text-white/32">03</span>Approved history strengthens your visible place reputation.</li>
+                    </ol>
+                    <div className="mt-3 border-t border-white/8 pt-3 text-xs leading-5 text-white/48">
+                      Your first approved place proof completes Wake a Spot (+150 Signal Points). Other Signal Points or venue perks count only when shown before you start. Place updates are not paid automatically; to earn money, join a funded mission and submit through that mission.
+                    </div>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="bd-puncture-surface bd-puncture-surface--purple rounded-[24px] border border-white/10 p-4">
-                      <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Proof</p>
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Current update</p>
                       <div className="bd-puncture-well mt-3 flex min-h-[170px] flex-col items-center justify-center rounded-[20px] border border-dashed border-white/14 px-4 py-5 text-center">
                         <Camera className="h-6 w-6 text-purple-100" />
                         <p className="mt-3 text-sm font-semibold text-white">
-                          {file ? file.name : 'Capture proof at the place'}
+                          {file ? file.name : 'Capture what is here now'}
                         </p>
                         <p className="mt-2 text-xs text-white/45">{ACCEPTED_MEDIA_COPY}</p>
                         <div className="mt-4 grid w-full gap-2">
@@ -820,7 +827,7 @@ export default function TagPlaceButton({
                       className="inline-flex items-center justify-center gap-2 rounded-full border border-purple-300/26 bg-purple-500/[0.12] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-purple-100 disabled:opacity-60"
                     >
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      Submit proof
+                      Submit for review
                     </button>
                   </div>
                 </div>
@@ -829,7 +836,7 @@ export default function TagPlaceButton({
             <CameraCaptureModal
               open={cameraMode !== null}
               mode={cameraMode ?? 'photo'}
-              title={cameraMode === 'video' ? 'Record place proof' : 'Take place photo'}
+              title={cameraMode === 'video' ? 'Record a place update' : 'Take a place photo'}
               onClose={() => setCameraMode(null)}
               onCapture={handleCameraCapture}
               onFallbackUpload={() => fileInputRef.current?.click()}

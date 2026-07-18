@@ -57,15 +57,18 @@ async function detectDataSignals(wallet: string): Promise<{
   streakDays: number;
 }> {
   const where = { walletAddress: { equals: wallet, mode: 'insensitive' as const } };
+  const approvedMarkWhere = { ...where, status: 'APPROVED' as const };
 
   const [tag, approvedMarkCount, recentMarks, recentCheckIns] = await Promise.all([
     prisma.streamerTag.findFirst({
       where,
       select: { id: true, completedDares: true, status: true },
     }),
-    prisma.placeTag.count({ where: { ...where, status: 'APPROVED' } }),
+    // Reputation starts at approval, not submission. A pending or rejected
+    // mark must never complete Wake a Spot or mint its 150 Signal Points.
+    prisma.placeTag.count({ where: approvedMarkWhere }),
     prisma.placeTag.findMany({
-      where: { ...where, status: 'APPROVED' },
+      where: approvedMarkWhere,
       select: { submittedAt: true },
       orderBy: { submittedAt: 'desc' },
       take: 120,

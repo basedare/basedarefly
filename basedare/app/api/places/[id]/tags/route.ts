@@ -429,7 +429,9 @@ export async function POST(
       longitude: lng,
       geoDistanceMeters,
       heatContribution: linkedDareId ? 15 : 10,
-      firstMark: approvedTagCount === 0,
+      // First Mark is durable credit, so a pending submission must never own it.
+      // Manual review recalculates this against APPROVED marks at approval time.
+      firstMark: presenceBacked && approvedTagCount === 0,
       metadataJson: {
         fileName: file.name,
         mimeType: file.type,
