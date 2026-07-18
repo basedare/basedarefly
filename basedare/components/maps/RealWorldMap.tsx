@@ -4,7 +4,15 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react';
 import maplibregl, {
   type GeoJSONSource,
   type LayerSpecification,
@@ -51,6 +59,11 @@ import {
 import { useAccount, useSignMessage } from 'wagmi';
 import { calculateDistance } from '@/lib/geo';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
+import {
+  resolvePlaceActionPolicy,
+  resolvePlaceVisitorIntent,
+  type PlaceActionId,
+} from '@/lib/place-action-policy';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
 import {
@@ -809,7 +822,7 @@ type MapPreset = 'classic' | 'noir';
 type MapVenueFocus = 'all' | 'live' | 'matched' | 'footprint';
 type PlaceVisualState = 'unmarked' | 'pending' | 'first-mark' | 'active' | 'hot';
 type VenueCommandCardTone = 'gold' | 'cyan' | 'purple';
-type SelectedCommandAction = 'fund' | 'venue';
+type SelectedCommandAction = 'fund' | 'venue' | 'verify';
 type CeremonyState =
   | {
       kind: 'pending' | 'first-spark' | 'alive-upgrade';
@@ -3605,6 +3618,11 @@ export default function RealWorldMap() {
   const hasDeepLinkedPlace = Boolean(deepLinkedPlaceSlug);
   const isCreatorSource = controlSource === 'creator';
   const showBackToControl = controlSource === 'control' || Boolean(deepLinkedCampaignId);
+  const placeVisitorIntent = resolvePlaceVisitorIntent({
+    action: searchParams.get('action'),
+    mode: searchParams.get('mode'),
+    source: controlSource,
+  });
   const pendingPlaceTagsRef = useRef<PendingPlaceTagItem[]>([]);
 
   useEffect(() => {
@@ -6512,6 +6530,29 @@ export default function RealWorldMap() {
     );
   }, [selectedPlace, userLocation]);
 
+  const selectedPlaceActionPolicy = useMemo(
+    () =>
+      resolvePlaceActionPolicy({
+        hasLiveDare:
+          (selectedPlace?.activeDareCount ?? 0) > 0 || selectedPlaceActiveDares.length > 0,
+        hasVerifiedTrace:
+          (selectedPlace?.approvedCount ?? 0) > 0 ||
+          (selectedPlace?.checkInCount ?? selectedPlace?.memorySummary?.checkInCount ?? 0) > 0 ||
+          (selectedPlace?.reviewSignal?.count ?? 0) > 0,
+        isPlayerNearby:
+          selectedPlaceDistanceMeters !== null &&
+          selectedPlaceDistanceMeters <= Math.max(selectedPlace?.checkInRadiusMeters ?? 150, 150),
+        canCheckIn: selectedPlace?.liveSession?.status === 'LIVE',
+        intent: placeVisitorIntent,
+      }),
+    [
+      placeVisitorIntent,
+      selectedPlace,
+      selectedPlaceActiveDares.length,
+      selectedPlaceDistanceMeters,
+    ]
+  );
+
   const isUserCentered = useMemo(() => {
     if (!userLocation || !viewportCenter) {
       return false;
@@ -7226,7 +7267,7 @@ export default function RealWorldMap() {
     return {
       place,
       eyebrow: 'Start here',
-      actionLabel: 'Take proof',
+      actionLabel: 'Be first to verify',
       openProof: true,
     };
   }, [filteredNearbyPlaces, happeningWindow.key, nearbyPlaces, userLocation, viewportCenter]);
@@ -7770,6 +7811,15 @@ export default function RealWorldMap() {
       setPendingCommandAction(action);
 
       try {
+        if (action === 'verify') {
+          const nextAutoOpenKey = `${selectedPlaceIdentity ?? selectedPlace.name}:${Date.now()}`;
+          setProofAutoOpenKey(nextAutoOpenKey);
+          window.setTimeout(() => {
+            setProofAutoOpenKey((current) => (current === nextAutoOpenKey ? null : current));
+          }, 1200);
+          return;
+        }
+
         if (action === 'fund' && selectedFundDareHref) {
           router.push(selectedFundDareHref);
           return;
@@ -7809,6 +7859,7 @@ export default function RealWorldMap() {
       router,
       selectedFundDareHref,
       selectedPlace,
+      selectedPlaceIdentity,
       selectedVenueHref,
     ]
   );
@@ -8021,24 +8072,36 @@ export default function RealWorldMap() {
     return reasons.slice(0, 3);
   }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
   const selectedVenueNextMove = useMemo(() => {
-    if ((selectedPlace?.activeDareCount ?? 0) > 0) {
+    if (selectedPlaceActionPolicy.primary === 'join-live-dare') {
       return proximityAccess.canReveal
         ? 'Open the live dare here now.'
         : `Travel within ${PROXIMITY_REVEAL_METERS}m to unlock the full live brief.`;
     }
 
-    if ((selectedPlace?.approvedCount ?? 0) <= 0) {
-      return 'Fund the first dare or submit the first proof.';
+    if (selectedPlaceActionPolicy.primary === 'verify-place') {
+      return 'Be first to verify this place with a current on-site update.';
+    }
+
+    if (selectedPlaceActionPolicy.primary === 'fund-dare') {
+      return 'Fund the first dare and give contributors a clear reason to show up.';
     }
 
     if (selectedPlaceMatch && showMatchedLayer) {
       return 'Use your fit here: open the venue or chase the live dare.';
     }
 
-    return 'Open the venue for the three moves: prove, fund, or inspect.';
-  }, [proximityAccess.canReveal, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
+    return selectedPlaceActionPolicy.secondary === 'check-in'
+      ? 'Open the venue or check in while you are here.'
+      : 'Open the venue first; verify it when you are actually there.';
+  }, [
+    proximityAccess.canReveal,
+    selectedPlaceActionPolicy.primary,
+    selectedPlaceActionPolicy.secondary,
+    selectedPlaceMatch,
+    showMatchedLayer,
+  ]);
   const selectedPrimaryAction = useMemo(() => {
-    if ((selectedPlace?.activeDareCount ?? 0) > 0) {
+    if (selectedPlaceActionPolicy.primary === 'join-live-dare') {
       const liveDareHref =
         proximityAccess.canReveal && selectedPlaceActiveDares[0]?.shortId
           ? `/dare/${selectedPlaceActiveDares[0].shortId}`
@@ -8056,36 +8119,46 @@ export default function RealWorldMap() {
       };
     }
 
-    if ((selectedPlace?.approvedCount ?? 0) <= 0) {
+    if (selectedPlaceActionPolicy.primary === 'verify-place') {
+      return {
+        label: selectedPlaceActionPolicy.verifyLabel,
+        detail: 'Add a current on-site photo so the next visitor knows what to expect.',
+        tone: 'gold' as const,
+        href: null,
+        actionLabel: selectedPlaceActionPolicy.verifyLabel,
+        resolveAction: 'verify' as SelectedCommandAction,
+      };
+    }
+
+    if (selectedPlaceActionPolicy.primary === 'fund-dare') {
       return {
         label: 'Fund the first dare',
-        detail: 'Put money on this venue so people have a reason to show up and prove it.',
-        tone: 'purple' as const,
+        detail: 'Set a clear reward for useful, verifiable work at this place.',
+        tone: 'cyan' as const,
         href: selectedFundDareHref,
         actionLabel: selectedFundDareHref ? 'Fund dare' : 'Route + fund',
         resolveAction: selectedFundDareHref ? null : 'fund' as SelectedCommandAction,
       };
     }
 
-    const commandHref = selectedCommandCenter
-      ? selectedActivationHref ??
-        selectedCommandCenter.consoleUrl ??
-        selectedCommandCenter.contactUrl ??
-        selectedVenueHref
-      : selectedVenueHref;
-    const nextSignalHref = selectedCommandCenter ? commandHref : selectedFundDareHref ?? selectedVenueHref;
-
     return {
-      label: selectedCommandCenter ? 'Open venue controls' : 'Fund the next dare',
-      detail: selectedCommandCenter
-        ? 'Open rewards, proof, routing, and repeat plays.'
-        : 'Turn existing proof into a funded dare people can chase tonight.',
-      tone: 'cyan' as const,
-      href: nextSignalHref,
-      actionLabel: selectedCommandCenter ? 'Open' : selectedFundDareHref ? 'Fund dare' : 'Open venue',
-      resolveAction: nextSignalHref ? null : 'venue' as SelectedCommandAction,
+      label: 'Open venue',
+      detail: selectedPlaceActionPolicy.verifyLabel === 'Add fresh proof'
+        ? 'See the place details, current memory, and ways to participate.'
+        : 'Explore the place before deciding whether to visit, verify, or fund it.',
+      tone: 'purple' as const,
+      href: selectedVenueHref,
+      actionLabel: 'Open venue',
+      resolveAction: selectedVenueHref ? null : 'venue' as SelectedCommandAction,
     };
-  }, [proximityAccess.canReveal, selectedActivationHref, selectedCommandCenter, selectedFundDareHref, selectedPlace, selectedPlaceActiveDares, selectedVenueHref]);
+  }, [
+    proximityAccess.canReveal,
+    selectedFundDareHref,
+    selectedPlaceActionPolicy.primary,
+    selectedPlaceActionPolicy.verifyLabel,
+    selectedPlaceActiveDares,
+    selectedVenueHref,
+  ]);
   const selectedVenueCommandCards = useMemo(() => {
     const rewardTotal = selectedPlaceActiveDares.reduce((total, dare) => total + dare.bounty, 0);
     const hasCommunityActivation = selectedPlaceActiveDares.some(isCommunityActivation);
@@ -9096,7 +9169,7 @@ export default function RealWorldMap() {
     (selectedPlace?.activeDareCount ?? 0) > 0 || selectedPlaceActiveDares.length > 0;
   const selectedPlacePrimaryDareShortId =
     selectedPlaceActiveDares.find((dare) => dare.shortId)?.shortId ?? null;
-  // Trust ladder: NO PROOF -> PRESENCE -> VERIFIED (LIVE DARE overrides as the activity state).
+  // Trust ladder: UNVERIFIED -> PRESENCE -> VERIFIED (LIVE DARE overrides as the activity state).
   // VERIFIED = proof-backed ONLY (≥1 verified proof/check-in/review). NEVER claimed/operated —
   // that is a separate CLAIMED/HOSTED axis handled by the command-center section.
   const selectedPlaceHasVerifiedTrace =
@@ -9110,7 +9183,7 @@ export default function RealWorldMap() {
     ? 'VERIFIED'
     : selectedPlaceHasPresenceSignal
       ? 'PRESENCE'
-      : 'NO PROOF';
+      : 'UNVERIFIED';
   const selectedPlaceStateActivityWord = selectedPlaceHasLiveDare ? 'LIVE DARE' : 'NO LIVE DARE';
   const selectedPlaceStateHeadline = selectedPlaceHasLiveDare
     ? 'Live dare running here.'
@@ -9118,12 +9191,20 @@ export default function RealWorldMap() {
       ? 'Verified spot — no live dare yet.'
       : selectedPlaceHasPresenceSignal
         ? 'Has presence — no live dare yet.'
-        : 'No verified proof here yet.';
+        : 'No verified place update yet.';
   const selectedPlaceStateSupport = selectedPlaceHasLiveDare
-    ? 'Join the dare, or leave proof to keep it warm.'
+    ? 'Join the live dare, or open the venue to see what happens here.'
     : selectedPlaceHasVerifiedTrace
-      ? 'Leave proof to keep it warm, or fund the first dare to activate it.'
-      : 'Be the first to leave verified proof here, or fund the first dare to activate it.';
+      ? selectedPlaceActionPolicy.primary === 'verify-place' || selectedPlaceActionPolicy.secondary === 'check-in'
+        ? 'You are close enough to check in or add a useful current update.'
+        : 'Open the venue for current details. Check in or add an update after you visit.'
+      : selectedPlaceHasPresenceSignal
+        ? selectedPlaceActionPolicy.primary === 'verify-place'
+          ? 'People have signaled this place. Your approved update can make it trustworthy.'
+          : 'People have signaled this place. Open it first, then verify what you find when you visit.'
+        : selectedPlaceActionPolicy.primary === 'verify-place'
+          ? 'Your approved update can earn the First Mark and help the next traveller decide.'
+          : 'Open the venue first. If you visit, you can return to claim the unclaimed First Mark.';
   const selectedPlaceStateTone = selectedPlaceHasLiveDare
     ? 'venue-state-card--live'
     : selectedPlaceHasVerifiedTrace
@@ -9220,7 +9301,7 @@ export default function RealWorldMap() {
           });
         }}
         buttonVariant="default"
-        buttonLabel="Take proof"
+        buttonLabel={selectedPlaceActionPolicy.verifyLabel}
         buttonClassName="map-primary-action-button map-primary-action-button--proof"
         autoOpenKey={proofAutoOpenKey}
       />
@@ -9339,6 +9420,22 @@ export default function RealWorldMap() {
       </Link>
     ) : null;
 
+  const selectedPlaceCheckInButton =
+    selectedPlace &&
+    !selectedPlaceIsPrivateSpot &&
+    selectedPlaceActionPolicy.secondary === 'check-in' ? (
+      <button
+        type="button"
+        onClick={() => void handleLaunchVenueCheckIn()}
+        disabled={checkInLaunching}
+        className="map-primary-action-button map-primary-action-button--checkin"
+        aria-label={`Check in at ${selectedPlace.name}`}
+      >
+        {checkInLaunching ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+        <span>{checkInLaunching ? 'Checking location' : 'Check in'}</span>
+      </button>
+    ) : null;
+
   const selectedPlaceJoinDareButton =
     selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlaceHasLiveDare ? (
       <Link
@@ -9356,38 +9453,68 @@ export default function RealWorldMap() {
       </Link>
     ) : null;
 
-  const selectedPlacePrimaryAction = selectedPlaceHasLiveDare
-    ? selectedPlaceJoinDareButton
-    : selectedPlaceTakeProofButton;
-
-  // The utility rail is a grid, so its column class must match the child count —
-  // a hardcoded --four left a lone Fund button sitting in one narrow cell.
-  const selectedPlaceUtilityButtonCount =
-    (selectedPlaceHasLiveDare && selectedPlaceTakeProofButton ? 1 : 0) +
-    (selectedPlaceFundDareButton ? 1 : 0) +
-    (selectedPlaceBaseCashButton ? 1 : 0);
-  // Verified spot with no live dare and no BaseCash: funding the first dare IS
-  // the activation move, so the lone Fund button gets lead-tier prominence.
-  const selectedPlaceFundIsActivationCta =
-    !selectedPlaceHasLiveDare &&
-    selectedPlaceUtilityButtonCount === 1 &&
-    Boolean(selectedPlaceFundDareButton);
+  const selectedPlaceActionButtons: Partial<Record<PlaceActionId, ReactNode>> = {
+    'join-live-dare': selectedPlaceJoinDareButton,
+    'verify-place': selectedPlaceTakeProofButton,
+    'open-venue': selectedPlaceOpenVenueButton,
+    'check-in': selectedPlaceCheckInButton,
+    'fund-dare': selectedPlaceFundDareButton,
+  };
+  const selectedPlaceLeadActions = [
+    selectedPlaceActionPolicy.primary,
+    selectedPlaceActionPolicy.secondary,
+  ]
+    .filter(
+      (action): action is PlaceActionId =>
+        action !== null && (!isMobileViewport || action !== 'check-in')
+    )
+    .flatMap((action) => {
+      const node = selectedPlaceActionButtons[action];
+      return node ? [{ id: action, node }] : [];
+    });
+  const selectedPlaceUtilityActions = [
+    ...selectedPlaceActionPolicy.tertiary.flatMap((action) => {
+      const node = selectedPlaceActionButtons[action];
+      return node ? [{ id: action, node }] : [];
+    }),
+    ...(selectedPlaceBaseCashButton
+      ? [{ id: 'basecash', node: selectedPlaceBaseCashButton }]
+      : []),
+  ];
   const selectedPlaceUtilityRailColumns =
-    selectedPlaceUtilityButtonCount >= 3
+    selectedPlaceUtilityActions.length >= 3
       ? 'venue-action-rail--three'
-      : selectedPlaceUtilityButtonCount === 2
+      : selectedPlaceUtilityActions.length === 2
         ? 'venue-action-rail--two'
         : 'venue-action-rail--one';
+  const selectedPlaceCtaHint =
+    selectedPlaceActionPolicy.primary === 'join-live-dare'
+      ? 'A live dare is the fastest way to participate here.'
+      : selectedPlaceActionPolicy.primary === 'verify-place'
+        ? 'Add a current photo from the place. If approved, it becomes part of the map.'
+        : selectedPlaceActionPolicy.primary === 'fund-dare'
+          ? 'Set a clear reward for a useful, verifiable mission at this place.'
+          : selectedPlaceActionPolicy.secondary === 'check-in'
+            ? 'You are close enough to check in and strengthen this place’s memory.'
+            : 'Explore first. Verify or check in when you are actually there.';
 
   const selectedPlaceLeadActionRail =
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <div
         className={`venue-action-rail venue-action-rail--primary venue-action-rail--lead grid ${
-          selectedPlaceOpenVenueButton ? 'venue-action-rail--lead-duo' : 'venue-action-rail--two'
+          selectedPlaceLeadActions.length > 1
+            ? 'venue-action-rail--lead-duo'
+            : 'venue-action-rail--one'
         } ${showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''}`}
       >
-        {selectedPlacePrimaryAction}
-        {selectedPlaceOpenVenueButton}
+        {selectedPlaceLeadActions.map(({ id, node }, index) => (
+          <div
+            key={id}
+            className={`venue-action-slot venue-action-slot--${index === 0 ? 'primary' : 'secondary'}`}
+          >
+            {node}
+          </div>
+        ))}
       </div>
     ) : null;
 
@@ -9472,13 +9599,13 @@ export default function RealWorldMap() {
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <div className="venue-action-rail-stack venue-action-rail-stack--secondary flex flex-col gap-2">
         <div
-          className={`venue-action-rail venue-action-rail--primary venue-action-rail--utility ${selectedPlaceUtilityRailColumns} ${
-            selectedPlaceFundIsActivationCta ? 'venue-action-rail--utility-solo' : ''
-          } grid`}
+          className={`venue-action-rail venue-action-rail--primary venue-action-rail--utility ${selectedPlaceUtilityRailColumns} grid`}
         >
-          {selectedPlaceHasLiveDare ? selectedPlaceTakeProofButton : null}
-          {selectedPlaceFundDareButton}
-          {selectedPlaceBaseCashButton}
+          {selectedPlaceUtilityActions.map(({ id, node }) => (
+            <div key={id} className="venue-action-slot venue-action-slot--tertiary">
+              {node}
+            </div>
+          ))}
         </div>
         {selectedPlaceMeetupButton}
       </div>
@@ -9490,9 +9617,11 @@ export default function RealWorldMap() {
         {selectedPlaceCheckInAction}
         {selectedPlacePresenceAction}
         {selectedPlaceMeetupButton}
-        {selectedPlaceHasLiveDare ? selectedPlaceTakeProofButton : null}
-        {selectedPlaceFundDareButton}
-        {selectedPlaceBaseCashButton}
+        {selectedPlaceUtilityActions.map(({ id, node }) => (
+          <div key={id} className="venue-action-slot venue-action-slot--tertiary">
+            {node}
+          </div>
+        ))}
       </div>
     ) : null;
 
@@ -9500,10 +9629,7 @@ export default function RealWorldMap() {
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <div className="venue-action-rail-stack flex flex-col gap-2">
         {selectedPlaceLeadActionRail}
-        {selectedPlaceCheckInAction ??
-          (selectedPlaceHasLiveDare ? null : (
-            <p className="venue-cta-hint">Take proof to add permanent place memory.</p>
-          ))}
+        <p className="venue-cta-hint">{selectedPlaceCtaHint}</p>
         {selectedPlaceCheckInMessage}
         {selectedPlaceSecondaryActionRail}
       </div>
@@ -10884,7 +11010,10 @@ export default function RealWorldMap() {
                       disabled={locating}
                       className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-[#f5c518]/38 bg-[linear-gradient(180deg,#fff0a8_0%,#f5c518_54%,#8a5a00_100%)] px-3.5 text-[11px] font-black uppercase text-[#171103] shadow-[0_12px_22px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.62),inset_0_-10px_14px_rgba(93,52,0,0.28)] transition hover:-translate-y-[1px] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
                     >
-                      {locating ? 'Finding' : mapSpotlightVenue?.actionLabel ?? (firstProofStartPlace ? 'Take proof' : 'Locate')}
+                      {locating
+                        ? 'Finding'
+                        : mapSpotlightVenue?.actionLabel ??
+                          (firstProofStartPlace ? 'Be first to verify' : 'Locate')}
                     </button>
                   </div>
                 </div>
@@ -14651,6 +14780,60 @@ export default function RealWorldMap() {
           }
         }
 
+        @media (min-width: 768px) {
+          /*
+           * Desktop smoked glass: keep the map legible through the console shell,
+           * while the darker header and inset cards preserve information hierarchy.
+           * Mobile intentionally keeps the opaque, blur-free material above.
+           */
+          .place-panel-popup {
+            background:
+              radial-gradient(circle at 10% 0%, rgba(34, 211, 238, 0.1), transparent 30%),
+              radial-gradient(circle at 92% 100%, rgba(168, 85, 247, 0.09), transparent 34%),
+              linear-gradient(145deg, rgba(20, 20, 38, 0.84) 0%, rgba(8, 10, 23, 0.79) 100%);
+            border-color: rgba(164, 220, 255, 0.12);
+            border-top-color: rgba(255, 255, 255, 0.16);
+            border-left-color: rgba(121, 223, 255, 0.12);
+            box-shadow:
+              0 30px 72px rgba(0, 0, 0, 0.52),
+              0 0 28px rgba(34, 211, 238, 0.07),
+              0 0 46px rgba(168, 85, 247, 0.055),
+              inset 0 1px 0 rgba(255, 255, 255, 0.13),
+              inset 0 -18px 26px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(16px) saturate(1.08);
+            -webkit-backdrop-filter: blur(16px) saturate(1.08);
+          }
+
+          .selected-place-panel-header {
+            background:
+              radial-gradient(circle at 12% 0%, rgba(34, 211, 238, 0.075), transparent 32%),
+              linear-gradient(180deg, rgba(10, 12, 24, 0.93) 0%, rgba(7, 9, 20, 0.86) 58%, rgba(7, 9, 19, 0.76) 100%);
+            border-bottom-color: rgba(255, 255, 255, 0.075);
+            backdrop-filter: blur(18px) saturate(1.06);
+            -webkit-backdrop-filter: blur(18px) saturate(1.06);
+          }
+
+          .selected-place-panel-content {
+            background: linear-gradient(180deg, rgba(5, 7, 16, 0.14), rgba(4, 5, 13, 0.28));
+          }
+
+          /* WebGL gesture safety: stop recompositing the large blur surface while
+             the camera moves, then restore the smoked material when it settles. */
+          .basedare-maplibre-map[data-map-moving='true'] .place-panel-popup {
+            background: linear-gradient(145deg, rgba(18, 19, 34, 0.94), rgba(7, 9, 20, 0.92));
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            transition: none !important;
+          }
+
+          .basedare-maplibre-map[data-map-moving='true'] .selected-place-panel-header {
+            background: linear-gradient(180deg, rgba(9, 11, 22, 0.96), rgba(7, 9, 19, 0.93));
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            transition: none !important;
+          }
+        }
+
         :global(.map-action-button) {
           position: relative;
           isolation: isolate;
@@ -15568,6 +15751,97 @@ export default function RealWorldMap() {
           :global(.venue-action-rail--primary .map-primary-action-button--venue) {
             grid-column: auto;
           }
+        }
+
+        /* State + intent choose the hierarchy; material treatment expresses it. */
+        .venue-action-slot {
+          display: flex;
+          width: 100%;
+          min-width: 0;
+          height: 100%;
+        }
+
+        .venue-action-slot :global(.map-primary-action-button) {
+          width: 100% !important;
+          height: 100% !important;
+        }
+
+        .venue-action-slot--primary :global(.map-primary-action-button) {
+          color: rgba(255, 255, 255, 0.96) !important;
+          box-shadow:
+            0 13px 24px rgba(0, 0, 0, 0.38),
+            inset 0 1px 0 rgba(255, 255, 255, 0.18),
+            inset 0 -10px 18px rgba(0, 0, 0, 0.24) !important;
+        }
+
+        .venue-action-slot--primary :global(.map-primary-action-button--proof) {
+          color: #fff9df !important;
+          border-color: rgba(255, 220, 95, 0.64) !important;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 236, 154, 0.18), transparent 42%),
+            linear-gradient(180deg, rgba(117, 82, 10, 0.88), rgba(43, 31, 8, 0.96)) !important;
+          box-shadow:
+            0 13px 25px rgba(0, 0, 0, 0.4),
+            0 0 18px rgba(245, 197, 24, 0.12),
+            inset 0 1px 0 rgba(255, 239, 174, 0.2),
+            inset 0 -10px 18px rgba(0, 0, 0, 0.24) !important;
+        }
+
+        .venue-action-slot--primary :global(.map-primary-action-button--fund) {
+          color: #e9feff !important;
+          border-color: rgba(76, 226, 238, 0.58) !important;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(125, 249, 255, 0.16), transparent 42%),
+            linear-gradient(180deg, rgba(9, 93, 108, 0.88), rgba(5, 32, 42, 0.97)) !important;
+          box-shadow:
+            0 13px 25px rgba(0, 0, 0, 0.4),
+            0 0 18px rgba(34, 211, 238, 0.12),
+            inset 0 1px 0 rgba(177, 250, 255, 0.18),
+            inset 0 -10px 18px rgba(0, 0, 0, 0.24) !important;
+        }
+
+        .venue-action-slot--primary :global(.map-primary-action-button--venue) {
+          color: #fff7ff !important;
+          border-color: rgba(202, 151, 244, 0.58) !important;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(222, 188, 255, 0.16), transparent 42%),
+            linear-gradient(180deg, rgba(77, 42, 108, 0.9), rgba(29, 20, 45, 0.97)) !important;
+          box-shadow:
+            0 13px 25px rgba(0, 0, 0, 0.4),
+            0 0 18px rgba(168, 85, 247, 0.11),
+            inset 0 1px 0 rgba(238, 213, 255, 0.18),
+            inset 0 -10px 18px rgba(0, 0, 0, 0.24) !important;
+        }
+
+        .venue-action-slot--primary :global(.map-primary-action-button--checkin) {
+          color: #e9fff6 !important;
+          border-color: rgba(83, 231, 171, 0.54) !important;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(110, 255, 196, 0.15), transparent 42%),
+            linear-gradient(180deg, rgba(18, 92, 67, 0.9), rgba(7, 39, 30, 0.97)) !important;
+        }
+
+        .venue-action-slot--secondary :global(.map-primary-action-button) {
+          color: rgba(255, 255, 255, 0.88) !important;
+          border-color: rgba(255, 255, 255, 0.17) !important;
+          background: linear-gradient(180deg, rgba(31, 31, 43, 0.82), rgba(12, 13, 21, 0.9)) !important;
+          box-shadow:
+            0 9px 18px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+          backdrop-filter: blur(12px);
+        }
+
+        .venue-action-slot--tertiary :global(.map-primary-action-button) {
+          color: rgba(255, 255, 255, 0.68) !important;
+          border-color: rgba(255, 255, 255, 0.11) !important;
+          background: rgba(9, 10, 17, 0.62) !important;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+          backdrop-filter: blur(8px);
+        }
+
+        .venue-action-slot--secondary :global(.map-primary-action-button::before),
+        .venue-action-slot--tertiary :global(.map-primary-action-button::before) {
+          opacity: 0.22 !important;
         }
 
         .map-panel-shell::before {

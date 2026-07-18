@@ -546,10 +546,12 @@ export default async function VenueDetailPage(
                 <div className="grid min-w-0 gap-3 sm:min-w-[280px] sm:grid-cols-2 lg:grid-cols-1">
                   <div id="venue-actions" className={`${softCardClass} scroll-mt-24 px-5 py-5`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">You&apos;re here</p>
-                    <h2 className="mt-2 text-2xl font-black text-white">Check in. Unlock the place.</h2>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">After you visit</p>
+                    <h2 className="mt-2 text-2xl font-black text-white">Check in. Help the next traveller.</h2>
                     <p className="mt-2 text-sm leading-6 text-white/58">
-                      Check-in is quick presence. Proof is the photo or clip that becomes permanent place memory.
+                      {venue.activePerk
+                        ? `Check in first, then optionally share what you found. This venue lists a perk: ${venue.activePerk.title}. Eligibility is shown before redemption.`
+                        : 'Check-in is quick presence. An approved photo or clip helps the next visitor and builds your visible place history.'}
                     </p>
                     <div className="mt-5 grid gap-2">
                       <VenueCheckInButton
@@ -566,7 +568,7 @@ export default async function VenueDetailPage(
                         address={venue.address}
                         city={venue.city}
                         country={venue.country}
-                        buttonLabel="Take proof"
+                        buttonLabel={receiptProofs > 0 ? 'Add fresh proof' : 'Be first to verify'}
                         buttonVariant="jelly"
                       />
                       <SquircleLink
@@ -1574,7 +1576,7 @@ export default async function VenueDetailPage(
                             address={venue.address}
                             city={venue.city}
                             country={venue.country}
-                            buttonLabel="Leave first mark"
+                            buttonLabel="Be first to verify"
                             buttonVariant="jelly"
                           />
                         </div>
