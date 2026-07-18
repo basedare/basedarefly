@@ -9441,6 +9441,33 @@ export default function RealWorldMap() {
       </button>
     ) : null;
 
+  const selectedPlacePresenceAction =
+    selectedPlace && !selectedPlaceIsPrivateSpot && !selectedCheckInLive ? (
+      <button
+        type="button"
+        onClick={userLocation ? handleSignalPresence : requestApproximateLocation}
+        disabled={presenceSubmitting}
+        className="venue-action-button--presence inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-emerald-300/24 bg-[linear-gradient(180deg,rgba(16,185,129,0.18)_0%,rgba(8,14,14,0.92)_100%)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-emerald-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+        aria-label={
+          userLocation
+            ? activePresenceIsSelectedVenue
+              ? `Refresh your presence at ${selectedPlace.name}`
+              : `Show that you are at ${selectedPlace.name}`
+            : `Locate yourself near ${selectedPlace.name}`
+        }
+      >
+        <span className="venue-action-button__label">
+          {presenceSubmitting
+            ? 'Finding…'
+            : userLocation
+              ? activePresenceIsSelectedVenue
+                ? 'Refresh'
+                : "I'm here"
+              : 'Locate'}
+        </span>
+      </button>
+    ) : null;
+
   const selectedPlaceSecondaryActionRail =
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <div className="venue-action-rail-stack venue-action-rail-stack--secondary flex flex-col gap-2">
@@ -9461,6 +9488,7 @@ export default function RealWorldMap() {
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
       <div className="selected-place-mobile-action-deck">
         {selectedPlaceCheckInAction}
+        {selectedPlacePresenceAction}
         {selectedPlaceHasLiveDare ? selectedPlaceTakeProofButton : null}
         {selectedPlaceFundDareButton}
         {selectedPlaceBaseCashButton}
@@ -9687,20 +9715,22 @@ export default function RealWorldMap() {
             {userLocation ? 'Approximate only. Exact location stays private.' : 'Location needed to signal.'}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={userLocation ? handleSignalPresence : requestApproximateLocation}
-          disabled={presenceSubmitting}
-          className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-emerald-300/24 bg-[linear-gradient(180deg,rgba(16,185,129,0.18)_0%,rgba(8,14,14,0.92)_100%)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-emerald-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
-        >
-          {presenceSubmitting ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : userLocation ? (
-            activePresenceIsSelectedVenue ? 'Refresh' : "I'm here"
-          ) : (
-            'Locate'
-          )}
-        </button>
+        {!isMobileViewport ? (
+          <button
+            type="button"
+            onClick={userLocation ? handleSignalPresence : requestApproximateLocation}
+            disabled={presenceSubmitting}
+            className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-emerald-300/24 bg-[linear-gradient(180deg,rgba(16,185,129,0.18)_0%,rgba(8,14,14,0.92)_100%)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-emerald-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+          >
+            {presenceSubmitting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : userLocation ? (
+              activePresenceIsSelectedVenue ? 'Refresh' : "I'm here"
+            ) : (
+              'Locate'
+            )}
+          </button>
+        ) : null}
       </div>
 
       {presenceSubmitState ? (
@@ -18066,17 +18096,25 @@ export default function RealWorldMap() {
             width: 100%;
             gap: 0.28rem;
             margin-top: 0.35rem;
+            overflow-x: auto;
+            overscroll-behavior-x: contain;
+            scrollbar-width: none;
+          }
+
+          :global(.selected-place-mobile-action-deck::-webkit-scrollbar) {
+            display: none;
           }
 
           :global(.selected-place-mobile-action-deck > *) {
-            flex: 1 1 0;
-            min-width: 0 !important;
+            flex: 1 0 4.65rem;
+            min-width: 4.65rem !important;
             width: auto !important;
             margin: 0 !important;
           }
 
           :global(.selected-place-mobile-action-deck .map-primary-action-button),
           :global(.selected-place-mobile-action-deck .venue-action-button--check-in),
+          :global(.selected-place-mobile-action-deck .venue-action-button--presence),
           :global(.selected-place-mobile-action-deck .venue-action-button--meetup) {
             display: flex !important;
             height: 42px !important;
@@ -18139,6 +18177,12 @@ export default function RealWorldMap() {
             color: #fff8d7 !important;
             border-color: rgba(248, 221, 114, 0.34) !important;
             background: linear-gradient(180deg, rgba(245, 197, 24, 0.3), rgba(12, 31, 37, 0.96)) !important;
+          }
+
+          :global(.selected-place-mobile-action-deck .venue-action-button--presence) {
+            color: #d1fae5 !important;
+            border-color: rgba(110, 231, 183, 0.28) !important;
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.28), rgba(6, 52, 44, 0.96)) !important;
           }
 
           :global(.selected-place-mobile-action-deck .venue-action-button--meetup) {
