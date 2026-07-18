@@ -9436,7 +9436,7 @@ export default function RealWorldMap() {
       >
         <span aria-hidden="true">🤙</span>{' '}
         <span className="venue-action-button__label">
-          {isMobileViewport ? 'Meetup' : 'Start a free meetup here'}
+          {isMobileViewport ? 'Free meetup' : 'Start a free meetup here'}
         </span>
       </button>
     ) : null;
@@ -9489,10 +9489,10 @@ export default function RealWorldMap() {
       <div className="selected-place-mobile-action-deck">
         {selectedPlaceCheckInAction}
         {selectedPlacePresenceAction}
+        {selectedPlaceMeetupButton}
         {selectedPlaceHasLiveDare ? selectedPlaceTakeProofButton : null}
         {selectedPlaceFundDareButton}
         {selectedPlaceBaseCashButton}
-        {selectedPlaceMeetupButton}
       </div>
     ) : null;
 
@@ -18186,9 +18186,16 @@ export default function RealWorldMap() {
           }
 
           :global(.selected-place-mobile-action-deck .venue-action-button--meetup) {
-            color: rgba(255, 255, 255, 0.76) !important;
-            border-color: rgba(255, 255, 255, 0.14) !important;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(10, 11, 19, 0.96)) !important;
+            color: #f7f1ff !important;
+            border-color: rgba(216, 180, 254, 0.46) !important;
+            background:
+              radial-gradient(circle at 20% 0%, rgba(103, 232, 249, 0.22), transparent 42%),
+              linear-gradient(180deg, rgba(168, 85, 247, 0.76), rgba(67, 26, 101, 0.98)) !important;
+            box-shadow:
+              inset 0 1px 0 rgba(255, 255, 255, 0.22),
+              inset 0 -8px 12px rgba(32, 9, 50, 0.36),
+              0 0 16px rgba(168, 85, 247, 0.22),
+              0 8px 16px rgba(0, 0, 0, 0.24) !important;
           }
 
           .selected-place-panel-content {
