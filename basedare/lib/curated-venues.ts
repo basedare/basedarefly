@@ -802,6 +802,33 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     categories: ['surf', 'reef-break', 'sunrise', 'morning', 'catangnan', 'advanced', 'siargao', 'tuason'],
   },
   {
+    slug: 'lagkaw-beach-bar-siargao',
+    name: 'Lagkaw Beach Bar',
+    description:
+      'Relaxed Malinao beachfront bar and grill for sunset drinks, swimming, paddleboarding, and slow island afternoons. Confirm current hours and activities with the venue.',
+    address: '2080 Camangahit Street, Barangay Malinao, General Luna, Surigao del Norte, Philippines',
+    city: 'General Luna',
+    country: 'Philippines',
+    latitude: 9.765259,
+    longitude: 126.127209,
+    timezone: 'Asia/Manila',
+    locationConfidence: 'externally-checked-property-anchor',
+    categories: [
+      'beach-bar',
+      'bar',
+      'bar-and-grill',
+      'restaurant',
+      'sunset',
+      'swimming',
+      'paddleboard',
+      'mangrove',
+      'social',
+      'malinao',
+      'siargao',
+      'general-luna',
+    ],
+  },
+  {
     slug: 'malinao-skate-road',
     name: 'Malinao Skate Road',
     description:
@@ -982,6 +1009,9 @@ const SIARGAO_QUERY_TOKENS = [
   'island hopping',
   'tuason',
   'malinao',
+  'lagkaw',
+  'lagkaw beach bar',
+  'lagkaw beach club',
   'malinao skate',
   'skate',
   'skate road',
@@ -1063,7 +1093,7 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v9',
+            curatedSet: 'siargao-v10',
             locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
             coordinatePolicy:
               'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
@@ -1089,7 +1119,7 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v9',
+            curatedSet: 'siargao-v10',
             locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
             coordinatePolicy:
               'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
