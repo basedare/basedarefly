@@ -544,6 +544,11 @@ export default function AdventureMapOverlay({
                 {nightGuide.lateVenue} is the late option every night, usually {nightGuide.lateHoursLabel}.
                 Monthly raves and pop-ups appear below only when they are confirmed.
               </p>
+              {nightGuide.warmUpHeadline ? (
+                <p className="mt-2 rounded-xl border border-violet-200/12 bg-violet-300/[0.05] px-3 py-2 text-[10px] font-semibold leading-4 text-violet-50/62">
+                  Warm-up: {nightGuide.warmUpHeadline}. {nightGuide.warmUpNote}
+                </p>
+              ) : null}
               <p className="mt-2 border-t border-white/8 pt-2 text-[9px] font-semibold leading-4 text-white/36">
                 {nightGuide.disclaimer}
               </p>

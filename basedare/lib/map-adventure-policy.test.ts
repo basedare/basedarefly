@@ -95,6 +95,23 @@ test('beaches, attractions, and outdoor activities use the palm marker', () => {
     getAdventurePlaceSprite({ challengeLiveCount: 0, categories: ['nature', 'tour', 'activity'] }),
     'palm'
   );
+  assert.equal(
+    getAdventurePlaceSprite({
+      challengeLiveCount: 0,
+      categories: ['skate-road', 'longboard', 'sunset', 'outdoor'],
+    }),
+    'palm'
+  );
+});
+
+test('a beach bar keeps its nightlife identity beside beach activities', () => {
+  assert.equal(
+    getAdventurePlaceSprite({
+      challengeLiveCount: 0,
+      categories: ['beach-bar', 'bar', 'paddleboard', 'swimming'],
+    }),
+    'beer'
+  );
 });
 
 test('a live funded challenge remains the strongest marker state', () => {

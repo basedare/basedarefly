@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma';
 import {
   getSiargaoNightGuide,
   isSiargaoVenueFeaturedTonight,
+  isSiargaoVenueWarmUpTonight,
   SIARGAO_TIME_ZONE,
 } from '@/lib/siargao-nightlife';
 import { GRACE_STARTED_MS, isMeetupTonight, tonightWindow } from '@/lib/tonight';
@@ -372,11 +373,20 @@ async function nightGuideCandidates(input: {
     const distance = distanceKm(input.origin, venue);
     if (distance > input.radiusKm) return [];
     const isLateOption = /siargao[\s-]?beach[\s-]?club|\bsbc\b/i.test(`${venue.name} ${venue.slug}`);
+    const isWarmUp = isSiargaoVenueWarmUpTonight({
+      name: venue.name,
+      slug: venue.slug,
+      now: input.now,
+    });
     return [{
       id: `night-guide:${venue.id}`,
       source: 'NIGHT_GUIDE',
       attention: 'TONIGHT',
-      title: isLateOption ? `${guide.lateVenueShort} · late option` : `${venue.name} · ${guide.weekday}`,
+      title: isLateOption
+        ? `${guide.lateVenueShort} · late option`
+        : isWarmUp
+          ? `${venue.name} · warm-up`
+          : `${venue.name} · ${guide.weekday}`,
       placeLabel: venue.name,
       venueId: venue.id,
       venueSlug: venue.slug,
@@ -388,9 +398,9 @@ async function nightGuideCandidates(input: {
       endsAt: null,
       lastVerifiedAt: venue.updatedAt.toISOString(),
       trustLabel: 'Usual weekly rhythm',
-      freshnessLabel: `${formatDistance(distance)}${isLateOption ? ` · ${guide.lateHoursLabel}` : ''}`,
+      freshnessLabel: `${formatDistance(distance)}${isLateOption ? ` · ${guide.lateHoursLabel}` : isWarmUp ? ' · opposite Harana' : ''}`,
       disclaimer: guide.disclaimer,
-      qualityScore: isLateOption ? 64 : 70,
+      qualityScore: isLateOption ? 64 : isWarmUp ? 66 : 70,
     }];
   });
 }

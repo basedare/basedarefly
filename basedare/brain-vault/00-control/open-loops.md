@@ -3,7 +3,7 @@ type: open_loops
 status: ACTIVE
 owner: codex
 created_at: 2026-05-13
-updated_at: 2026-07-15
+updated_at: 2026-07-20
 ---
 
 # Open Loops
@@ -16,7 +16,7 @@ updated_at: 2026-07-15
 | Money-first cold-wallet claim | product_gate | READY_PREVIEW | product/release | [[00-control/vision]] |
 | Venue-less proximity verification | verification_gate | READY_PREVIEW | product/release | [[00-control/vision]] |
 | Sponsor-usable media/data rights | legal_product_gate | PARTIAL | product/legal | [[00-control/vision]] |
-| Friendly design-partner Sprint | experiment_design | NEXT | human | [[00-control/vision]] |
+| Field Station-backed design-partner Sprint | experiment_design | READY_FOR_HUMAN_SETUP | growth/product + human | [[04-experiments/field-station-backed-verified-sprint]] |
 | Ecosystem grant application | funding | NEXT | human | [[00-control/vision]] |
 | Three-market discovery tournament | experiment_design | GATED | codex | [[00-control/vision]] |
 | Playable-map micro-area alpha | experiment_design | NEXT | growth/product | [[05-playbooks/playable-map-launch]] |
@@ -45,7 +45,7 @@ updated_at: 2026-07-15
 | Cross-browser creator attribution | ALPHA_LIVE | Portable share/copy continuation passed a production database-backed smoke. Verify the Resend domain before enabling email, then test real Instagram/TikTok → Safari/Chrome continuation on iOS and Android; keep performance bonuses disabled |
 | Earned venue access | PILOT_GATED | Official verified contact routes are live. Recruit three claimed venues, authorize one Ambassador and fund one attributable perk each, then measure response, arrival, redemption, repeat and complaint rates before building tiers or subscriptions |
 | Media/data rights | PARTIAL | Extend current display/promotion license to explicit sponsor-facing commercial use where needed |
-| Design-partner receipt | NEXT | Deliver Sprint #1 at cost/free; sell Sprint #2 only after the receipt exists |
+| Design-partner receipt | READY_SETUP | Name one design partner/question, fund four bounded missions, create two permissioned stations under one campaign code, clear live preflight, run the 14-day crossover, then sell Sprint #2 only after the receipt exists |
 | Freshness / City Signal | NEXT | Timestamp every answer and define re-verification cadence from Sprint #1 |
 | Ecosystem funding | NEXT | Prepare Base/Coinbase/Optimism-style grant case around verifiable onchain real-world activity |
 | Organic multiplier | NEXT | Instrument unpaid useful actions generated per paid useful action |

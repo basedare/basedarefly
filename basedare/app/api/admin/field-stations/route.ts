@@ -36,6 +36,11 @@ const StationSchema = z.object({
   targetHref: z.string().max(1024).optional().default('/board'),
 });
 
+const StationStatusSchema = z.object({
+  linkId: z.string().min(1).max(191),
+  active: z.boolean(),
+});
+
 function appUrl(request: NextRequest) {
   return (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || request.nextUrl.origin).replace(/\/$/, '');
 }
@@ -122,6 +127,37 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to create Field Station.';
+    return NextResponse.json({ success: false, error: message }, { status: 400 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const auth = await authorizeAdminRequest(request);
+  if (!auth.authorized) return unauthorizedAdminResponse(auth);
+  try {
+    const body = StationStatusSchema.parse(await request.json());
+    const result = await prisma.creatorAttributionLink.updateMany({
+      where: {
+        id: body.linkId,
+        stationCode: { not: null },
+      },
+      data: { active: body.active },
+    });
+    if (result.count !== 1) {
+      return NextResponse.json(
+        { success: false, error: 'Field Station link not found.' },
+        { status: 404 }
+      );
+    }
+    const link = await prisma.creatorAttributionLink.findUnique({
+      where: { id: body.linkId },
+      select: { id: true, active: true, stationCode: true, slug: true },
+    });
+    return NextResponse.json({ success: true, data: link }, {
+      headers: { 'Cache-Control': 'no-store' },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to update Field Station.';
     return NextResponse.json({ success: false, error: message }, { status: 400 });
   }
 }

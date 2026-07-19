@@ -10,9 +10,11 @@ import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
 type Counts = Record<string, number>;
 type StationLink = {
   id: string;
+  active: boolean;
   slug: string;
   stationCode: string;
   contentCode: string;
+  campaignCode: string | null;
   attentionMode: string;
   serial: string;
   publicPath: string;
@@ -38,6 +40,64 @@ type Report = {
     receiptMeaning: string;
   }>;
   creativeReceipts: Array<{ contentCode: string; counts: Counts }>;
+  campaignReceipts: Array<{
+    campaignCode: string;
+    status: 'LEARNING' | 'NEEDS_FIX' | 'PASS_CANDIDATE';
+    counts: {
+      uniqueEntries: number;
+      targetOpens: number;
+      missionPasses: number;
+      verifiedOutcomes: number;
+    };
+    rates: {
+      healthyInventoryPercent: number | null;
+      targetOpenPercent: number | null;
+      medianRenderMs: number | null;
+    };
+    gates: Record<string, {
+      status: 'PASS' | 'FAIL' | 'PENDING' | 'NOT_APPLICABLE';
+      value: number | null;
+      target: number;
+      unit: 'count' | 'percent' | 'milliseconds';
+      meaning: string;
+    }>;
+    humanDecisionMeaning: string;
+  }>;
+  pilotReadiness: {
+    environment: {
+      journeySecretConfigured: boolean;
+      portableMissionPassReady: boolean;
+      emailDeliveryConfigured: boolean;
+      emailMeaning: string;
+    };
+    stations: Array<{
+      linkId: string;
+      stationCode: string | null;
+      serial: string;
+      campaignCode: string | null;
+      contentCode: string;
+      requestedAttention: string;
+      status: 'READY' | 'DEGRADED' | 'BLOCKED';
+      stationHostVenue: { name: string; slug: string } | null;
+      issues: Array<{ severity: 'BLOCKER' | 'WARNING'; code: string; message: string }>;
+      lanes: Array<{
+        attention: string;
+        qualifyingCount: number;
+        minimumDensity: number;
+        healthy: boolean;
+        hasVerifiedOutcomePath: boolean;
+        error: string | null;
+        items: Array<{
+          id: string;
+          title: string;
+          placeLabel: string;
+          source: string;
+          liveHandshake: boolean;
+          verifiedOutcomePath: boolean;
+        }>;
+      }>;
+    }>;
+  };
   destinationVenueReceipts: Array<{
     venue: { id: string; slug: string | null; name: string };
     counts: Counts;
@@ -50,7 +110,7 @@ const EMPTY_FORM = {
   stationCode: '',
   stationHostVenueSlug: '',
   contentCode: '',
-  campaignCode: 'siargao-field-stations-v1',
+  campaignCode: 'siargao-design-partner-v1',
   attentionMode: 'ASK',
   fallbackAttentionMode: 'NEARBY',
   minimumDensity: 3,
@@ -60,6 +120,12 @@ const EMPTY_FORM = {
 
 function count(counts: Counts, key: string) {
   return Number(counts[key] ?? 0);
+}
+
+function statusClass(status: string) {
+  if (status === 'READY' || status === 'PASS' || status === 'PASS_CANDIDATE') return 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100';
+  if (status === 'BLOCKED' || status === 'FAIL' || status === 'NEEDS_FIX') return 'border-red-300/20 bg-red-300/10 text-red-100';
+  return 'border-amber-300/20 bg-amber-300/10 text-amber-100';
 }
 
 function ReceiptMetrics({ counts, destination = false }: { counts: Counts; destination?: boolean }) {
@@ -97,6 +163,7 @@ export default function FieldStationsAdminPage() {
   const [periodDays, setPeriodDays] = useState(30);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [updatingLinkId, setUpdatingLinkId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const qrRef = useRef<SVGSVGElement>(null);
   const headers = useMemo<Record<string, string>>(() => {
@@ -104,6 +171,13 @@ export default function FieldStationsAdminPage() {
     if (address) next['x-moderator-wallet'] = address;
     return next;
   }, [address]);
+  const createdReadiness = useMemo(
+    () => created && report
+      ? report.pilotReadiness.stations.find((station) => station.linkId === created.id) ?? null
+      : null,
+    [created, report]
+  );
+  const createdIsPrintable = createdReadiness !== null && createdReadiness.status !== 'BLOCKED';
 
   const authenticate = useCallback(async () => {
     if (address || hasAdminSession) return true;
@@ -152,7 +226,7 @@ export default function FieldStationsAdminPage() {
   };
 
   const downloadQr = () => {
-    if (!qrRef.current || !created) return;
+    if (!qrRef.current || !created || !createdIsPrintable) return;
     const svg = new XMLSerializer().serializeToString(qrRef.current);
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     const anchor = document.createElement('a');
@@ -172,6 +246,28 @@ export default function FieldStationsAdminPage() {
     anchor.download = `basedare-field-stations-${periodDays}d.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
+  };
+
+  const updateStationStatus = async (link: StationLink) => {
+    if (!(await authenticate())) return;
+    setUpdatingLinkId(link.id);
+    setError(null);
+    try {
+      const response = await fetch('/api/admin/field-stations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ linkId: link.id, active: !link.active }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Unable to update Field Station.');
+      }
+      await load();
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : 'Unable to update Field Station.');
+    } finally {
+      setUpdatingLinkId(null);
+    }
   };
 
   return (
@@ -202,6 +298,24 @@ export default function FieldStationsAdminPage() {
 
         {error ? <div className="mt-5 rounded-xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-200">{error}</div> : null}
 
+        <section className="mt-8 grid gap-3 rounded-3xl border border-cyan-300/12 bg-cyan-300/[0.025] p-5 sm:grid-cols-3 sm:p-6">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100/65">1 · Design partner</p>
+            <p className="mt-2 text-sm font-bold text-white">The business learning from the Sprint</p>
+            <p className="mt-1 text-xs leading-5 text-white/40">They receive the verified answers and decide whether the result is useful enough to repeat or buy.</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100/65">2 · Precise question</p>
+            <p className="mt-2 text-sm font-bold text-white">One bounded decision written into the mission brief</p>
+            <p className="mt-1 text-xs leading-5 text-white/40">Example: “Which Tuesday 6–8pm offer produces verified first-time arrivals?” The campaign code groups its receipts.</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100/65">3 · Station hosts</p>
+            <p className="mt-2 text-sm font-bold text-white">Your two permissioned scan locations</p>
+            <p className="mt-1 text-xs leading-5 text-white/40">They distribute the question. They do not need to be the design partner or the destination being measured.</p>
+          </div>
+        </section>
+
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_0.8fr]">
           <form onSubmit={createStation} className="rounded-3xl border border-[#ffe36a]/15 bg-[linear-gradient(145deg,rgba(255,227,106,.08),rgba(255,255,255,.025))] p-5 sm:p-7">
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#ffe36a]">New immutable short link</p>
@@ -211,6 +325,7 @@ export default function FieldStationsAdminPage() {
                 ['Station code', 'stationCode', 'catangnan-01'],
                 ['Short-link slug', 'slug', 'catangnan-tonight-a'],
                 ['Creative code', 'contentCode', 'catangnan-tonight-a'],
+                ['Campaign code', 'campaignCode', 'siargao-design-partner-v1'],
               ].map(([label, key, placeholder]) => (
                 <label key={key} className="text-[10px] font-black uppercase tracking-[0.15em] text-white/45">{label}
                   <input required value={String(form[key as keyof typeof form])} placeholder={placeholder} onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))} className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/60 px-3 text-sm normal-case tracking-normal text-white outline-none" />
@@ -223,6 +338,14 @@ export default function FieldStationsAdminPage() {
               </label>
               <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/45">Minimum useful options
                 <input type="number" min={1} max={20} value={form.minimumDensity} onChange={(event) => setForm((current) => ({ ...current, minimumDensity: Number(event.target.value) }))} className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/60 px-3 text-sm text-white" />
+              </label>
+              <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/45">Search radius (km)
+                <input type="number" min={0.2} max={15} step={0.1} value={form.densityRadiusKm} onChange={(event) => setForm((current) => ({ ...current, densityRadiusKm: Number(event.target.value) }))} className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/60 px-3 text-sm text-white" />
+              </label>
+              <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/45">Truthful fallback
+                <select value={form.fallbackAttentionMode} onChange={(event) => setForm((current) => ({ ...current, fallbackAttentionMode: event.target.value }))} className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/60 px-3 text-sm text-white">
+                  <option value="NEARBY">Nearby / answer first</option><option value="ASK">Ask first</option>
+                </select>
               </label>
             </div>
             <button disabled={saving} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#f5c518] text-xs font-black uppercase tracking-[0.17em] text-black disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Create station QR</button>
@@ -237,18 +360,108 @@ export default function FieldStationsAdminPage() {
                 </div>
                 <p className="mt-3 font-mono text-sm font-black text-[#ffe36a]">{created.serial}</p>
                 <p className="mt-1 break-all text-xs text-white/45">{created.shortUrl}</p>
+                {createdReadiness ? <p className={`mx-auto mt-3 w-fit rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.12em] ${statusClass(createdReadiness.status)}`}>Preflight {createdReadiness.status}</p> : <p className="mt-3 text-[10px] text-amber-200">Waiting for live preflight…</p>}
                 <div className="mt-4 flex justify-center gap-2">
-                  <button onClick={downloadQr} className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 px-3 text-[10px] font-black uppercase tracking-[0.12em]"><Download className="h-4 w-4" /> SVG</button>
-                  <button onClick={() => window.print()} className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 px-3 text-[10px] font-black uppercase tracking-[0.12em]"><Printer className="h-4 w-4" /> Print</button>
+                  <button disabled={!createdIsPrintable} onClick={downloadQr} className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 px-3 text-[10px] font-black uppercase tracking-[0.12em] disabled:cursor-not-allowed disabled:opacity-30"><Download className="h-4 w-4" /> SVG</button>
+                  <button disabled={!createdIsPrintable} onClick={() => { if (createdIsPrintable) window.print(); }} className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 px-3 text-[10px] font-black uppercase tracking-[0.12em] disabled:cursor-not-allowed disabled:opacity-30"><Printer className="h-4 w-4" /> Print</button>
                 </div>
                 <p className="mt-4 text-xs leading-5 text-white/35">Level H correction · four-module quiet zone · no logo over the code.</p>
+                {!createdIsPrintable ? <p className="mt-2 text-xs leading-5 text-red-200/70">Printing stays locked until the station has useful inventory, a verified-outcome path, and the Journey secret.</p> : null}
               </div>
             ) : <div className="mt-5 grid min-h-72 place-items-center rounded-2xl border border-dashed border-white/10 text-center text-sm text-white/30">Create a station to generate its serialized QR.</div>}
           </section>
         </section>
 
         {report ? (
-          <div className="mt-10 grid gap-8 lg:grid-cols-2">
+          <div className="mt-10 space-y-10">
+            <section>
+              <h2 className="text-xl font-black">Station controls</h2>
+              <p className="mt-1 text-sm text-white/40">Pause a code immediately if permission is withdrawn, the placement is damaged, or its promise becomes stale. Historical receipts stay intact.</p>
+              <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                {report.links.length ? report.links.map((link) => (
+                  <article key={link.id} className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-xs font-black text-white">{link.stationHostVenue?.name ?? link.stationCode}</p>
+                        <span className={`rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] ${link.active ? statusClass('PASS') : 'border-white/10 bg-white/[0.04] text-white/40'}`}>{link.active ? 'Active' : 'Paused'}</span>
+                      </div>
+                      <p className="mt-1 truncate font-mono text-[10px] text-white/35">{link.serial} · {link.publicPath} · {link.contentCode}</p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={updatingLinkId === link.id}
+                      onClick={() => void updateStationStatus(link)}
+                      className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/30 px-3 text-[9px] font-black uppercase tracking-[0.12em] text-white/65 transition hover:border-white/25 hover:text-white disabled:cursor-wait disabled:opacity-40"
+                    >
+                      {updatingLinkId === link.id ? 'Saving…' : link.active ? 'Pause' : 'Activate'}
+                    </button>
+                  </article>
+                )) : <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-white/30">No Field Station links yet.</div>}
+              </div>
+            </section>
+
+            <section>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-black">Pilot preflight</h2>
+                  <p className="mt-1 text-sm text-white/40">Live inventory and verified-outcome checks. Do not print a blocked station.</p>
+                </div>
+                <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.12em]">
+                  <span className={`rounded-full border px-3 py-2 ${report.pilotReadiness.environment.journeySecretConfigured ? statusClass('PASS') : statusClass('FAIL')}`}>Journey secret {report.pilotReadiness.environment.journeySecretConfigured ? 'ready' : 'missing'}</span>
+                  <span className={`rounded-full border px-3 py-2 ${report.pilotReadiness.environment.emailDeliveryConfigured ? statusClass('PASS') : statusClass('PENDING')}`}>Email Pass {report.pilotReadiness.environment.emailDeliveryConfigured ? 'ready' : 'optional'}</span>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-white/35">{report.pilotReadiness.environment.emailMeaning}</p>
+              <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                {report.pilotReadiness.stations.length ? report.pilotReadiness.stations.map((station) => (
+                  <article key={station.linkId} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black text-white">{station.stationHostVenue?.name ?? station.stationCode}</p>
+                        <p className="mt-1 font-mono text-[10px] text-white/35">{station.serial} · {station.campaignCode ?? 'no campaign'} · {station.requestedAttention}</p>
+                      </div>
+                      <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black tracking-[0.12em] ${statusClass(station.status)}`}>{station.status}</span>
+                    </div>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      {station.lanes.map((lane) => (
+                        <div key={lane.attention} className="rounded-xl border border-white/8 bg-black/25 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-black tracking-[0.12em] text-white/60">{lane.attention}</p>
+                            <span className={lane.healthy ? 'text-[10px] font-bold text-emerald-200' : 'text-[10px] font-bold text-amber-200'}>{lane.qualifyingCount}/{lane.minimumDensity}</span>
+                          </div>
+                          <p className="mt-2 text-[10px] text-white/35">{lane.hasVerifiedOutcomePath ? 'Verified outcome path ready' : 'No funded mission or live handshake'}</p>
+                          {lane.items.slice(0, 3).map((item) => <p key={item.id} className="mt-1 truncate text-[10px] text-white/55">{item.verifiedOutcomePath ? '✓' : '·'} {item.title}</p>)}
+                          {lane.error ? <p className="mt-2 text-[10px] text-red-200">{lane.error}</p> : null}
+                        </div>
+                      ))}
+                    </div>
+                    {station.issues.length ? <div className="mt-3 space-y-1">{station.issues.map((issue) => <p key={issue.code} className={issue.severity === 'BLOCKER' ? 'text-[10px] text-red-200' : 'text-[10px] text-amber-200'}>{issue.severity}: {issue.message}</p>)}</div> : null}
+                  </article>
+                )) : <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-white/30">No active Field Stations.</div>}
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-black">Campaign decision gates</h2>
+              <p className="mt-1 text-sm text-white/40">Qualified action, not scan volume. A passing scorecard still needs a human repeat/pay decision.</p>
+              <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                {report.campaignReceipts.length ? report.campaignReceipts.map((campaign) => (
+                  <article key={campaign.campaignCode} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-mono text-xs font-black text-[#ffe36a]">{campaign.campaignCode}</p>
+                      <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black tracking-[0.12em] ${statusClass(campaign.status)}`}>{campaign.status}</span>
+                    </div>
+                    <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+                      {[['Entries', campaign.counts.uniqueEntries], ['Opened', campaign.counts.targetOpens], ['Passes', campaign.counts.missionPasses], ['Verified', campaign.counts.verifiedOutcomes]].map(([label, value]) => <div key={String(label)} className="rounded-xl border border-white/8 bg-black/25 p-3"><p className="text-lg font-black">{value}</p><p className="text-[9px] uppercase tracking-[0.1em] text-white/35">{label}</p></div>)}
+                    </div>
+                    <div className="mt-3 space-y-2">{Object.entries(campaign.gates).map(([name, gate]) => <div key={name} className="flex items-start justify-between gap-3 text-[10px]"><p className="text-white/45">{name.replace(/([A-Z])/g, ' $1')}</p><span className={`rounded-full border px-2 py-1 font-black ${statusClass(gate.status)}`}>{gate.status}{gate.value !== null ? ` · ${gate.value}${gate.unit === 'percent' ? '%' : gate.unit === 'milliseconds' ? 'ms' : ''}` : ''}</span></div>)}</div>
+                    <p className="mt-3 text-[10px] leading-4 text-white/30">{campaign.humanDecisionMeaning}</p>
+                  </article>
+                )) : <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-white/30">No campaign activity yet.</div>}
+              </div>
+            </section>
+
+            <div className="grid gap-8 lg:grid-cols-2">
             <section>
               <h2 className="text-xl font-black">Station-host receipts</h2>
               <p className="mt-1 text-sm text-white/40">What each physical placement started—not assumed visits to its host.</p>
@@ -277,6 +490,7 @@ export default function FieldStationsAdminPage() {
                 )) : <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-white/30">No destination outcomes yet.</div>}
               </div>
             </section>
+            </div>
           </div>
         ) : null}
       </div>

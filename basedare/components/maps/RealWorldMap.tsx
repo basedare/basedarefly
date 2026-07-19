@@ -9611,14 +9611,28 @@ export default function RealWorldMap() {
       </div>
     ) : null;
 
+  const selectedPlaceMobileActions = [
+    ...(selectedPlaceCheckInAction
+      ? [{ id: 'check-in-live', node: selectedPlaceCheckInAction }]
+      : []),
+    ...(selectedPlacePresenceAction
+      ? [{ id: 'presence', node: selectedPlacePresenceAction }]
+      : []),
+    ...(selectedPlaceMeetupButton
+      ? [{ id: 'meetup', node: selectedPlaceMeetupButton }]
+      : []),
+    ...selectedPlaceUtilityActions,
+  ];
   const selectedPlaceMobileActionDeck =
-    selectedPlace && !selectedPlaceIsPrivateSpot ? (
-      <div className="selected-place-mobile-action-deck">
-        {selectedPlaceCheckInAction}
-        {selectedPlacePresenceAction}
-        {selectedPlaceMeetupButton}
-        {selectedPlaceUtilityActions.map(({ id, node }) => (
-          <div key={id} className="venue-action-slot venue-action-slot--tertiary">
+    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlaceMobileActions.length > 0 ? (
+      <div
+        className={`selected-place-mobile-action-deck selected-place-mobile-action-deck--${Math.min(
+          selectedPlaceMobileActions.length,
+          4
+        )} ${selectedPlaceMobileActions.length > 4 ? 'selected-place-mobile-action-deck--scroll' : ''}`}
+      >
+        {selectedPlaceMobileActions.map(({ id, node }) => (
+          <div key={id} className="selected-place-mobile-action-slot">
             {node}
           </div>
         ))}
@@ -18366,23 +18380,49 @@ export default function RealWorldMap() {
           }
 
           :global(.selected-place-mobile-action-deck) {
-            display: flex;
+            display: grid;
             width: 100%;
-            gap: 0.28rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.35rem;
             margin-top: 0.35rem;
+            overflow: visible;
+          }
+
+          :global(.selected-place-mobile-action-deck--1) {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          :global(.selected-place-mobile-action-deck--2) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          :global(.selected-place-mobile-action-deck--4) {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+          }
+
+          :global(.selected-place-mobile-action-deck--scroll) {
+            grid-auto-columns: minmax(5.25rem, 1fr);
+            grid-auto-flow: column;
+            grid-template-columns: none;
             overflow-x: auto;
             overscroll-behavior-x: contain;
             scrollbar-width: none;
           }
 
-          :global(.selected-place-mobile-action-deck::-webkit-scrollbar) {
+          :global(.selected-place-mobile-action-deck--scroll::-webkit-scrollbar) {
             display: none;
           }
 
-          :global(.selected-place-mobile-action-deck > *) {
-            flex: 1 0 4.65rem;
-            min-width: 4.65rem !important;
-            width: auto !important;
+          :global(.selected-place-mobile-action-slot) {
+            display: flex;
+            min-width: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+          }
+
+          :global(.selected-place-mobile-action-slot > *) {
+            min-width: 0 !important;
+            width: 100% !important;
             margin: 0 !important;
           }
 

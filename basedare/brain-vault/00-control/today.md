@@ -1,11 +1,11 @@
 ---
 type: daily_control
-date: 2026-07-15
+date: 2026-07-20
 status: ACTIVE
 owner: codex
 primary_objective: "Turn BaseDare into a remote, bounty-funded discovery network that can seed and learn from markets without founder presence."
 created_at: 2026-05-13
-updated_at: 2026-07-15
+updated_at: 2026-07-20
 ---
 
 # Today
@@ -33,6 +33,7 @@ Operationalize BaseDare as a remote-first playable social map:
 - Cold-wallet claiming and submission-time proximity are implemented locally and await preview migration/smoke testing. Sponsor-facing media/data rights remain partial.
 - Creator Journeys, ActionIntent locking, portable Mission Pass continuation, `/missions` recovery, claim-to-wallet binding, completion attribution, and operator reporting are live in production. Transactional email remains deliberately disabled until the Resend sending domain is verified; real Instagram/TikTok handoff still needs iOS and Android device checks.
 - Official verified venue contact routes are live. Do not build general access tiers or subscriptions until three claimed venues commit to one authorized Ambassador and one attributable perk each.
+- Field Station links, truth-filtered Board entry, Journey attribution, Mission Pass, secure venue arrivals, separate host/destination receipts, live pilot preflight, and campaign decision gates now form one bounded design-partner experiment. Do not print a blocked station or report digital interest as foot traffic.
 - Sprint #1 is a design-partner verification-cost experiment; Sprint #2 is the first paid sale.
 - Publicly pseudonymous branding is compatible with the vision; concealed employment, ownership, payment activity, or local commercial control is not.
 - Growth is judged by useful proof density, contributor repeat behavior, organic actions per paid action, and sponsor pull—not raw bounty volume.
@@ -51,6 +52,7 @@ Operationalize BaseDare as a remote-first playable social map:
 | 8 | Clean public traction and demo signals | codex | NEXT | Separate real treasury/proof data from samples before public participant acquisition |
 | 9 | TikTok / Instagram participation loop | growth | READY | Run four variants of each locked short-form series and measure qualified map actions per 1,000 views |
 | 10 | Creator Journey attribution rail | product/growth | ALPHA_LIVE | Verify Resend domain before enabling email, then run real Instagram/TikTok → Safari/Chrome handoff tests on iOS and Android; keep performance bonuses disabled |
+| 11 | Field Station-backed Verified Field Sprint | growth/product + human | READY_SETUP | Name the design partner and bounded question, fund four missions, secure two permissioned station hosts, clear live preflight, and run the 14-day crossover under one campaign code |
 
 ## Safe Automatic Work
 

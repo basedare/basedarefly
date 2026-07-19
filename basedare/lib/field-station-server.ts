@@ -21,6 +21,11 @@ import {
   resolveFieldStationAttention,
   type FieldStationAttentionMode,
 } from '@/lib/field-station-policy';
+import {
+  buildFieldSprintPilotScorecards,
+  deriveFieldStationLaunchReadiness,
+  inheritStationCampaignAcrossJourney,
+} from '@/lib/field-sprint-pilot-policy';
 import { evaluateStationInventory } from '@/lib/field-stations/inventory';
 import {
   JOURNEY_COOKIE_NAME,
@@ -47,6 +52,15 @@ type FieldStationLink = {
     longitude: number;
   } | null;
 };
+
+type FieldStationReportLink = FieldStationLink & {
+  slug: string;
+  contentCode: string;
+  campaignCode: string | null;
+  active: boolean;
+};
+
+const FIELD_STATION_PILOT_LANES = ['SOCIAL', 'MYSTERY', 'REWARD', 'TONIGHT'] as const;
 
 export type ResolvedFieldStationRedirect = {
   isFieldStation: boolean;
@@ -262,12 +276,141 @@ export async function recordStationVerifiedVenueArrival(
   return { recorded: true as const };
 }
 
+async function buildFieldStationPilotReadiness(links: FieldStationReportLink[]) {
+  const journeySecretConfigured = (process.env.MISSION_PASS_HMAC_SECRET?.length ?? 0) >= 32;
+  const emailDeliveryConfigured = Boolean(
+    process.env.RESEND_API_KEY?.trim() && process.env.MISSION_PASS_FROM_EMAIL?.trim()
+  );
+  const evaluated = await Promise.all(links.map(async (link) => {
+    const requestedAttention = normalizeFieldStationAttention(link.attentionMode, 'ASK');
+    const attentionModes = ['ASK', 'NEARBY'].includes(requestedAttention)
+      ? [...FIELD_STATION_PILOT_LANES]
+      : [requestedAttention as (typeof FIELD_STATION_PILOT_LANES)[number]];
+    const stationHost = link.stationHostVenue;
+    if (!stationHost) {
+      return {
+        link,
+        requestedAttention,
+        lanes: [],
+        configurationIssue: 'Station host venue is missing.',
+      };
+    }
+    const lanes = await Promise.all(attentionModes.map(async (attention) => {
+      try {
+        const inventory = await evaluateStationInventory({
+          attention,
+          latitude: stationHost.latitude,
+          longitude: stationHost.longitude,
+          radiusKm: link.densityRadiusKm,
+          minimumDensity: link.minimumDensity,
+        });
+        return {
+          attention,
+          qualifyingCount: inventory.qualifyingCount,
+          minimumDensity: inventory.minimumDensity,
+          healthy: !inventory.isLowDensity,
+          evaluatedAt: inventory.evaluatedAt,
+          error: null,
+          items: inventory.items.map((item) => ({
+            id: item.id,
+            source: item.source,
+            title: item.title,
+            placeLabel: item.placeLabel,
+            venueId: item.venueId,
+            venueSlug: item.venueSlug,
+            href: item.href,
+            targetType: item.targetType,
+            targetId: item.targetId,
+          })),
+        };
+      } catch (error) {
+        return {
+          attention,
+          qualifyingCount: 0,
+          minimumDensity: normalizeMinimumDensity(link.minimumDensity),
+          healthy: false,
+          evaluatedAt: new Date().toISOString(),
+          error: error instanceof Error ? error.message : 'Inventory evaluation failed.',
+          items: [],
+        };
+      }
+    }));
+    return { link, requestedAttention, lanes, configurationIssue: null };
+  }));
+  const venueIds = [...new Set(evaluated.flatMap((station) =>
+    station.lanes.flatMap((lane) => lane.items.flatMap((item) => item.venueId ? [item.venueId] : []))
+  ))];
+  const now = new Date();
+  const liveSessions = venueIds.length ? await prisma.venueQrSession.findMany({
+    where: {
+      venueId: { in: venueIds },
+      status: 'LIVE',
+      pausedAt: null,
+      startedAt: { lte: now },
+      OR: [{ endsAt: null }, { endsAt: { gt: now } }],
+    },
+    select: { venueId: true },
+  }) : [];
+  const venueIdsWithLiveHandshake = new Set(liveSessions.map((session) => session.venueId));
+
+  return {
+    environment: {
+      journeySecretConfigured,
+      portableMissionPassReady: journeySecretConfigured,
+      emailDeliveryConfigured,
+      emailMeaning: emailDeliveryConfigured
+        ? 'Email Mission Pass delivery is configured.'
+        : 'Portable share/copy Mission Pass remains available; email delivery is not configured.',
+    },
+    stations: evaluated.map(({ link, requestedAttention, lanes, configurationIssue }) => {
+      const decoratedLanes = lanes.map((lane) => {
+        const items = lane.items.map((item) => ({
+          ...item,
+          liveHandshake: item.venueId ? venueIdsWithLiveHandshake.has(item.venueId) : false,
+          verifiedOutcomePath: item.source === 'DARE' || (item.venueId ? venueIdsWithLiveHandshake.has(item.venueId) : false),
+        }));
+        return {
+          ...lane,
+          items,
+          hasVerifiedOutcomePath: items.some((item) => item.verifiedOutcomePath),
+        };
+      });
+      const derived = deriveFieldStationLaunchReadiness({
+        requestedAttention,
+        journeySecretConfigured,
+        lanes: decoratedLanes.map((lane) => ({
+          attention: lane.attention,
+          healthy: lane.healthy,
+          hasVerifiedOutcomePath: lane.hasVerifiedOutcomePath,
+        })),
+      });
+      const issues = configurationIssue
+        ? [{ severity: 'BLOCKER' as const, code: 'STATION_HOST_MISSING', message: configurationIssue }, ...derived.issues]
+        : derived.issues;
+      return {
+        linkId: link.id,
+        stationCode: link.stationCode,
+        serial: formatFieldStationSerial(link.serialNumber),
+        campaignCode: link.campaignCode,
+        contentCode: link.contentCode,
+        stationHostVenue: link.stationHostVenue ?? null,
+        requestedAttention,
+        status: issues.some((issue) => issue.severity === 'BLOCKER')
+          ? 'BLOCKED' as const
+          : issues.length > 0 ? 'DEGRADED' as const : 'READY' as const,
+        issues,
+        lanes: decoratedLanes,
+      };
+    }),
+  };
+}
+
 export async function buildFieldStationReport(periodDays: number) {
   const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
   const [links, events] = await Promise.all([
     prisma.creatorAttributionLink.findMany({
-      where: { stationCode: { not: null }, active: true },
-      include: { stationHostVenue: { select: { id: true, slug: true, name: true, city: true } } },
+      where: { stationCode: { not: null } },
+      include: { stationHostVenue: { select: { id: true, slug: true, name: true, city: true, latitude: true, longitude: true } } },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.attributionEvent.findMany({
@@ -299,6 +442,11 @@ export async function buildFieldStationReport(periodDays: number) {
   const venueById = new Map(venues.map((venue) => [venue.id, venue]));
   const receipts = aggregateFieldStationReceiptCounts(events);
   const timeToAction = computeFieldStationTimeToAction(events);
+  const activeLinks = links.filter((link) => link.active);
+  const [pilotReadiness, campaignReceipts] = await Promise.all([
+    buildFieldStationPilotReadiness(activeLinks),
+    Promise.resolve(buildFieldSprintPilotScorecards(inheritStationCampaignAcrossJourney(events))),
+  ]);
   const entryPerformance = new Map<string, number[]>();
   const inventoryHealth = new Map<string, {
     targetedScans: number;
@@ -377,6 +525,8 @@ export async function buildFieldStationReport(periodDays: number) {
       };
     }),
     creativeReceipts: Object.entries(receipts.creatives).map(([contentCode, counts]) => ({ contentCode, counts })),
+    campaignReceipts,
+    pilotReadiness,
     destinationVenueReceipts: Object.entries(receipts.destinations).map(([venueId, counts]) => ({
       venue: venueById.get(venueId) ?? { id: venueId, slug: null, name: 'Unknown venue' },
       counts,

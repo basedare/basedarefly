@@ -51,3 +51,15 @@ test('highlights the main venues for tonight plus SBC every night', () => {
     false
   );
 });
+
+test('keeps Harana as the Saturday main night and treats Greenroom as a warm-up', () => {
+  const saturday = new Date('2026-07-18T12:00:00.000Z');
+  const guide = getSiargaoNightGuide(saturday);
+
+  assert.equal(guide.headline, 'Harana');
+  assert.equal(guide.warmUpHeadline, 'Greenroom opposite Harana');
+  assert.equal(
+    isSiargaoVenueFeaturedTonight({ name: 'Greenroom Wine Bar', now: saturday }),
+    true
+  );
+});
