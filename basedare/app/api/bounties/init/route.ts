@@ -12,6 +12,8 @@ import {
     resolveCanonicalBountyPlaceContext,
 } from '@/lib/bounty-place';
 import { formatSentinelPausedMessage, getSentinelRecommendation } from '@/lib/sentinel';
+import { OutcomeContractRequestSchema } from '@/lib/outcome-contract-schema';
+import { buildOutcomeContractSnapshot } from '@/lib/outcome-contracts';
 
 const FORCE_SIMULATION = isBountySimulationMode();
 const REQUIRE_WALLET_IN_SIMULATION = process.env.REQUIRE_WALLET_IN_SIMULATION !== 'false';
@@ -48,6 +50,7 @@ const InitBountySchema = z.object({
     discoveryRadiusKm: z.number().min(0.5).max(50).default(5),
     venueId: z.string().min(1).optional(),
     creationContext: z.enum(['MAP', 'CREATE']).optional(),
+    outcomeContract: OutcomeContractRequestSchema,
 });
 
 function generateShortId(length = 8): string {
@@ -142,6 +145,7 @@ export async function POST(request: NextRequest) {
             discoveryRadiusKm: rawDiscoveryRadiusKm,
             venueId,
             creationContext,
+            outcomeContract: outcomeContractRequest,
         } = validation.data;
         const normalizedMissionMode = missionMode === 'STREAM' ? 'STREAM' : 'IRL';
         const normalizedMissionTag = missionTag?.trim() || null;
@@ -291,6 +295,16 @@ export async function POST(request: NextRequest) {
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
         const shortId = generateShortId();
 
+        const outcomeContract = buildOutcomeContractSnapshot({
+            ...outcomeContractRequest,
+            title,
+            missionMode: normalizedMissionMode,
+            missionTag: normalizedMissionTag,
+            amount,
+            locationLabel: isNearbyDare ? locationLabel : null,
+            isNearbyDare,
+            expiresAt,
+        });
         const createdDare = await prisma.dare.create({
             data: {
                 title,
@@ -316,6 +330,9 @@ export async function POST(request: NextRequest) {
                 geohash,
                 locationLabel: isNearbyDare ? locationLabel : null,
                 discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
+                outcomeContractFamily: outcomeContract.family,
+                outcomeContractVersion: outcomeContract.version,
+                outcomeContractSnapshot: outcomeContract,
             },
         });
 

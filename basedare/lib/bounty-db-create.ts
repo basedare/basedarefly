@@ -3,6 +3,10 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { getPostFundingDareStatus } from '@/lib/dare-status';
+import {
+  buildOutcomeContractSnapshot,
+  type OutcomeContractRequest,
+} from '@/lib/outcome-contracts';
 
 function generateShortId(length = 8): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -41,6 +45,7 @@ type CreateDatabaseBackedBountyInput = {
   locationLabel?: string | null;
   discoveryRadiusKm?: number | null;
   isSimulated?: boolean;
+  outcomeContract?: OutcomeContractRequest;
 };
 
 export async function createDatabaseBackedBounty(input: CreateDatabaseBackedBountyInput) {
@@ -54,6 +59,16 @@ export async function createDatabaseBackedBounty(input: CreateDatabaseBackedBoun
   const dareStatus = getPostFundingDareStatus({
     isAwaitingClaim,
     targetWalletAddress: input.tagVerified ? input.targetWalletAddress || null : null,
+  });
+  const outcomeContract = buildOutcomeContractSnapshot({
+    ...input.outcomeContract,
+    title: input.title,
+    missionMode: input.missionMode,
+    missionTag: input.missionTag,
+    amount: input.amount,
+    locationLabel: input.locationLabel,
+    isNearbyDare: input.isNearbyDare,
+    expiresAt,
   });
 
   const dare = await db.dare.create({
@@ -85,6 +100,9 @@ export async function createDatabaseBackedBounty(input: CreateDatabaseBackedBoun
       geohash: input.isNearbyDare ? input.geohash || null : null,
       locationLabel: input.isNearbyDare ? input.locationLabel || null : null,
       discoveryRadiusKm: input.isNearbyDare ? input.discoveryRadiusKm || null : null,
+      outcomeContractFamily: outcomeContract.family,
+      outcomeContractVersion: outcomeContract.version,
+      outcomeContractSnapshot: outcomeContract as unknown as Prisma.InputJsonValue,
     },
   });
 

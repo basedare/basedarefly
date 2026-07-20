@@ -8,6 +8,7 @@ import { extractDareIdFromReceipt } from '@/lib/contracts/utils';
 import type { Address } from 'viem';
 import { notifyTargetedDareReceived } from '@/lib/dare-notifications';
 import { getPostFundingDareStatus } from '@/lib/dare-status';
+import { buildOutcomeContractSnapshot } from '@/lib/outcome-contracts';
 
 const PLATFORM_WALLET_ADDRESS = process.env.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS as Address;
 
@@ -50,12 +51,22 @@ export async function POST(request: NextRequest) {
     const amountInUnits = parseUnits(amount.toString(), 6);
 
     // Create DB record first so we can reconcile the actual contract event back to DB.
+    const outcomeContract = buildOutcomeContractSnapshot({
+      title: title || 'On-chain dare',
+      missionMode: 'IRL',
+      missionTag: 'onchain',
+      amount,
+      isNearbyDare: false,
+    });
     const dbDare = await prisma.dare.create({
       data: {
         title: title || 'On-chain dare',
         bounty: amount,
         status: 'FUNDING',
         isSimulated: false,
+        outcomeContractFamily: outcomeContract.family,
+        outcomeContractVersion: outcomeContract.version,
+        outcomeContractSnapshot: outcomeContract,
       },
     });
 

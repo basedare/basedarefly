@@ -7,6 +7,7 @@ import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
 import { generateOnChainDareId } from '@/lib/dare-id';
 import { prisma } from '@/lib/prisma';
 import { getRefereeAccount } from '@/lib/referee-wallet';
+import { buildOutcomeContractSnapshot } from '@/lib/outcome-contracts';
 
 // Network selection based on environment
 const activeChain = getBaseChain();
@@ -174,6 +175,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Create DB record first, then derive deterministic on-chain ID
+    const outcomeContract = buildOutcomeContractSnapshot({
+      title,
+      missionMode,
+      missionTag,
+      amount,
+      isNearbyDare: false,
+    });
     const dbDare = await prisma.dare.create({
       data: {
         title,
@@ -182,6 +190,9 @@ export async function POST(request: NextRequest) {
         bounty: amount,
         status: 'FUNDING',
         isSimulated: false,
+        outcomeContractFamily: outcomeContract.family,
+        outcomeContractVersion: outcomeContract.version,
+        outcomeContractSnapshot: outcomeContract,
       },
     });
     const dareId = generateOnChainDareId(dbDare.id);

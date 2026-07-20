@@ -138,6 +138,12 @@ export async function moderateDareDecision(input: ModerateDareInput): Promise<Mo
       verifiedAt: null,
       appealStatus: 'REJECTED',
       appealReason: input.rejectReason || note || 'Rejected by moderation',
+      evidenceDecision: 'REJECTED',
+      orchestrationDecision: {
+        action: 'OPEN_APPEAL',
+        decidedAt: moderatedAt.toISOString(),
+        source: input.sourceContext,
+      },
     },
   });
 

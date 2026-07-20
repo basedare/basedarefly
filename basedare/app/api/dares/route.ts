@@ -48,6 +48,9 @@ function toPublicDare(dare: {
   sentinelVerified: boolean;
   isNearbyDare: boolean;
   missionMode: string | null;
+  outcomeContractSnapshot: unknown;
+  reportedOutcome: unknown;
+  evidenceDecision: string | null;
 }): {
   id: string;
   title: string;
@@ -77,6 +80,9 @@ function toPublicDare(dare: {
   sentinelVerified: boolean;
   isNearbyDare: boolean;
   missionMode: string | null;
+  outcomeContractSnapshot: unknown;
+  reportedOutcome: unknown;
+  evidenceDecision: string | null;
 } {
   return {
     id: dare.id,
@@ -107,6 +113,9 @@ function toPublicDare(dare: {
     sentinelVerified: dare.sentinelVerified,
     isNearbyDare: dare.isNearbyDare,
     missionMode: dare.missionMode,
+    outcomeContractSnapshot: dare.outcomeContractSnapshot,
+    reportedOutcome: dare.reportedOutcome,
+    evidenceDecision: dare.evidenceDecision,
   };
 }
 

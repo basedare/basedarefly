@@ -226,6 +226,12 @@ export async function PUT(request: NextRequest) {
         data: {
           appealStatus: 'REJECTED',
           manualReviewNeeded: false,
+          evidenceDecision: 'REJECTED',
+          orchestrationDecision: {
+            action: 'CLOSE_APPEAL',
+            decidedAt: new Date().toISOString(),
+            source: 'ADMIN_APPEAL',
+          },
         },
       });
 

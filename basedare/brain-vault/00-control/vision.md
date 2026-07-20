@@ -3,7 +3,7 @@ type: strategic_vision
 system: basedare-brain
 status: ACTIVE
 created_at: 2026-07-10
-updated_at: 2026-07-14
+updated_at: 2026-07-20
 owner: BaseDare
 ---
 
@@ -63,6 +63,16 @@ Every paid dare must create at least one durable asset:
 If a payout creates only a disposable post, it is marketing spend without a network effect.
 
 Every result is timestamped and sold honestly as true **as of** a specific date. Place information decays; re-verification is not cleanup work but the bridge from one-off Field Sprints to recurring City Signal revenue.
+
+## Outcome contract constitution
+
+Every newly funded mission freezes an immutable, versioned **Outcome Contract** before money moves. It states the buyer question, payable outcomes, allowed optimization, prohibited manipulation, required evidence, freshness window, review triggers, payout trigger, retry and appeal policy, safety restrictions, rights boundary, and permitted receipt wording.
+
+The mission compiler must make five things obvious: **Go / Do / Prove / Win / Earn**. A contributor reports the observed outcome; the referee separately decides whether the evidence supports that report; orchestration records what happens next. These are different facts and must never be collapsed into one `success` boolean.
+
+For Field Truth, a supported negative answer is a successful paid result. “The café was closed” can be as valuable as “the café was open.” BaseDare pays for accepted evidence that answers the locked question—not for pleasing the buyer, manufacturing good news, or producing a desired venue state.
+
+Six contract families are defined: Field Truth, Experience Execution, Publication, Attention, Arrival/Redemption, and Qualified Action. The alpha activates only the first three. Higher proof families remain disabled until their independent proof rails exist. Automated slashing, broad payout freezes, and an autonomous Dare Director are not part of this release.
 
 ## First product shape
 

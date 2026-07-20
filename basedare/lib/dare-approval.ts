@@ -27,6 +27,7 @@ import { alertError, alertPayout, alertVerification } from '@/lib/telegram';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
 import { sendWalletPush } from '@/lib/web-push';
 import { finalizeAttributionForVerifiedDare } from '@/lib/creator-attribution-server';
+import { formatAcceptedOutcomeReceipt } from '@/lib/outcome-contracts';
 
 const activeChain = getBaseChain();
 const rpcUrl = getBaseRpcUrl();
@@ -475,6 +476,12 @@ async function markDarePendingPayout(
       // The approving request owns the initial lease; retry-payouts may recover
       // only after it expires, never race the request's chain broadcast.
       payoutLeaseAt: claimedAt,
+      evidenceDecision: 'ACCEPTED',
+      orchestrationDecision: {
+        action: 'SETTLE_AND_WRITE_MEMORY',
+        decidedAt: claimedAt.toISOString(),
+        source: 'dare-approval',
+      },
     },
   });
   if (claim.count === 0) return null;
@@ -541,6 +548,12 @@ export async function finalizeVerifiedDare(
       manualReviewNeeded: false,
       payoutLeaseAt: null,
       sentinelVerified: existingDare.requireSentinel ? true : existingDare.sentinelVerified,
+      evidenceDecision: 'ACCEPTED',
+      orchestrationDecision: {
+        action: 'SETTLED_AND_MEMORY_WRITTEN',
+        decidedAt: verifiedAt.toISOString(),
+        source: input.sourceContext,
+      },
     };
 
     if (input.verifyTxHash !== undefined) updateData.verifyTxHash = input.verifyTxHash;
@@ -630,19 +643,27 @@ export async function finalizeVerifiedDare(
       verifyConfidence: input.verifyConfidence ?? null,
       proofHash,
       sentinel: updatedDare.requireSentinel,
+      reportedOutcome: updatedDare.reportedOutcome,
+      evidenceDecision: updatedDare.evidenceDecision,
     },
     occurredAt: verifiedAt,
   });
 
   if (updatedDare.venueId) {
     const actorLabel = getDareReceiptActor(updatedDare);
+    const acceptedOutcome = formatAcceptedOutcomeReceipt({
+      snapshot: updatedDare.outcomeContractSnapshot,
+      reportedOutcome: updatedDare.reportedOutcome,
+    });
     await publishVenueRoomReceipt({
       venueId: updatedDare.venueId,
       actorWallet: updatedDare.claimedBy ?? updatedDare.targetWalletAddress ?? null,
       actorLabel,
       receiptType: 'proof-verified',
       sourceId: updatedDare.id,
-      body: `${actorLabel} cleared "${updatedDare.title}" for ${payout.streamer.toFixed(2)} USDC.`,
+      body: acceptedOutcome
+        ? `${actorLabel} cleared "${updatedDare.title}" for ${payout.streamer.toFixed(2)} USDC. ${acceptedOutcome}`
+        : `${actorLabel} cleared "${updatedDare.title}" for ${payout.streamer.toFixed(2)} USDC.`,
       href: `/dare/${updatedDare.shortId || updatedDare.id}`,
       tone: 'gold',
     }).catch((receiptError) => {

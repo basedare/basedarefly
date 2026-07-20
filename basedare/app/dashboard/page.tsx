@@ -49,6 +49,9 @@ interface Dare {
   moderatorNote?: string | null;
   isNearbyDare?: boolean;
   missionMode?: string | null;
+  outcomeContractSnapshot?: unknown;
+  reportedOutcome?: unknown;
+  evidenceDecision?: string | null;
 }
 
 interface UserTag {
@@ -2100,6 +2103,8 @@ export default function Dashboard() {
                                 isNearbyDare: dare.isNearbyDare,
                                 missionMode: dare.missionMode,
                               })}
+                              outcomeContract={dare.outcomeContractSnapshot}
+                              reportedOutcome={dare.reportedOutcome}
                               onVerificationComplete={(result: { status: string }) => {
                                 const updateDare = (entry: Dare) =>
                                   entry.id === dare.id

@@ -40,6 +40,11 @@ import { getRefereeAccount } from '@/lib/referee-wallet';
 import { checkAndSendSentinelQueueAlert } from '@/lib/sentinel-queue';
 import { getAuthorizedProofSubmitterWallet } from '@/lib/proof-submit-auth-server';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
+import {
+  parseOutcomeContractSnapshot,
+  validateReportedOutcome,
+  type ReportedOutcome,
+} from '@/lib/outcome-contracts';
 
 // Network selection based on environment
 const activeChain = getBaseChain();
@@ -104,6 +109,11 @@ const VerifyProofSchema = z.object({
     longitude: z.number(),
     accuracy: z.number().nullable().optional(),
     capturedAt: z.union([z.number(), z.string()]).nullable().optional(),
+  }).optional(),
+  reportedOutcome: z.object({
+    kind: z.enum(['YES', 'NO', 'PARTIAL', 'INCONCLUSIVE', 'COMPLETED', 'PUBLISHED']),
+    summary: z.string().min(3).max(280),
+    observedAt: z.string().datetime(),
   }).optional(),
 });
 
@@ -384,7 +394,10 @@ async function validateProof(
  * of a permanent error, so a retry / concurrent-loser never strands the proof.
  */
 async function respondWithCurrentDareOutcome(dareId: string) {
-  const current = await prisma.dare.findUnique({ where: { id: dareId }, select: { status: true } });
+  const current = await prisma.dare.findUnique({
+    where: { id: dareId },
+    select: { status: true, evidenceDecision: true, reportedOutcome: true },
+  });
   if (!current) {
     return NextResponse.json({ success: false, error: 'Dare not found', code: 'NOT_FOUND' }, { status: 404 });
   }
@@ -405,7 +418,13 @@ async function respondWithCurrentDareOutcome(dareId: string) {
   return NextResponse.json({
     success: true,
     code: 'ALREADY_PROCESSED',
-    data: { dareId, status: current.status, alreadyProcessed: true },
+    data: {
+      dareId,
+      status: current.status,
+      evidenceDecision: current.evidenceDecision,
+      reportedOutcome: current.reportedOutcome,
+      alreadyProcessed: true,
+    },
   });
 }
 
@@ -440,6 +459,7 @@ async function markProofPendingPayoutFallback({
       proofHash: verification.proofHash,
       manualReviewNeeded: false,
       sentinelVerified: dare.requireSentinel ? true : dare.sentinelVerified ?? false,
+      evidenceDecision: 'ACCEPTED',
     },
   });
   if (fallbackClaim.count === 0) {
@@ -540,7 +560,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { dareId, streamUrl, proofData } = validation.data;
+    const { dareId, streamUrl, proofData, reportedOutcome } = validation.data;
 
     // -------------------------------------------------------------------------
     // 2. FETCH DARE FROM DATABASE
@@ -595,6 +615,29 @@ export async function POST(req: NextRequest) {
         { success: false, error: 'Dare already failed. Submit an appeal to retry.', code: 'ALREADY_FAILED' },
         { status: 400 }
       );
+    }
+
+    const outcomeContract = parseOutcomeContractSnapshot(dare.outcomeContractSnapshot);
+    let validatedReportedOutcome: ReportedOutcome | null = null;
+    if (dare.outcomeContractSnapshot && !outcomeContract) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'This mission has an unreadable outcome contract and needs operator review.',
+          code: 'OUTCOME_CONTRACT_INVALID',
+        },
+        { status: 409 },
+      );
+    }
+    if (outcomeContract) {
+      const outcomeValidation = validateReportedOutcome(outcomeContract, reportedOutcome);
+      if (!outcomeValidation.ok) {
+        return NextResponse.json(
+          { success: false, error: outcomeValidation.error, code: 'REPORTED_OUTCOME_REQUIRED' },
+          { status: 400 },
+        );
+      }
+      validatedReportedOutcome = outcomeValidation.value;
     }
 
     console.log(`[REFEREE] Starting verification for dare ${dareId}: "${dare.title}"`);
@@ -716,6 +759,22 @@ export async function POST(req: NextRequest) {
       routeOutcome === 'REVIEW',
       routeOutcome === 'SETTLE',
     );
+    const evidenceDecision =
+      routeOutcome === 'REVIEW'
+        ? 'PENDING_REVIEW'
+        : routeOutcome === 'SETTLE'
+          ? 'ACCEPTED'
+          : 'REJECTED';
+    const orchestrationDecision = {
+      action:
+        routeOutcome === 'REVIEW'
+          ? 'HUMAN_REVIEW'
+          : routeOutcome === 'SETTLE'
+            ? 'SETTLE_AND_WRITE_MEMORY'
+            : 'OPEN_APPEAL',
+      decidedAt: proofNow.toISOString(),
+      source: 'verify-proof',
+    } as Prisma.InputJsonValue;
     const sentinelReviewRequested = Boolean(dare.requireSentinel);
     const requestedInternalSource = req.headers.get('x-basedare-proof-source')?.trim().toLowerCase();
     const attemptSource = isInternalAuthorized
@@ -768,6 +827,10 @@ export async function POST(req: NextRequest) {
             verificationReason: verification.reason,
             proximityReason: proximity?.reason ?? null,
             decision: attemptDecision,
+            reportedOutcome: validatedReportedOutcome
+              ? (validatedReportedOutcome as unknown as Prisma.InputJsonValue)
+              : Prisma.JsonNull,
+            evidenceDecision,
             reason: verification.reason,
             decidedAt: proofNow,
             submissionKey,
@@ -787,6 +850,11 @@ export async function POST(req: NextRequest) {
               appealStatus: 'PENDING',
               appealReason: reviewReason,
               appealedAt: proofNow,
+              reportedOutcome: validatedReportedOutcome
+                ? (validatedReportedOutcome as unknown as Prisma.InputJsonValue)
+                : undefined,
+              evidenceDecision,
+              orchestrationDecision,
             },
           });
           return claim.count === 1;
@@ -803,6 +871,11 @@ export async function POST(req: NextRequest) {
               // The request itself owns the first payout lease. The retry cron
               // can recover it after TTL, but cannot race a slow chain receipt.
               payoutLeaseAt: proofNow,
+              reportedOutcome: validatedReportedOutcome
+                ? (validatedReportedOutcome as unknown as Prisma.InputJsonValue)
+                : undefined,
+              evidenceDecision,
+              orchestrationDecision,
             },
           });
           return claim.count === 1;
@@ -819,6 +892,11 @@ export async function POST(req: NextRequest) {
             verifyConfidence: verification.confidence,
             proofHash: verification.proofHash,
             manualReviewNeeded: false,
+            reportedOutcome: validatedReportedOutcome
+              ? (validatedReportedOutcome as unknown as Prisma.InputJsonValue)
+              : undefined,
+            evidenceDecision,
+            orchestrationDecision,
           },
         });
         return claim.count === 1;
@@ -883,6 +961,8 @@ export async function POST(req: NextRequest) {
           confidence: verification.confidence,
           proofHash: verification.proofHash,
           reason: verification.reason,
+          reportedOutcome: validatedReportedOutcome,
+          evidenceDecision,
           sentinelReviewRequested,
           manualReview: true,
         },
@@ -896,7 +976,9 @@ export async function POST(req: NextRequest) {
           actorLabel,
           receiptType: 'proof-submitted',
           sourceId: queuedDare.id,
-          body: `${actorLabel} submitted proof for "${queuedDare.title}" and entered referee review.`,
+          body: validatedReportedOutcome
+            ? `${actorLabel} reported ${validatedReportedOutcome.kind.toLowerCase()} for "${queuedDare.title}" and entered referee review.`
+            : `${actorLabel} submitted proof for "${queuedDare.title}" and entered referee review.`,
           href: `/dare/${queuedDare.shortId || queuedDare.id}`,
           tone: 'violet',
         }).catch((receiptError) => {
@@ -957,6 +1039,8 @@ export async function POST(req: NextRequest) {
             confidence: verification.confidence,
             reason: verification.reason,
             proofHash: verification.proofHash,
+            reportedOutcome: validatedReportedOutcome,
+            evidenceDecision,
           },
           message: sentinelReviewRequested
             ? 'Proof submitted successfully. Sentinel review is now active and a referee has been pinged.'
@@ -983,6 +1067,8 @@ export async function POST(req: NextRequest) {
           reason: verification.reason,
           autoApproved: true,
           proofMedia,
+          reportedOutcome: validatedReportedOutcome,
+          evidenceDecision,
         },
       });
 
@@ -1136,6 +1222,8 @@ export async function POST(req: NextRequest) {
             confidence: verification.confidence,
             reason: verification.reason,
             proofHash: verification.proofHash,
+            reportedOutcome: validatedReportedOutcome,
+            evidenceDecision,
           },
           payout: {
             txHash,

@@ -26,6 +26,7 @@ import { buildCreatorReviewMessage } from '@/lib/creator-review-auth';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { MissionPassSheet } from '@/components/mission-pass/MissionPassSheet';
 import { useSocialWebview } from '@/components/mission-pass/SocialWebviewProvider';
+import { parseOutcomeContractSnapshot, type ReportedOutcome } from '@/lib/outcome-contracts';
 
 // ── ABI stubs ──────────────────────────────────────────────────────────────
 const USDC_ABI = [
@@ -58,6 +59,9 @@ interface DareDetail {
   requireSentinel?: boolean | null;
   sentinelVerified?: boolean | null;
   stakerAddress?: string | null;
+  outcomeContractSnapshot?: unknown;
+  reportedOutcome?: unknown;
+  evidenceDecision?: string | null;
 }
 
 interface Comment {
@@ -674,6 +678,10 @@ export default function DareDetailPage() {
 
     return null;
   })();
+  const outcomeContract = parseOutcomeContractSnapshot(dare?.outcomeContractSnapshot);
+  const reportedOutcome = dare?.reportedOutcome && typeof dare.reportedOutcome === 'object'
+    ? (dare.reportedOutcome as Partial<ReportedOutcome>)
+    : null;
 
   // ── Render ─────────────────────────────────────────────────────────────
   if (loading) return (
@@ -833,6 +841,24 @@ export default function DareDetailPage() {
         </div>
 
         <DareStatusTimeline dare={dare} size="full" />
+
+        {outcomeContract ? (
+          <section className="rounded-2xl border border-cyan-300/16 bg-cyan-400/[0.055] p-4 backdrop-blur-md md:p-5">
+            <p className="text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-cyan-100">Outcome contract · {outcomeContract.family.replaceAll('_', ' ')}</p>
+            <h2 className="mt-2 text-lg font-black text-white">What counts was locked before funding</h2>
+            <div className="mt-3 grid gap-2 text-sm text-white/70">
+              {Object.entries(outcomeContract.mission).map(([label, value]) => (
+                <p key={label}><span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">{label}</span> · {value}</p>
+              ))}
+            </div>
+            {reportedOutcome?.kind && reportedOutcome.summary ? (
+              <div className="mt-4 rounded-xl border border-white/10 bg-black/25 px-3 py-3">
+                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/40">Reported outcome · {dare.evidenceDecision ?? 'PENDING'}</p>
+                <p className="mt-1 text-sm text-white"><strong>{reportedOutcome.kind}</strong> — {reportedOutcome.summary}</p>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
 
         {trustPanel ? (
           <section className={`rounded-2xl border p-4 backdrop-blur-md md:p-5 md:backdrop-blur-xl ${trustPanel.tone}`}>

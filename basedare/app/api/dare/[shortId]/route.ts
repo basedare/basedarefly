@@ -61,6 +61,11 @@ export async function GET(
       stakerAddress: reconciledDare.stakerAddress,
       requireSentinel: reconciledDare.requireSentinel,
       sentinelVerified: reconciledDare.sentinelVerified,
+      outcomeContractFamily: reconciledDare.outcomeContractFamily,
+      outcomeContractVersion: reconciledDare.outcomeContractVersion,
+      outcomeContractSnapshot: reconciledDare.outcomeContractSnapshot,
+      reportedOutcome: reconciledDare.reportedOutcome,
+      evidenceDecision: reconciledDare.evidenceDecision,
       awaitingClaim:
         reconciledDare.status === 'AWAITING_CLAIM' ||
         (!reconciledDare.streamerHandle && reconciledDare.status === 'PENDING' && !reconciledDare.targetWalletAddress),

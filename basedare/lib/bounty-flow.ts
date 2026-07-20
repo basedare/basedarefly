@@ -7,6 +7,7 @@ import {
 } from '@/lib/contracts';
 import { getBountyModeSnapshot } from '@/lib/bounty-mode';
 import { MIN_REUSABLE_BOUNTY_ALLOWANCE_USDC } from '@/lib/bounty-create-auth';
+import type { OutcomeContractRequest } from '@/lib/outcome-contracts';
 
 export type BountyApprovalStatus = 'idle' | 'approving' | 'funding' | 'verifying';
 
@@ -30,6 +31,7 @@ export type BountyCreationInput = {
   imageCid?: string;
   requireSentinel?: boolean;
   stakerAddress: string;
+  outcomeContract?: OutcomeContractRequest;
 };
 
 export type BountyCreationResult = {
@@ -104,6 +106,7 @@ export async function submitBountyCreation(
     creationContext: input.creationContext ?? 'CREATE',
     imageUrl: input.imageUrl || undefined,
     imageCid: input.imageCid || undefined,
+    outcomeContract: input.outcomeContract,
   };
 
   if (isCommunitySpark) {

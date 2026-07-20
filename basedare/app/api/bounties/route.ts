@@ -30,6 +30,8 @@ import {
 } from '@/lib/bounty-place';
 import { formatSentinelPausedMessage, getSentinelRecommendation } from '@/lib/sentinel';
 import { getPostFundingDareStatus } from '@/lib/dare-status';
+import { OutcomeContractRequestSchema } from '@/lib/outcome-contract-schema';
+import { buildOutcomeContractSnapshot } from '@/lib/outcome-contracts';
 
 // Big pledge threshold for alerts
 const BIG_PLEDGE_THRESHOLD = 100;
@@ -195,6 +197,7 @@ const StakeBountySchema = z.object({
   discoveryRadiusKm: z.number().min(0.5).max(50).default(5),
   venueId: z.string().min(1).optional(),
   creationContext: z.enum(['MAP', 'CREATE']).optional(),
+  outcomeContract: OutcomeContractRequestSchema,
 }).superRefine((data, ctx) => {
   if (data.sparkType !== 'COMMUNITY' && data.amount < 5) {
     ctx.addIssue({
@@ -566,6 +569,7 @@ export async function POST(request: NextRequest) {
         locationLabel,
         discoveryRadiusKm,
         isSimulated: true,
+        outcomeContract: validation.data.outcomeContract,
       });
 
       console.log(`[AUDIT] Simulated dare created in DB - id: ${dbDare.id}, title: "${title}", ${isCommunitySpark ? 'COMMUNITY SPARK' : isOpenBounty ? 'OPEN BOUNTY' : `tag: ${effectiveStreamerTag}`}, staker: ${stakerAddress || 'anonymous'}, status: ${dareStatus}, expires: ${expiresAt.toISOString()}${referrerTag ? `, referrer: ${referrerTag}` : ''}${isAwaitingClaim ? `, inviteToken: ${inviteToken}` : ''}${isNearbyDare ? `, nearby: ${locationLabel || geohash}` : ''}`);
@@ -795,6 +799,16 @@ export async function POST(request: NextRequest) {
     const targetWalletAddressOnChain = tagVerified ? streamerAddress : null;
 
     // Create DB record to get stable ID
+    const outcomeContract = buildOutcomeContractSnapshot({
+      ...validation.data.outcomeContract,
+      title,
+      missionMode: normalizedMissionMode,
+      missionTag: normalizedMissionTag,
+      amount,
+      locationLabel: isNearbyDare ? locationLabel : null,
+      isNearbyDare,
+      expiresAt: expiresAtOnChain,
+    });
     const dbDarePreCreate = await prisma.dare.create({
       data: {
         title,
@@ -824,6 +838,9 @@ export async function POST(request: NextRequest) {
         geohash,
         locationLabel: isNearbyDare ? locationLabel : null,
         discoveryRadiusKm: isNearbyDare ? discoveryRadiusKm : null,
+        outcomeContractFamily: outcomeContract.family,
+        outcomeContractVersion: outcomeContract.version,
+        outcomeContractSnapshot: outcomeContract,
       },
     });
     precreatedDareId = dbDarePreCreate.id;

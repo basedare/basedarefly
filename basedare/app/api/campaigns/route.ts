@@ -789,6 +789,10 @@ export async function POST(request: NextRequest) {
               locationLabel: placeContext.locationLabel,
               discoveryRadiusKm: placeContext.discoveryRadiusKm,
               isSimulated: PLACE_CAMPAIGN_DB_FALLBACK,
+              outcomeContract: {
+                family: 'PUBLICATION',
+                buyerQuestion: description?.trim() || title,
+              },
             });
 
             return tx.campaign.update({

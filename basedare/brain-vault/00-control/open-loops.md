@@ -25,6 +25,8 @@ updated_at: 2026-07-20
 | Three-venue earned access pilot | experiment_design | NEEDS_PARTNERS | human | [[05-playbooks/earned-venue-access-graph]] |
 | Autonomous treasury and proof limits | operating_policy | NEXT | codex | [[00-control/vision]] |
 | Safe asynchronous dare template library | product_policy | NEXT | codex | [[00-control/vision]] |
+| Outcome Contract Engine alpha | product_policy | READY_PREVIEW | product/release | [[05-playbooks/outcome-contract-engine]] |
+| Dare Director orchestration | automation | PARKED_UNTIL_CONTRACT_DATA | product | [[05-playbooks/outcome-contract-engine]] |
 | Siargao venue Spark Audit invite | outreach_draft | PARKED | human | [[02-outreach/drafts/siargao-venue-spark-audit-invite]] |
 | Siargao Beach Club Spark Audit | spark_audit | PARKED | human | [[02-outreach/drafts/siargao-beach-club-spark-audit]] |
 | Hideaway Spark Audit | spark_audit | PARKED | human | [[02-outreach/drafts/hideaway-spark-audit]] |
@@ -38,6 +40,7 @@ updated_at: 2026-07-20
 | Local Signals / Local Tips | BUILT_REUSE | Use the existing structured discovery layer for Sprint answers instead of inventing a new surface |
 | Sentinel review | BUILT_REUSE | Route uncertain proofs into the existing remote review queue and measure review cost |
 | Dare-to-place-memory compounding | PARTIAL | Require every accepted proof to become timestamped mapped memory with a refresh date and receipt |
+| Outcome contracts | READY_PREVIEW | Run the new migration and database immutability smoke; then exercise one truthful negative Field Truth mission end to end before making it the default buyer rail |
 | Autonomous treasury | NEXT | Define spend caps, multisig thresholds, fraud tripwires, pause rules, and audit logs |
 | Remote verification | READY_PREVIEW | Apply migrations and smoke-test submission proximity, then measure automated versus Sentinel review cost |
 | Consumer first action | DEPLOYED | Measure `/join` and plain-language navigation → map → action-open conversion |

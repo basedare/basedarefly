@@ -799,6 +799,9 @@ function CreateDareContent() {
           imageCid: uploadedDareImage?.uploadedCid,
           requireSentinel: selectedSentinel,
           stakerAddress: connectedWallet,
+          outcomeContract: {
+          buyerQuestion: data.title,
+          },
         },
         {
           sessionToken,

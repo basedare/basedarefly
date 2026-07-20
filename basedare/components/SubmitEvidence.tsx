@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { Upload, X, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw, Camera, Video } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useAccount, useSignMessage } from 'wagmi';
@@ -11,6 +11,12 @@ import CosmicButton from '@/components/ui/CosmicButton';
 import SafetyWaiver from '@/components/SafetyWaiver';
 import CameraCaptureModal, { type CameraCaptureMode } from '@/components/media/CameraCaptureModal';
 import { PROOF_SUBMIT_WINDOW_MS, buildProofSubmitMessage } from '@/lib/proof-submit-auth';
+import {
+  getAllowedReportedOutcomes,
+  parseOutcomeContractSnapshot,
+  type ReportedOutcome,
+  type ReportedOutcomeKind,
+} from '@/lib/outcome-contracts';
 
 type VerificationStatus =
   | 'idle'
@@ -36,6 +42,8 @@ interface SubmitEvidenceProps {
    * prompted and no coordinates are collected. Default false = never collect.
    */
   gatesLocation?: boolean;
+  outcomeContract?: unknown;
+  reportedOutcome?: unknown;
   onVerificationComplete?: (result: { status: string; confidence?: number }) => void;
 }
 
@@ -57,6 +65,8 @@ export default function SubmitEvidence({
   placeName,
   existingProofUrl,
   gatesLocation = false,
+  outcomeContract: outcomeContractValue,
+  reportedOutcome: existingReportedOutcome,
   onVerificationComplete,
 }: SubmitEvidenceProps) {
   const { data: session } = useSession();
@@ -77,6 +87,18 @@ export default function SubmitEvidence({
   const [cameraMode, setCameraMode] = useState<CameraCaptureMode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const outcomeContract = useMemo(
+    () => parseOutcomeContractSnapshot(outcomeContractValue),
+    [outcomeContractValue],
+  );
+  const initialOutcome = useMemo(() => {
+    if (!existingReportedOutcome || typeof existingReportedOutcome !== 'object') return null;
+    const value = existingReportedOutcome as Partial<ReportedOutcome>;
+    return value.kind && value.summary ? value : null;
+  }, [existingReportedOutcome]);
+  const allowedOutcomes = outcomeContract ? getAllowedReportedOutcomes(outcomeContract) : [];
+  const [outcomeKind, setOutcomeKind] = useState<ReportedOutcomeKind | ''>(initialOutcome?.kind ?? '');
+  const [outcomeSummary, setOutcomeSummary] = useState(initialOutcome?.summary ?? '');
   const { toast } = useToast();
   const readStoredProofAuth = (walletAddress: string): StoredProofSubmitAuth | null => {
     if (typeof window === 'undefined') return null;
@@ -180,6 +202,9 @@ export default function SubmitEvidence({
   const creatorLabel = streamerHandle ? `@${streamerHandle.replace(/^@/, '')}` : undefined;
 
   const handleVerifyUploadedProof = async (videoUrl: string, proofAuthHeaders: Record<string, string>) => {
+    if (outcomeContract && (!outcomeKind || outcomeSummary.trim().length < 3)) {
+      throw new Error('Report what actually happened before submitting evidence.');
+    }
     setStatus('verifying');
 
     // Capture device location ONLY for proximity-gated (nearby IRL) dares, per
@@ -205,6 +230,15 @@ export default function SubmitEvidence({
           timestamp: Date.now(),
         },
         ...(location ? { location } : {}),
+        ...(outcomeContract
+          ? {
+              reportedOutcome: {
+                kind: outcomeKind,
+                summary: outcomeSummary.trim(),
+                observedAt: initialOutcome?.observedAt ?? new Date().toISOString(),
+              },
+            }
+          : {}),
       }),
     });
 
@@ -376,6 +410,11 @@ export default function SubmitEvidence({
 
   const handleUploadAndVerify = async () => {
     if (!file || !dareId) return;
+
+    if (outcomeContract && (!outcomeKind || outcomeSummary.trim().length < 3)) {
+      setError('Choose the result and briefly report what actually happened.');
+      return;
+    }
 
     setStatus('uploading');
     setError(null);
@@ -774,6 +813,15 @@ export default function SubmitEvidence({
               </button>
             </div>
             <div className="w-full space-y-3">
+              {outcomeContract ? (
+                <OutcomeReportFields
+                  allowedOutcomes={allowedOutcomes}
+                  kind={outcomeKind}
+                  summary={outcomeSummary}
+                  onKindChange={setOutcomeKind}
+                  onSummaryChange={setOutcomeSummary}
+                />
+              ) : null}
               <div className="text-left">
                 <p className="text-xs font-mono text-gray-400 mb-1">File: {file?.name}</p>
                 <p className="text-[10px] font-mono text-gray-500">
@@ -840,6 +888,17 @@ export default function SubmitEvidence({
                 Use the saved proof to re-run verification. Do not upload a second copy unless you want to replace the evidence entirely.
               </p>
             </div>
+            {outcomeContract ? (
+              <div className="w-full max-w-[420px]">
+                <OutcomeReportFields
+                  allowedOutcomes={allowedOutcomes}
+                  kind={outcomeKind}
+                  summary={outcomeSummary}
+                  onKindChange={setOutcomeKind}
+                  onSummaryChange={setOutcomeSummary}
+                />
+              </div>
+            ) : null}
             {error && (
               <div className="flex items-center gap-2 px-3 py-2 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono max-w-[220px]">
                 <AlertCircle className="w-4 h-4" />
@@ -865,6 +924,17 @@ export default function SubmitEvidence({
           </>
         ) : (
           <>
+            {outcomeContract ? (
+              <div className="w-full max-w-md rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.05] px-4 py-3 text-left">
+                <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-cyan-100">Mission contract</p>
+                <div className="mt-2 space-y-1.5 text-xs text-white/70">
+                  <p><span className="text-white/40">Go:</span> {outcomeContract.mission.go}</p>
+                  <p><span className="text-white/40">Do:</span> {outcomeContract.mission.do}</p>
+                  <p><span className="text-white/40">Win:</span> {outcomeContract.mission.win}</p>
+                  <p><span className="text-white/40">Earn:</span> {outcomeContract.mission.earn}</p>
+                </div>
+              </div>
+            ) : null}
             <div className={`w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border transition-all duration-300 ${
               isDragging
                 ? 'scale-110 border-cyan-400 bg-cyan-500/10'
@@ -951,6 +1021,56 @@ export default function SubmitEvidence({
         onClose={() => setCameraMode(null)}
         onCapture={handleCameraCapture}
         onFallbackUpload={() => fileInputRef.current?.click()}
+      />
+    </div>
+  );
+}
+
+const OUTCOME_LABELS: Record<ReportedOutcomeKind, string> = {
+  YES: 'Yes',
+  NO: 'No',
+  PARTIAL: 'Partly',
+  INCONCLUSIVE: "Couldn't confirm",
+  COMPLETED: 'Completed',
+  PUBLISHED: 'Published',
+};
+
+function OutcomeReportFields(props: {
+  allowedOutcomes: readonly ReportedOutcomeKind[];
+  kind: ReportedOutcomeKind | '';
+  summary: string;
+  onKindChange: (kind: ReportedOutcomeKind) => void;
+  onSummaryChange: (summary: string) => void;
+}) {
+  return (
+    <div
+      className="rounded-2xl border border-cyan-300/16 bg-cyan-400/[0.055] px-4 py-4 text-left"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-cyan-100">What actually happened?</p>
+      <p className="mt-1 text-xs text-white/55">Report the truth. A supported negative answer still clears a Field Truth mission.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {props.allowedOutcomes.map((outcome) => (
+          <button
+            key={outcome}
+            type="button"
+            onClick={() => props.onKindChange(outcome)}
+            className={`min-h-9 rounded-xl border px-3 text-[10px] font-black uppercase tracking-[0.14em] transition ${
+              props.kind === outcome
+                ? 'border-cyan-200/60 bg-cyan-300/18 text-cyan-50'
+                : 'border-white/10 bg-black/20 text-white/55 hover:border-white/25'
+            }`}
+          >
+            {OUTCOME_LABELS[outcome]}
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={props.summary}
+        onChange={(event) => props.onSummaryChange(event.target.value)}
+        placeholder="Briefly describe what you observed or completed."
+        maxLength={280}
+        className="mt-3 min-h-20 w-full resize-none rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-cyan-300/35"
       />
     </div>
   );
