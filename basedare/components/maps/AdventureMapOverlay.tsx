@@ -595,8 +595,10 @@ export default function AdventureMapOverlay({
 
       {!showIntentCard ? (
         <div
-          className={`pointer-events-auto absolute right-4 z-[16] flex max-w-[min(20rem,calc(100%-2rem))] items-end gap-2 text-left md:bottom-6 md:right-6 ${
-            obscured ? "bottom-28" : "bottom-5"
+          className={`pointer-events-auto absolute right-4 z-[16] flex max-w-[min(20rem,calc(100%-2rem))] items-end gap-2 text-left transition-[bottom] duration-200 md:right-6 ${
+            obscured
+              ? "bottom-28"
+              : "bottom-[calc(6.5rem+env(safe-area-inset-bottom))] xl:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"
           }`}
         >
           {enabled && !guideOpen && !showPanel && !obscured ? (
