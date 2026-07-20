@@ -9,6 +9,8 @@ import VenuePageShell from '../../VenuePageShell';
 import VenueReportActions from './VenueReportActions';
 import VenueReportTrackedLink from './VenueReportTrackedLink';
 import VenueReportClaimButton from './VenueReportClaimButton';
+import FirstNodeDecisionPanel from './FirstNodeDecisionPanel';
+import { buildFirstNodeDecisionBrief } from '@/lib/first-node-conversion';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -45,6 +47,20 @@ export default async function VenueReportPage(
     notFound();
   }
 
+  const reportWindow = venue.roiSnapshot.windows.last7Days;
+  const acceptedProofCount = Math.max(0, reportWindow.proofs);
+  const firstNodeBrief = buildFirstNodeDecisionBrief({
+    venueName: venue.name,
+    acceptedProofs: acceptedProofCount,
+    verifiedOutcomes: reportWindow.verifiedOutcomes,
+    checkIns: reportWindow.checkIns,
+    publicSignalDetail: [
+      [venue.address, venue.city, venue.country].filter(Boolean).join(', '),
+      `${venue.tagSummary.approvedCount} approved place tag${venue.tagSummary.approvedCount === 1 ? '' : 's'} in the current map record`,
+    ].filter(Boolean).join(' · '),
+  });
+  const hasAcceptedEvidence = firstNodeBrief.state === 'PROVEN';
+
   const repeatActivationHref = buildRepeatActivationComposerHref({ venue });
   const venueRecapHref = `/venues/${encodeURIComponent(venue.slug)}/recap`;
   const freshActivationHref = `/brands/portal?venue=${encodeURIComponent(venue.slug)}&compose=1`;
@@ -78,36 +94,28 @@ export default async function VenueReportPage(
     if (venue.city) params.set('city', venue.city);
     return `/contact?${params.toString()}`;
   })();
-  const reportSummary =
-    audience === 'sponsor'
-      ? `${venue.name} is showing a repeatable venue signal. Over the last 7 days it produced ${venue.roiSnapshot.windows.last7Days.verifiedOutcomes} verified outcomes and ${venue.roiSnapshot.windows.last7Days.uniqueVisitors} unique visitors, with ${formatSignedDelta(venue.roiSnapshot.windows.last7Days.uniqueVisitorsDelta)} visitor delta versus the previous window.`
-      : venue.roiSnapshot.summary;
+  const reportSummary = firstNodeBrief.summary;
   const reportSubject =
     audience === 'sponsor' ? `${venue.name} sponsor-ready activation brief` : `${venue.name} venue activation report`;
-  const forwardableBrief =
-    audience === 'sponsor'
-      ? [
-          `${venue.name} is one of the stronger activation venues in the current BaseDare network.`,
-          `Last 7 days: ${venue.roiSnapshot.windows.last7Days.verifiedOutcomes} verified outcomes, ${venue.roiSnapshot.windows.last7Days.uniqueVisitors} unique visitors, ${venue.roiSnapshot.windows.last7Days.checkIns} check-ins.`,
-          `Last 30 days: ${venue.roiSnapshot.windows.last30Days.verifiedOutcomes} verified outcomes and ${venue.roiSnapshot.windows.last30Days.uniqueVisitors} unique visitors.`,
-          `Best proving creator: ${venue.roiSnapshot.bestCreator?.creatorTag ?? 'still emerging'}.`,
-          `Recommended move: repeat the winning activation pattern while the venue signal is warm.`,
-        ].join('\n')
-      : [
-          `${venue.name} has verified attributed activity on BaseDare.`,
-          `Last 7 days: ${venue.roiSnapshot.windows.last7Days.verifiedOutcomes} verified outcomes, ${venue.roiSnapshot.windows.last7Days.uniqueVisitors} unique visitors, ${venue.roiSnapshot.windows.last7Days.checkIns} check-ins.`,
-          `Last 30 days: ${venue.roiSnapshot.windows.last30Days.verifiedOutcomes} verified outcomes and ${venue.roiSnapshot.windows.last30Days.uniqueVisitors} unique visitors.`,
-          `Top proving creator: ${venue.roiSnapshot.bestCreator?.creatorTag ?? 'still emerging'}.`,
-          `Recommended move: repeat the winning activation or route the strongest creator back into venue.`,
-        ].join('\n');
+  const forwardableBrief = [
+    `${venue.name} — BaseDare first-node decision brief`,
+    '',
+    ...firstNodeBrief.evidence.map((item) => `${item.label}: ${item.title} — ${item.detail}`),
+    '',
+    `PILOT QUESTION: ${firstNodeBrief.question}`,
+    `EVIDENCE BOUNDARY: ${firstNodeBrief.evidenceRequired}`,
+    `DECISION RULE: ${firstNodeBrief.decisionRule}`,
+    '',
+    'This brief is not a partnership claim, verification certificate, traffic guarantee, or proof of purchase.',
+  ].join('\n');
   const reportLabel =
     audience === 'sponsor' ? 'Sponsor Report Card' : 'Venue Report Card';
   const reportHeading =
     audience === 'sponsor'
-      ? 'Why this venue is worth activating next'
-      : 'What changed after activation';
+      ? hasAcceptedEvidence ? 'What accepted evidence exists here' : 'What BaseDare knows—and does not know yet'
+      : hasAcceptedEvidence ? 'What accepted evidence exists here' : 'What BaseDare knows—and does not know yet';
   const repeatLabel =
-    audience === 'sponsor' ? 'Launch sponsor-ready repeat' : 'Repeat winning activation';
+    audience === 'sponsor' ? 'Propose another bounded test' : 'Propose another bounded test';
   const creatorRouteLabel =
     audience === 'sponsor' ? 'Route best creator into venue' : 'Route top creator';
 
@@ -154,11 +162,15 @@ export default async function VenueReportPage(
               <div className="grid min-w-[260px] gap-3 sm:grid-cols-2 lg:grid-cols-1">
                 <div className={`${softCardClass} px-5 py-4`}>
                   <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                  <p className="text-xs uppercase tracking-[0.25em] text-white/40">Best Repeat Candidate</p>
+                  <p className="text-xs uppercase tracking-[0.25em] text-white/40">Possible next question</p>
                   <div className="mt-2 text-lg font-bold text-white">
-                    {venue.activationInsight.bestActivation?.title ?? 'Still forming'}
+                    {hasAcceptedEvidence ? venue.activationInsight.bestActivation?.title ?? 'Still forming' : 'No funded test yet'}
                   </div>
-                  <p className="mt-2 text-sm text-white/58">{venue.activationInsight.summary}</p>
+                  <p className="mt-2 text-sm text-white/58">
+                    {hasAcceptedEvidence
+                      ? venue.activationInsight.summary
+                      : 'Public place signals can suggest a test, but they are not proof that an activation worked.'}
+                  </p>
                 </div>
                 <div className={`${softCardClass} px-5 py-4`}>
                   <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
@@ -175,6 +187,17 @@ export default async function VenueReportPage(
               </div>
             </div>
           </div>
+
+          <FirstNodeDecisionPanel
+            brief={firstNodeBrief}
+            venue={{
+              id: venue.id,
+              slug: venue.slug,
+              name: venue.name,
+              city: venue.city,
+            }}
+            audience={audience}
+          />
 
           <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-6">
@@ -345,21 +368,25 @@ export default async function VenueReportPage(
               <div className={`${softCardClass} p-6`}>
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <p className="text-xs uppercase tracking-[0.25em] text-white/40">Recommended Next Move</p>
-                <h2 className="mt-2 text-2xl font-bold">Turn this report into the next activation</h2>
+                <h2 className="mt-2 text-2xl font-bold">{hasAcceptedEvidence ? 'Choose the next question' : 'Approve, correct, or stop'}</h2>
                 <p className="mt-2 text-sm text-white/58">
-                  The strongest next move is to repeat the winner or route the proving creator back into this venue while the signal is still warm.
+                  {hasAcceptedEvidence
+                    ? 'Accepted evidence exists. Fund another mission only if a new bounded question is worth answering.'
+                    : 'No buyer outcome has been proven here. Use the decision brief above to request one bounded pilot, correct the record, ask a question, or decline.'}
                 </p>
 
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <VenueReportTrackedLink
-                    href={venueRecapHref}
-                    venueSlug={venue.slug}
-                    audience={audience}
-                    className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-4 py-2 text-sm font-semibold text-[#f8dd72] shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Open Spark Receipt
-                  </VenueReportTrackedLink>
+                  {hasAcceptedEvidence ? (
+                    <VenueReportTrackedLink
+                      href={venueRecapHref}
+                      venueSlug={venue.slug}
+                      audience={audience}
+                      className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-4 py-2 text-sm font-semibold text-[#f8dd72] shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Open evidence receipt
+                    </VenueReportTrackedLink>
+                  ) : null}
                   <VenueReportTrackedLink
                     href={freshActivationHref}
                     venueSlug={venue.slug}
@@ -368,7 +395,7 @@ export default async function VenueReportPage(
                     className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
                   >
                     <ArrowRight className="h-4 w-4" />
-                    Launch fresh activation
+                    {hasAcceptedEvidence ? 'Propose a funded mission' : 'Build a funded mission'}
                   </VenueReportTrackedLink>
                   {repeatActivationHref ? (
                     <VenueReportTrackedLink

@@ -53,6 +53,7 @@ Operationalize BaseDare as a remote-first playable social map:
 | 9 | TikTok / Instagram participation loop | growth | READY | Run four variants of each locked short-form series and measure qualified map actions per 1,000 views |
 | 10 | Creator Journey attribution rail | product/growth | ALPHA_LIVE | Verify Resend domain before enabling email, then run real Instagram/TikTok → Safari/Chrome handoff tests on iOS and Android; keep performance bonuses disabled |
 | 11 | Field Station-backed Verified Field Sprint | growth/product + human | READY_SETUP | Name the design partner and bounded question, fund four missions, secure two permissioned station hosts, clear live preflight, and run the 14-day crossover under one campaign code |
+| 12 | First-node buyer conversion loop | product/growth | LOCAL_BUILD | Verify the decision brief → structured response → close room → paid Campaign/Dare → honest receipt vertical slice, then select one authorized design partner |
 
 ## Safe Automatic Work
 

@@ -16,6 +16,7 @@ export const ACTIVATION_PUBLIC_FUNNEL_EVENTS = [
   'ACTIVATION_CLOSE_ROOM_OPEN',
   'ACTIVATION_CLOSE_ROOM_PAYMENT_CLICK',
   'ACTIVATION_CLOSE_ROOM_REPLY_CLICK',
+  'ACTIVATION_BUYER_RESPONSE',
 ] as const;
 
 export const ACTIVATION_STATUS_FUNNEL_EVENTS = [
@@ -169,6 +170,7 @@ function eventTitle(eventType: ActivationFunnelEventType) {
     ACTIVATION_CLOSE_ROOM_OPEN: 'Activation close room opened',
     ACTIVATION_CLOSE_ROOM_PAYMENT_CLICK: 'Activation close room payment clicked',
     ACTIVATION_CLOSE_ROOM_REPLY_CLICK: 'Activation close room reply clicked',
+    ACTIVATION_BUYER_RESPONSE: 'Activation buyer response recorded',
     ACTIVATION_STATUS_QUALIFIED: 'Activation intake qualified',
     ACTIVATION_STATUS_READY_TO_INVOICE: 'Activation intake ready to invoice',
     ACTIVATION_STATUS_PAYMENT_SENT: 'Activation payment sent',

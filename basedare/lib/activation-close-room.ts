@@ -5,6 +5,12 @@ import { Prisma } from '@prisma/client';
 
 import { recordActivationFunnelEvent } from '@/lib/activation-funnel';
 import { prisma } from '@/lib/prisma';
+import {
+  FIRST_NODE_TERMS_VERSION,
+  nextActivationCloseRoomStatus,
+  type ActivationCloseRoomDecision,
+  type ActivationIntakeStatus,
+} from '@/lib/first-node-conversion';
 
 type MetadataRecord = Record<string, unknown>;
 
@@ -74,9 +80,9 @@ function numberValue(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function normalizeStatus(value: unknown) {
+function normalizeStatus(value: unknown): ActivationIntakeStatus {
   const status = stringValue(value).toUpperCase();
-  return STATUS_LABELS[status] ? status : 'NEW';
+  return (STATUS_LABELS[status] ? status : 'NEW') as ActivationIntakeStatus;
 }
 
 function appBaseUrl() {
@@ -377,7 +383,7 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
         ? `BaseDare sets up ${target}, routes creators or guests, captures QR proof, and sends the receipt.`
         : 'BaseDare packages the route, creator proof logic, payment reference, and launch gates into one buyer-approved room.',
     riskReversal: isFirstSpark
-      ? 'If no verified proof lands, BaseDare reviews the route and reruns before asking you to repeat.'
+      ? 'No traffic, purchase, reach, or proof outcome is guaranteed. Repeat only if accepted evidence answers the agreed question.'
       : 'Public launch waits until payment and scope are confirmed.',
     deliverables: isDeadWindow ? deadWindowDeliverables : isFirstSpark ? firstSparkDeliverables : [
       'Activation route',
@@ -416,6 +422,144 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
       replyClickedAt: stringValue(operator.closeRoomReplyClickedAt),
     },
   };
+}
+
+export async function recordActivationCloseRoomDecision(input: {
+  token: string;
+  requestId: string;
+  decision: ActivationCloseRoomDecision;
+  contactName?: string | null;
+  responderRole?: string | null;
+  authority?: string | null;
+  channel?: string | null;
+  email?: string | null;
+  message?: string | null;
+  budgetRange?: string | null;
+  timeline?: string | null;
+  paymentPreference?: string | null;
+  termsVersion?: string | null;
+}) {
+  const parsed = parseActivationCloseRoomToken(input.token);
+  if (!parsed) return { recorded: false, reason: 'INVALID_TOKEN' as const };
+  if (input.decision === 'APPROVE_SCOPE' && input.termsVersion !== FIRST_NODE_TERMS_VERSION) {
+    return { recorded: false, reason: 'TERMS_REQUIRED' as const };
+  }
+
+  const dedupeKey = `activation-buyer-response:${parsed.leadId}:${input.requestId}`;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const intake = await tx.founderEvent.findFirst({
+        where: { id: parsed.leadId, eventType: 'ACTIVATION_INTAKE' },
+        select: {
+          id: true,
+          title: true,
+          amount: true,
+          status: true,
+          metadataJson: true,
+        },
+      });
+      if (!intake) return null;
+
+      const currentStatus = normalizeStatus(intake.status);
+      const nextStatus = nextActivationCloseRoomStatus(currentStatus, input.decision);
+      const now = new Date().toISOString();
+      const metadata = asRecord(intake.metadataJson);
+      const buyerResponses = Array.isArray(metadata.buyerResponses) ? metadata.buyerResponses : [];
+      const responseMetadata = {
+        decision: input.decision,
+        contactName: input.contactName ?? null,
+        responderRole: input.responderRole ?? null,
+        authority: input.authority ?? null,
+        channel: input.channel ?? null,
+        email: input.email ?? null,
+        message: input.message ?? null,
+        budgetRange: input.budgetRange ?? null,
+        timeline: input.timeline ?? null,
+        paymentPreference: input.paymentPreference ?? null,
+        termsVersion: input.termsVersion ?? null,
+        respondedAt: now,
+      };
+
+      const response = await tx.founderEvent.create({
+        data: {
+          eventType: 'ACTIVATION_BUYER_RESPONSE',
+          source: 'activation-close-room',
+          subjectType: 'activation_lead',
+          subjectId: intake.id,
+          dedupeKey,
+          title: `${intake.title || 'Activation'}: ${input.decision.toLowerCase().replace(/_/g, ' ')}`,
+          amount: intake.amount,
+          status: input.decision,
+          actor: input.email ?? null,
+          href: buildActivationCloseRoomHref(intake.id),
+          metadataJson: responseMetadata,
+        },
+        select: { id: true },
+      });
+
+      const updated = await tx.founderEvent.updateMany({
+        where: {
+          id: intake.id,
+          eventType: 'ACTIVATION_INTAKE',
+          status: intake.status,
+        },
+        data: {
+          status: nextStatus,
+          metadataJson: normalizeJson({
+            ...metadata,
+            buyerResponses: [...buyerResponses.slice(-11), responseMetadata],
+            buyerDecision: responseMetadata,
+          }),
+        },
+      });
+      if (updated.count !== 1) throw new Error('ACTIVATION_STATUS_CHANGED');
+
+      return { responseId: response.id, previousStatus: currentStatus, status: nextStatus };
+    });
+
+    if (!result) return { recorded: false, reason: 'NOT_FOUND' as const };
+
+    await recordActivationFunnelEvent({
+      eventType: 'ACTIVATION_BUYER_RESPONSE',
+      source: 'activation-close-room',
+      subjectType: 'activation_lead',
+      subjectId: parsed.leadId,
+      eventId: input.requestId,
+      dedupeKey: `activation-buyer-response-funnel:${parsed.leadId}:${input.requestId}`,
+      title: `Buyer response: ${input.decision.toLowerCase().replace(/_/g, ' ')}`,
+      status: result.status,
+      actor: input.email ?? null,
+      href: buildActivationCloseRoomHref(parsed.leadId),
+      metadata: {
+        decision: input.decision,
+        previousStatus: result.previousStatus,
+        responderRole: input.responderRole ?? null,
+        authority: input.authority ?? null,
+        channel: input.channel ?? null,
+      },
+    });
+
+    return { recorded: true, duplicate: false, reason: 'RECORDED' as const, ...result };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const [response, intake] = await Promise.all([
+        prisma.founderEvent.findUnique({ where: { dedupeKey }, select: { id: true } }),
+        prisma.founderEvent.findFirst({
+          where: { id: parsed.leadId, eventType: 'ACTIVATION_INTAKE' },
+          select: { status: true },
+        }),
+      ]);
+      return {
+        recorded: true,
+        duplicate: true,
+        reason: 'RECORDED' as const,
+        responseId: response?.id ?? null,
+        previousStatus: normalizeStatus(intake?.status),
+        status: normalizeStatus(intake?.status),
+      };
+    }
+    throw error;
+  }
 }
 
 export async function getActivationCloseRoomByToken(token: string) {
