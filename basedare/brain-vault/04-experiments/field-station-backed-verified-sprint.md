@@ -1,6 +1,6 @@
 ---
 type: experiment
-status: READY_FOR_HUMAN_SETUP
+status: RUNNER_READY_FOR_HUMAN_SETUP
 owner: growth_product
 created_at: 2026-07-19
 updated_at: 2026-07-20
@@ -30,6 +30,14 @@ The design partner is the business receiving the verified answer and making a re
 - The canonical creator pool remains $500: four $125 gross rewards, with $120 net per accepted contribution after the V2 4% settlement fee.
 
 Sprint #1 may waive the $2,000 managed-service fee only as a recorded design-partner exception. It does not change the canonical $2,500 SKU. Sprint #2 is the first paid-price test.
+
+## Runner implementation boundary
+
+The thin Sprint Runner is now implemented at `/admin/field-sprints`. It compiles exactly four immutable Field Truth contracts from one buyer question, requires two active Field Station links, enforces the canonical `$2,000 managed service + $500 reward pool`, and will not begin collection until four real, non-simulated `$125` escrows are attached.
+
+The runner reads accepted evidence, payouts, settlement transactions, verification time, and review cost from the existing authoritative rails. It cannot create or fund escrow, approve evidence, bypass Sentinel, finalize payout, or infer purchases/foot traffic. Completion requires four accepted and paid outcomes from four distinct contributor wallets. Only then does it write append-only, timestamped place-memory observations with refresh dates and expose the high-entropy public receipt at `/field-sprints/<receiptCode>`.
+
+The buyer receipt keeps Field Station acquisition signals separate from verified outcomes and uses only `YES`, `NO`, `PARTIAL`, or `INCONCLUSIVE`. Production migration and the live human setup gates below remain mandatory.
 
 ## The single compounding loop
 

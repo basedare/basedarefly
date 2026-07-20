@@ -48,7 +48,7 @@ updated_at: 2026-07-20
 | Cross-browser creator attribution | ALPHA_LIVE | Portable share/copy continuation passed a production database-backed smoke. Verify the Resend domain before enabling email, then test real Instagram/TikTok → Safari/Chrome continuation on iOS and Android; keep performance bonuses disabled |
 | Earned venue access | PILOT_GATED | Official verified contact routes are live. Recruit three claimed venues, authorize one Ambassador and fund one attributable perk each, then measure response, arrival, redemption, repeat and complaint rates before building tiers or subscriptions |
 | Media/data rights | PARTIAL | Extend current display/promotion license to explicit sponsor-facing commercial use where needed |
-| Design-partner receipt | READY_SETUP | Name one design partner/question, fund four bounded missions, create two permissioned stations under one campaign code, clear live preflight, run the 14-day crossover, then sell Sprint #2 only after the receipt exists |
+| Design-partner receipt | RUNNER_READY | The internal runner, immutable four-contract compilation, real-escrow gates, append-only place memory, and conservative receipt are built. Apply the migration, name one design partner/question, select two permissioned station links, attach four live $125 missions, run the pilot, then sell Sprint #2 only after the receipt exists |
 | Freshness / City Signal | NEXT | Timestamp every answer and define re-verification cadence from Sprint #1 |
 | Ecosystem funding | NEXT | Prepare Base/Coinbase/Optimism-style grant case around verifiable onchain real-world activity |
 | Organic multiplier | NEXT | Instrument unpaid useful actions generated per paid useful action |

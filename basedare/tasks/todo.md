@@ -1,5 +1,27 @@
 # BaseDare Todo
 
+### Task — Verified Field Sprint Runner (2026-07-20)
+- Owner: Codex
+- Goal: Turn one paid buyer question into four independently funded Field Truth missions and one conservative, auditable buyer receipt.
+
+### Plan
+- [x] Add dedicated Sprint, mission, station-link, and append-only place-observation persistence.
+- [x] Add an internal Start Sprint console that compiles four immutable Field Truth contracts and enforces the $2,000 service + $500 reward-pool canon.
+- [x] Require two active Field Stations and four real, non-simulated $125 escrows before collection can begin.
+- [x] Sync evidence, reported outcomes, payouts, freshness, verification time, and bounded review cost without bypassing Sentinel or settlement.
+- [x] Complete only on four accepted, paid outcomes and write timestamped place memory with refresh dates.
+- [x] Generate a conservative receipt that separates Field Station acquisition from verified field outcomes.
+
+### Verification
+- [x] Policy and receipt tests
+- [x] Prisma validate/generate and disposable-Postgres migration checks
+- [x] App/test TypeScript checks and focused ESLint
+- [x] Production safety/build and Graphify rebuild
+
+### Review
+- Outcome: The runner now turns one bounded buyer question into four immutable Field Truth contracts, requires two active acquisition stations and four real $125 escrows, derives progress from the existing proof/settlement rails, writes accepted outcomes into append-only place memory, and publishes a conservative buyer receipt only after four independently paid completions.
+- Follow-ups: The runner deliberately does not fund escrow, approve evidence, or automate payout. Production migration, two permissioned stations, one named design partner/question, four live escrows, and the real pilot remain human gates.
+
 ### Task — Field Station acquisition alpha (2026-07-15)
 - Owner: Codex
 - Goal: Turn permissioned physical QR placements into localized, answer-first discovery entrances with honest station and destination receipts.

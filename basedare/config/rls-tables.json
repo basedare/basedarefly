@@ -53,5 +53,9 @@
   "AttributionTouch",
   "ActionIntent",
   "MissionPass",
-  "AttributionEvent"
+  "AttributionEvent",
+  "VerifiedFieldSprint",
+  "VerifiedFieldSprintMission",
+  "VerifiedFieldSprintStation",
+  "PlaceMemoryObservation"
 ]

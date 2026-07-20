@@ -2080,6 +2080,8 @@ export default function AdminPage() {
                   label: 'Pipelines',
                   items: [
                     { kind: 'link', href: '/admin/activation-intakes', icon: DollarSign, label: 'Activation Intakes' },
+                    { kind: 'link', href: '/admin/field-sprints', icon: Shield, label: 'Field Sprint Runner' },
+                    { kind: 'link', href: '/admin/field-stations', icon: MapPin, label: 'Field Stations' },
                     { kind: 'link', href: '/admin/creator-captains', icon: Users, label: 'Creator Captains' },
                     { kind: 'link', href: '/admin/scouts', icon: Users, label: 'Scout Army' },
                     { kind: 'link', href: '/admin/venue-scout-command', icon: MapPin, label: 'Venue Scout Command' },
