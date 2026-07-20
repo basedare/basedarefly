@@ -50,6 +50,7 @@ import type {
   VenueTimelineMoment,
   VenueTopCreator,
 } from '@/lib/venue-types';
+import { resolvePlaceNavigationSummary } from '@/lib/place-directions';
 
 const LIVE_SESSION_STATUSES = ['LIVE', 'PAUSED'] as const;
 const TERMINAL_DARE_STATUSES = ['EXPIRED', 'FAILED', 'VERIFIED'] as const;
@@ -262,6 +263,12 @@ function buildCuratedVenueDetailFallback(slug: string): VenueDetail | null {
     country: venue.country,
     latitude: venue.latitude,
     longitude: venue.longitude,
+    navigation: resolvePlaceNavigationSummary({
+      latitude: venue.latitude,
+      longitude: venue.longitude,
+      placeSource: 'BASEDARE_CURATED',
+      locationConfidence: venue.locationConfidence ?? null,
+    }),
     timezone: venue.timezone,
     categories: venue.categories,
     status: 'ACTIVE',
@@ -1795,6 +1802,7 @@ export async function getNearbyVenues(input: {
       name: true,
       description: true,
       metadataJson: true,
+      placeSource: true,
       city: true,
       country: true,
       latitude: true,
@@ -1909,6 +1917,12 @@ export async function getNearbyVenues(input: {
         country: venue.country,
         latitude: venue.latitude,
         longitude: venue.longitude,
+        navigation: resolvePlaceNavigationSummary({
+          latitude: venue.latitude,
+          longitude: venue.longitude,
+          placeSource: venue.placeSource,
+          metadataJson: venue.metadataJson,
+        }),
         categories: venue.categories,
         status: venue.status,
         isPartner: venue.isPartner,
@@ -1960,6 +1974,7 @@ async function getVenueDetailBySlugFromDatabase(
       description: true,
       address: true,
       metadataJson: true,
+      placeSource: true,
       city: true,
       country: true,
       latitude: true,
@@ -2310,6 +2325,12 @@ async function getVenueDetailBySlugFromDatabase(
     country: venue.country,
     latitude: venue.latitude,
     longitude: venue.longitude,
+    navigation: resolvePlaceNavigationSummary({
+      latitude: venue.latitude,
+      longitude: venue.longitude,
+      placeSource: venue.placeSource,
+      metadataJson: venue.metadataJson,
+    }),
     timezone: venue.timezone,
     categories: venue.categories,
     status: venue.status,

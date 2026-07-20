@@ -59,11 +59,17 @@ import {
 import { useAccount, useSignMessage } from 'wagmi';
 import { calculateDistance } from '@/lib/geo';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
+import { trackClientEvent } from '@/lib/analytics';
 import {
   resolvePlaceActionPolicy,
   resolvePlaceVisitorIntent,
   type PlaceActionId,
 } from '@/lib/place-action-policy';
+import {
+  buildGoogleMapsDirectionsUrl,
+  resolvePlaceNavigationSummary,
+  type PlaceNavigationSummary,
+} from '@/lib/place-directions';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
 import {
@@ -185,6 +191,7 @@ type NearbyPlace = {
   country: string | null;
   latitude: number;
   longitude: number;
+  navigation?: PlaceNavigationSummary;
   categories: string[];
   distanceDisplay: string;
   tagSummary: {
@@ -213,6 +220,7 @@ type SelectedPlace = {
   country?: string | null;
   latitude: number;
   longitude: number;
+  navigation?: PlaceNavigationSummary;
   categories?: string[] | null;
   placeSource?: string | null;
   externalPlaceId?: string | null;
@@ -354,6 +362,7 @@ type ResolvePlaceResponse = {
       country: string | null;
       latitude: number;
       longitude: number;
+      navigation: PlaceNavigationSummary;
     };
   };
 };
@@ -709,6 +718,7 @@ type VenueDetailResponse = {
       country: string | null;
       latitude: number;
       longitude: number;
+      navigation: PlaceNavigationSummary;
       categories: string[];
       profile: VenueProfileSummary;
       checkInRadiusMeters: number;
@@ -822,7 +832,7 @@ type MapPreset = 'classic' | 'noir';
 type MapVenueFocus = 'all' | 'live' | 'matched' | 'footprint';
 type PlaceVisualState = 'unmarked' | 'pending' | 'first-mark' | 'active' | 'hot';
 type VenueCommandCardTone = 'gold' | 'cyan' | 'purple';
-type SelectedCommandAction = 'fund' | 'venue' | 'verify';
+type SelectedCommandAction = 'directions' | 'fund' | 'venue' | 'verify';
 type CeremonyState =
   | {
       kind: 'pending' | 'first-spark' | 'alive-upgrade';
@@ -4291,6 +4301,7 @@ export default function RealWorldMap() {
           country: venue.country,
           latitude: venue.latitude,
           longitude: venue.longitude,
+          navigation: venue.navigation,
           categories: venue.categories,
           approvedCount: venue.tagSummary.approvedCount,
           heatScore: venue.tagSummary.heatScore,
@@ -5767,6 +5778,7 @@ export default function RealWorldMap() {
       country: place.country,
       latitude: place.latitude,
       longitude: place.longitude,
+      navigation: place.navigation,
       categories: place.categories,
       approvedCount: place.tagSummary.approvedCount,
       heatScore: place.tagSummary.heatScore,
@@ -5818,6 +5830,7 @@ export default function RealWorldMap() {
             country: venue.country,
             latitude: venue.latitude,
             longitude: venue.longitude,
+            navigation: venue.navigation,
             categories: venue.categories,
             approvedCount: venue.tagSummary.approvedCount,
             heatScore: venue.tagSummary.heatScore,
@@ -6530,11 +6543,52 @@ export default function RealWorldMap() {
     );
   }, [selectedPlace, userLocation]);
 
+  const selectedPlaceNavigation = useMemo<PlaceNavigationSummary>(() => {
+    if (!selectedPlace) {
+      return { eligible: false, reason: 'INVALID_COORDINATES' };
+    }
+
+    return selectedPlace.navigation ?? resolvePlaceNavigationSummary({
+      latitude: selectedPlace.latitude,
+      longitude: selectedPlace.longitude,
+      placeSource: selectedPlace.placeSource,
+    });
+  }, [selectedPlace]);
+  const selectedPlaceGooglePlaceId =
+    selectedPlace?.placeSource?.toUpperCase().includes('GOOGLE')
+      ? selectedPlace.externalPlaceId
+      : null;
+  const selectedPlaceDirectionsHref =
+    selectedPlace && selectedPlaceNavigation.eligible
+      ? buildGoogleMapsDirectionsUrl({
+          latitude: selectedPlace.latitude,
+          longitude: selectedPlace.longitude,
+          googlePlaceId: selectedPlaceGooglePlaceId,
+        })
+      : null;
+  const selectedPlaceTrackingId = selectedPlace
+    ? selectedPlace.placeId ??
+      selectedPlace.externalPlaceId ??
+      selectedPlace.slug ??
+      `${selectedPlace.latitude.toFixed(6)},${selectedPlace.longitude.toFixed(6)}`
+    : null;
+  const selectedPlaceClaimedMission = useMemo(() => {
+    const wallet = address?.toLowerCase();
+    if (!wallet) return null;
+
+    return selectedPlaceActiveDares.find((dare) =>
+      [dare.claimedBy, dare.targetWalletAddress]
+        .filter((candidate): candidate is string => Boolean(candidate))
+        .some((candidate) => candidate.toLowerCase() === wallet)
+    ) ?? null;
+  }, [address, selectedPlaceActiveDares]);
+
   const selectedPlaceActionPolicy = useMemo(
     () =>
       resolvePlaceActionPolicy({
         hasLiveDare:
           (selectedPlace?.activeDareCount ?? 0) > 0 || selectedPlaceActiveDares.length > 0,
+        hasClaimedMission: Boolean(selectedPlaceClaimedMission),
         hasVerifiedTrace:
           (selectedPlace?.approvedCount ?? 0) > 0 ||
           (selectedPlace?.checkInCount ?? selectedPlace?.memorySummary?.checkInCount ?? 0) > 0 ||
@@ -6543,12 +6597,15 @@ export default function RealWorldMap() {
           selectedPlaceDistanceMeters !== null &&
           selectedPlaceDistanceMeters <= Math.max(selectedPlace?.checkInRadiusMeters ?? 150, 150),
         canCheckIn: selectedPlace?.liveSession?.status === 'LIVE',
+        canNavigate: Boolean(selectedPlaceDirectionsHref),
         intent: placeVisitorIntent,
       }),
     [
       placeVisitorIntent,
       selectedPlace,
       selectedPlaceActiveDares.length,
+      selectedPlaceClaimedMission,
+      selectedPlaceDirectionsHref,
       selectedPlaceDistanceMeters,
     ]
   );
@@ -7803,6 +7860,49 @@ export default function RealWorldMap() {
     return resolvedPlace;
   }, [selectedPlace]);
 
+  const selectedPlaceDirectionsDare = selectedPlaceClaimedMission ?? selectedPlaceActiveDares[0] ?? null;
+  const selectedPlaceDirectionsSource = selectedPlaceClaimedMission
+    ? 'map_claimed_mission_sheet'
+    : selectedPlaceActiveDares.length > 0 || (selectedPlace?.activeDareCount ?? 0) > 0
+      ? 'map_live_dare_sheet'
+      : 'map_place_sheet';
+  const handleSelectedPlaceDirectionsOpen = useCallback(() => {
+    if (!selectedPlace || !selectedPlaceTrackingId || !selectedPlaceDirectionsHref) return;
+
+    triggerHaptic('selection');
+    const clientEventId = window.crypto.randomUUID();
+    const analyticsPayload = {
+      place_id: selectedPlaceTrackingId,
+      active_dare_id: selectedPlaceDirectionsDare?.id ?? null,
+      source_surface: selectedPlaceDirectionsSource,
+      provider: 'google_maps',
+      counts_as_arrival: false,
+    };
+    trackClientEvent('place_directions_opened', analyticsPayload);
+
+    void fetch('/api/places/directions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({
+        clientEventId,
+        placeId: selectedPlaceTrackingId,
+        destinationVenueId: selectedPlace.placeId ?? null,
+        placeSlug: selectedPlace.slug ?? null,
+        activeDareId: selectedPlaceDirectionsDare?.id ?? null,
+        sourceSurface: selectedPlaceDirectionsSource,
+      }),
+    }).catch((error) => {
+      console.warn('[REAL_WORLD_MAP] Directions attribution failed:', error);
+    });
+  }, [
+    selectedPlace,
+    selectedPlaceDirectionsDare?.id,
+    selectedPlaceDirectionsHref,
+    selectedPlaceDirectionsSource,
+    selectedPlaceTrackingId,
+  ]);
+
   const handleSelectedCommandAction = useCallback(
     async (action: SelectedCommandAction) => {
       if (!selectedPlace || pendingCommandAction) return;
@@ -7811,6 +7911,12 @@ export default function RealWorldMap() {
       setPendingCommandAction(action);
 
       try {
+        if (action === 'directions' && selectedPlaceDirectionsHref) {
+          handleSelectedPlaceDirectionsOpen();
+          window.open(selectedPlaceDirectionsHref, '_blank', 'noopener,noreferrer');
+          return;
+        }
+
         if (action === 'verify') {
           const nextAutoOpenKey = `${selectedPlaceIdentity ?? selectedPlace.name}:${Date.now()}`;
           setProofAutoOpenKey(nextAutoOpenKey);
@@ -7855,9 +7961,11 @@ export default function RealWorldMap() {
     },
     [
       pendingCommandAction,
+      handleSelectedPlaceDirectionsOpen,
       resolveSelectedPlaceForCommand,
       router,
       selectedFundDareHref,
+      selectedPlaceDirectionsHref,
       selectedPlace,
       selectedPlaceIdentity,
       selectedVenueHref,
@@ -8072,6 +8180,12 @@ export default function RealWorldMap() {
     return reasons.slice(0, 3);
   }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
   const selectedVenueNextMove = useMemo(() => {
+    if (selectedPlaceActionPolicy.primary === 'directions') {
+      return selectedPlaceClaimedMission
+        ? 'Start the journey in Google Maps; BaseDare keeps the mission and proof here.'
+        : 'Open directions when you are ready to go. Arrival still requires a real check-in or accepted proof.';
+    }
+
     if (selectedPlaceActionPolicy.primary === 'join-live-dare') {
       return proximityAccess.canReveal
         ? 'Open the live dare here now.'
@@ -8097,10 +8211,24 @@ export default function RealWorldMap() {
     proximityAccess.canReveal,
     selectedPlaceActionPolicy.primary,
     selectedPlaceActionPolicy.secondary,
+    selectedPlaceClaimedMission,
     selectedPlaceMatch,
     showMatchedLayer,
   ]);
   const selectedPrimaryAction = useMemo(() => {
+    if (selectedPlaceActionPolicy.primary === 'directions') {
+      return {
+        label: selectedPlaceClaimedMission ? 'Start journey' : 'Directions',
+        detail: selectedPlaceClaimedMission
+          ? 'Google Maps gets you there. Complete and prove the mission in BaseDare.'
+          : 'Get the route in Google Maps. Opening it does not check you in.',
+        tone: 'cyan' as const,
+        href: null,
+        actionLabel: selectedPlaceClaimedMission ? 'Start journey' : 'Directions',
+        resolveAction: 'directions' as SelectedCommandAction,
+      };
+    }
+
     if (selectedPlaceActionPolicy.primary === 'join-live-dare') {
       const liveDareHref =
         proximityAccess.canReveal && selectedPlaceActiveDares[0]?.shortId
@@ -8154,6 +8282,7 @@ export default function RealWorldMap() {
   }, [
     proximityAccess.canReveal,
     selectedFundDareHref,
+    selectedPlaceClaimedMission,
     selectedPlaceActionPolicy.primary,
     selectedPlaceActionPolicy.verifyLabel,
     selectedPlaceActiveDares,
@@ -9193,18 +9322,20 @@ export default function RealWorldMap() {
         ? 'Has presence — no live dare yet.'
         : 'No verified place update yet.';
   const selectedPlaceStateSupport = selectedPlaceHasLiveDare
-    ? 'Join the live dare, or open the venue to see what happens here.'
+    ? selectedPlaceClaimedMission
+      ? 'Start your journey in Google Maps, then return to BaseDare for the mission and proof.'
+      : 'Join the live dare, or open directions when you are ready to go.'
     : selectedPlaceHasVerifiedTrace
       ? selectedPlaceActionPolicy.primary === 'verify-place' || selectedPlaceActionPolicy.secondary === 'check-in'
         ? 'You are close enough to check in or add a useful current update.'
-        : 'Open the venue for current details. Check in or add an update after you visit.'
+        : 'Open directions when you are ready to go. Check in or add an update after you visit.'
       : selectedPlaceHasPresenceSignal
         ? selectedPlaceActionPolicy.primary === 'verify-place'
           ? 'People have signaled this place. Your approved update can make it trustworthy.'
           : 'People have signaled this place. Open it first, then verify what you find when you visit.'
         : selectedPlaceActionPolicy.primary === 'verify-place'
           ? 'Your approved update can earn the First Mark and help the next traveller decide.'
-          : 'Open the venue first. If you visit, you can return to claim the unclaimed First Mark.';
+          : 'Use directions to visit. If you go, you can return to claim the unclaimed First Mark.';
   const selectedPlaceStateTone = selectedPlaceHasLiveDare
     ? 'venue-state-card--live'
     : selectedPlaceHasVerifiedTrace
@@ -9420,6 +9551,21 @@ export default function RealWorldMap() {
       </Link>
     ) : null;
 
+  const selectedPlaceDirectionsButton =
+    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlaceDirectionsHref ? (
+      <a
+        href={selectedPlaceDirectionsHref}
+        target="_blank"
+        rel="noreferrer"
+        onClick={handleSelectedPlaceDirectionsOpen}
+        className="map-primary-action-button map-primary-action-button--directions"
+        aria-label={`${selectedPlaceClaimedMission ? 'Start journey to' : 'Open directions to'} ${selectedPlace.name} in Google Maps`}
+      >
+        <Navigation className="h-4 w-4" aria-hidden="true" />
+        <span>{selectedPlaceClaimedMission ? 'Start journey' : 'Directions'}</span>
+      </a>
+    ) : null;
+
   const selectedPlaceCheckInButton =
     selectedPlace &&
     !selectedPlaceIsPrivateSpot &&
@@ -9447,14 +9593,15 @@ export default function RealWorldMap() {
               : '#'
         }
         className="map-primary-action-button map-primary-action-button--proof"
-        aria-label={`Join the live dare at ${selectedPlace.name}`}
+        aria-label={`${selectedPlaceClaimedMission ? 'Open mission details' : 'Join the live dare'} at ${selectedPlace.name}`}
       >
-        <span>Join dare</span>
+        <span>{selectedPlaceClaimedMission ? 'Mission details' : 'Join dare'}</span>
       </Link>
     ) : null;
 
   const selectedPlaceActionButtons: Partial<Record<PlaceActionId, ReactNode>> = {
     'join-live-dare': selectedPlaceJoinDareButton,
+    directions: selectedPlaceDirectionsButton,
     'verify-place': selectedPlaceTakeProofButton,
     'open-venue': selectedPlaceOpenVenueButton,
     'check-in': selectedPlaceCheckInButton,
@@ -9488,7 +9635,9 @@ export default function RealWorldMap() {
         ? 'venue-action-rail--two'
         : 'venue-action-rail--one';
   const selectedPlaceCtaHint =
-    selectedPlaceActionPolicy.primary === 'join-live-dare'
+    selectedPlaceActionPolicy.primary === 'directions'
+      ? 'Google Maps gets you there. A secure check-in or accepted proof confirms arrival.'
+      : selectedPlaceActionPolicy.primary === 'join-live-dare'
       ? 'A live dare is the fastest way to participate here.'
       : selectedPlaceActionPolicy.primary === 'verify-place'
         ? 'Add a current photo from the place. If approved, it becomes part of the map.'
@@ -9796,13 +9945,16 @@ export default function RealWorldMap() {
 
             <div className="grid grid-cols-[1fr_auto] gap-2">
               <a
-                href={`https://www.google.com/maps/search/?api=1&query=${selectedPrivateMapSpot.latitude},${selectedPrivateMapSpot.longitude}`}
+                href={buildGoogleMapsDirectionsUrl({
+                  latitude: selectedPrivateMapSpot.latitude,
+                  longitude: selectedPrivateMapSpot.longitude,
+                }) ?? '#'}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.075] px-3 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-50 transition hover:border-cyan-100/36"
               >
                 <Navigation className="h-3.5 w-3.5" />
-                Navigate
+                Directions
               </a>
               <button
                 type="button"
@@ -15278,6 +15430,14 @@ export default function RealWorldMap() {
             linear-gradient(180deg, #ffe36a 0%, #f5c518 52%, #8a5a00 100%) !important;
         }
 
+        :global(.venue-action-rail--primary .map-primary-action-button--directions) {
+          color: #eaffff !important;
+          border-color: rgba(91, 230, 246, 0.52) !important;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(178, 250, 255, 0.2), transparent 40%),
+            linear-gradient(180deg, rgba(10, 91, 108, 0.88), rgba(5, 27, 38, 0.97)) !important;
+        }
+
         :global(.venue-action-rail--primary .map-primary-action-button--fund) {
           color: #eaffff !important;
           border-color: rgba(125, 249, 255, 0.62) !important;
@@ -15798,6 +15958,19 @@ export default function RealWorldMap() {
             0 13px 25px rgba(0, 0, 0, 0.4),
             0 0 18px rgba(245, 197, 24, 0.12),
             inset 0 1px 0 rgba(255, 239, 174, 0.2),
+            inset 0 -10px 18px rgba(0, 0, 0, 0.24) !important;
+        }
+
+        .venue-action-slot--primary :global(.map-primary-action-button--directions) {
+          color: #eaffff !important;
+          border-color: rgba(91, 230, 246, 0.62) !important;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(178, 250, 255, 0.2), transparent 42%),
+            linear-gradient(180deg, rgba(9, 92, 109, 0.9), rgba(5, 29, 40, 0.98)) !important;
+          box-shadow:
+            0 13px 25px rgba(0, 0, 0, 0.4),
+            0 0 20px rgba(34, 211, 238, 0.13),
+            inset 0 1px 0 rgba(188, 252, 255, 0.2),
             inset 0 -10px 18px rgba(0, 0, 0, 0.24) !important;
         }
 
@@ -18473,6 +18646,12 @@ export default function RealWorldMap() {
             color: #17120b !important;
             border-color: rgba(255, 232, 122, 0.56) !important;
             background: linear-gradient(180deg, #ffe36a 0%, #d89f08 100%) !important;
+          }
+
+          :global(.selected-place-mobile-action-deck .map-primary-action-button--directions) {
+            color: #ecfeff !important;
+            border-color: rgba(91, 230, 246, 0.46) !important;
+            background: linear-gradient(180deg, rgba(13, 121, 142, 0.8), rgba(5, 42, 57, 0.98)) !important;
           }
 
           :global(.selected-place-mobile-action-deck .map-primary-action-button--fund) {

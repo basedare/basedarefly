@@ -2,6 +2,7 @@ export type PlaceVisitorIntent = 'explore' | 'contribute' | 'fund';
 
 export type PlaceActionId =
   | 'join-live-dare'
+  | 'directions'
   | 'verify-place'
   | 'open-venue'
   | 'check-in'
@@ -56,22 +57,42 @@ export function resolvePlaceVisitorIntent(input: {
  */
 export function resolvePlaceActionPolicy(input: {
   hasLiveDare: boolean;
+  hasClaimedMission?: boolean;
   hasVerifiedTrace: boolean;
   isPlayerNearby: boolean;
   canCheckIn: boolean;
+  canNavigate: boolean;
   intent: PlaceVisitorIntent;
 }): PlaceActionPolicy {
   const verifyLabel = input.hasVerifiedTrace ? 'Add fresh proof' : 'Be first to verify';
+  const navigationPrimary: PlaceActionId = input.canNavigate ? 'directions' : 'open-venue';
+  const navigationSecondary: PlaceActionId = input.canNavigate ? 'directions' : 'open-venue';
+
+  if (input.hasLiveDare && input.hasClaimedMission) {
+    return {
+      intent: input.intent,
+      primary: navigationPrimary,
+      secondary: 'join-live-dare',
+      tertiary: input.canNavigate ? ['open-venue', 'fund-dare'] : ['fund-dare'],
+      verifyLabel,
+    };
+  }
 
   if (input.hasLiveDare) {
     return {
       intent: input.intent,
       primary: 'join-live-dare',
-      secondary: 'open-venue',
+      secondary: navigationSecondary,
       tertiary:
         input.intent === 'contribute' || input.isPlayerNearby
-          ? ['verify-place', 'fund-dare']
-          : ['fund-dare'],
+          ? [
+              ...(input.canNavigate ? ['open-venue' as const] : []),
+              'verify-place',
+              'fund-dare',
+            ]
+          : input.canNavigate
+            ? ['open-venue', 'fund-dare']
+            : ['fund-dare'],
       verifyLabel,
     };
   }
@@ -80,8 +101,8 @@ export function resolvePlaceActionPolicy(input: {
     return {
       intent: input.intent,
       primary: 'fund-dare',
-      secondary: 'open-venue',
-      tertiary: ['verify-place'],
+      secondary: navigationSecondary,
+      tertiary: input.canNavigate ? ['open-venue', 'verify-place'] : ['verify-place'],
       verifyLabel,
     };
   }
@@ -90,8 +111,8 @@ export function resolvePlaceActionPolicy(input: {
     return {
       intent: input.intent,
       primary: 'verify-place',
-      secondary: 'open-venue',
-      tertiary: ['fund-dare'],
+      secondary: navigationSecondary,
+      tertiary: input.canNavigate ? ['open-venue', 'fund-dare'] : ['fund-dare'],
       verifyLabel,
     };
   }
@@ -99,9 +120,9 @@ export function resolvePlaceActionPolicy(input: {
   if (!input.hasVerifiedTrace && input.isPlayerNearby) {
     return {
       intent: input.intent,
-      primary: 'verify-place',
-      secondary: 'open-venue',
-      tertiary: ['fund-dare'],
+      primary: navigationPrimary,
+      secondary: input.canNavigate ? 'open-venue' : null,
+      tertiary: ['verify-place', 'fund-dare'],
       verifyLabel,
     };
   }
@@ -109,17 +130,22 @@ export function resolvePlaceActionPolicy(input: {
   if (input.hasVerifiedTrace) {
     return {
       intent: input.intent,
-      primary: 'open-venue',
-      secondary: input.canCheckIn && input.isPlayerNearby ? 'check-in' : null,
-      tertiary: input.isPlayerNearby ? ['verify-place', 'fund-dare'] : ['fund-dare'],
+      primary: navigationPrimary,
+      secondary: input.canNavigate ? 'open-venue' : null,
+      tertiary:
+        input.canCheckIn && input.isPlayerNearby
+          ? ['check-in', 'verify-place', 'fund-dare']
+          : input.isPlayerNearby
+            ? ['verify-place', 'fund-dare']
+            : ['fund-dare'],
       verifyLabel,
     };
   }
 
   return {
     intent: input.intent,
-    primary: 'open-venue',
-    secondary: null,
+    primary: navigationPrimary,
+    secondary: input.canNavigate ? 'open-venue' : null,
     tertiary: ['fund-dare'],
     verifyLabel,
   };
