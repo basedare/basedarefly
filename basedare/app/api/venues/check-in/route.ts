@@ -22,6 +22,7 @@ import {
   writeVenuePerkSnapshotToMetadata,
 } from '@/lib/venue-perks';
 import { recordStationVerifiedVenueArrival } from '@/lib/field-station-server';
+import { recordDirectionsVerifiedArrival } from '@/lib/place-directions-server';
 import { awardVenueCheckInReward } from '@/lib/venue-check-in-rewards';
 
 const VenueCheckInSchema = z.object({
@@ -344,6 +345,16 @@ export async function POST(request: NextRequest) {
       participantKey: `wallet:${walletAddress}`,
     }).catch((attributionError) => {
       console.error('[FIELD_STATION] Verified-arrival attribution failed:', attributionError);
+      return null;
+    });
+
+    await recordDirectionsVerifiedArrival(request, {
+      venueId: venue.id,
+      checkInId: result.checkIn.id,
+      occurredAt: result.checkIn.scannedAt,
+      participantKey: `wallet:${walletAddress}`,
+    }).catch((attributionError) => {
+      console.error('[PLACE_DIRECTIONS] Verified-arrival attribution failed:', attributionError);
       return null;
     });
 

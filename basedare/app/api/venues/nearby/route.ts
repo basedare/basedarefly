@@ -5,6 +5,7 @@ import { calculateDistance, encodeGeohash, formatDistance } from '@/lib/geo';
 import { CURATED_SIARGAO_VENUES } from '@/lib/curated-venues';
 import { buildVenueProfile } from '@/lib/venue-profile';
 import type { NearbyVenueItem, VenueCommandCenterSummary, VenueExperienceMode } from '@/lib/venue-types';
+import { resolvePlaceNavigationSummary } from '@/lib/place-directions';
 
 const NearbyVenueQuerySchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
@@ -104,6 +105,12 @@ function getCuratedFallbackVenues(query: NearbyVenueQuery | null): NearbyVenueIt
       country: venue.country,
       latitude: venue.latitude,
       longitude: venue.longitude,
+      navigation: resolvePlaceNavigationSummary({
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+        placeSource: 'BASEDARE_CURATED',
+        locationConfidence: venue.locationConfidence ?? null,
+      }),
       categories: venue.categories,
       status: 'ACTIVE',
       isPartner: false,

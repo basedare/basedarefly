@@ -307,6 +307,7 @@ export type NearbyVenueItem = {
   country: string | null;
   latitude: number;
   longitude: number;
+  navigation: import('./place-directions').PlaceNavigationSummary;
   categories: string[];
   status: string;
   isPartner: boolean;
@@ -347,6 +348,7 @@ export type VenueDetail = {
   country: string | null;
   latitude: number;
   longitude: number;
+  navigation: import('./place-directions').PlaceNavigationSummary;
   timezone: string;
   categories: string[];
   status: string;
