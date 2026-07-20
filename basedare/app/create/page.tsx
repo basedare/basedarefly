@@ -149,6 +149,18 @@ const BOUNTY_CREATE_AUTH_STORAGE_KEY = 'basedare:bounty-create-auth';
 
 function CreateDareContent() {
   const searchParams = useSearchParams();
+  const sprintId = searchParams.get('sprintId');
+  const sprintOrdinal = Number(searchParams.get('sprintOrdinal'));
+  const sprintBuyerQuestion = searchParams.get('buyerQuestion')?.trim() || '';
+  const sprintFreshnessHours = Number(searchParams.get('maximumObservationAgeHours'));
+  const isSprintMission = Boolean(
+    searchParams.get('mode') === 'sprint-field-truth' &&
+    sprintId &&
+    Number.isInteger(sprintOrdinal) &&
+    sprintOrdinal >= 1 &&
+    sprintOrdinal <= 4 &&
+    sprintBuyerQuestion
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [approvalStatus, setApprovalStatus] = useState<'idle' | 'approving' | 'funding' | 'verifying'>('idle');
@@ -171,6 +183,7 @@ function CreateDareContent() {
   const [dareImage, setDareImage] = useState<DareImageUploadState | null>(null);
   const [, setIsUploadingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [sprintLinkState, setSprintLinkState] = useState<'idle' | 'linked' | 'repair-needed'>('idle');
   const [appSettings, setAppSettings] = useState<PublicAppSettings>({
     sentinelEnabled: true,
     sentinelPausedReason: null,
@@ -462,7 +475,16 @@ function CreateDareContent() {
     } else {
       setVenuePrefill(null);
     }
-  }, [searchParams, setValue]);
+    if (isSprintMission) {
+      setValue('sparkType', 'PAID');
+      setValue('streamerTag', '');
+      setValue('amount', 125);
+      setValue('missionMode', 'IRL');
+      setValue('missionTag', 'field-truth');
+      setValue('isNearbyDare', true);
+      setValue('discoveryRadiusKm', 0.5);
+    }
+  }, [isSprintMission, searchParams, setValue]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -708,6 +730,12 @@ function CreateDareContent() {
       if (!connectedWallet) {
         throw new Error('Connect your wallet before deploying a dare');
       }
+      if (isSprintMission && isSimulationMode) {
+        throw new Error('Verified Field Sprint missions require real Base escrow. Switch simulation mode off before funding.');
+      }
+      if (isSprintMission && !data.venueId) {
+        throw new Error('Choose an exact BaseDare place in the Sprint Runner before funding this mission.');
+      }
 
       let walletAuthHeaders: Record<string, string> | undefined;
       if (!sessionToken || !sessionWallet || sessionWallet !== connectedWallet) {
@@ -778,17 +806,17 @@ function CreateDareContent() {
         setDareImage(uploadedDareImage);
       }
 
-      const isNearbyDareEnabled = Boolean(data.isNearbyDare);
+      const isNearbyDareEnabled = submitAsCommunitySpark || isSprintMission || Boolean(data.isNearbyDare);
       const result = await submitBountyCreation(
         {
           title: data.title,
-          amount: submitAsCommunitySpark ? 0 : data.amount,
-          sparkType: data.sparkType,
-          streamerTag: submitAsCommunitySpark ? '@everyone' : data.streamerTag,
+          amount: submitAsCommunitySpark ? 0 : isSprintMission ? 125 : data.amount,
+          sparkType: isSprintMission ? 'PAID' : data.sparkType,
+          streamerTag: submitAsCommunitySpark ? '@everyone' : isSprintMission ? '' : data.streamerTag,
           streamId: data.streamId ?? 'dev-stream-001',
-          missionMode: submitAsCommunitySpark ? 'IRL' : data.missionMode ?? 'IRL',
-          missionTag: submitAsCommunitySpark ? 'community' : (data.missionTag || 'other'),
-          isNearbyDare: submitAsCommunitySpark ? true : isNearbyDareEnabled,
+          missionMode: submitAsCommunitySpark || isSprintMission ? 'IRL' : data.missionMode ?? 'IRL',
+          missionTag: submitAsCommunitySpark ? 'community' : isSprintMission ? 'field-truth' : (data.missionTag || 'other'),
+          isNearbyDare: isNearbyDareEnabled,
           latitude: isNearbyDareEnabled ? coordinates?.lat : undefined,
           longitude: isNearbyDareEnabled ? coordinates?.lng : undefined,
           locationLabel: data.locationLabel || undefined,
@@ -800,7 +828,11 @@ function CreateDareContent() {
           requireSentinel: selectedSentinel,
           stakerAddress: connectedWallet,
           outcomeContract: {
-          buyerQuestion: data.title,
+            family: isSprintMission ? 'FIELD_TRUTH' : undefined,
+            buyerQuestion: isSprintMission ? sprintBuyerQuestion : data.title,
+            maximumObservationAgeHours: isSprintMission && Number.isFinite(sprintFreshnessHours)
+              ? sprintFreshnessHours
+              : undefined,
           },
         },
         {
@@ -812,6 +844,36 @@ function CreateDareContent() {
           onApprovalStatusChange: setApprovalStatus,
         }
       );
+
+      if (isSprintMission && sprintId && !result.simulated && !result.syncPending) {
+        const linkResponse = await fetch('/api/admin/field-sprints', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-moderator-wallet': connectedWallet,
+          },
+          body: JSON.stringify({
+            action: 'LINK_MISSION',
+            sprintId,
+            ordinal: sprintOrdinal,
+            dareId: result.dareId,
+          }),
+        });
+        const linkPayload = await linkResponse.json().catch(() => null) as { success?: boolean; error?: string } | null;
+        if (!linkResponse.ok || !linkPayload?.success) {
+          setSprintLinkState('repair-needed');
+          toast({
+            variant: 'destructive',
+            title: 'ESCROW FUNDED — LINK NEEDS REPAIR',
+            description: linkPayload?.error || 'Return to the Sprint Runner and link this Dare ID manually.',
+            duration: 9000,
+          });
+        } else {
+          setSprintLinkState('linked');
+        }
+      } else if (isSprintMission && result.syncPending) {
+        setSprintLinkState('repair-needed');
+      }
 
       trigger('success');
       setSuccessData(result);
@@ -1172,6 +1234,17 @@ function CreateDareContent() {
             )}
           </div>
         )}
+
+        {isSprintMission ? (
+          <div className="mb-6 rounded-2xl border border-[#f5c518]/25 bg-[#f5c518]/8 p-4 text-sm text-white/70">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#ffe36a]">Verified Field Sprint · Mission {sprintOrdinal}</p>
+            <p className="mt-2 font-bold">This creates one real, location-bound $125 Field Truth escrow. Select the exact place before funding.</p>
+            <p className="mt-1 text-xs text-white/45">$120 goes to the independent contributor after accepted proof; $5 is the settlement fee. The buyer question and freshness window are locked.</p>
+            {sprintLinkState === 'linked' ? <p className="mt-2 text-xs font-black text-emerald-300">Escrow linked to the Sprint Runner.</p> : null}
+            {sprintLinkState === 'repair-needed' && successData ? <p className="mt-2 text-xs font-black text-orange-200">The on-chain action landed, but the Runner link needs repair with Dare ID {successData.dareId}.</p> : null}
+            {successData ? <Link href="/admin/field-sprints" className="mt-3 inline-flex text-xs font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4">Return to Sprint Runner →</Link> : null}
+          </div>
+        ) : null}
 
         {/* FORM */}
         <form onSubmit={handleSubmit(onSubmit, onError)}>

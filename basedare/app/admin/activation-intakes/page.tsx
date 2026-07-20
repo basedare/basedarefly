@@ -28,7 +28,6 @@ import { useAccount } from 'wagmi';
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
 import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
-import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
 
 type IntakeStatus =
   | 'NEW'
@@ -156,6 +155,7 @@ type ActivationIntake = {
   links: {
     createHref: string;
     scoutHref: string;
+    sprintHref: string;
     replyMailtoHref: string | null;
     packetMailtoHref: string | null;
     invoiceMailtoHref: string | null;
@@ -396,41 +396,6 @@ function getLaunchProofTarget(intake: ActivationIntake) {
   );
 }
 
-function buildLaunchHref(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
-  const venueName = assignedVenue || intake.venue || intake.company;
-  const firstMission = getLaunchMissionTitle(intake, assignedVenue);
-  const params = new URLSearchParams();
-  params.set('mode', 'venue-activation');
-  params.set('source', 'activation-intake-launch');
-  params.set('activationLeadId', intake.id);
-  params.set('title', firstMission);
-  if (venueName) params.set('venueName', venueName);
-  if (intake.city) params.set('city', intake.city);
-  if (intake.amount) params.set('amount', String(intake.amount));
-  if (assignedCreator) params.set('streamer', assignedCreator);
-  return `/create?${params.toString()}`;
-}
-
-function buildBrandPortalLaunchHref(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
-  if (!intake.routeContext.venueSlug) {
-    return buildLaunchHref(intake, assignedVenue, assignedCreator);
-  }
-
-  const firstMission = getLaunchMissionTitle(intake, assignedVenue);
-  const objective = getLaunchMissionDetail(intake);
-  const params = new URLSearchParams();
-  params.set('venue', intake.routeContext.venueSlug);
-  params.set('compose', '1');
-  params.set('reportSource', 'activation-intake');
-  params.set('reportSessionKey', intake.id);
-  params.set('reportIntent', 'activation');
-  params.set('title', firstMission);
-  if (assignedCreator) params.set('creator', assignedCreator);
-  if (intake.amount) params.set('payout', String(intake.amount));
-  if (objective) params.set('objective', objective);
-  return `/brands/portal?${params.toString()}`;
-}
-
 function buildLaunchHandoffMemo(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
   const target = assignedVenue || intake.venue || intake.company || 'Activation target';
   const creator = assignedCreator || intake.creatorRecommendations[0]?.tag || 'Creator shortlist pending';
@@ -461,12 +426,6 @@ function buildLaunchHandoffMemo(intake: ActivationIntake, assignedVenue: string,
     '- Venue and creator route are assigned.',
     '- Funded dare is launched inside BaseDare so proof and review stay trackable.',
   ].join('\n');
-}
-
-function buildLaunchOperatorNote(intake: ActivationIntake, assignedVenue: string, assignedCreator: string) {
-  const target = assignedVenue || intake.venue || intake.company || 'activation target';
-  const creator = assignedCreator || intake.creatorRecommendations[0]?.tag || 'creator pending';
-  return `Launch handoff confirmed: ${target} / ${creator} / ${intake.budgetLabel}. Payment was marked confirmed before launch handoff.`;
 }
 
 function buildCloseRoomOperatorNote(intake: ActivationIntake) {
@@ -656,26 +615,8 @@ export default function ActivationIntakesPage() {
     });
   };
 
-  const completeLaunchHandoff = async (intake: ActivationIntake) => {
-    if (intake.status !== 'PAID_CONFIRMED' && intake.status !== 'LAUNCHED') {
-      setError('Confirm payment before marking an activation launched.');
-      return;
-    }
-
-    const draft = drafts[intake.id] ?? {};
-    const assignedCreator = draft.assignedCreator ?? intake.assignedCreator;
-    const assignedVenue = draft.assignedVenue ?? intake.assignedVenue;
-
-    await updateIntake(intake.id, {
-      assignedCreator,
-      assignedVenue,
-      status: 'LAUNCHED',
-      nextActionAt: null,
-      operatorNote: appendOperatorNote(
-        draft.operatorNote ?? intake.operatorNote,
-        buildLaunchOperatorNote(intake, assignedVenue, assignedCreator)
-      ),
-    });
+  const completeLaunchHandoff = (intake: ActivationIntake) => {
+    window.location.assign(intake.links.sprintHref);
   };
 
   const markPaymentSent = async (intake: ActivationIntake) => {
@@ -712,64 +653,12 @@ export default function ActivationIntakesPage() {
     }
   };
 
-  const confirmPaid = async (intake: ActivationIntake) => {
-    const draft = drafts[intake.id] ?? {};
-    // Record service revenue separately from the contributor reward pool. This
-    // value never triggers an automatic scout/referral commission.
-    const entered =
-      typeof window !== 'undefined'
-        ? window.prompt(
-            `Managed-service revenue confirmed for "${intake.company || 'this activation'}" (USD). Exclude the contributor reward pool.`,
-            String(MANAGED_FIELD_SPRINT.serviceFeeUsd)
-          )
-        : null;
-    if (entered == null) return;
-    const paidConfirmedAmountUsd = Number(entered.trim());
-    if (
-      !Number.isFinite(paidConfirmedAmountUsd) ||
-      paidConfirmedAmountUsd < 0 ||
-      paidConfirmedAmountUsd > MANAGED_FIELD_SPRINT.serviceFeeUsd
-    ) {
-      setError(`Service revenue must be between $0 and $${MANAGED_FIELD_SPRINT.serviceFeeUsd}.`);
+  const confirmPaid = (intake: ActivationIntake) => {
+    if (intake.status !== 'PAYMENT_SENT' && intake.status !== 'PAID_CONFIRMED' && intake.status !== 'LAUNCHED') {
+      setError('Send the buyer payment packet before confirming funds in the Sprint Runner.');
       return;
     }
-    const designPartnerServiceFeeException =
-      paidConfirmedAmountUsd !== MANAGED_FIELD_SPRINT.serviceFeeUsd;
-    if (
-      designPartnerServiceFeeException &&
-      !window.confirm(
-        `Record a $${MANAGED_FIELD_SPRINT.serviceFeeUsd - paidConfirmedAmountUsd} design-partner service-fee waiver as acquisition cost?`
-      )
-    ) {
-      return;
-    }
-
-    const rewardPoolEntry = window.prompt(
-      `Contributor reward pool received (USD). The full pool is required before launch.`,
-      String(MANAGED_FIELD_SPRINT.grossRewardPoolUsd)
-    );
-    if (rewardPoolEntry == null) return;
-    const rewardPoolConfirmedAmountUsd = Number(rewardPoolEntry.trim());
-    if (rewardPoolConfirmedAmountUsd !== MANAGED_FIELD_SPRINT.grossRewardPoolUsd) {
-      setError(`Confirm the full $${MANAGED_FIELD_SPRINT.grossRewardPoolUsd} contributor pool before launch.`);
-      return;
-    }
-
-    await updateIntake(intake.id, {
-      assignedCreator: draft.assignedCreator ?? intake.assignedCreator,
-      assignedVenue: draft.assignedVenue ?? intake.assignedVenue,
-      paymentLink: draft.paymentLink ?? intake.paymentLink,
-      paymentReference: draft.paymentReference ?? intake.paymentReference,
-      status: 'PAID_CONFIRMED',
-      paidConfirmedAmountUsd,
-      rewardPoolConfirmedAmountUsd,
-      designPartnerServiceFeeException,
-      nextActionAt: null,
-      operatorNote: appendOperatorNote(
-        draft.operatorNote ?? intake.operatorNote,
-        `Payment confirmed ($${paidConfirmedAmountUsd} managed-service revenue + $${rewardPoolConfirmedAmountUsd} contributor pool${designPartnerServiceFeeException ? '; design-partner fee exception recorded' : ''}). Open the launch workflow with the assigned place prefilled.`
-      ),
-    });
+    window.location.assign(intake.links.sprintHref);
   };
 
   const copyText = async (copyKey: string, text: string) => {
@@ -1027,14 +916,13 @@ export default function ActivationIntakesPage() {
                 const paymentLink = draft.paymentLink ?? intake.paymentLink;
                 const paymentReference = draft.paymentReference ?? intake.paymentReference;
                 const actionState = nextActionState(nextActionAt || intake.nextActionAt);
-                const launchHref = buildBrandPortalLaunchHref(intake, assignedVenue, assignedCreator);
                 const launchMemo = buildLaunchHandoffMemo(intake, assignedVenue, assignedCreator);
                 const routedMissionLines = buildMissionRouteMemoLines(intake.missionRoute);
                 const hasRoutedMission = hasMissionRoute(intake.missionRoute);
                 const launchMissionTitle = getLaunchMissionTitle(intake, assignedVenue);
                 const launchMissionDetail = getLaunchMissionDetail(intake);
                 const launchProofTarget = getLaunchProofTarget(intake);
-                const canLaunch = intake.status === 'PAID_CONFIRMED' || intake.status === 'LAUNCHED';
+                const canLaunch = intake.status === 'LAUNCHED';
                 const receipt = intake.activationReceipt;
                 const isFirstSpark = intake.offerId === 'first-spark' || intake.packageId === 'pilot-drop';
                 const launchChecklist = [
@@ -1552,7 +1440,7 @@ export default function ActivationIntakesPage() {
                               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-45"
                             >
                               {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                              Paid confirmed
+                              Open Sprint Runner
                             </button>
                           </div>
                         </div>
@@ -1568,8 +1456,8 @@ export default function ActivationIntakesPage() {
                                 One clean operator packet before funding.
                               </p>
                               <p className="mt-1 max-w-xl text-xs font-bold leading-5 text-white/50">
-                                Open the prefilled Brand Portal launch only after the buyer has paid. Payment sent is
-                                not enough; launch unlocks at paid confirmed.
+                                Compile the buyer-approved Sprint, confirm the $2,000 service line and separate $500 reward pool,
+                                then fund four real escrows. Launch is recorded only when collection actually begins.
                               </p>
                             </div>
 
@@ -1625,18 +1513,18 @@ export default function ActivationIntakesPage() {
                               <Clipboard className="h-4 w-4" />
                               {copiedId === `${intake.id}:handoff` ? 'Copied' : 'Copy handoff'}
                             </button>
-                            {canLaunch ? (
+                            {intake.status === 'PAYMENT_SENT' || intake.status === 'PAID_CONFIRMED' || intake.status === 'LAUNCHED' ? (
                               <Link
-                                href={launchHref}
+                                href={intake.links.sprintHref}
                                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-yellow-300/25 bg-yellow-300/12 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100 transition hover:bg-yellow-300/18"
                               >
                                 <ExternalLink className="h-4 w-4" />
-                                Open Brand launch
+                                Open Sprint Runner
                               </Link>
                             ) : (
                               <span className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
                                 <Lock className="h-4 w-4" />
-                                Pay first
+                                Send payment first
                               </span>
                             )}
                             {intake.links.invoiceMailtoHref ? (
@@ -1655,11 +1543,11 @@ export default function ActivationIntakesPage() {
                             <button
                               type="button"
                               onClick={() => void completeLaunchHandoff(intake)}
-                              disabled={isUpdating || !canLaunch}
+                              disabled={isUpdating}
                               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-45"
                             >
                               {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                              Confirm launch
+                              {canLaunch ? 'Collection launched' : 'Open Sprint Runner'}
                             </button>
                           </div>
                         </div>
@@ -1883,11 +1771,11 @@ export default function ActivationIntakesPage() {
                           <button
                             type="button"
                             onClick={() => void completeLaunchHandoff(intake)}
-                            disabled={isUpdating || !canLaunch}
+                            disabled={isUpdating}
                             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 transition hover:bg-emerald-300/15 disabled:opacity-45"
                           >
                             <CheckCircle2 className="h-4 w-4" />
-                            Confirm launch
+                            {canLaunch ? 'Collection launched' : 'Open Sprint Runner'}
                           </button>
                           <button
                             type="button"

@@ -1363,6 +1363,7 @@ model AttributionEvent {
 // authorizes escrow, evidence acceptance, or payout by itself.
 model VerifiedFieldSprint {
   id                     String    @id @default(cuid())
+  activationIntakeId     String?   @unique
   receiptCode            String    @unique
   status                 String    @default("DRAFT")
   buyerName              String

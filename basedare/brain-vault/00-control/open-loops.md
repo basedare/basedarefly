@@ -17,6 +17,7 @@ updated_at: 2026-07-20
 | Venue-less proximity verification | verification_gate | READY_PREVIEW | product/release | [[00-control/vision]] |
 | Sponsor-usable media/data rights | legal_product_gate | PARTIAL | product/legal | [[00-control/vision]] |
 | Field Station-backed design-partner Sprint | experiment_design | READY_FOR_HUMAN_SETUP | growth/product + human | [[04-experiments/field-station-backed-verified-sprint]] |
+| First-node buyer conversion loop | product_growth_gate | LOCAL_BUILD | product/growth | [[05-playbooks/first-node-conversion-loop]] |
 | Ecosystem grant application | funding | NEXT | human | [[00-control/vision]] |
 | Three-market discovery tournament | experiment_design | GATED | codex | [[00-control/vision]] |
 | Playable-map micro-area alpha | experiment_design | NEXT | growth/product | [[05-playbooks/playable-map-launch]] |
@@ -49,6 +50,7 @@ updated_at: 2026-07-20
 | Earned venue access | PILOT_GATED | Official verified contact routes are live. Recruit three claimed venues, authorize one Ambassador and fund one attributable perk each, then measure response, arrival, redemption, repeat and complaint rates before building tiers or subscriptions |
 | Media/data rights | PARTIAL | Extend current display/promotion license to explicit sponsor-facing commercial use where needed |
 | Design-partner receipt | RUNNER_READY | The internal runner, immutable four-contract compilation, real-escrow gates, append-only place memory, and conservative receipt are built. Apply the migration, name one design partner/question, select two permissioned station links, attach four live $125 missions, run the pilot, then sell Sprint #2 only after the receipt exists |
+| First-node conversion | INTEGRATING | Connect one truthful venue brief and structured authorized response to the locked Sprint economics, real escrow creation, verified outcomes, and an honest buyer receipt |
 | Freshness / City Signal | NEXT | Timestamp every answer and define re-verification cadence from Sprint #1 |
 | Ecosystem funding | NEXT | Prepare Base/Coinbase/Optimism-style grant case around verifiable onchain real-world activity |
 | Organic multiplier | NEXT | Instrument unpaid useful actions generated per paid useful action |

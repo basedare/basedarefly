@@ -61,6 +61,7 @@ export async function getVerifiedFieldSprint(id: string) {
 }
 
 export async function startVerifiedFieldSprint(input: {
+  activationIntakeId?: string | null;
   buyerName: string;
   buyerOrganization?: string | null;
   buyerEmail?: string | null;
@@ -71,6 +72,23 @@ export async function startVerifiedFieldSprint(input: {
   stationLinkIds: string[];
   createdBy: string;
 }) {
+  const activationIntakeId = cleanOptional(input.activationIntakeId, 191);
+  if (activationIntakeId) {
+    const existingSprint = await prisma.verifiedFieldSprint.findUnique({
+      where: { activationIntakeId },
+      include: sprintInclude,
+    });
+    if (existingSprint) return existingSprint;
+    const intake = await prisma.founderEvent.findFirst({
+      where: { id: activationIntakeId, eventType: 'ACTIVATION_INTAKE' },
+      select: { metadataJson: true },
+    });
+    if (!intake) throw new Error('Activation intake not found.');
+    const decision = asRecord(asRecord(intake.metadataJson).buyerDecision);
+    if (decision.decision !== 'APPROVE_SCOPE') {
+      throw new Error('The buyer must approve the bounded scope before a Sprint can be compiled.');
+    }
+  }
   const stationLinkIds = Array.from(new Set(input.stationLinkIds));
   if (stationLinkIds.length !== 2) throw new Error('Exactly two distinct active Field Stations are required.');
   const campaignCode = cleanCode(input.campaignCode);
@@ -90,6 +108,7 @@ export async function startVerifiedFieldSprint(input: {
   return prisma.verifiedFieldSprint.create({
     data: {
       receiptCode: `vfs_${randomBytes(12).toString('hex')}`,
+      activationIntakeId,
       buyerName: cleanText(input.buyerName, 120),
       buyerOrganization: cleanOptional(input.buyerOrganization, 191),
       buyerEmail: cleanOptional(input.buyerEmail, 254)?.toLowerCase() ?? null,
@@ -129,19 +148,69 @@ export async function confirmVerifiedFieldSprintFunding(input: {
     fundingReference: input.fundingReference,
   });
   if (!validation.ok) throw new Error(validation.reason);
-  const result = await prisma.verifiedFieldSprint.updateMany({
-    where: { id: input.sprintId, status: 'DRAFT' },
-    data: {
-      status: 'FUNDED',
-      serviceFeeConfirmedUsd: input.serviceFeeConfirmedUsd,
-      rewardPoolConfirmedUsd: input.rewardPoolConfirmedUsd,
-      designPartnerException: input.designPartnerException,
-      fundingReference: input.fundingReference.trim(),
-      fundingConfirmedBy: input.actor,
-      fundedAt: new Date(),
-    },
-  });
-  if (result.count !== 1) throw new Error('Sprint is no longer an unfunded draft.');
+  await prisma.$transaction(async (tx) => {
+    const sprint = await tx.verifiedFieldSprint.findUnique({
+      where: { id: input.sprintId },
+      select: { id: true, status: true, receiptCode: true, activationIntakeId: true },
+    });
+    if (!sprint || sprint.status !== 'DRAFT') throw new Error('Sprint is no longer an unfunded draft.');
+
+    const fundedAt = new Date();
+    const result = await tx.verifiedFieldSprint.updateMany({
+      where: { id: input.sprintId, status: 'DRAFT' },
+      data: {
+        status: 'FUNDED',
+        serviceFeeConfirmedUsd: input.serviceFeeConfirmedUsd,
+        rewardPoolConfirmedUsd: input.rewardPoolConfirmedUsd,
+        designPartnerException: input.designPartnerException,
+        fundingReference: input.fundingReference.trim(),
+        fundingConfirmedBy: input.actor,
+        fundedAt,
+      },
+    });
+    if (result.count !== 1) throw new Error('Sprint is no longer an unfunded draft.');
+
+    if (sprint.activationIntakeId) {
+      const intake = await tx.founderEvent.findFirst({
+        where: { id: sprint.activationIntakeId, eventType: 'ACTIVATION_INTAKE' },
+        select: { id: true, status: true, metadataJson: true },
+      });
+      if (!intake) throw new Error('Linked activation intake no longer exists.');
+      if (intake.status !== 'PAYMENT_SENT') {
+        throw new Error('The buyer payment packet must be sent before funds are confirmed.');
+      }
+      const metadata = asRecord(intake.metadataJson);
+      const operator = asRecord(metadata.operator);
+      const statusHistory = Array.isArray(metadata.statusHistory) ? metadata.statusHistory : [];
+      const nextMetadata = toJson({
+        ...metadata,
+        operator: {
+          ...operator,
+          paidConfirmedAmountUsd: input.serviceFeeConfirmedUsd,
+          rewardPoolConfirmedAmountUsd: input.rewardPoolConfirmedUsd,
+          designPartnerServiceFeeException: input.designPartnerException,
+          paymentReference: input.fundingReference.trim(),
+          updatedAt: fundedAt.toISOString(),
+          updatedBy: input.actor,
+        },
+        verifiedFieldSprint: {
+          id: sprint.id,
+          receiptCode: sprint.receiptCode,
+          status: 'FUNDED',
+          linkedAt: fundedAt.toISOString(),
+        },
+        statusHistory: [
+          ...statusHistory.slice(-12),
+          { from: intake.status, to: 'PAID_CONFIRMED', at: fundedAt.toISOString(), by: input.actor },
+        ],
+      });
+      const intakeResult = await tx.founderEvent.updateMany({
+        where: { id: intake.id, eventType: 'ACTIVATION_INTAKE', status: 'PAYMENT_SENT' },
+        data: { status: 'PAID_CONFIRMED', metadataJson: nextMetadata },
+      });
+      if (intakeResult.count !== 1) throw new Error('Activation intake state changed before funding was confirmed.');
+    }
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   return getVerifiedFieldSprint(input.sprintId);
 }
 
@@ -210,9 +279,35 @@ export async function beginVerifiedFieldSprintCollection(sprintId: string) {
   if (!sprint) throw new Error('Sprint not found.');
   if (!canTransitionVerifiedFieldSprint(sprint.status, 'COLLECTING')) throw new Error('Only a routed Sprint can begin collection.');
   if (sprint.missions.length !== 4 || sprint.missions.some((mission) => !mission.dareId)) throw new Error('All four missions must be linked to real escrows.');
-  const result = await prisma.verifiedFieldSprint.updateMany({ where: { id: sprintId, status: 'ROUTING' }, data: { status: 'COLLECTING', collectingAt: new Date() } });
-  if (result.count !== 1) throw new Error('Sprint state changed before collection began.');
-  await prisma.verifiedFieldSprintMission.updateMany({ where: { sprintId, status: 'ROUTED' }, data: { status: 'COLLECTING' } });
+  await prisma.$transaction(async (tx) => {
+    const collectingAt = new Date();
+    const result = await tx.verifiedFieldSprint.updateMany({ where: { id: sprintId, status: 'ROUTING' }, data: { status: 'COLLECTING', collectingAt } });
+    if (result.count !== 1) throw new Error('Sprint state changed before collection began.');
+    await tx.verifiedFieldSprintMission.updateMany({ where: { sprintId, status: 'ROUTED' }, data: { status: 'COLLECTING' } });
+    if (sprint.activationIntakeId) {
+      const intake = await tx.founderEvent.findFirst({
+        where: { id: sprint.activationIntakeId, eventType: 'ACTIVATION_INTAKE' },
+        select: { id: true, status: true, metadataJson: true },
+      });
+      if (!intake) throw new Error('Linked activation intake no longer exists.');
+      if (intake.status !== 'PAID_CONFIRMED') throw new Error('Linked activation intake is not paid-confirmed.');
+      const metadata = asRecord(intake.metadataJson);
+      const statusHistory = Array.isArray(metadata.statusHistory) ? metadata.statusHistory : [];
+      const verifiedFieldSprint = asRecord(metadata.verifiedFieldSprint);
+      const intakeResult = await tx.founderEvent.updateMany({
+        where: { id: intake.id, eventType: 'ACTIVATION_INTAKE', status: 'PAID_CONFIRMED' },
+        data: {
+          status: 'LAUNCHED',
+          metadataJson: toJson({
+            ...metadata,
+            verifiedFieldSprint: { ...verifiedFieldSprint, status: 'COLLECTING', launchedAt: collectingAt.toISOString() },
+            statusHistory: [...statusHistory.slice(-12), { from: intake.status, to: 'LAUNCHED', at: collectingAt.toISOString(), by: 'field-sprint-runner' }],
+          }),
+        },
+      });
+      if (intakeResult.count !== 1) throw new Error('Activation intake state changed before collection began.');
+    }
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   return getVerifiedFieldSprint(sprintId);
 }
 
@@ -321,8 +416,43 @@ export async function completeVerifiedFieldSprint(sprintId: string) {
         },
       });
     }
-    const changed = await tx.verifiedFieldSprint.updateMany({ where: { id: sprint.id, status: 'REVIEW' }, data: { status: 'COMPLETE', completedAt: new Date() } });
+    const completedAt = new Date();
+    const changed = await tx.verifiedFieldSprint.updateMany({ where: { id: sprint.id, status: 'REVIEW' }, data: { status: 'COMPLETE', completedAt } });
     if (changed.count !== 1) throw new Error('Sprint completion lost a concurrent state race.');
+    if (sprint.activationIntakeId) {
+      const intake = await tx.founderEvent.findFirst({
+        where: { id: sprint.activationIntakeId, eventType: 'ACTIVATION_INTAKE' },
+        select: { id: true, status: true, metadataJson: true },
+      });
+      if (!intake || intake.status !== 'LAUNCHED') throw new Error('Linked activation intake is not in the launched collection state.');
+      const metadata = asRecord(intake.metadataJson);
+      const verifiedFieldSprint = asRecord(metadata.verifiedFieldSprint);
+      const operator = asRecord(metadata.operator);
+      const intakeResult = await tx.founderEvent.updateMany({
+        where: { id: intake.id, eventType: 'ACTIVATION_INTAKE', status: 'LAUNCHED' },
+        data: {
+          metadataJson: toJson({
+            ...metadata,
+            operator: {
+              ...operator,
+              nextActionAt: null,
+              operatorNote: appendNote(operator.operatorNote, `Verified Field Sprint ${sprint.receiptCode} completed. Send the receipt and ask for Sprint #2.`),
+              updatedAt: completedAt.toISOString(),
+              updatedBy: 'field-sprint-runner',
+            },
+            verifiedFieldSprint: {
+              ...verifiedFieldSprint,
+              status: 'COMPLETE',
+              receiptCode: sprint.receiptCode,
+              receiptHref: `/field-sprints/${sprint.receiptCode}`,
+              completedAt: completedAt.toISOString(),
+              repeatHref: '/admin/field-sprints',
+            },
+          }),
+        },
+      });
+      if (intakeResult.count !== 1) throw new Error('Activation intake changed before the Sprint receipt closed.');
+    }
     return tx.verifiedFieldSprint.findUniqueOrThrow({ where: { id: sprint.id }, include: sprintInclude });
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }
@@ -412,4 +542,19 @@ function cleanCode(value: string) {
 function normalizeWallet(value: string | null | undefined) {
   const wallet = value?.trim().toLowerCase();
   return wallet || null;
+}
+
+function appendNote(current: unknown, note: string) {
+  const existing = typeof current === 'string' ? current.trim() : '';
+  return existing ? `${existing}\n${note}` : note;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function toJson(value: Record<string, unknown>): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }

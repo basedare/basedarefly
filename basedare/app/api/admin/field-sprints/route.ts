@@ -16,6 +16,7 @@ import {
 } from '@/lib/verified-field-sprint-server';
 
 const StartSchema = z.object({
+  activationIntakeId: z.string().min(1).max(191).nullable().optional(),
   buyerName: z.string().min(1).max(120),
   buyerOrganization: z.string().max(191).nullable().optional(),
   buyerEmail: z.string().email().max(254).nullable().optional(),

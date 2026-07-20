@@ -185,6 +185,23 @@ function buildScoutHref(input: { id: string; venue: string; city: string }) {
   return `/scouts/dashboard?${params.toString()}`;
 }
 
+function buildSprintHref(input: {
+  id: string;
+  buyerName: string;
+  buyerOrganization: string;
+  buyerEmail: string;
+  buyerQuestion: string;
+  areaLabel: string;
+}) {
+  const params = new URLSearchParams({ activationIntakeId: input.id });
+  if (input.buyerName) params.set('buyerName', input.buyerName);
+  if (input.buyerOrganization) params.set('buyerOrganization', input.buyerOrganization);
+  if (input.buyerEmail) params.set('buyerEmail', input.buyerEmail);
+  if (input.buyerQuestion) params.set('buyerQuestion', input.buyerQuestion);
+  if (input.areaLabel) params.set('areaLabel', input.areaLabel);
+  return `/admin/field-sprints?${params.toString()}`;
+}
+
 function buildReplyDraft(input: {
   contactName: string;
   company: string;
@@ -893,6 +910,9 @@ function buildActivationReceipt(input: {
   city: string;
   budgetLabel: string;
   paymentReference: string;
+  question: string;
+  proofMethod: string;
+  repeatMetric: string;
   campaign: ActivationReceiptCampaign | null;
 }) {
   const campaign = input.campaign;
@@ -902,19 +922,24 @@ function buildActivationReceipt(input: {
 
   if (!campaign) {
     const receiptText = [
-      `BaseDare activation receipt - ${target}`,
+      `BaseDare pilot decision record - ${target}`,
       '',
+      'PILOT PREVIEW — NOT YET FUNDED',
       `Buyer: ${buyer}`,
       `Lead ID: ${input.eventId}`,
       input.paymentReference ? `Payment reference: ${input.paymentReference}` : null,
+      `Question: ${input.question || 'One bounded place question must be approved before launch.'}`,
+      `Evidence method: ${input.proofMethod || 'Accepted place evidence tied to the agreed mission and window.'}`,
       '',
       'Launch state: no linked campaign found yet.',
-      'Next decision: open Brand Portal launch after payment is confirmed, then the receipt will attach to campaign, proof, and payout state automatically.',
+      'Rights: BaseDare display rights only. Sponsor commercial reuse is not granted without separate explicit consent.',
+      'Not proven: foot traffic, purchases, incrementality, reach, or any venue partnership.',
+      'Next decision: approve scope and payment first; only then create the funded campaign and mission.',
     ].filter((line): line is string => line !== null).join('\n');
 
     return {
       status: 'AWAITING_LAUNCH',
-      label: 'Awaiting launch',
+      label: 'Pilot preview — not yet funded',
       tone: 'warning',
       campaignId: null,
       campaignTitle: null,
@@ -923,9 +948,9 @@ function buildActivationReceipt(input: {
       dareHref: null,
       proofUrl: null,
       creatorHandle: null,
-      nextDecision: 'Launch the paid activation before sending the buyer receipt.',
+      nextDecision: 'Approve and fund the pilot before creating a campaign or calling this a receipt.',
       metrics: [
-        { label: 'Campaign', value: 'Not linked', hint: 'Open Brand launch after paid confirmed.' },
+        { label: 'Campaign', value: 'Not linked', hint: 'Scope and payment must be confirmed first.' },
         { label: 'Proof', value: 'Waiting', hint: 'Proof state appears after a funded mission exists.' },
         { label: 'Budget', value: input.budgetLabel, hint: 'Use the paid lane agreed with the buyer.' },
       ] satisfies ReceiptMetric[],
@@ -960,12 +985,12 @@ function buildActivationReceipt(input: {
 
   if (settled) {
     status = 'SETTLED';
-    label = 'Receipt settled';
+    label = 'Verified evidence · payout settled';
     tone = 'success';
     nextDecision = 'Send the proof receipt, ask for repeat budget, or increase the route.';
   } else if (proofVerified) {
     status = 'VERIFIED';
-    label = 'Proof verified';
+    label = 'Verified evidence accepted';
     tone = 'success';
     nextDecision = 'Send the buyer receipt and confirm payout settlement.';
   } else if (proofSubmitted) {
@@ -979,22 +1004,35 @@ function buildActivationReceipt(input: {
   const campaignHref = `/brands/portal?campaign=${encodeURIComponent(campaign.id)}`;
   const venueHref = campaign.venue?.slug ? `/venues/${campaign.venue.slug}` : null;
   const payoutValue = paidSlot?.totalPayout ?? campaign.payoutPerCreator;
+  const asOf = new Date().toISOString();
+  const answer = proofVerified
+    ? 'Accepted evidence exists for the agreed mission. It proves only the recorded action and evidence boundary.'
+    : proofSubmitted
+      ? 'Evidence was submitted but has not yet been accepted.'
+      : 'No evidence answer is available yet.';
   const receiptText = [
     `BaseDare activation receipt - ${target}`,
     '',
+    `As of: ${asOf}`,
     `Buyer: ${buyer}`,
     `Lead ID: ${input.eventId}`,
     input.paymentReference ? `Payment reference: ${input.paymentReference}` : null,
     `Campaign: ${campaign.title} (${campaign.status})`,
     `Venue: ${target}${cityLine ? `, ${cityLine}` : ''}`,
+    `Question: ${input.question || campaign.title}`,
+    `Answer: ${answer}`,
+    `Evidence method: ${input.proofMethod || 'Campaign proof reviewed through the BaseDare evidence rail.'}`,
     `Creator route: ${creatorHandle || 'creator pending'}`,
     `Proof state: ${label}`,
     proofUrl ? `Proof link: ${proofUrl}` : null,
     dareHref ? `Dare link: ${dareHref}` : null,
     `Spend tracked: ${formatUsd(campaign.budgetUsdc)}`,
     `Creator payout lane: ${formatUsd(payoutValue)}`,
+    `Payout state: ${settled ? 'settled' : proofVerified ? 'accepted; settlement pending' : 'not settled'}`,
+    'Rights: BaseDare display rights only. Sponsor commercial reuse is not granted without separate explicit consent.',
+    'Not proven: purchases, incremental foot traffic, reach, or causality beyond the accepted evidence.',
     '',
-    `Next decision: ${nextDecision}`,
+    `Next decision: ${input.repeatMetric || nextDecision}`,
   ].filter((line): line is string => line !== null).join('\n');
 
   return {
@@ -1161,6 +1199,9 @@ function mapIntakeEvent(event: {
     city,
     budgetLabel,
     paymentReference,
+    question: missionRoute.missionTitle || notes,
+    proofMethod: proofLogic || missionRoute.proofRequired,
+    repeatMetric,
     campaign: findActivationReceiptCampaign(event.id, campaigns),
   });
   const closeRoom = buildActivationCloseRoomAdminState({
@@ -1190,7 +1231,7 @@ function mapIntakeEvent(event: {
             : status === 'PAYMENT_SENT'
               ? 'Confirm funds before launch.'
               : status === 'PAID_CONFIRMED'
-                ? 'Launch the approved route.'
+                ? 'Fund and link all four real $125 escrows in the Sprint Runner.'
                 : status === 'LAUNCHED'
                   ? 'Track proof and send receipt.'
                   : 'No next action unless reopened.';
@@ -1248,6 +1289,14 @@ function mapIntakeEvent(event: {
     links: {
       createHref,
       scoutHref,
+      sprintHref: buildSprintHref({
+        id: event.id,
+        buyerName: contactName || company,
+        buyerOrganization: company,
+        buyerEmail: email,
+        buyerQuestion: missionRoute.missionTitle || notes || `What is true at ${assignedVenue || city || 'this place'} right now?`,
+        areaLabel: assignedVenue || city,
+      }),
       replyMailtoHref: buildMailtoHref({
         email,
         subject: `BaseDare activation: ${subjectTarget} next steps`,
@@ -1378,15 +1427,15 @@ export async function PUT(request: NextRequest) {
     }
 
     const currentStatus = normalizeStatus(event.status);
-    if (input.status === 'LAUNCHED' && currentStatus !== 'PAID_CONFIRMED' && currentStatus !== 'LAUNCHED') {
+    if (input.status === 'LAUNCHED' && currentStatus !== 'LAUNCHED') {
       return NextResponse.json(
-        { success: false, error: 'Confirm payment before marking an activation launched.' },
-        { status: 400 }
+        { success: false, error: 'Launch is recorded automatically only after four real Sprint escrows are linked and collection begins.' },
+        { status: 409 }
       );
     }
-    if (input.status === 'PAID_CONFIRMED' && currentStatus === 'LAUNCHED') {
+    if (input.status === 'PAID_CONFIRMED' && currentStatus !== 'PAID_CONFIRMED') {
       return NextResponse.json(
-        { success: false, error: 'A launched Sprint cannot move backward to paid-confirmed.' },
+        { success: false, error: 'Confirm the canonical service fee and reward pool inside the linked Sprint Runner.' },
         { status: 409 }
       );
     }

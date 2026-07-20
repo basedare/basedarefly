@@ -1,15 +1,32 @@
 import 'server-only';
 
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { alertVenueReportHighIntentEvent } from '@/lib/telegram';
 import type { VenueReportPipelineSummary } from '@/lib/venue-types';
+import {
+  responseEventType,
+  type FirstNodeResponseType,
+} from '@/lib/first-node-conversion';
 
-export const SHARE_EVENT_TYPES = ['SHARE', 'COPY_BRIEF', 'COPY_LINK', 'EMAIL_BRIEF'] as const;
+export const SHARE_EVENT_TYPES = [
+  'SHARE',
+  'COPY_BRIEF',
+  'COPY_LINK',
+  'EMAIL_BRIEF',
+  'WHATSAPP_BRIEF',
+  'INSTAGRAM_BRIEF',
+  'PRINT_HANDOFF',
+  'QR_HANDOFF',
+] as const;
 export const REPORT_EVENT_TYPES = [
   'OPEN',
   ...SHARE_EVENT_TYPES,
   'CONTACTED',
+  'PILOT_REQUESTED',
+  'CORRECTION_SUBMITTED',
+  'QUESTION_SUBMITTED',
+  'DECLINED',
   'CLAIM_STARTED',
   'ACTIVATION_LAUNCHED',
   'REPEAT_LAUNCHED',
@@ -22,6 +39,9 @@ type VenueReportAlertEventType = Exclude<ReportEventType, 'OPEN' | 'SHARE' | 'CO
 const TELEGRAM_REPORT_EVENTS = new Set<VenueReportAlertEventType>([
   'EMAIL_BRIEF',
   'CONTACTED',
+  'PILOT_REQUESTED',
+  'CORRECTION_SUBMITTED',
+  'QUESTION_SUBMITTED',
   'CLAIM_STARTED',
   'ACTIVATION_LAUNCHED',
   'REPEAT_LAUNCHED',
@@ -325,6 +345,140 @@ export async function recordVenueReportLead(input: {
       message.includes('Unknown field')
     ) {
       return;
+    }
+    throw error;
+  }
+}
+
+export async function recordVenueDecisionResponse(input: {
+  venue: {
+    id: string;
+    name: string;
+    slug: string;
+    city: string | null;
+    country: string | null;
+  };
+  audience: 'venue' | 'sponsor';
+  requestId: string;
+  responseType: FirstNodeResponseType;
+  sessionKey?: string | null;
+  responderRole?: string | null;
+  authority?: string | null;
+  channel?: string | null;
+  contactName?: string | null;
+  email?: string | null;
+  contactRoute?: string | null;
+  message?: string | null;
+  budgetRange?: string | null;
+  timeline?: string | null;
+  paymentPreference?: string | null;
+  termsVersion?: string | null;
+  activationLeadId?: string | null;
+}) {
+  const eventType = responseEventType(input.responseType);
+  const dedupeKey = `venue-decision-response:${input.venue.id}:${input.requestId}`;
+  const occurredAt = new Date();
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const response = await tx.founderEvent.create({
+        data: {
+          eventType: 'VENUE_DECISION_RESPONSE',
+          source: 'venue-report',
+          subjectType: 'venue',
+          subjectId: input.venue.id,
+          dedupeKey,
+          title: `${input.venue.name}: ${input.responseType.toLowerCase().replace(/_/g, ' ')}`,
+          status: input.responseType,
+          actor: input.email || input.contactRoute || null,
+          href: `/venues/${input.venue.slug}/report?audience=${input.audience}`,
+          venueId: input.venue.id,
+          venueSlug: input.venue.slug,
+          occurredAt,
+          metadataJson: {
+            responseType: input.responseType,
+            responderRole: input.responderRole ?? null,
+            authority: input.authority ?? null,
+            channel: input.channel ?? null,
+            contactName: input.contactName ?? null,
+            email: input.email ?? null,
+            contactRoute: input.contactRoute ?? null,
+            message: input.message ?? null,
+            budgetRange: input.budgetRange ?? null,
+            timeline: input.timeline ?? null,
+            paymentPreference: input.paymentPreference ?? null,
+            termsVersion: input.termsVersion ?? null,
+            activationLeadId: input.activationLeadId ?? null,
+          },
+        },
+        select: { id: true },
+      });
+
+      const lead = input.email && !input.activationLeadId && ['REQUEST_PILOT', 'ASK_QUESTION'].includes(input.responseType)
+        ? await tx.venueReportLead.create({
+            data: {
+              venueId: input.venue.id,
+              audience: input.audience,
+              source: 'FIRST_NODE_RESPONSE',
+              intent: input.responseType === 'REQUEST_PILOT' ? 'activation' : null,
+              sessionKey: input.sessionKey ?? null,
+              email: input.email,
+              name: input.contactName ?? null,
+              organization: input.responderRole ?? null,
+              notes: input.message ?? null,
+              followUpStatus: input.responseType === 'REQUEST_PILOT' ? 'QUALIFIED' : 'NEEDS_INFO',
+            },
+            select: { id: true },
+          })
+        : null;
+
+      await tx.venueReportEvent.create({
+        data: {
+          venueId: input.venue.id,
+          leadId: lead?.id ?? null,
+          audience: input.audience,
+          eventType,
+          sessionKey: input.sessionKey ?? null,
+          channel: input.channel ?? null,
+          metadataJson: {
+            responseId: response.id,
+            responseType: input.responseType,
+            responderRole: input.responderRole ?? null,
+            authority: input.authority ?? null,
+            activationLeadId: input.activationLeadId ?? null,
+          },
+        },
+      });
+
+      return { responseId: response.id, leadId: lead?.id ?? null };
+    });
+
+    queueVenueReportAlert({
+      venue: input.venue,
+      audience: input.audience,
+      eventType,
+      channel: input.channel,
+      intent: input.responseType === 'REQUEST_PILOT' ? 'activation' : null,
+      email: input.email,
+      name: input.contactName,
+      organization: input.responderRole,
+      notes: input.message,
+      leadId: result.leadId,
+    });
+
+    return { recorded: true, duplicate: false, ...result };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const existing = await prisma.founderEvent.findUnique({
+        where: { dedupeKey },
+        select: { id: true },
+      });
+      return {
+        recorded: true,
+        duplicate: true,
+        responseId: existing?.id ?? null,
+        leadId: null,
+      };
     }
     throw error;
   }

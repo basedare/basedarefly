@@ -22,6 +22,7 @@ import LiquidBackground from '@/components/LiquidBackground';
 import SparkReceiptPreview from '@/components/activations/SparkReceiptPreview';
 import { getActivationCloseRoomByToken } from '@/lib/activation-close-room';
 import CloseRoomTracker from './CloseRoomTracker';
+import CloseRoomDecisionForm from './CloseRoomDecisionForm';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[32px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.93)_58%,rgba(7,6,14,0.98)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.46),0_0_28px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -224,13 +225,8 @@ export default async function ActivationCloseRoomPage({
                     <ArrowRight className="h-4 w-4" />
                   </a>
                 )}
-                <a
-                  href={closeRoom.approveHref}
-                  data-close-room-track="reply"
-                  data-close-room-target="approve-pilot"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.09] px-5 text-xs font-black uppercase tracking-[0.16em] text-emerald-100 transition hover:bg-emerald-300/[0.13]"
-                >
-                  Approve pilot
+                <a href="#buyer-response" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.09] px-5 text-xs font-black uppercase tracking-[0.16em] text-emerald-100 transition hover:bg-emerald-300/[0.13]">
+                  Review scope response
                   <CheckCircle2 className="h-4 w-4" />
                 </a>
                 <a
@@ -242,6 +238,9 @@ export default async function ActivationCloseRoomPage({
                   Book 12-min call
                   <Clock3 className="h-4 w-4" />
                 </a>
+              </div>
+              <div className="mt-5">
+                <CloseRoomDecisionForm token={token} />
               </div>
             </div>
           </div>
@@ -329,8 +328,8 @@ export default async function ActivationCloseRoomPage({
                   : undefined
               }
               metrics={deadWindowMetrics}
-              ctaHref={closeRoom.approveHref}
-              ctaLabel={closeRoom.isFirstSpark ? 'Approve pilot' : 'Approve route'}
+              ctaHref="#buyer-response"
+              ctaLabel="Review scope"
               compact
             />
           </div>
