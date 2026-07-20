@@ -4,11 +4,11 @@ Status: alpha operating rail
 
 Owner: BaseDare operator
 
-North star: turn one truthful venue question into one funded mission, one accepted answer, and one honest repeat-or-stop decision.
+North star: turn one truthful buyer question into one canonical Verified Field Sprint, four independently funded answers, one conservative receipt, and one honest repeat-or-stop decision.
 
 ## The loop
 
-`unsigned venue → informed response → scoped close room → human-approved payment → funded Dare/Campaign → accepted evidence → buyer receipt → repeat, adjust, or stop`
+`unsigned venue → informed response → scoped close room → buyer-approved scope → human-confirmed $2,000 service fee + $500 reward pool → four funded $125 Field Truth missions → four accepted settled outcomes → buyer receipt → repeat, adjust, or stop`
 
 This is the smallest buyer-validation loop. It is not Scout Phase 2, automated outreach, a generic CRM, or a claim that BaseDare already has a venue partnership.
 
@@ -35,9 +35,9 @@ Capture the responder's role, authority, contact channel, requested correction/q
 
 ## Approval and money rails
 
-- Scope approval may move an intake to `QUALIFIED` only.
-- Payment confirmation remains a separate human-operated state transition.
-- A paid Campaign and funded Dare remain the only execution rail.
+- Scope approval may move an intake to `QUALIFIED` only and is required before Sprint compilation.
+- Payment confirmation remains a separate human-operated state transition. It confirms the `$2,000` managed-service line and `$500` reward-pool line; it does not broadcast escrow transactions.
+- The canonical Runner compiles exactly four immutable Field Truth contracts. Each must become a real, non-simulated `$125` Dare escrow before collection begins.
 - Proof review, payout leases, settlement, appeals, and the locked financial canon remain unchanged.
 - No automated creator bonus or Scout economics are introduced here.
 

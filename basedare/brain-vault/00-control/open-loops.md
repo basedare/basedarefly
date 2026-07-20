@@ -3,7 +3,7 @@ type: open_loops
 status: ACTIVE
 owner: codex
 created_at: 2026-05-13
-updated_at: 2026-07-20
+updated_at: 2026-07-21
 ---
 
 # Open Loops
@@ -16,8 +16,8 @@ updated_at: 2026-07-20
 | Money-first cold-wallet claim | product_gate | READY_PREVIEW | product/release | [[00-control/vision]] |
 | Venue-less proximity verification | verification_gate | READY_PREVIEW | product/release | [[00-control/vision]] |
 | Sponsor-usable media/data rights | legal_product_gate | PARTIAL | product/legal | [[00-control/vision]] |
-| Field Station-backed design-partner Sprint | experiment_design | READY_FOR_HUMAN_SETUP | growth/product + human | [[04-experiments/field-station-backed-verified-sprint]] |
-| First-node buyer conversion loop | product_growth_gate | LOCAL_BUILD | product/growth | [[05-playbooks/first-node-conversion-loop]] |
+| Field Station-backed design-partner Sprint | experiment_design | SOFTWARE_READY_FOR_HUMAN_PILOT | growth/product + human | [[04-experiments/field-station-backed-verified-sprint]] |
+| First-node buyer conversion loop | product_growth_gate | SOFTWARE_READY | product/growth | [[05-playbooks/first-node-conversion-loop]] |
 | Ecosystem grant application | funding | NEXT | human | [[00-control/vision]] |
 | Three-market discovery tournament | experiment_design | GATED | codex | [[00-control/vision]] |
 | Playable-map micro-area alpha | experiment_design | NEXT | growth/product | [[05-playbooks/playable-map-launch]] |
@@ -26,7 +26,7 @@ updated_at: 2026-07-20
 | Three-venue earned access pilot | experiment_design | NEEDS_PARTNERS | human | [[05-playbooks/earned-venue-access-graph]] |
 | Autonomous treasury and proof limits | operating_policy | NEXT | codex | [[00-control/vision]] |
 | Safe asynchronous dare template library | product_policy | NEXT | codex | [[00-control/vision]] |
-| Outcome Contract Engine alpha | product_policy | READY_PREVIEW | product/release | [[05-playbooks/outcome-contract-engine]] |
+| Outcome Contract Engine alpha | product_policy | PRODUCTION_MIGRATED | product/release | [[05-playbooks/outcome-contract-engine]] |
 | Dare Director orchestration | automation | PARKED_UNTIL_CONTRACT_DATA | product | [[05-playbooks/outcome-contract-engine]] |
 | Siargao venue Spark Audit invite | outreach_draft | PARKED | human | [[02-outreach/drafts/siargao-venue-spark-audit-invite]] |
 | Siargao Beach Club Spark Audit | spark_audit | PARKED | human | [[02-outreach/drafts/siargao-beach-club-spark-audit]] |
@@ -41,7 +41,7 @@ updated_at: 2026-07-20
 | Local Signals / Local Tips | BUILT_REUSE | Use the existing structured discovery layer for Sprint answers instead of inventing a new surface |
 | Sentinel review | BUILT_REUSE | Route uncertain proofs into the existing remote review queue and measure review cost |
 | Dare-to-place-memory compounding | PARTIAL | Require every accepted proof to become timestamped mapped memory with a refresh date and receipt |
-| Outcome contracts | READY_PREVIEW | Run the new migration and database immutability smoke; then exercise one truthful negative Field Truth mission end to end before making it the default buyer rail |
+| Outcome contracts | SOFTWARE_READY | Production migration, database immutability, and truthful negative/indeterminate policy checks pass. Exercise one live funded Field Truth mission before making it the default buyer rail |
 | Autonomous treasury | NEXT | Define spend caps, multisig thresholds, fraud tripwires, pause rules, and audit logs |
 | Remote verification | READY_PREVIEW | Apply migrations and smoke-test submission proximity, then measure automated versus Sentinel review cost |
 | Consumer first action | DEPLOYED | Measure `/join` and plain-language navigation → map → action-open conversion |
@@ -49,8 +49,8 @@ updated_at: 2026-07-20
 | Cross-browser creator attribution | ALPHA_LIVE | Portable share/copy continuation passed a production database-backed smoke. Verify the Resend domain before enabling email, then test real Instagram/TikTok → Safari/Chrome continuation on iOS and Android; keep performance bonuses disabled |
 | Earned venue access | PILOT_GATED | Official verified contact routes are live. Recruit three claimed venues, authorize one Ambassador and fund one attributable perk each, then measure response, arrival, redemption, repeat and complaint rates before building tiers or subscriptions |
 | Media/data rights | PARTIAL | Extend current display/promotion license to explicit sponsor-facing commercial use where needed |
-| Design-partner receipt | RUNNER_READY | The internal runner, immutable four-contract compilation, real-escrow gates, append-only place memory, and conservative receipt are built. Apply the migration, name one design partner/question, select two permissioned station links, attach four live $125 missions, run the pilot, then sell Sprint #2 only after the receipt exists |
-| First-node conversion | INTEGRATING | Connect one truthful venue brief and structured authorized response to the locked Sprint economics, real escrow creation, verified outcomes, and an honest buyer receipt |
+| Design-partner receipt | SOFTWARE_READY | The production-migrated runner, immutable four-contract compilation, real-escrow gates, append-only place memory, and conservative receipt are built. Name one design partner/question, select two permissioned station links, create and fund four live $125 missions, run the pilot, then sell Sprint #2 only after the receipt exists |
+| First-node conversion | SOFTWARE_READY | Run one truthful venue brief through structured authorized response, scope approval, funding confirmation, canonical Sprint compilation, four real escrows, accepted outcomes, and an honest receipt |
 | Freshness / City Signal | NEXT | Timestamp every answer and define re-verification cadence from Sprint #1 |
 | Ecosystem funding | NEXT | Prepare Base/Coinbase/Optimism-style grant case around verifiable onchain real-world activity |
 | Organic multiplier | NEXT | Instrument unpaid useful actions generated per paid useful action |

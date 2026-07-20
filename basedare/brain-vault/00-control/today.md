@@ -1,11 +1,11 @@
 ---
 type: daily_control
-date: 2026-07-20
+date: 2026-07-21
 status: ACTIVE
 owner: codex
 primary_objective: "Turn BaseDare into a remote, bounty-funded discovery network that can seed and learn from markets without founder presence."
 created_at: 2026-05-13
-updated_at: 2026-07-20
+updated_at: 2026-07-21
 ---
 
 # Today
@@ -35,6 +35,7 @@ Operationalize BaseDare as a remote-first playable social map:
 - Official verified venue contact routes are live. Do not build general access tiers or subscriptions until three claimed venues commit to one authorized Ambassador and one attributable perk each.
 - Field Station links, truth-filtered Board entry, Journey attribution, Mission Pass, secure venue arrivals, separate host/destination receipts, live pilot preflight, and campaign decision gates now form one bounded design-partner experiment. Do not print a blocked station or report digital interest as foot traffic.
 - Sprint #1 is a design-partner verification-cost experiment; Sprint #2 is the first paid sale.
+- The Outcome Contract Engine, Verified Field Sprint Runner, and first-node conversion integration are production-migrated. Software now enforces buyer scope approval, the `$2,000 + $500` split, four real `$125` escrow missions, accepted settled outcomes, append-only place memory, and a conservative receipt. Human funding and the real pilot remain intentionally manual.
 - Publicly pseudonymous branding is compatible with the vision; concealed employment, ownership, payment activity, or local commercial control is not.
 - Growth is judged by useful proof density, contributor repeat behavior, organic actions per paid action, and sponsor pull—not raw bounty volume.
 
@@ -52,8 +53,8 @@ Operationalize BaseDare as a remote-first playable social map:
 | 8 | Clean public traction and demo signals | codex | NEXT | Separate real treasury/proof data from samples before public participant acquisition |
 | 9 | TikTok / Instagram participation loop | growth | READY | Run four variants of each locked short-form series and measure qualified map actions per 1,000 views |
 | 10 | Creator Journey attribution rail | product/growth | ALPHA_LIVE | Verify Resend domain before enabling email, then run real Instagram/TikTok → Safari/Chrome handoff tests on iOS and Android; keep performance bonuses disabled |
-| 11 | Field Station-backed Verified Field Sprint | growth/product + human | RUNNER_READY | Apply the Sprint migration, name the design partner/question, select two permissioned station links, confirm the $2,000 + $500 funding lines, attach four real $125 escrows, and run the bounded pilot |
-| 12 | First-node buyer conversion loop | product/growth | INTEGRATING | Connect the decision brief → structured response → approved scope → canonical funded Sprint → four real escrows → honest receipt vertical slice |
+| 11 | Field Station-backed Verified Field Sprint | growth/product + human | SOFTWARE_READY | Name the design partner/question, select two permissioned station links, confirm the $2,000 + $500 funding lines, create and fund four real $125 escrows, and run the bounded pilot |
+| 12 | First-node buyer conversion loop | product/growth | SOFTWARE_READY | Use one truthful venue brief to run the integrated response → scope approval → funding confirmation → Sprint → four escrows → receipt path; record repeat, adjust, or stop |
 
 ## Safe Automatic Work
 

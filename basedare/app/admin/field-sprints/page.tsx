@@ -3,7 +3,7 @@
 import { CheckCircle2, ExternalLink, Loader2, MapPin, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAccount } from 'wagmi';
 
 import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
@@ -22,6 +22,14 @@ type Sprint = {
 const EMPTY = { activationIntakeId: '', buyerName: '', buyerOrganization: '', buyerEmail: '', buyerQuestion: '', areaLabel: 'General Luna, Siargao', freshnessWindowHours: 6, campaignCode: '', stationLinkIds: [] as string[] };
 
 export default function FieldSprintsAdminPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-[#07070b] px-4 pt-24 text-white"><p className="mx-auto max-w-7xl text-sm text-white/45">Loading Sprint Runner…</p></main>}>
+      <FieldSprintsAdminContent />
+    </Suspense>
+  );
+}
+
+function FieldSprintsAdminContent() {
   const searchParams = useSearchParams();
   const { address } = useAccount();
   const { adminSecret, setAdminSecret, ensureAdminSession, hasAdminSession } = useSessionAdminSecret();
