@@ -14,6 +14,7 @@ import {
   getActivationFunnelAttribution,
   getActivationFunnelSessionKey,
 } from '@/lib/activation-funnel-client';
+import { MANAGED_FIELD_SPRINT_BUDGET_RANGE } from '@/lib/financial-canon';
 
 const responseOptions: Array<{ value: FirstNodeResponseType; label: string; detail: string }> = [
   { value: 'REQUEST_PILOT', label: 'Request a pilot', detail: 'Open the scoped approval and funding room.' },
@@ -67,7 +68,7 @@ export default function FirstNodeVenueResponse({
     venueSlug,
     venueName,
     packageId: 'pilot-drop',
-    budgetRange: '500_1500',
+    budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
     goal: 'foot_traffic',
     buyerType: 'venue',
     offerId: 'first-spark',
@@ -94,7 +95,7 @@ export default function FirstNodeVenueResponse({
             buyerType: 'venue',
             city: (city || 'General Luna').slice(0, 140),
             venue: venueName.slice(0, 180),
-            budgetRange: '500_1500',
+            budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
             timeline,
             goal: 'foot_traffic',
             packageId: 'pilot-drop',
@@ -153,7 +154,7 @@ export default function FirstNodeVenueResponse({
           email: email.trim().toLowerCase() || null,
           contactRoute: email.trim().toLowerCase() || null,
           message: message.trim() || null,
-          budgetRange: responseType === 'REQUEST_PILOT' ? '500_1500' : null,
+          budgetRange: responseType === 'REQUEST_PILOT' ? MANAGED_FIELD_SPRINT_BUDGET_RANGE : null,
           timeline: responseType === 'REQUEST_PILOT' ? timeline : null,
           paymentPreference: responseType === 'REQUEST_PILOT' ? paymentPreference : null,
           termsVersion: responseType === 'REQUEST_PILOT' ? FIRST_NODE_TERMS_VERSION : null,

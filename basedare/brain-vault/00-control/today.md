@@ -35,7 +35,7 @@ Operationalize BaseDare as a remote-first playable social map:
 - Official verified venue contact routes are live. Do not build general access tiers or subscriptions until three claimed venues commit to one authorized Ambassador and one attributable perk each.
 - Field Station links, truth-filtered Board entry, Journey attribution, Mission Pass, secure venue arrivals, separate host/destination receipts, live pilot preflight, and campaign decision gates now form one bounded design-partner experiment. Do not print a blocked station or report digital interest as foot traffic.
 - Sprint #1 is a design-partner verification-cost experiment; Sprint #2 is the first paid sale.
-- The Outcome Contract Engine, Verified Field Sprint Runner, and first-node conversion integration are production-migrated. Software now enforces buyer scope approval, the `$2,000 + $500` split, four real `$125` escrow missions, accepted settled outcomes, append-only place memory, and a conservative receipt. Human funding and the real pilot remain intentionally manual.
+- The Outcome Contract Engine, Verified Field Sprint Runner, and first-node conversion integration are on main. Closure hardening now removes stale pilot pricing from new intake paths, permits one append-only funded mission replacement, exposes rights/limitations/privacy-safe evidence on the receipt, and records an explicit buyer repeat/adjust/ask/stop decision. The database-backed disposable vertical slice passed, but release is blocked by older migration/schema drift discovered on a fresh database; production migration and the real human-funded pilot remain intentionally manual.
 - Publicly pseudonymous branding is compatible with the vision; concealed employment, ownership, payment activity, or local commercial control is not.
 - Growth is judged by useful proof density, contributor repeat behavior, organic actions per paid action, and sponsor pull—not raw bounty volume.
 
@@ -49,11 +49,11 @@ Operationalize BaseDare as a remote-first playable social map:
 | 4 | Capture sponsor-usable media/data rights | product/legal | PARTIAL | Add explicit campaign commercial-use consent; existing Terms cover only BaseDare display/promotion |
 | 5 | Seed one playable-map alpha | growth/product | NEXT | Prepare 10–12 free Sparks, 3–4 social activities, 3–4 paid Dares and 2 Routes in one micro-area |
 | 6 | Reuse Local Signals + Sentinel for Sprint #1 | codex | READY | Route structured tips through existing discovery and uncertain-proof review surfaces |
-| 7 | Secure design partner and ecosystem grant path | human | NEXT | Manufacture first receipt at cost/free and prepare grant application before full tournament spend |
+| 7 | Secure design partner and first contributor cell | human + growth | NEXT | Execute `05-playbooks/first-customer-and-contributor-launch.md`: qualify one buyer question, screen six contributors, fund the full $500 reward pool, and keep launch conditional on the production release gate |
 | 8 | Clean public traction and demo signals | codex | NEXT | Separate real treasury/proof data from samples before public participant acquisition |
 | 9 | TikTok / Instagram participation loop | growth | READY | Run four variants of each locked short-form series and measure qualified map actions per 1,000 views |
 | 10 | Creator Journey attribution rail | product/growth | ALPHA_LIVE | Verify Resend domain before enabling email, then run real Instagram/TikTok → Safari/Chrome handoff tests on iOS and Android; keep performance bonuses disabled |
-| 11 | Field Station-backed Verified Field Sprint | growth/product + human | SOFTWARE_READY | Name the design partner/question, select two permissioned station links, confirm the $2,000 + $500 funding lines, create and fund four real $125 escrows, and run the bounded pilot |
+| 11 | Field Station-backed Verified Field Sprint | growth/product + human | RELEASE_BLOCKED | Reconcile legacy migration/schema drift, then name the real design partner/question, select two permissioned station links, confirm the $2,000 + $500 funding lines, create and fund four real $125 escrows, and run the closure pilot in `04-experiments/verified-field-sprint-closure-pilot.md` |
 | 12 | First-node buyer conversion loop | product/growth | SOFTWARE_READY | Use one truthful venue brief to run the integrated response → scope approval → funding confirmation → Sprint → four escrows → receipt path; record repeat, adjust, or stop |
 
 ## Safe Automatic Work

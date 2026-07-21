@@ -10,6 +10,10 @@ import {
   getActivationFunnelSessionKey,
   trackActivationFunnelEvent,
 } from '@/lib/activation-funnel-client';
+import {
+  MANAGED_FIELD_SPRINT_BUDGET_LABEL,
+  MANAGED_FIELD_SPRINT_BUDGET_RANGE,
+} from '@/lib/financial-canon';
 
 type IntakeState = {
   company: string;
@@ -18,7 +22,11 @@ type IntakeState = {
   buyerType: 'venue' | 'brand' | 'agency' | 'event' | 'other';
   city: string;
   venue: string;
-  budgetRange: '500_1500' | '1500_5000' | '5000_15000' | '15000_plus';
+  budgetRange:
+    | typeof MANAGED_FIELD_SPRINT_BUDGET_RANGE
+    | '1500_5000'
+    | '5000_15000'
+    | '15000_plus';
   timeline: 'this_week' | 'this_month' | 'next_90_days' | 'exploring';
   goal: 'foot_traffic' | 'ugc' | 'launch' | 'event' | 'repeat_visits' | 'other';
   packageId: 'pilot-drop' | 'local-signal' | 'city-takeover';
@@ -53,7 +61,7 @@ const INITIAL_STATE: IntakeState = {
   buyerType: 'venue',
   city: '',
   venue: '',
-  budgetRange: '1500_5000',
+  budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
   timeline: 'this_month',
   goal: 'foot_traffic',
   packageId: 'local-signal',
@@ -97,8 +105,8 @@ const summaryClass =
   'cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.2em] text-white/52 transition hover:text-white';
 
 const BUDGET_RANGE_LABELS: Record<IntakeState['budgetRange'], string> = {
-  '500_1500': 'Design-partner exception only',
-  '1500_5000': '$2,500 Verified Field Sprint',
+  [MANAGED_FIELD_SPRINT_BUDGET_RANGE]: MANAGED_FIELD_SPRINT_BUDGET_LABEL,
+  '1500_5000': '$1.5k-$5k custom scope',
   '5000_15000': '$5k-$15k',
   '15000_plus': '$15k+',
 };
@@ -139,7 +147,7 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 function isBudgetRange(value: string | null | undefined): value is IntakeState['budgetRange'] {
-  return value === '500_1500' || value === '1500_5000' || value === '5000_15000' || value === '15000_plus';
+  return value === MANAGED_FIELD_SPRINT_BUDGET_RANGE || value === '1500_5000' || value === '5000_15000' || value === '15000_plus';
 }
 
 function isPackageId(value: string | null | undefined): value is IntakeState['packageId'] {
@@ -1117,8 +1125,8 @@ export default function ActivationIntakeForm({
                 onChange={(event) => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])}
                 className={inputClass}
               >
-                <option className="bg-[#080814]" value="500_1500">Design-partner exception only</option>
-                <option className="bg-[#080814]" value="1500_5000">$2,500 Verified Field Sprint</option>
+                <option className="bg-[#080814]" value={MANAGED_FIELD_SPRINT_BUDGET_RANGE}>{MANAGED_FIELD_SPRINT_BUDGET_LABEL}</option>
+                <option className="bg-[#080814]" value="1500_5000">$1.5k-$5k custom scope</option>
                 <option className="bg-[#080814]" value="5000_15000">$5k-$15k</option>
                 <option className="bg-[#080814]" value="15000_plus">$15k+</option>
               </select>
@@ -1159,8 +1167,8 @@ export default function ActivationIntakeForm({
             onChange={(event) => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])}
             className={inputClass}
           >
-            <option className="bg-[#080814]" value="500_1500">Design-partner exception only</option>
-            <option className="bg-[#080814]" value="1500_5000">$2,500 Verified Field Sprint</option>
+            <option className="bg-[#080814]" value={MANAGED_FIELD_SPRINT_BUDGET_RANGE}>{MANAGED_FIELD_SPRINT_BUDGET_LABEL}</option>
+            <option className="bg-[#080814]" value="1500_5000">$1.5k-$5k custom scope</option>
             <option className="bg-[#080814]" value="5000_15000">$5k-$15k</option>
             <option className="bg-[#080814]" value="15000_plus">$15k+</option>
           </select>

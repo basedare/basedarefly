@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Briefcase, MapPin, Radio, Users } from 'lucide-react';
+import { ArrowRight, MapPin, Radio, Users, Zap } from 'lucide-react';
 
 import { cloneActiveVenueFallbacks, type ActiveVenueCard } from '@/lib/home-active-venues';
 import { buildCreatorMissionActivationHref } from '@/lib/mission-routing';
@@ -45,51 +45,6 @@ type CreatorsResponse = {
   success: boolean;
   data?: CreatorFromApi[];
 };
-
-// Placeholder creators shown before the live /api/creators data hydrates.
-// Kept strictly to the CREATOR role — captains live in the hero CTA, and scouts
-// aren't a self-serve role yet — so the chips never mislabel a role.
-const fallbackCreators: ReadyCreatorSignal[] = [
-  {
-    key: 'proof-creators',
-    name: 'Proof creators',
-    area: 'Area shared after invite',
-    availability: 'Mission-ready',
-    metric: 'Proof, receipt, recap',
-    inviteHref: buildCreatorMissionActivationHref({
-      creator: '@proof-creator',
-      source: 'home-market-signal',
-      city: 'Area shared after invite',
-      skills: ['UGC', 'Fast clips', 'Check-ins'],
-    }),
-  },
-  {
-    key: 'recap-creators',
-    name: 'Recap creators',
-    area: 'Siargao / city pilots',
-    availability: 'Available tonight',
-    metric: 'Clips + venue recaps',
-    inviteHref: buildCreatorMissionActivationHref({
-      creator: '@recap-creator',
-      source: 'home-market-signal',
-      city: 'Siargao / city pilots',
-      skills: ['Recap', 'Fast clips', 'Proof'],
-    }),
-  },
-  {
-    key: 'first-spark-creators',
-    name: 'First-spark creators',
-    area: 'Local radius',
-    availability: 'Open this week',
-    metric: 'Activate a new venue',
-    inviteHref: buildCreatorMissionActivationHref({
-      creator: '@first-spark',
-      source: 'home-market-signal',
-      city: 'Local radius',
-      skills: ['First spark', 'Check-ins', 'Proof'],
-    }),
-  },
-];
 
 function normalizeTag(tag: string) {
   return tag.startsWith('@') ? tag : `@${tag}`;
@@ -167,7 +122,8 @@ type HomeMarketSignalProps = {
 export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketSignalProps) {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [venues, setVenues] = useState<ActiveVenueCard[]>(() => cloneActiveVenueFallbacks().slice(0, 3));
-  const [creators, setCreators] = useState<ReadyCreatorSignal[]>(fallbackCreators);
+  const [creators, setCreators] = useState<ReadyCreatorSignal[]>([]);
+  const [hasLiveVenueData, setHasLiveVenueData] = useState(false);
   const [shouldHydrate, setShouldHydrate] = useState(false);
   const isEmbedded = variant === 'embedded';
 
@@ -205,6 +161,7 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
           .then((data) => {
             if (data.success && data.data?.venues?.length) {
               setVenues(data.data.venues.slice(0, 3));
+              setHasLiveVenueData(true);
             }
           }),
         fetch('/api/creators', { signal: controller.signal })
@@ -224,14 +181,20 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
     };
   }, [shouldHydrate]);
 
-  const liveVenues = venues.filter((venue) => venue.checkInsToday > 0 || venue.proofCount > 0).length || venues.length;
-  const readyCreators = creators.length;
+  const visibleVenues = hasLiveVenueData
+    ? venues.filter((venue) => venue.checkInsToday > 0 || venue.proofCount > 0).length
+    : venues.length;
+  const availableContributors = creators.length;
   const quietSignals = [
     ...venues.slice(0, 2).map((venue) => ({
       key: `venue-${venue.slug}`,
       kind: 'venue' as const,
       label: venue.name,
-      meta: venue.checkInsToday > 0 ? `${venue.checkInsToday} check-ins` : venue.activityLabel,
+      meta: hasLiveVenueData
+        ? venue.checkInsToday > 0
+          ? `${venue.checkInsToday} check-ins`
+          : venue.activityLabel
+        : venue.area,
       href: venue.primaryHref,
     })),
     ...creators.slice(0, 2).map((creator) => ({
@@ -279,11 +242,10 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
                   "0 0 16px rgba(34,211,238,0.22), 0 0 28px rgba(245,197,24,0.10)",
               }}
             >
-              Venues ready to turn bounties into proof.
+              Real places. Paid fieldwork. Verified receipts.
             </h3>
             <p className="mx-auto mt-3 max-w-3xl text-sm font-bold leading-6 text-white/48">
-              Open venues turn bounties into receipts — check-ins, missions, and proof. Hosts are the
-              operators who run them.
+              Explore what people have verified, or join a funded mission and help keep the map useful. Local Partners only support approved routes when needed.
             </p>
           </div>
 
@@ -294,14 +256,14 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(12,14,24,0.72))] px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.14em] text-white/76 shadow-[0_14px_26px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-10px_16px_rgba(0,0,0,0.18)] transition hover:border-cyan-300/28 hover:text-cyan-100 sm:min-w-[10.5rem]"
             >
               <MapPin className="h-3.5 w-3.5 shrink-0" />
-              Open venue map
+              Explore the map
             </Link>
             <Link
-              href="/hosts?source=home-market-signal"
+              href="/join?source=home-market-signal"
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(245,197,24,0.18),rgba(245,197,24,0.07))] px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[#f9e27a] shadow-[0_14px_24px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:border-[#f5c518]/45 sm:min-w-[11.5rem]"
             >
-              <Briefcase className="h-3.5 w-3.5 shrink-0" />
-              Become a host
+              <Zap className="h-3.5 w-3.5 shrink-0" />
+              Find paid missions
             </Link>
           </div>
         </div>
@@ -309,12 +271,12 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
         <div className="relative mt-6 grid gap-3 lg:grid-cols-[0.78fr_1.22fr]">
           <div className="grid grid-cols-2 gap-2 rounded-[1.35rem] border border-white/[0.075] bg-black/24 p-3 shadow-[inset_6px_6px_14px_rgba(0,0,0,0.36),inset_-3px_-3px_8px_rgba(255,255,255,0.025),inset_0_1px_0_rgba(255,255,255,0.055)]">
             <div className="rounded-2xl border border-emerald-200/12 bg-[linear-gradient(160deg,rgba(52,211,153,0.08),rgba(4,9,12,0.62))] px-3 py-3 shadow-[0_10px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <span className="block text-2xl font-black text-white">{liveVenues}</span>
-              <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/62">active venues</span>
+              <span className="block text-2xl font-black text-white">{visibleVenues}</span>
+              <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/62">{hasLiveVenueData ? 'venues with signal' : 'mapped venues'}</span>
             </div>
             <div className="rounded-2xl border border-[#f5c518]/16 bg-[linear-gradient(160deg,rgba(245,197,24,0.11),rgba(16,12,5,0.7))] px-3 py-3 shadow-[0_10px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <span className="block text-2xl font-black text-white">{readyCreators}</span>
-              <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-[#f9e27a]/68">ready creators</span>
+              <span className="block text-2xl font-black text-white">{availableContributors}</span>
+              <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-[#f9e27a]/68">available contributors</span>
             </div>
           </div>
 

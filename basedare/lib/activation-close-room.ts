@@ -6,6 +6,10 @@ import { Prisma } from '@prisma/client';
 import { recordActivationFunnelEvent } from '@/lib/activation-funnel';
 import { prisma } from '@/lib/prisma';
 import {
+  MANAGED_FIELD_SPRINT_BUDGET_LABEL,
+  MANAGED_FIELD_SPRINT_BUDGET_RANGE,
+} from '@/lib/financial-canon';
+import {
   FIRST_NODE_TERMS_VERSION,
   nextActivationCloseRoomStatus,
   type ActivationCloseRoomDecision,
@@ -41,7 +45,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const BUDGET_LABELS: Record<string, string> = {
-  '500_1500': '$500-$1.5k',
+  [MANAGED_FIELD_SPRINT_BUDGET_RANGE]: MANAGED_FIELD_SPRINT_BUDGET_LABEL,
   '1500_5000': '$1.5k-$5k',
   '5000_15000': '$5k-$15k',
   '15000_plus': '$15k+',
@@ -201,7 +205,11 @@ function defaultReplyEmail() {
 function isFirstSparkCloseRoom(input: { packageId: string; budgetRange: string; metadata: MetadataRecord }) {
   const activationAttribution = asRecord(input.metadata.activationAttribution);
   const offerId = stringValue(input.metadata.offerId) || stringValue(activationAttribution.offerId);
-  return offerId === 'first-spark' || input.packageId === 'pilot-drop' || input.budgetRange === '500_1500';
+  return (
+    offerId === 'first-spark' ||
+    input.packageId === 'pilot-drop' ||
+    input.budgetRange === MANAGED_FIELD_SPRINT_BUDGET_RANGE
+  );
 }
 
 function buildMailtoHref(input: { email: string; subject: string; body: string }) {

@@ -10,6 +10,7 @@ import {
   linkVerifiedFieldSprintMission,
   listVerifiedFieldSprints,
   recordVerifiedFieldSprintReviewCost,
+  replaceVerifiedFieldSprintMission,
   startVerifiedFieldSprint,
   startVerifiedFieldSprintRouting,
   syncVerifiedFieldSprint,
@@ -31,6 +32,11 @@ const ActionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('CONFIRM_FUNDS'), sprintId: z.string(), serviceFeeConfirmedUsd: z.number().min(0).max(2000), rewardPoolConfirmedUsd: z.number(), designPartnerException: z.boolean().default(false), fundingReference: z.string().min(3).max(191) }),
   z.object({ action: z.literal('START_ROUTING'), sprintId: z.string() }),
   z.object({ action: z.literal('LINK_MISSION'), sprintId: z.string(), ordinal: z.number().int().min(1).max(4), dareId: z.string().min(1) }),
+  z.object({
+    action: z.literal('REPLACE_MISSION'), sprintId: z.string(), ordinal: z.number().int().min(1).max(4), dareId: z.string().min(1),
+    replacementKind: z.enum(['REJECTED', 'ABANDONED']), replacementReason: z.string().min(8).max(500),
+    fundingTreatment: z.enum(['RECOVERED_ESCROW', 'SUPPLEMENTAL_125']), fundingReference: z.string().min(3).max(191),
+  }),
   z.object({ action: z.literal('START_COLLECTING'), sprintId: z.string() }),
   z.object({ action: z.literal('SYNC'), sprintId: z.string() }),
   z.object({ action: z.literal('RECORD_REVIEW_COST'), sprintId: z.string(), ordinal: z.number().int().min(1).max(4), reviewMinutes: z.number().int().min(0), reviewCostUsd: z.number().min(0) }),
@@ -68,7 +74,8 @@ export async function PATCH(request: NextRequest) {
         data = await confirmVerifiedFieldSprintFunding({ ...input, actor: auth.walletAddress });
         break;
       case 'START_ROUTING': data = await startVerifiedFieldSprintRouting(input.sprintId); break;
-      case 'LINK_MISSION': data = await linkVerifiedFieldSprintMission(input); break;
+      case 'LINK_MISSION': data = await linkVerifiedFieldSprintMission({ ...input, actor: auth.walletAddress }); break;
+      case 'REPLACE_MISSION': data = await replaceVerifiedFieldSprintMission({ ...input, actor: auth.walletAddress }); break;
       case 'START_COLLECTING': data = await beginVerifiedFieldSprintCollection(input.sprintId); break;
       case 'SYNC': data = await syncVerifiedFieldSprint(input.sprintId); break;
       case 'RECORD_REVIEW_COST': data = await recordVerifiedFieldSprintReviewCost(input); break;

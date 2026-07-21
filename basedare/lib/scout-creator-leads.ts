@@ -1,3 +1,5 @@
+import { MANAGED_FIELD_SPRINT_BUDGET_RANGE } from '@/lib/financial-canon';
+
 export const SCOUT_CREATOR_LEAD_EVENT_TYPE = 'SCOUT_CREATOR_LEAD';
 export const DEFAULT_SCOUT_REWARD_SHARE_PCT = 10;
 
@@ -207,7 +209,7 @@ export function buildCaptainMissionActivationHref(input: {
     source: normalizeScoutText(input.source) || 'captain-mission',
     buyerType: 'venue',
     packageId: 'pilot-drop',
-    budgetRange: '500_1500',
+    budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
     goal: 'foot_traffic',
     offer: 'first-spark',
   });

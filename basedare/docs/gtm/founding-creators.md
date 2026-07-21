@@ -1,3 +1,5 @@
+> **SUPERSEDED — DO NOT USE FOR CURRENT OUTREACH.** The active launch sequence, contributor economics, wallet-first entry, and claims discipline live in `brain-vault/05-playbooks/first-customer-and-contributor-launch.md`. This historical document contains old creator-first and token-adjacent language.
+
 # BaseDare — Founding Creators Outreach Kit
 
 > Goal: sign up the first **15–30 founding creators in ONE scene (Siargao / General Luna)** against the live funnel: **`basedare.xyz/creators/onboard`**. Concentrate, don't broadcast. A loop that visibly spins in one town beats a thin national list.

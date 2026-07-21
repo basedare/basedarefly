@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle2, Clipboard, Sparkles } from 'lucide-react';
 
 import { trackActivationFunnelEvent } from '@/lib/activation-funnel-client';
+import { MANAGED_FIELD_SPRINT_BUDGET_RANGE } from '@/lib/financial-canon';
 
 type VenueType = 'beach' | 'bar' | 'cafe' | 'restaurant' | 'hotel' | 'gym' | 'event' | 'retail';
 type BuyerGoal = 'foot_traffic' | 'ugc' | 'launch' | 'event' | 'repeat_visits';
@@ -196,7 +197,7 @@ export default function SparkAuditGenerator() {
     const params = new URLSearchParams({
       buyerType: 'venue',
       packageId: 'local-signal',
-      budgetRange: '1500_5000',
+      budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
       goal,
       source: 'spark-audit',
       auditBrief: audit.summary,
@@ -216,7 +217,7 @@ export default function SparkAuditGenerator() {
         attribution: {
           venueName: venueName.trim() || null,
           packageId: 'local-signal',
-          budgetRange: '1500_5000',
+          budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
           goal,
           buyerType: 'venue',
           source: 'spark-audit',
@@ -421,7 +422,7 @@ export default function SparkAuditGenerator() {
                     attribution: {
                       venueName: venueName.trim() || null,
                       packageId: 'local-signal',
-                      budgetRange: '1500_5000',
+                      budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
                       goal,
                       buyerType: 'venue',
                       source: 'spark-audit',

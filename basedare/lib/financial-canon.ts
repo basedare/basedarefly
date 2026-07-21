@@ -32,6 +32,17 @@ export const MANAGED_FIELD_SPRINT = {
   maxDeliveryHours: 10,
 } as const;
 
+/**
+ * Stable intake metadata for the canonical managed Sprint.
+ *
+ * This is intentionally not a broad price band: the current SKU is fixed at
+ * $2,500. Keeping one explicit value prevents old $500-$1.5k pilot metadata
+ * from resurfacing in buyer handoffs, close rooms, or operator alerts.
+ */
+export const MANAGED_FIELD_SPRINT_BUDGET_RANGE = 'verified_field_sprint' as const;
+export const MANAGED_FIELD_SPRINT_BUDGET_LABEL =
+  '$2,500 total ($2,000 managed service + $500 reward pool)';
+
 export const MANAGED_FIELD_SPRINT_ESCROW_STATUSES = [
   'PENDING',
   'AWAITING_CLAIM',

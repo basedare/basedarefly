@@ -14,13 +14,17 @@ import {
   buildVerifiedFieldSprintReceipt,
   completeVerifiedFieldSprint,
   confirmVerifiedFieldSprintFunding,
-  getVerifiedFieldSprint,
   linkVerifiedFieldSprintMission,
+  recordVerifiedFieldSprintBuyerDecision,
+  replaceVerifiedFieldSprintMission,
   startVerifiedFieldSprint,
   startVerifiedFieldSprintRouting,
   syncVerifiedFieldSprint,
 } from '@/lib/verified-field-sprint-server';
-import { compileFieldSprintContracts } from '@/lib/verified-field-sprint-policy';
+import {
+  compileFieldSprintContracts,
+  FIELD_SPRINT_REPEAT_TERMS_VERSION,
+} from '@/lib/verified-field-sprint-policy';
 
 const runId = `sprint-smoke-${Date.now()}-${randomUUID().slice(0, 8)}`;
 const campaignCode = `${runId}-campaign`;
@@ -180,7 +184,7 @@ async function main() {
       },
     });
     createdDareIds.push(dare.id);
-    await linkVerifiedFieldSprintMission({ sprintId: sprint.id, ordinal: contract.ordinal, dareId: dare.id });
+    await linkVerifiedFieldSprintMission({ sprintId: sprint.id, ordinal: contract.ordinal, dareId: dare.id, actor: 'db-smoke' });
   }
 
   const collectionResults = await Promise.allSettled([
@@ -192,8 +196,101 @@ async function main() {
   assert.equal((await prisma.founderEvent.findUniqueOrThrow({ where: { id: intake.id } })).status, 'LAUNCHED');
 
   const observedAt = new Date(Date.now() - 15 * 60_000);
-  for (let index = 0; index < createdDareIds.length; index += 1) {
-    const dareId = createdDareIds[index];
+
+  // Deliberately reject the first proof. This evidence remains durable after
+  // the one allowed replacement and must be disclosed on the buyer receipt.
+  const rejectedDareId = createdDareIds[0];
+  const rejectedWallet = `0x${'9'.repeat(40)}`;
+  await prisma.dare.update({
+    where: { id: rejectedDareId },
+    data: {
+      status: 'FAILED',
+      targetWalletAddress: rejectedWallet,
+      evidenceDecision: 'REJECTED',
+      proofCid: `${runId}-cid-rejected`,
+      videoUrl: `https://example.invalid/${runId}/rejected.jpg`,
+    },
+  });
+  await prisma.dareProofAttempt.create({
+    data: {
+      dareId: rejectedDareId,
+      submitterWallet: rejectedWallet,
+      beneficiaryWallet: rejectedWallet,
+      source: 'web',
+      targetLatitude: venue.latitude,
+      targetLongitude: venue.longitude,
+      allowedRadiusKm: 0.5,
+      submittedLatitude: venue.latitude + 0.02,
+      submittedLongitude: venue.longitude + 0.02,
+      accuracyM: 12,
+      capturedAt: observedAt,
+      receivedAt: new Date(observedAt.getTime() + 30_000),
+      distanceKm: 3.1,
+      proximityDecision: 'OUTSIDE',
+      mediaCid: `${runId}-cid-rejected`,
+      verificationConfidence: 0.99,
+      decision: 'REJECTED',
+      evidenceDecision: 'REJECTED',
+      decidedAt: new Date(observedAt.getTime() + 60_000),
+      submissionKey: `${rejectedDareId}:${runId}-cid-rejected`,
+    },
+  });
+  const rejectedReview = await syncVerifiedFieldSprint(sprint.id);
+  assert.equal(rejectedReview?.status, 'REVIEW');
+  assert.equal(rejectedReview?.missions[0]?.status, 'REJECTED');
+
+  const replacementContract = compiledContracts[0];
+  const replacementDare = await prisma.dare.create({
+    data: {
+      shortId: `${runId.slice(-7)}r1`,
+      onChainDareId: `${Date.now()}91`,
+      title: `${replacementContract.snapshot.mission.do} (replacement)`,
+      missionMode: 'IRL',
+      tag: 'field-truth',
+      bounty: 125,
+      status: 'PENDING',
+      isSimulated: false,
+      isNearbyDare: true,
+      latitude: venue.latitude,
+      longitude: venue.longitude,
+      locationLabel: venue.name,
+      venueId: venue.id,
+      discoveryRadiusKm: 0.5,
+      outcomeContractFamily: replacementContract.snapshot.family,
+      outcomeContractVersion: replacementContract.snapshot.version,
+      outcomeContractSnapshot: replacementContract.snapshot as unknown as Prisma.InputJsonValue,
+      stakerAddress: `0x${'b'.repeat(40)}`,
+    },
+  });
+  createdDareIds.push(replacementDare.id);
+  const replaced = await replaceVerifiedFieldSprintMission({
+    sprintId: sprint.id,
+    ordinal: 1,
+    dareId: replacementDare.id,
+    replacementKind: 'REJECTED',
+    replacementReason: 'The first device submission was clearly outside the agreed evidence radius.',
+    fundingTreatment: 'SUPPLEMENTAL_125',
+    fundingReference: `${runId}-supplemental-125`,
+    actor: 'db-smoke',
+  });
+  assert.equal(replaced.missions[0]?.links.length, 2, 'one replacement should preserve two escrow links');
+  await assert.rejects(
+    replaceVerifiedFieldSprintMission({
+      sprintId: sprint.id,
+      ordinal: 1,
+      dareId: createdDareIds[1],
+      replacementKind: 'REJECTED',
+      replacementReason: 'A second replacement must remain impossible.',
+      fundingTreatment: 'SUPPLEMENTAL_125',
+      fundingReference: `${runId}-forbidden-second-topup`,
+      actor: 'db-smoke',
+    }),
+    /one replacement maximum|requires an authoritative failed\/rejected first mission/i,
+  );
+
+  const acceptedDareIds = [replacementDare.id, ...createdDareIds.slice(1, 4)];
+  for (let index = 0; index < acceptedDareIds.length; index += 1) {
+    const dareId = acceptedDareIds[index];
     const wallet = `0x${String(index + 1).repeat(40)}`;
     const decidedAt = new Date(observedAt.getTime() + (index + 1) * 60_000);
     await prisma.dare.update({
@@ -242,6 +339,15 @@ async function main() {
   const reviewed = await syncVerifiedFieldSprint(sprint.id);
   assert.equal(reviewed?.status, 'REVIEW');
   assert.equal(reviewed?.missions.every((mission) => mission.status === 'ACCEPTED'), true);
+  await prisma.dare.update({ where: { id: replacementDare.id }, data: { targetWalletAddress: rejectedWallet } });
+  await syncVerifiedFieldSprint(sprint.id);
+  await assert.rejects(
+    completeVerifiedFieldSprint(sprint.id),
+    /different contributor than its rejected or abandoned first escrow/i,
+    'a replacement cannot recycle the contributor from the rejected first escrow',
+  );
+  await prisma.dare.update({ where: { id: replacementDare.id }, data: { targetWalletAddress: `0x${'1'.repeat(40)}` } });
+  await syncVerifiedFieldSprint(sprint.id);
   const completed = await completeVerifiedFieldSprint(sprint.id);
   assert.equal(completed.status, 'COMPLETE');
   assert.equal(completed.missions.filter((mission) => mission.placeObservation).length, 4);
@@ -250,11 +356,58 @@ async function main() {
   assert(receipt?.summary, 'complete receipt should contain a conservative outcome distribution');
   assert.deepEqual(receipt.summary.distribution, { YES: 1, NO: 1, PARTIAL: 1, INCONCLUSIVE: 1 });
   assert.equal(receipt.summary.contributorPayoutUsd, 480);
+  assert.equal(receipt.missions[0]?.escrowHistory.length, 2, 'receipt must disclose the rejected first escrow and replacement');
+  assert.equal(receipt.missions[0]?.escrowHistory[0]?.evidenceReference?.evidenceDecision, 'REJECTED');
+  assert.equal(receipt.rights.sponsorCommercialReuse, 'NOT_GRANTED');
+  assert.equal(receipt.missions.every((mission) => mission.evidenceReference?.reference.startsWith('ev_')), true);
+  assert.equal(JSON.stringify(receipt).includes('submittedLatitude'), false, 'public receipt must not expose submitted coordinates');
+  assert.equal(JSON.stringify(receipt).includes('targetLatitude'), false, 'public receipt must not expose target coordinates');
   const completedIntake = await prisma.founderEvent.findUniqueOrThrow({ where: { id: intake.id } });
   const completedMetadata = completedIntake.metadataJson as { verifiedFieldSprint?: { status?: string; receiptCode?: string; receiptHref?: string } } | null;
   assert.equal(completedMetadata?.verifiedFieldSprint?.status, 'COMPLETE');
   assert.equal(completedMetadata?.verifiedFieldSprint?.receiptCode, sprint.receiptCode);
   assert.equal(completedMetadata?.verifiedFieldSprint?.receiptHref, `/field-sprints/${sprint.receiptCode}`);
+
+  const repeatDecision = await recordVerifiedFieldSprintBuyerDecision({
+    receiptCode: sprint.receiptCode,
+    requestId: `${runId}-repeat-decision`,
+    decision: 'REPEAT',
+    contactName: 'Smoke Buyer',
+    email: 'smoke@example.com',
+    note: 'Run the same bounded question once the current place memory expires.',
+    termsVersion: FIELD_SPRINT_REPEAT_TERMS_VERSION,
+  });
+  const duplicateRepeatDecision = await recordVerifiedFieldSprintBuyerDecision({
+    receiptCode: sprint.receiptCode,
+    requestId: `${runId}-repeat-decision`,
+    decision: 'REPEAT',
+    contactName: 'Smoke Buyer',
+    email: 'smoke@example.com',
+    note: 'This retry must not create a second decision.',
+    termsVersion: FIELD_SPRINT_REPEAT_TERMS_VERSION,
+  });
+  assert.equal(duplicateRepeatDecision.id, repeatDecision.id, 'repeat decision must be idempotent');
+  assert.equal(await prisma.verifiedFieldSprintBuyerDecision.count({ where: { sprintId: sprint.id } }), 1);
+  const firstMissionLink = await prisma.verifiedFieldSprintMissionLink.findFirstOrThrow({
+    where: { sprintMission: { sprintId: sprint.id } },
+    orderBy: [{ sprintMissionId: 'asc' }, { sequence: 'asc' }],
+  });
+  await assert.rejects(
+    prisma.verifiedFieldSprintMissionLink.update({
+      where: { id: firstMissionLink.id },
+      data: { linkedBy: 'tamper-attempt' },
+    }),
+    /append-only|Raw query failed|P2010/i,
+    'escrow-link history must be database-enforced append-only',
+  );
+  await assert.rejects(
+    prisma.verifiedFieldSprintBuyerDecision.update({
+      where: { id: repeatDecision.id },
+      data: { note: 'tamper-attempt' },
+    }),
+    /append-only|Raw query failed|P2010/i,
+    'buyer repeat decisions must be database-enforced append-only',
+  );
 
   const repeatSprint = await startVerifiedFieldSprint({
     buyerName: 'Smoke Buyer',
@@ -288,10 +441,12 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    lifecycle: ['report', 'approval', 'funding', 'routing', 'four-real-escrows', 'collection', 'claim/proof fixture', 'accepted payout state', 'receipt', 'repeat'],
+    lifecycle: ['report', 'approval', 'funding', 'routing', 'four-real-escrows', 'collection', 'rejected-first-proof', 'one-disclosed-replacement', 'truthful-negative-and-inconclusive', 'accepted-payout-state', 'receipt-rights-and-privacy', 'buyer-repeat-decision', 'repeat-draft'],
     fundingConcurrency: 'one-winner',
     collectionConcurrency: 'one-winner',
     receiptDistribution: receipt.summary.distribution,
+    escrowLinksOnReplacedMission: receipt.missions[0]?.escrowHistory.length,
+    sponsorCommercialReuse: receipt.rights.sponsorCommercialReuse,
   }, null, 2));
 }
 

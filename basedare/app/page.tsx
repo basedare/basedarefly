@@ -23,6 +23,7 @@ import {
   runAfterPageIdle,
   shouldPreferLightweightClient,
 } from "@/lib/client-performance";
+import { MANAGED_FIELD_SPRINT } from "@/lib/financial-canon";
 
 const HeroEllipticalStream = dynamic(() => import("@/components/HeroEllipticalStream"), {
   loading: () => <div className="h-[560px] w-full md:h-[680px]" aria-hidden="true" />,
@@ -467,7 +468,7 @@ function HomeContent() {
                 Control Mode
               </h1>
               <p className="mx-auto mt-5 max-w-md px-6 text-base font-bold leading-7 text-zinc-800 md:max-w-lg md:px-0 md:text-lg lg:-mt-16">
-                The venue side of BaseDare: fund a dare, people show up and prove it, you get the receipt.
+                Commission one bounded real-world question. BaseDare routes independent contributors, verifies the evidence, and returns an honest receipt.
               </p>
             </div>
 
@@ -476,14 +477,14 @@ function HomeContent() {
                 Start with one move
               </div>
               <p className="mx-auto mt-3 max-w-2xl text-sm font-bold leading-6 text-zinc-700">
-                New here? Run one First Spark. Already funding activations? Open the Brand Portal.
+                New buyer? Start with one Verified Field Sprint. Already operating missions? Open the Brand Portal.
               </p>
             </div>
 
             <div className="grid max-w-7xl items-stretch gap-5 px-6 md:grid-cols-2 lg:grid-cols-3 mx-auto relative z-10">
-              {/* First Spark - the 'Start here' move leads the grid */}
+              {/* The canonical managed SKU leads the grid. */}
               <div
-                onClick={() => router.push('/first-spark')}
+                onClick={() => router.push('/first-spark?from=home')}
                 className="control-card-shell group relative h-full min-h-[320px] p-[2px] rounded-[28px] overflow-hidden cursor-pointer transition-all duration-300 md:hover:-translate-y-1"
               >
                 <div
@@ -521,17 +522,17 @@ function HomeContent() {
                     <div className="mb-3 inline-flex rounded-full border border-yellow-200/18 bg-yellow-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100">
                       Start here
                     </div>
-                    <h2 className="text-2xl font-bold mb-2 text-white">Run First Spark</h2>
+                    <h2 className="text-2xl font-bold mb-2 text-white">Verified Field Sprint</h2>
                     <p className="text-zinc-400 mb-4">
-                      One paid venue pilot: approve the place, one perk, QR proof path, and recap. No console setup required.
+                      One useful question, four independent field answers, bounded review, and one timestamped buyer receipt in {MANAGED_FIELD_SPRINT.durationDaysMin}–{MANAGED_FIELD_SPRINT.durationDaysMax} days.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-black/50 border border-yellow-200/20 text-yellow-100/80 rounded">Venue</span>
-                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Perk</span>
-                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">Recap</span>
+                      <span className="px-2 py-1 bg-black/50 border border-yellow-200/20 text-yellow-100/80 rounded">${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} total</span>
+                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">${MANAGED_FIELD_SPRINT.serviceFeeUsd.toLocaleString()} service</span>
+                      <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">${MANAGED_FIELD_SPRINT.grossRewardPoolUsd} rewards</span>
                     </div>
                     <div className="mt-auto pt-6 flex items-center gap-2 text-yellow-100 font-semibold group-hover:text-white transition-colors duration-500">
-                      Run First Spark
+                      Scope a ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} Sprint
                       <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
                     </div>
                   </div>
@@ -590,12 +591,12 @@ function HomeContent() {
                     </div>
                     <h2 className="text-2xl font-bold mb-2 text-white">Brand Portal</h2>
                     <p className="text-zinc-400 mb-4">
-                      The black/white console for registered brands: fund campaigns, see recommended creators, route the best fit, and track proof.
+                      Define a mission, fund its reward, let BaseDare route the right contributors, and track verified answers and receipts.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Campaigns</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Creators</span>
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Proof</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Questions</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Routing</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Receipts</span>
                     </div>
                     <div className="mt-auto pt-6 flex items-center gap-2 text-zinc-300 font-semibold group-hover:text-white transition-colors duration-500">
                       Open Brand Portal

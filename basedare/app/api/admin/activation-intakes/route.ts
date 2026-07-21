@@ -13,6 +13,8 @@ import { normalizeCreatorHandle } from '@/lib/creator-stats';
 import { deriveCreatorTrustProfile } from '@/lib/creator-trust';
 import {
   MANAGED_FIELD_SPRINT,
+  MANAGED_FIELD_SPRINT_BUDGET_LABEL,
+  MANAGED_FIELD_SPRINT_BUDGET_RANGE,
   hasValidManagedFieldSprintPaymentLines,
 } from '@/lib/financial-canon';
 import { prisma } from '@/lib/prisma';
@@ -96,7 +98,7 @@ const STATUS_LABELS: Record<IntakeStatus, string> = {
 };
 
 const BUDGET_LABELS: Record<string, string> = {
-  '500_1500': '$500-$1.5k',
+  [MANAGED_FIELD_SPRINT_BUDGET_RANGE]: MANAGED_FIELD_SPRINT_BUDGET_LABEL,
   '1500_5000': '$1.5k-$5k',
   '5000_15000': '$5k-$15k',
   '15000_plus': '$15k+',

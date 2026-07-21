@@ -6,7 +6,10 @@ import SquircleLink from '@/components/ui/SquircleLink';
 import { ControlChrome } from '@/components/control/ControlChrome';
 import { ControlPanel } from '@/components/control/ControlPanel';
 import { controlPanel, controlInset } from '@/components/control/tokens';
-import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
+import {
+  MANAGED_FIELD_SPRINT,
+  MANAGED_FIELD_SPRINT_BUDGET_RANGE,
+} from '@/lib/financial-canon';
 import ActivationFunnelTracker from '../activations/ActivationFunnelTracker';
 import ActivationIntakeForm from '../activations/ActivationIntakeForm';
 
@@ -72,7 +75,7 @@ function buildFirstSparkRouteHref(route: FirstSparkVenueRoute) {
     city: route.city,
     source: 'first-spark-route',
     buyerType: 'venue',
-    budgetRange: '1500_5000',
+    budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
     packageId: 'local-signal',
     goal: 'foot_traffic',
     missionType: 'dead-window',
@@ -352,7 +355,7 @@ export default async function FirstSparkPage({ searchParams }: FirstSparkPagePro
           routedVenueSlug={routedVenueSlug}
           routedCity={routedCity}
           routedSource={routedSource}
-          routedBudgetRange={resolvedSearchParams.budgetRange || '1500_5000'}
+          routedBudgetRange={resolvedSearchParams.budgetRange || MANAGED_FIELD_SPRINT_BUDGET_RANGE}
           routedPackageId={resolvedSearchParams.packageId || 'local-signal'}
           routedGoal={resolvedSearchParams.goal || 'foot_traffic'}
           routedBuyerType={resolvedSearchParams.buyerType || 'venue'}

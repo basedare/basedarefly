@@ -1,4 +1,5 @@
 import type { VenueDetail } from '@/lib/venue-types';
+import { MANAGED_FIELD_SPRINT_BUDGET_RANGE } from '@/lib/financial-canon';
 
 type CampaignTier = 'SIP_MENTION' | 'SIP_SHILL' | 'CHALLENGE' | 'APEX';
 
@@ -39,7 +40,7 @@ function inferActivationBudgetRange(payout: number | null | undefined) {
   if (safePayout >= 15000) return '15000_plus';
   if (safePayout >= 5000) return '5000_15000';
   if (safePayout >= 1500) return '1500_5000';
-  return '500_1500';
+  return '1500_5000';
 }
 
 export function buildVenueActivationIntakeHref(input: ActivationIntakePrefillInput = {}) {
@@ -56,7 +57,11 @@ export function buildVenueActivationIntakeHref(input: ActivationIntakePrefillInp
   if (input.goal) params.set('goal', input.goal);
   if (input.buyerType) params.set('buyerType', input.buyerType);
   if (input.offerId) params.set('offer', input.offerId);
-  if (input.payout) params.set('budgetRange', inferActivationBudgetRange(input.payout));
+  if (input.offerId === 'first-spark') {
+    params.set('budgetRange', MANAGED_FIELD_SPRINT_BUDGET_RANGE);
+  } else if (input.payout) {
+    params.set('budgetRange', inferActivationBudgetRange(input.payout));
+  }
 
   const isFirstSpark = input.offerId === 'first-spark';
   return `${isFirstSpark ? '/first-spark' : '/activations'}?${params.toString()}#${isFirstSpark ? 'pilot-request' : 'activation-intake'}`;

@@ -7,6 +7,7 @@ import {
   compileFieldSprintContracts,
   inferEvidenceQuality,
   parseAcceptedFieldTruthOutcome,
+  validateSprintMissionReplacement,
   validateSprintEscrow,
   validateSprintFunding,
 } from './verified-field-sprint-policy.ts';
@@ -60,6 +61,42 @@ test('keeps truthful negative and inconclusive results payable', () => {
   assert.equal(parseAcceptedFieldTruthOutcome({ kind: 'NO', summary: 'No queue formed during the window.', observedAt: '2026-07-20T12:00:00Z' })?.kind, 'NO');
   assert.equal(parseAcceptedFieldTruthOutcome({ kind: 'INCONCLUSIVE', summary: 'Weather interrupted observation.', observedAt: '2026-07-20T12:00:00Z' })?.kind, 'INCONCLUSIVE');
   assert.equal(parseAcceptedFieldTruthOutcome({ kind: 'PUBLISHED', summary: 'No.', observedAt: '2026-07-20T12:00:00Z' }), null);
+});
+
+test('allows one disclosed replacement and never hides the rejected first attempt', () => {
+  assert.equal(validateSprintMissionReplacement({
+    sprintStatus: 'REVIEW', missionStatus: 'REJECTED', existingLinkCount: 1,
+    oldDareStatus: 'FAILED', oldEvidenceDecision: 'REJECTED', replacementKind: 'REJECTED',
+    fundingTreatment: 'SUPPLEMENTAL_125', replacementReason: 'Contributor proof was clearly outside the agreed radius.',
+    fundingReference: 'topup-125-01',
+  }).ok, true);
+  assert.equal(validateSprintMissionReplacement({
+    sprintStatus: 'REVIEW', missionStatus: 'REJECTED', existingLinkCount: 2,
+    oldDareStatus: 'FAILED', oldEvidenceDecision: 'REJECTED', replacementKind: 'REJECTED',
+    fundingTreatment: 'SUPPLEMENTAL_125', replacementReason: 'Second replacement should be blocked.',
+    fundingReference: 'topup-125-02',
+  }).ok, false);
+  assert.equal(validateSprintMissionReplacement({
+    sprintStatus: 'REVIEW', missionStatus: 'REJECTED', existingLinkCount: 1,
+    oldDareStatus: 'FAILED', oldEvidenceDecision: 'REJECTED', replacementKind: 'REJECTED',
+    fundingTreatment: 'RECOVERED_ESCROW', replacementReason: 'Unrecovered rejected escrow cannot be called recovered.',
+    fundingReference: 'not-a-refund',
+  }).ok, false);
+});
+
+test('abandoned replacement requires an authoritative refund', () => {
+  assert.equal(validateSprintMissionReplacement({
+    sprintStatus: 'COLLECTING', missionStatus: 'COLLECTING', existingLinkCount: 1,
+    oldDareStatus: 'REFUNDED', oldEvidenceDecision: null, replacementKind: 'ABANDONED',
+    fundingTreatment: 'RECOVERED_ESCROW', replacementReason: 'The claim window expired without a contributor.',
+    fundingReference: 'refund-tx-01',
+  }).ok, true);
+  assert.equal(validateSprintMissionReplacement({
+    sprintStatus: 'COLLECTING', missionStatus: 'COLLECTING', existingLinkCount: 1,
+    oldDareStatus: 'CLAIMED', oldEvidenceDecision: null, replacementKind: 'ABANDONED',
+    fundingTreatment: 'RECOVERED_ESCROW', replacementReason: 'Claim still has unresolved escrow.',
+    fundingReference: 'none',
+  }).ok, false);
 });
 
 test('receipt reports distributions, evidence and costs without averaging away dissent', () => {

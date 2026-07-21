@@ -26,6 +26,10 @@ import {
   SCOUT_RELATIONSHIP_STRENGTH_LABELS,
 } from '@/lib/scout-creator-leads';
 import type { LocalSignalItem } from '@/lib/local-signals';
+import {
+  MANAGED_FIELD_SPRINT_BUDGET_LABEL,
+  MANAGED_FIELD_SPRINT_BUDGET_RANGE,
+} from '@/lib/financial-canon';
 import { normalizeSignalRoomChatId } from '@/lib/signal-room';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -779,7 +783,7 @@ export async function alertActivationIntake(data: {
   activationBrief?: ActivationStoryBrief | null;
 }): Promise<boolean> {
   const budgetLabels: Record<string, string> = {
-    '500_1500': '$500-$1.5k',
+    [MANAGED_FIELD_SPRINT_BUDGET_RANGE]: MANAGED_FIELD_SPRINT_BUDGET_LABEL,
     '1500_5000': '$1.5k-$5k',
     '5000_15000': '$5k-$15k',
     '15000_plus': '$15k+',
@@ -801,7 +805,7 @@ export async function alertActivationIntake(data: {
 
   const details = [
     `Contact: ${escapeHtml(data.contactName)} &lt;${escapeHtml(data.email)}&gt;`,
-    `Type: ${escapeHtml(data.buyerType)} · Budget: ${escapeHtml(budgetLabels[data.budgetRange] || data.budgetRange)}`,
+    `Type: ${escapeHtml(data.buyerType)} · Budget: ${escapeHtml(budgetLabels[data.budgetRange] || 'Historical budget metadata — not current pricing')}`,
     `City: ${escapeHtml(data.city)}${data.venue ? ` · Venue: ${escapeHtml(data.venue)}` : ''}`,
     `Timeline: ${escapeHtml(timelineLabels[data.timeline] || data.timeline)} · Goal: ${escapeHtml(goalLabels[data.goal] || data.goal)}`,
     data.packageId ? `Package: ${escapeHtml(data.packageId)}` : null,
@@ -1084,7 +1088,7 @@ export async function alertActivationIntakeFollowUpQueue(data: {
   }>;
 }): Promise<boolean> {
   const budgetLabels: Record<string, string> = {
-    '500_1500': '$500-$1.5k',
+    [MANAGED_FIELD_SPRINT_BUDGET_RANGE]: MANAGED_FIELD_SPRINT_BUDGET_LABEL,
     '1500_5000': '$1.5k-$5k',
     '5000_15000': '$5k-$15k',
     '15000_plus': '$15k+',
@@ -1094,7 +1098,7 @@ export async function alertActivationIntakeFollowUpQueue(data: {
     .map((lead) => {
       const target = [lead.venue, lead.city].filter(Boolean).join(' · ');
       const reasons = lead.reasons.length ? lead.reasons.map((reason) => escapeHtml(reason)).join(', ') : 'no next action';
-      return `• <b>${escapeHtml(lead.company)}</b>${target ? ` · ${escapeHtml(target)}` : ''}\n  ${escapeHtml(lead.status)} · ${escapeHtml(budgetLabels[lead.budgetRange] || lead.budgetRange || 'budget unknown')} · ${escapeHtml(lead.packageId || 'package unknown')} · ${lead.ageHours}h old\n  ${escapeHtml(lead.email)} · ${escapeHtml(lead.source || 'direct')} · ${reasons}`;
+      return `• <b>${escapeHtml(lead.company)}</b>${target ? ` · ${escapeHtml(target)}` : ''}\n  ${escapeHtml(lead.status)} · ${escapeHtml(budgetLabels[lead.budgetRange] || (lead.budgetRange ? 'Historical budget metadata — not current pricing' : 'budget unknown'))} · ${escapeHtml(lead.packageId || 'package unknown')} · ${lead.ageHours}h old\n  ${escapeHtml(lead.email)} · ${escapeHtml(lead.source || 'direct')} · ${reasons}`;
     })
     .join('\n');
 

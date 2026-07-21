@@ -9,7 +9,10 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
+import {
+  MANAGED_FIELD_SPRINT,
+  MANAGED_FIELD_SPRINT_BUDGET_RANGE,
+} from '@/lib/financial-canon';
 import {
   ACTIVATION_PACKAGES,
   buildActivationPackageDescription,
@@ -104,7 +107,7 @@ export default function ActivationComposer({
     source: 'buyer-portal',
     missionType: 'field-mission',
     packageId: 'local-signal',
-    budgetRange: '1500_5000',
+    budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
     creatorSlots: String(MANAGED_FIELD_SPRINT.assignedContributorCount),
     payout: `$${MANAGED_FIELD_SPRINT.netRewardPerContributorUsd} net per accepted answer`,
     timeWindow: `${MANAGED_FIELD_SPRINT.durationDaysMin}-${MANAGED_FIELD_SPRINT.durationDaysMax} days`,

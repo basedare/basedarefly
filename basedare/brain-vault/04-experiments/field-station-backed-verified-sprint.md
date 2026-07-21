@@ -1,9 +1,9 @@
 ---
 type: experiment
-status: RUNNER_READY_FOR_HUMAN_SETUP
+status: RUNNER_HARDENED_RELEASE_BLOCKED
 owner: growth_product
 created_at: 2026-07-19
-updated_at: 2026-07-20
+updated_at: 2026-07-21
 ---
 
 # Field Station-backed Verified Field Sprint
@@ -38,6 +38,8 @@ The thin Sprint Runner is now implemented at `/admin/field-sprints`. It compiles
 The runner reads accepted evidence, payouts, settlement transactions, verification time, and review cost from the existing authoritative rails. It cannot create or fund escrow, approve evidence, bypass Sentinel, finalize payout, or infer purchases/foot traffic. Completion requires four accepted and paid outcomes from four distinct contributor wallets. Only then does it write append-only, timestamped place-memory observations with refresh dates and expose the high-entropy public receipt at `/field-sprints/<receiptCode>`.
 
 The buyer receipt keeps Field Station acquisition signals separate from verified outcomes and uses only `YES`, `NO`, `PARTIAL`, or `INCONCLUSIVE`. Production migration and the live human setup gates below remain mandatory.
+
+Closure hardening adds one bounded, append-only rejected/abandoned mission replacement, removes obsolete pilot-range pricing from new Sprint intake paths, exposes rights/limitations/privacy-safe evidence references, and records an explicit buyer repeat/adjust/ask/stop decision. See `verified-field-sprint-closure-pilot.md` for the final operating sequence and the legacy migration/schema drift that must be reconciled before release.
 
 ## The single compounding loop
 

@@ -9,6 +9,7 @@ import {
   type ActivationCloseRoomDecision,
   FIRST_NODE_TERMS_VERSION,
 } from '@/lib/first-node-conversion';
+import { MANAGED_FIELD_SPRINT_BUDGET_RANGE } from '@/lib/financial-canon';
 
 const decisionLabels: Record<ActivationCloseRoomDecision, string> = {
   APPROVE_SCOPE: 'Approve scope',
@@ -56,7 +57,7 @@ export default function CloseRoomDecisionForm({ token }: { token: string }) {
           channel,
           email: email.trim().toLowerCase(),
           message: message.trim() || null,
-          budgetRange: '500_1500',
+          budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
           timeline,
           paymentPreference,
           termsVersion: decision === 'APPROVE_SCOPE' ? FIRST_NODE_TERMS_VERSION : null,

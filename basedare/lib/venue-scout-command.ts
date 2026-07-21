@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { MANAGED_FIELD_SPRINT_BUDGET_RANGE } from '@/lib/financial-canon';
 import { prisma } from '@/lib/prisma';
 import type {
   VenueScoutActivationHandoff,
@@ -353,7 +354,7 @@ function buildActivationHandoff(input: {
     source: 'venue-scout-command',
     buyerType: 'venue',
     packageId: 'pilot-drop',
-    budgetRange: '500_1500',
+    budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
     goal: 'foot_traffic',
     venue: input.venue.name,
     venueName: input.venue.name,
@@ -391,7 +392,7 @@ function buildActivationHandoff(input: {
     outreachBody,
     buyerGoal: 'foot_traffic',
     packageId: 'pilot-drop',
-    budgetRange: '500_1500',
+    budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
     nextAction: 'Open the prefilled Spark Audit, review the buyer brief, then send the outreach draft only after operator approval.',
     approvalChecklist: [
       'Contact is the right venue or sponsor buyer.',

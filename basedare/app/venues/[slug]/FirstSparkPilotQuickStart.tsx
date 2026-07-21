@@ -10,6 +10,7 @@ import {
   getActivationFunnelSessionKey,
   trackActivationFunnelEvent,
 } from '@/lib/activation-funnel-client';
+import { MANAGED_FIELD_SPRINT_BUDGET_RANGE } from '@/lib/financial-canon';
 
 type PilotTimeline = 'this_week' | 'this_month';
 
@@ -69,7 +70,7 @@ export default function FirstSparkPilotQuickStart({
       venueSlug,
       venueName,
       packageId: 'pilot-drop',
-      budgetRange: '500_1500',
+      budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
       goal: 'foot_traffic',
       buyerType: 'venue',
       offerId: 'first-spark',
@@ -139,7 +140,7 @@ export default function FirstSparkPilotQuickStart({
           buyerType: 'venue',
           city: cityLabel,
           venue: intakeVenueName,
-          budgetRange: '500_1500',
+          budgetRange: MANAGED_FIELD_SPRINT_BUDGET_RANGE,
           timeline: form.timeline,
           goal: 'foot_traffic',
           packageId: 'pilot-drop',

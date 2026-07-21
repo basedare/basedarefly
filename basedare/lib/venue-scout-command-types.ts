@@ -30,7 +30,7 @@ export type VenueScoutActivationHandoff = {
   outreachBody: string;
   buyerGoal: 'foot_traffic';
   packageId: 'pilot-drop';
-  budgetRange: '500_1500';
+  budgetRange: 'verified_field_sprint';
   nextAction: string;
   approvalChecklist: string[];
 };

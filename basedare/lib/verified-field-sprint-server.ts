@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 import { Prisma } from '@prisma/client';
 
@@ -9,11 +9,17 @@ import {
   canTransitionVerifiedFieldSprint,
   canonicalMissionSettlement,
   compileFieldSprintContracts,
+  FIELD_SPRINT_REPEAT_DECISIONS,
+  FIELD_SPRINT_REPEAT_TERMS_VERSION,
   inferEvidenceQuality,
   parseAcceptedFieldTruthOutcome,
   validateSprintEscrow,
   validateSprintFunding,
+  validateSprintMissionReplacement,
   type FieldSprintEvidenceQuality,
+  type FieldSprintReplacementFunding,
+  type FieldSprintReplacementKind,
+  type FieldSprintRepeatDecision,
   type FieldTruthResult,
 } from '@/lib/verified-field-sprint-policy';
 
@@ -39,14 +45,32 @@ const sprintInclude = {
             orderBy: { receivedAt: 'desc' as const },
             take: 1,
             select: {
-              mediaCid: true, proximityDecision: true, verificationConfidence: true,
+              id: true, mediaCid: true, proximityDecision: true, verificationConfidence: true,
               evidenceDecision: true, receivedAt: true, decidedAt: true,
             },
           },
         },
       },
       placeObservation: true,
+      links: {
+        orderBy: { sequence: 'asc' as const },
+        include: {
+          dare: {
+            select: {
+              id: true, shortId: true, status: true, evidenceDecision: true, verifyTxHash: true,
+              proofAttempts: {
+                orderBy: { receivedAt: 'desc' as const }, take: 1,
+                select: { id: true, proximityDecision: true, evidenceDecision: true, receivedAt: true, decidedAt: true },
+              },
+            },
+          },
+        },
+      },
     },
+  },
+  buyerDecisions: {
+    orderBy: { createdAt: 'desc' as const },
+    take: 10,
   },
 } satisfies Prisma.VerifiedFieldSprintInclude;
 
@@ -225,7 +249,7 @@ export async function startVerifiedFieldSprintRouting(sprintId: string) {
   return getVerifiedFieldSprint(sprintId);
 }
 
-export async function linkVerifiedFieldSprintMission(input: { sprintId: string; ordinal: number; dareId: string }) {
+export async function linkVerifiedFieldSprintMission(input: { sprintId: string; ordinal: number; dareId: string; actor: string }) {
   return prisma.$transaction(async (tx) => {
     const sprint = await tx.verifiedFieldSprint.findUnique({
       where: { id: input.sprintId },
@@ -236,6 +260,9 @@ export async function linkVerifiedFieldSprintMission(input: { sprintId: string; 
     const mission = sprint.missions.find((item) => item.ordinal === input.ordinal);
     if (!mission) throw new Error('Sprint mission not found.');
     if (mission.dareId && mission.dareId !== input.dareId) throw new Error('A compiled mission cannot be relinked to a different escrow.');
+    if (mission.dareId === input.dareId) {
+      return tx.verifiedFieldSprint.findUniqueOrThrow({ where: { id: sprint.id }, include: sprintInclude });
+    }
     const dare = await tx.dare.findUnique({
       where: { id: input.dareId },
       select: {
@@ -269,6 +296,130 @@ export async function linkVerifiedFieldSprintMission(input: { sprintId: string; 
     await tx.verifiedFieldSprintMission.update({
       where: { id: mission.id },
       data: { dareId: dare.id, venueId: dare.venueId, locationLabel: dare.locationLabel, status: 'ROUTED' },
+    });
+    await tx.verifiedFieldSprintMissionLink.create({
+      data: {
+        sprintMissionId: mission.id,
+        dareId: dare.id,
+        sequence: 1,
+        linkKind: 'INITIAL',
+        linkedBy: input.actor,
+      },
+    });
+    return tx.verifiedFieldSprint.findUniqueOrThrow({ where: { id: sprint.id }, include: sprintInclude });
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+}
+
+export async function replaceVerifiedFieldSprintMission(input: {
+  sprintId: string;
+  ordinal: number;
+  dareId: string;
+  replacementKind: FieldSprintReplacementKind;
+  replacementReason: string;
+  fundingTreatment: FieldSprintReplacementFunding;
+  fundingReference: string;
+  actor: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const sprint = await tx.verifiedFieldSprint.findUnique({
+      where: { id: input.sprintId },
+      include: {
+        missions: {
+          include: {
+            dare: { select: { id: true, status: true, evidenceDecision: true, targetWalletAddress: true, claimedBy: true } },
+            links: { select: { id: true, dareId: true, sequence: true } },
+          },
+        },
+      },
+    });
+    if (!sprint) throw new Error('Sprint not found.');
+    const mission = sprint.missions.find((item) => item.ordinal === input.ordinal);
+    if (!mission || !mission.dare) throw new Error('Linked Sprint mission not found.');
+    const replacementValidation = validateSprintMissionReplacement({
+      sprintStatus: sprint.status,
+      missionStatus: mission.status,
+      existingLinkCount: mission.links.length,
+      oldDareStatus: mission.dare.status,
+      oldEvidenceDecision: mission.dare.evidenceDecision,
+      replacementKind: input.replacementKind,
+      fundingTreatment: input.fundingTreatment,
+      replacementReason: input.replacementReason,
+      fundingReference: input.fundingReference,
+    });
+    if (!replacementValidation.ok) throw new Error(replacementValidation.reason);
+    if (mission.dareId === input.dareId) throw new Error('Replacement must use a new escrow.');
+
+    const dare = await tx.dare.findUnique({
+      where: { id: input.dareId },
+      select: {
+        id: true, bounty: true, status: true, isSimulated: true, onChainDareId: true,
+        isNearbyDare: true, outcomeContractFamily: true, outcomeContractVersion: true,
+        outcomeContractSnapshot: true, targetWalletAddress: true, claimedBy: true,
+        venueId: true, locationLabel: true,
+      },
+    });
+    if (!dare) throw new Error('Replacement escrow not found.');
+    const escrowValidation = validateSprintEscrow({
+      grossRewardUsd: dare.bounty,
+      status: dare.status,
+      isSimulated: dare.isSimulated,
+      onChainDareId: dare.onChainDareId,
+      isNearbyDare: dare.isNearbyDare,
+      outcomeContractFamily: dare.outcomeContractFamily,
+      outcomeContractVersion: dare.outcomeContractVersion,
+      outcomeContractSnapshot: dare.outcomeContractSnapshot,
+      buyerQuestion: sprint.buyerQuestion,
+      freshnessWindowHours: sprint.freshnessWindowHours,
+    });
+    if (!escrowValidation.ok) throw new Error(escrowValidation.reason);
+    const beneficiary = normalizeWallet(dare.targetWalletAddress ?? dare.claimedBy);
+    const originalBeneficiary = normalizeWallet(mission.dare.targetWalletAddress ?? mission.dare.claimedBy);
+    if (beneficiary && originalBeneficiary && beneficiary === originalBeneficiary) {
+      throw new Error('Replacement must route to a different contributor than the rejected or abandoned first mission.');
+    }
+    const otherBeneficiaries = sprint.missions.flatMap((item) => {
+      if (item.id === mission.id) return [];
+      const wallet = normalizeWallet(item.dare?.targetWalletAddress ?? item.dare?.claimedBy);
+      return wallet ? [wallet] : [];
+    });
+    if (beneficiary && otherBeneficiaries.includes(beneficiary)) {
+      throw new Error('Replacement must preserve independent contributors.');
+    }
+
+    const changed = await tx.verifiedFieldSprintMission.updateMany({
+      where: { id: mission.id, dareId: mission.dareId, status: mission.status },
+      data: {
+        dareId: dare.id,
+        venueId: dare.venueId,
+        locationLabel: dare.locationLabel,
+        status: 'COLLECTING',
+        reportedOutcome: Prisma.JsonNull,
+        evidenceDecision: null,
+        evidenceQuality: null,
+        evidenceFreshnessHours: null,
+        contributorWallet: null,
+        contributorPayoutUsd: null,
+        platformFeeUsd: null,
+        verificationStartedAt: null,
+        verificationCompletedAt: null,
+        verificationTimeMinutes: null,
+        observedAt: null,
+        acceptedAt: null,
+      },
+    });
+    if (changed.count !== 1) throw new Error('Mission changed before the replacement was recorded.');
+    await tx.verifiedFieldSprintMissionLink.create({
+      data: {
+        sprintMissionId: mission.id,
+        dareId: dare.id,
+        sequence: 2,
+        linkKind: 'REPLACEMENT',
+        replacementKind: input.replacementKind,
+        replacementReason: cleanText(input.replacementReason, 500),
+        fundingTreatment: input.fundingTreatment,
+        fundingReference: cleanText(input.fundingReference, 191),
+        linkedBy: input.actor,
+      },
     });
     return tx.verifiedFieldSprint.findUniqueOrThrow({ where: { id: sprint.id }, include: sprintInclude });
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
@@ -382,13 +533,36 @@ export async function syncVerifiedFieldSprint(sprintId: string) {
 export async function completeVerifiedFieldSprint(sprintId: string) {
   await syncVerifiedFieldSprint(sprintId);
   return prisma.$transaction(async (tx) => {
-    const sprint = await tx.verifiedFieldSprint.findUnique({ where: { id: sprintId }, include: { missions: { orderBy: { ordinal: 'asc' } } } });
+    const sprint = await tx.verifiedFieldSprint.findUnique({
+      where: { id: sprintId },
+      include: {
+        missions: {
+          orderBy: { ordinal: 'asc' },
+          include: {
+            links: {
+              include: { dare: { select: { targetWalletAddress: true, claimedBy: true } } },
+            },
+          },
+        },
+      },
+    });
     if (!sprint) throw new Error('Sprint not found.');
     if (!canTransitionVerifiedFieldSprint(sprint.status, 'COMPLETE')) throw new Error('Sprint must be in review before completion.');
     if (sprint.missions.length !== 4 || sprint.missions.some((mission) => mission.status !== 'ACCEPTED' || !mission.dareId || !mission.reportedOutcome || !mission.acceptedAt || !mission.observedAt || !mission.evidenceQuality || !mission.contributorWallet || mission.contributorPayoutUsd !== 120 || mission.platformFeeUsd !== 5)) {
       throw new Error('All four independent missions need accepted evidence and confirmed payouts before the receipt can close.');
     }
     if (new Set(sprint.missions.map((mission) => mission.contributorWallet)).size !== 4) throw new Error('The four accepted missions must belong to four independent contributors.');
+    for (const mission of sprint.missions) {
+      const priorContributorWallets = mission.links
+        .filter((link) => link.dareId !== mission.dareId)
+        .flatMap((link) => {
+          const wallet = normalizeWallet(link.dare.targetWalletAddress ?? link.dare.claimedBy);
+          return wallet ? [wallet] : [];
+        });
+      if (mission.contributorWallet && priorContributorWallets.includes(mission.contributorWallet)) {
+        throw new Error(`Mission ${mission.ordinal} replacement must be completed by a different contributor than its rejected or abandoned first escrow.`);
+      }
+    }
     const totalReviewCost = sprint.missions.reduce((sum, mission) => sum + mission.reviewCostUsd, 0);
     if (totalReviewCost > MANAGED_FIELD_SPRINT.directDeliveryCostCeilingUsd) throw new Error('Recorded review costs exceed the Sprint direct-delivery ceiling.');
     for (const mission of sprint.missions) {
@@ -446,7 +620,7 @@ export async function completeVerifiedFieldSprint(sprintId: string) {
               receiptCode: sprint.receiptCode,
               receiptHref: `/field-sprints/${sprint.receiptCode}`,
               completedAt: completedAt.toISOString(),
-              repeatHref: '/admin/field-sprints',
+              repeatHref: `/field-sprints/${sprint.receiptCode}#repeat-decision`,
             },
           }),
         },
@@ -516,12 +690,157 @@ export async function buildVerifiedFieldSprintReceipt(receiptCode: string, inclu
       verificationTimeMinutes: mission.verificationTimeMinutes,
       reviewCostUsd: mission.reviewCostUsd,
       refreshAt: mission.placeObservation?.refreshAt ?? null,
+      evidenceReference: buildPrivacySafeEvidenceReference({
+        receiptCode: sprint.receiptCode,
+        dareId: mission.dare?.id ?? mission.dareId,
+        shortId: mission.dare?.shortId ?? null,
+        attemptId: mission.dare?.proofAttempts[0]?.id ?? null,
+        evidenceDecision: mission.dare?.evidenceDecision ?? mission.evidenceDecision,
+        proximityDecision: mission.dare?.proofAttempts[0]?.proximityDecision ?? null,
+        verifyTxHash: mission.dare?.verifyTxHash ?? null,
+      }),
+      escrowHistory: mission.links.map((link) => ({
+        sequence: link.sequence,
+        kind: link.linkKind,
+        replacementKind: link.replacementKind,
+        replacementReason: link.replacementReason,
+        fundingTreatment: link.fundingTreatment,
+        evidenceReference: buildPrivacySafeEvidenceReference({
+          receiptCode: sprint.receiptCode,
+          dareId: link.dareId,
+          shortId: link.dare.shortId,
+          attemptId: link.dare.proofAttempts[0]?.id ?? null,
+          evidenceDecision: link.dare.evidenceDecision,
+          proximityDecision: link.dare.proofAttempts[0]?.proximityDecision ?? null,
+          verifyTxHash: link.dare.verifyTxHash,
+        }),
+      })),
     })),
     fieldStationAcquisition: {
       stationCodes,
       counts: acquisition,
       meaning: 'Acquisition and intent signals from the two physical Field Stations; these are not verified arrivals or field outcomes.',
     },
+    rights: {
+      baseDareDisplay: 'BaseDare may display the accepted receipt and evidence-derived summary under the contributor terms that applied at submission.',
+      buyerUse: 'The buyer may use this receipt internally to make a repeat, adjust, or stop decision.',
+      sponsorCommercialReuse: 'NOT_GRANTED',
+      sponsorCommercialReuseMeaning: 'Raw contributor media is not licensed for sponsor advertising, sublicensing, paid media, or third-party commercial reuse without separate explicit opt-in consent.',
+    },
+    method: {
+      independentChecks: 4,
+      evidenceBoundary: 'Each result required accepted evidence and confirmed settlement through the authoritative Dare rail.',
+      privacyBoundary: 'Public references expose an opaque evidence reference, decision, coarse proximity result, and public settlement reference only—never precise contributor coordinates.',
+      negativeTruth: 'Accepted NO, PARTIAL, and INCONCLUSIVE observations are payable and remain visible in the distribution.',
+    },
+    limitations: [
+      'This receipt reports four time-bounded observations; it is not a universal or permanent market claim.',
+      'Directions opens, Field Station scans, page views, and Mission Pass saves are intent signals—not verified arrivals.',
+      'Browser location is device-reported proximity evidence, not proof of purchase, media creation time, or identity.',
+      'Accepted evidence does not establish incremental foot traffic, purchases, revenue, causality, or guaranteed future performance.',
+      'A replaced mission remains disclosed; its rejected or abandoned evidence is not deleted or counted as an accepted outcome.',
+    ],
+  };
+}
+
+export async function recordVerifiedFieldSprintBuyerDecision(input: {
+  receiptCode: string;
+  requestId: string;
+  decision: FieldSprintRepeatDecision;
+  contactName?: string | null;
+  email?: string | null;
+  nextQuestion?: string | null;
+  note?: string | null;
+  termsVersion: string;
+}) {
+  if (!(FIELD_SPRINT_REPEAT_DECISIONS as readonly string[]).includes(input.decision)) {
+    throw new Error('Unknown buyer decision.');
+  }
+  if (input.termsVersion !== FIELD_SPRINT_REPEAT_TERMS_VERSION) {
+    throw new Error('Buyer decision terms have changed. Reload the receipt.');
+  }
+  return prisma.$transaction(async (tx) => {
+    const sprint = await tx.verifiedFieldSprint.findUnique({
+      where: { receiptCode: input.receiptCode },
+      select: { id: true, status: true, buyerQuestion: true, buyerOrganization: true, buyerName: true },
+    });
+    if (!sprint || sprint.status !== 'COMPLETE') throw new Error('Completed Sprint receipt not found.');
+    const existing = await tx.verifiedFieldSprintBuyerDecision.findUnique({ where: { requestId: input.requestId } });
+    if (existing) {
+      if (existing.sprintId !== sprint.id) throw new Error('Decision request belongs to a different Sprint.');
+      return existing;
+    }
+    const needsReply = ['REPEAT', 'ADJUST', 'ASK'].includes(input.decision);
+    const contactName = cleanOptional(input.contactName, 120);
+    const email = cleanOptional(input.email, 254)?.toLowerCase() ?? null;
+    if (needsReply && (!contactName || !email)) throw new Error('Add a name and reply email.');
+    const nextQuestion = cleanOptional(input.nextQuestion, 500);
+    if (input.decision === 'ADJUST' && (!nextQuestion || nextQuestion.length < 8)) {
+      throw new Error('Add the adjusted field question.');
+    }
+    const inserted = await tx.verifiedFieldSprintBuyerDecision.createMany({
+      data: [{
+        sprintId: sprint.id,
+        requestId: input.requestId,
+        decision: input.decision,
+        contactName,
+        email,
+        nextQuestion,
+        note: cleanOptional(input.note, 1200),
+        termsVersion: input.termsVersion,
+      }],
+      skipDuplicates: true,
+    });
+    if (inserted.count !== 1) {
+      return tx.verifiedFieldSprintBuyerDecision.findUniqueOrThrow({ where: { requestId: input.requestId } });
+    }
+    const decision = await tx.verifiedFieldSprintBuyerDecision.findUniqueOrThrow({ where: { requestId: input.requestId } });
+    await tx.founderEvent.create({
+      data: {
+        eventType: 'FIELD_SPRINT_BUYER_DECISION',
+        source: 'field-sprint-receipt',
+        subjectType: 'verified_field_sprint',
+        subjectId: sprint.id,
+        dedupeKey: `field-sprint-buyer-decision:${input.requestId}`,
+        title: `${input.decision}: ${sprint.buyerOrganization || sprint.buyerName}`,
+        status: 'NEW',
+        href: `/admin/field-sprints?sprintId=${encodeURIComponent(sprint.id)}`,
+        metadataJson: toJson({
+          decision: input.decision,
+          originalQuestion: sprint.buyerQuestion,
+          nextQuestion,
+          contactName,
+          email,
+          note: cleanOptional(input.note, 1200),
+          termsVersion: input.termsVersion,
+        }),
+      },
+    });
+    return decision;
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+}
+
+function buildPrivacySafeEvidenceReference(input: {
+  receiptCode: string;
+  dareId: string | null | undefined;
+  shortId: string | null;
+  attemptId: string | null;
+  evidenceDecision: string | null;
+  proximityDecision: string | null;
+  verifyTxHash: string | null;
+}) {
+  if (!input.dareId) return null;
+  const opaqueReference = createHash('sha256')
+    .update(`${input.receiptCode}:${input.dareId}:${input.attemptId ?? 'no-attempt'}`)
+    .digest('hex')
+    .slice(0, 18);
+  return {
+    reference: `ev_${opaqueReference}`,
+    publicDareHref: input.shortId ? `/dare/${input.shortId}` : null,
+    evidenceDecision: input.evidenceDecision,
+    proximityDecision: input.proximityDecision,
+    settledOnChain: Boolean(input.verifyTxHash),
+    settlementTxHash: input.verifyTxHash,
   };
 }
 

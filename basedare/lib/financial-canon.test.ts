@@ -3,6 +3,8 @@ import test from 'node:test';
 
 import {
   MANAGED_FIELD_SPRINT,
+  MANAGED_FIELD_SPRINT_BUDGET_LABEL,
+  MANAGED_FIELD_SPRINT_BUDGET_RANGE,
   SELF_SERVE_BUSINESS_MISSION,
   SETTLEMENT_SPLIT,
   calculateSuccessfulSettlement,
@@ -31,6 +33,9 @@ test('personal dare settlement is exactly 96/4/0 with no live-pot claim', () => 
 });
 
 test('managed Field Sprint keeps service revenue separate from reward funding', () => {
+  assert.equal(MANAGED_FIELD_SPRINT_BUDGET_RANGE, 'verified_field_sprint');
+  assert.match(MANAGED_FIELD_SPRINT_BUDGET_LABEL, /\$2,500.*\$2,000.*\$500/);
+  assert.doesNotMatch(MANAGED_FIELD_SPRINT_BUDGET_LABEL, /\$500.?\$1,?500/);
   assert.equal(
     MANAGED_FIELD_SPRINT.serviceFeeUsd + MANAGED_FIELD_SPRINT.grossRewardPoolUsd,
     MANAGED_FIELD_SPRINT.invoiceTotalUsd,

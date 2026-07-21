@@ -1,3 +1,5 @@
+> **SUPERSEDED — DO NOT USE FOR CURRENT OUTREACH.** The active buyer/contributor plan and fixed `$2,500` Verified Field Sprint offer live in `brain-vault/05-playbooks/first-customer-and-contributor-launch.md`. This historical document contains obsolete traffic promises and acquisition copy.
+
 # BaseDare — Launch & Sales Pack
 
 > First touch sells the **loop**, not the worldview. Worldview (Chaos / Peebear / dare economy) is second-touch — the magnet, one layer down.

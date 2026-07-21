@@ -20,28 +20,28 @@ model User {
 }
 
 model Dare {
-  id                      String                      @id @default(cuid())
-  shortId                 String?                     @unique
-  onChainDareId           String?                     @unique
+  id                      String                           @id @default(cuid())
+  shortId                 String?                          @unique
+  onChainDareId           String?                          @unique
   title                   String
-  missionMode             String?                     @default("IRL")
+  missionMode             String?                          @default("IRL")
   tag                     String?
   bounty                  Float
-  upvoteCount             Int                         @default(0)
+  upvoteCount             Int                              @default(0)
   streamerHandle          String?
-  status                  String                      @default("PENDING")
+  status                  String                           @default("PENDING")
   videoUrl                String?
   imageUrl                String?
   proofHash               String?
   proofCid                String? // Store the IPFS CID from Pinata
   imageCid                String?
-  requireSentinel         Boolean                     @default(false)
-  sentinelVerified        Boolean                     @default(false)
-  manualReviewNeeded      Boolean                     @default(false)
+  requireSentinel         Boolean                          @default(false)
+  sentinelVerified        Boolean                          @default(false)
+  manualReviewNeeded      Boolean                          @default(false)
   creatorId               String?
   streamId                String?
   txHash                  String?
-  isSimulated             Boolean                     @default(false)
+  isSimulated             Boolean                          @default(false)
   expiresAt               DateTime?
   verifiedAt              DateTime?
   verifyTxHash            String?
@@ -54,17 +54,17 @@ model Dare {
   referrerPayout          Float?
   stakerAddress           String?
   venueId                 String?
-  inviteToken             String?                     @unique
+  inviteToken             String?                          @unique
   claimDeadline           DateTime?
   targetWalletAddress     String?
-  createdAt               DateTime                    @default(now())
-  updatedAt               DateTime                    @updatedAt
+  createdAt               DateTime                         @default(now())
+  updatedAt               DateTime                         @updatedAt
   // Self-expiring lease so only ONE retry-payouts worker processes a
   // PENDING_PAYOUT row at a time (set atomically via CAS; ignored once stale).
   payoutLeaseAt           DateTime?
-  discoveryRadiusKm       Float?                      @default(5)
+  discoveryRadiusKm       Float?                           @default(5)
   geohash                 String?
-  isNearbyDare            Boolean                     @default(false)
+  isNearbyDare            Boolean                          @default(false)
   latitude                Float?
   locationLabel           String?
   longitude               Float?
@@ -72,7 +72,7 @@ model Dare {
   dare_text               String?
   proof_media             String?
   completed_at            DateTime?
-  reaction_count          Int                         @default(0)
+  reaction_count          Int                              @default(0)
   geo_bucket              String?
   // Claim-to-attempt fields (for @everyone open dares)
   claimedBy               String? // Wallet that claimed this dare
@@ -100,16 +100,17 @@ model Dare {
   evidenceDecision        String? // PENDING_REVIEW | ACCEPTED | REJECTED
   orchestrationDecision   Json? // Reserved for the operator Dare Director.
   // Vote threshold tracking
-  voteThreshold           Int                         @default(5) // Votes needed for mod review
-  creator                 User?                       @relation(fields: [creatorId], references: [id])
-  venue                   Venue?                      @relation(fields: [venueId], references: [id])
-  linkedCampaign          Campaign?                   @relation("CampaignLinkedDare")
+  voteThreshold           Int                              @default(5) // Votes needed for mod review
+  creator                 User?                            @relation(fields: [creatorId], references: [id])
+  venue                   Venue?                           @relation(fields: [venueId], references: [id])
+  linkedCampaign          Campaign?                        @relation("CampaignLinkedDare")
   votes                   Vote[]
   comments                Comment[]
   creatorReview           CreatorReview?
   inboxThreads            InboxThread[]
   proofAttempts           DareProofAttempt[]
   fieldSprintMission      VerifiedFieldSprintMission?
+  fieldSprintMissionLinks VerifiedFieldSprintMissionLink[]
   placeObservations       PlaceMemoryObservation[]
 
   @@index([inviteToken])
@@ -1394,6 +1395,7 @@ model VerifiedFieldSprint {
   missions          VerifiedFieldSprintMission[]
   stations          VerifiedFieldSprintStation[]
   placeObservations PlaceMemoryObservation[]
+  buyerDecisions    VerifiedFieldSprintBuyerDecision[]
 
   @@index([status, createdAt])
   @@index([buyerOrganization, createdAt])
@@ -1430,14 +1432,58 @@ model VerifiedFieldSprintMission {
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 
-  sprint           VerifiedFieldSprint     @relation(fields: [sprintId], references: [id], onDelete: Cascade)
-  dare             Dare?                   @relation(fields: [dareId], references: [id], onDelete: SetNull)
-  venue            Venue?                  @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  sprint           VerifiedFieldSprint              @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  dare             Dare?                            @relation(fields: [dareId], references: [id], onDelete: SetNull)
+  venue            Venue?                           @relation(fields: [venueId], references: [id], onDelete: SetNull)
   placeObservation PlaceMemoryObservation?
+  links            VerifiedFieldSprintMissionLink[]
 
   @@unique([sprintId, ordinal])
   @@index([sprintId, status])
   @@index([venueId, acceptedAt])
+}
+
+// Append-only history of every real escrow assigned to one compiled mission.
+// VerifiedFieldSprintMission.dareId is the current escrow; this ledger prevents
+// a rejected or abandoned first attempt from disappearing when it is replaced.
+model VerifiedFieldSprintMissionLink {
+  id                String   @id @default(cuid())
+  sprintMissionId   String
+  dareId            String   @unique
+  sequence          Int
+  linkKind          String   @default("INITIAL") // INITIAL | REPLACEMENT
+  replacementKind   String? // REJECTED | ABANDONED
+  replacementReason String?
+  fundingTreatment  String? // RECOVERED_ESCROW | SUPPLEMENTAL_125
+  fundingReference  String?
+  linkedBy          String
+  linkedAt          DateTime @default(now())
+
+  sprintMission VerifiedFieldSprintMission @relation(fields: [sprintMissionId], references: [id], onDelete: Restrict)
+  dare          Dare                       @relation(fields: [dareId], references: [id], onDelete: Restrict)
+
+  @@unique([sprintMissionId, sequence])
+  @@index([sprintMissionId, linkedAt])
+}
+
+// Buyer-facing repeat/adjust/stop choices are durable and idempotent. Recording
+// a choice never confirms funding or launches another Sprint.
+model VerifiedFieldSprintBuyerDecision {
+  id           String   @id @default(cuid())
+  sprintId     String
+  requestId    String   @unique
+  decision     String // REPEAT | ADJUST | ASK | STOP
+  contactName  String?
+  email        String?
+  nextQuestion String?
+  note         String?
+  termsVersion String
+  createdAt    DateTime @default(now())
+
+  sprint VerifiedFieldSprint @relation(fields: [sprintId], references: [id], onDelete: Restrict)
+
+  @@index([sprintId, createdAt])
+  @@index([decision, createdAt])
 }
 
 model VerifiedFieldSprintStation {

@@ -22,6 +22,15 @@ export type FieldTruthResult = (typeof FIELD_TRUTH_RESULTS)[number];
 export const FIELD_SPRINT_EVIDENCE_QUALITY = ['HIGH', 'MEDIUM', 'LOW'] as const;
 export type FieldSprintEvidenceQuality = (typeof FIELD_SPRINT_EVIDENCE_QUALITY)[number];
 
+export const FIELD_SPRINT_REPLACEMENT_KINDS = ['REJECTED', 'ABANDONED'] as const;
+export type FieldSprintReplacementKind = (typeof FIELD_SPRINT_REPLACEMENT_KINDS)[number];
+export const FIELD_SPRINT_REPLACEMENT_FUNDING = ['RECOVERED_ESCROW', 'SUPPLEMENTAL_125'] as const;
+export type FieldSprintReplacementFunding = (typeof FIELD_SPRINT_REPLACEMENT_FUNDING)[number];
+export const MAX_FIELD_SPRINT_REPLACEMENTS_PER_MISSION = 1;
+export const FIELD_SPRINT_REPEAT_DECISIONS = ['REPEAT', 'ADJUST', 'ASK', 'STOP'] as const;
+export type FieldSprintRepeatDecision = (typeof FIELD_SPRINT_REPEAT_DECISIONS)[number];
+export const FIELD_SPRINT_REPEAT_TERMS_VERSION = 'verified-field-sprint-repeat-v1';
+
 const TRANSITIONS: Record<VerifiedFieldSprintStatus, readonly VerifiedFieldSprintStatus[]> = {
   DRAFT: ['FUNDED'],
   FUNDED: ['ROUTING'],
@@ -115,6 +124,47 @@ export function validateSprintEscrow(input: {
   }
   if (snapshot.freshness?.maximumObservationAgeHours !== input.freshnessWindowHours) {
     return { ok: false as const, reason: 'Mission freshness window does not match the Sprint.' };
+  }
+  return { ok: true as const };
+}
+
+export function validateSprintMissionReplacement(input: {
+  sprintStatus: string;
+  missionStatus: string;
+  existingLinkCount: number;
+  oldDareStatus: string;
+  oldEvidenceDecision: string | null;
+  replacementKind: FieldSprintReplacementKind;
+  fundingTreatment: FieldSprintReplacementFunding;
+  replacementReason: string;
+  fundingReference: string;
+}) {
+  if (!['COLLECTING', 'REVIEW'].includes(input.sprintStatus)) {
+    return { ok: false as const, reason: 'Replacement is only available while a funded Sprint is collecting or under review.' };
+  }
+  if (input.existingLinkCount !== 1) {
+    return { ok: false as const, reason: 'Each mission allows one replacement maximum.' };
+  }
+  const isRejected = input.missionStatus === 'REJECTED'
+    && (input.oldDareStatus === 'FAILED' || input.oldEvidenceDecision === 'REJECTED');
+  const isAbandoned = input.oldDareStatus === 'REFUNDED';
+  if (input.replacementKind === 'REJECTED' && !isRejected) {
+    return { ok: false as const, reason: 'Rejected replacement requires an authoritative failed/rejected first mission.' };
+  }
+  if (input.replacementKind === 'ABANDONED' && !isAbandoned) {
+    return { ok: false as const, reason: 'Abandoned replacement requires the original escrow to be refunded first.' };
+  }
+  if (input.fundingTreatment === 'RECOVERED_ESCROW' && input.oldDareStatus !== 'REFUNDED') {
+    return { ok: false as const, reason: 'Recovered-escrow treatment requires an authoritative refunded original escrow.' };
+  }
+  if (input.replacementKind === 'REJECTED' && input.oldDareStatus !== 'REFUNDED' && input.fundingTreatment !== 'SUPPLEMENTAL_125') {
+    return { ok: false as const, reason: 'A rejected unrecovered escrow requires a separately funded replacement reward.' };
+  }
+  if (input.replacementReason.replace(/\s+/g, ' ').trim().length < 8) {
+    return { ok: false as const, reason: 'Record a specific replacement reason.' };
+  }
+  if (input.fundingReference.trim().length < 3) {
+    return { ok: false as const, reason: 'Record the refund or supplemental-funding reference.' };
   }
   return { ok: true as const };
 }

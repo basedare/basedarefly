@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { ArrowRight, CheckCircle2, QrCode, ReceiptText, RotateCcw, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
+import { MANAGED_FIELD_SPRINT_BUDGET_LABEL } from '@/lib/financial-canon';
+
 type ReceiptMetric = {
   label: string;
   value: string;
@@ -53,7 +55,7 @@ export default function SparkReceiptPreview({
   const target = venueName || 'Selected venue';
   const location = city || 'Local market';
   const code = receiptId || 'BD-SPARK-001';
-  const scope = budgetLabel || '$500-$1.5k pilot';
+  const scope = budgetLabel || MANAGED_FIELD_SPRINT_BUDGET_LABEL;
   const proofLine =
     proofLogic || 'QR check-in, creator proof, venue context, and a timestamped recap are reviewed together.';
   const repeatLine =
