@@ -251,10 +251,10 @@ export default function BrandPortalPage() {
       openCampaignComposerForVenue(matchingVenue, {
         tier: campaignTier,
         payoutPerCreator: campaign.payoutPerCreator,
-        title: `${campaign.venue.name} re-verification`,
+        title: `${campaign.venue.name} fresh field check`,
         description:
           campaign.description?.trim() ||
-          `Re-verify the useful place information at ${campaign.venue.name} while the existing signal is still fresh.`,
+          `Run a new paid check of the useful place information at ${campaign.venue.name}. The earlier mission and receipt stay unchanged.`,
         reportIntent: 'repeat',
       });
       return;
@@ -282,7 +282,7 @@ export default function BrandPortalPage() {
       ...current,
       type: 'PLACE',
       tier: nextTier,
-      title: `${campaign.venue?.name ?? 'Place'} re-verification`,
+      title: `${campaign.venue?.name ?? 'Place'} fresh field check`,
       description:
         campaign.description?.trim() ||
         buildActivationPackageDescription(activationPackage, campaign.venue?.name),
@@ -946,10 +946,10 @@ export default function BrandPortalPage() {
                     Scope a Sprint
                   </button>
                   <Link
-                    href="/board"
+                    href="/field-sprints/example"
                     className="activation-soft-button inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/[0.13] px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-white/68 transition hover:border-white/24 hover:text-white"
                   >
-                    See verified results
+                    See an example receipt
                   </Link>
                 </div>
               </div>
@@ -1032,11 +1032,11 @@ export default function BrandPortalPage() {
               Scope a Sprint
             </button>
             <Link
-              href="/board"
+              href="/field-sprints/example"
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-cyan-300/[0.24] bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_28px_rgba(0,0,0,0.2)] transition hover:border-cyan-200/40 hover:bg-cyan-400/[0.14]"
             >
               <ReceiptText className="h-4 w-4" />
-              See verified results
+              See an example receipt
             </Link>
           </div>
           <p className="mt-4 text-sm font-semibold leading-6 text-white/58">

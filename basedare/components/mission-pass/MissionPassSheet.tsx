@@ -282,7 +282,7 @@ export function MissionPassSheet({
               A Mission Pass restores this activity. It never claims a reward, proves identity, or authorizes payment.
             </div>
             <a href="/missions" className="mt-3 inline-block text-xs font-bold text-cyan-200/70 transition hover:text-cyan-100">
-              View Your Missions →
+              View saved Mission Passes →
             </a>
           </motion.section>
         </motion.div>

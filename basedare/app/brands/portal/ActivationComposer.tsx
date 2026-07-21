@@ -392,7 +392,7 @@ export default function ActivationComposer({
               Request ${formatUsdAmount(MANAGED_FIELD_SPRINT.invoiceTotalUsd)} Sprint invoice
             </Link>
             <Link
-              href="/board"
+              href="/field-sprints/example"
               className="activation-soft-button inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/12 px-5 py-3 text-sm font-black text-white/78 transition hover:border-white/24 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               See an example receipt

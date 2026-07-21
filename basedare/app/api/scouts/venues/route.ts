@@ -1,63 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAddress } from 'viem';
-import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { bindScoutToVenue, getScoutVenues } from '@/lib/scout-venues';
-import { resolveVenueRole } from '@/lib/venue-role';
+import { getScoutVenues } from '@/lib/scout-venues';
 
-const SignUpVenueSchema = z.object({
-  walletAddress: z.string().refine((value) => isAddress(value), 'Invalid wallet address'),
-  venueSlug: z.string().trim().min(1).max(160),
-});
-
-// POST /api/scouts/venues — a scout signs up a venue (binds discovery + active rake).
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json().catch(() => ({}));
-    const parsed = SignUpVenueSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid request' },
-        { status: 400 }
-      );
-    }
-
-    const venue = await prisma.venue.findUnique({
-      where: { slug: parsed.data.venueSlug },
-      select: { id: true },
-    });
-    if (!venue) {
-      return NextResponse.json({ success: false, error: 'Venue not found' }, { status: 404 });
-    }
-
-    // Anti-squat gate: a scout can only self-claim a venue they have proof-of-
-    // presence at (a CONFIRMED QR+GPS check-in → resolveVenueRole !== visitor).
-    // QR is venue-bound, rotating, and replay-blocked, so this can't be faked
-    // remotely — you must have physically sourced the venue. (The activation-paid
-    // path binds server-side via the deal itself and does not use this route.)
-    const role = await resolveVenueRole(parsed.data.walletAddress, venue.id);
-    if (role.role === 'visitor') {
-      return NextResponse.json(
-        { success: false, error: 'Check in at this venue (QR + GPS) before claiming it as a scout.' },
-        { status: 403 }
-      );
-    }
-
-    const result = await bindScoutToVenue({
-      scoutWalletAddress: parsed.data.walletAddress,
-      venueId: venue.id,
-    });
-
-    return NextResponse.json({ success: result.bound || result.alreadyDiscovered, data: result }, {
-      status: result.bound || result.isYours ? 200 : 409,
-    });
-  } catch (error) {
-    console.error('[SCOUT_VENUES] Sign-up failed:', error);
-    return NextResponse.json({ success: false, error: 'Failed to sign up venue' }, { status: 500 });
-  }
+// Public self-signup is deliberately paused. Venue sourcing can only be attached
+// to an explicitly approved acquisition agreement; it never creates automatic
+// commission from a managed Sprint invoice (docs/FINANCIAL_CANON.md).
+export async function POST() {
+  return NextResponse.json(
+    {
+      success: false,
+      error: 'Public venue scouting is not active. Apply as a Local Partner for authorized introductions or field support.',
+    },
+    { status: 410 },
+  );
 }
 
-// GET /api/scouts/venues?wallet=0x... — venues a scout holds, with rake rolled up.
+// GET /api/scouts/venues?wallet=0x... — historical sourcing attribution only.
 export async function GET(request: NextRequest) {
   try {
     const wallet = request.nextUrl.searchParams.get('wallet');

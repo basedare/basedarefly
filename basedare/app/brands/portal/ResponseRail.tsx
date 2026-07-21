@@ -3,7 +3,7 @@
 // in the page shell and arrive as props with their original names.
 import type { Dispatch, SetStateAction } from 'react';
 import Link from 'next/link';
-import { CreditCard, MapPin, PlayCircle, Sparkles, Users } from 'lucide-react';
+import { MapPin, PlayCircle, RefreshCw, Sparkles, Users } from 'lucide-react';
 import {
   TIER_INFO,
   formatWallet,
@@ -404,11 +404,11 @@ export default function ResponseRail({
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-[#ffe785]">
                 <Sparkles className="h-3.5 w-3.5" />
-                Mission status
+                Commissioned work
               </div>
-              <h2 className="mt-3 text-2xl font-black text-white md:text-3xl">Your missions</h2>
+              <h2 className="mt-3 text-2xl font-black text-white md:text-3xl">Your buyer missions</h2>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-300">
-                See who is completing the work, what proof arrived, what cleared review, and what was paid.
+                Track commissioned work from contributor assignment through proof, review, payout, and receipt. This is separate from a traveller&apos;s saved Mission Passes.
               </p>
             </div>
             {/* The single generic "Create mission" CTA lives in the hero. This
@@ -765,8 +765,8 @@ export default function ResponseRail({
                             onClick={() => openCampaignComposerForCampaign(campaign)}
                             className="activation-raised-gold inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] transition active:translate-y-[1px]"
                           >
-                            <CreditCard className="h-3.5 w-3.5" />
-                            Re-verify this mission
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Run a fresh check
                           </button>
                         ) : null}
                         <button

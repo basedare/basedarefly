@@ -87,8 +87,8 @@ export default function MissionsClient() {
       const response = await fetch('/api/mission-passes/missions', { method: 'DELETE' });
       const payload = await response.json();
       if (!response.ok || !payload.success) throw new Error(payload.error || 'Unable to forget missions.');
-      setMissions((current) => current.filter((mission) => mission.state === 'COMPLETED'));
-      setMessage('Uncompleted Mission Passes were forgotten.');
+      setMissions([]);
+      setMessage('Active Mission Passes were forgotten. Verified receipt records were not deleted.');
     } catch (forgetError) {
       setError(forgetError instanceof Error ? forgetError.message : 'Unable to forget missions.');
     } finally {
@@ -101,10 +101,23 @@ export default function MissionsClient() {
       <LiquidBackground />
       <div className="relative z-10 mx-auto max-w-3xl">
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#ffe36a]">Mission Pass</p>
-        <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Your missions, without the profile.</h1>
+        <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Your saved Mission Passes.</h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-white/55">
-          Save something interesting, return from another browser or device, and keep exploring. A pass restores intent only—claims and rewards still require normal wallet approval.
+          A Mission Pass is a private handoff link for an activity you chose. It restores the exact activity in another browser or device; it does not reserve a slot, claim a reward, or create a public profile.
         </p>
+
+        <section className="mt-6 grid gap-2 sm:grid-cols-3" aria-label="How Mission Pass handoff works">
+          {[
+            ['1. Save', 'Choose Save Mission Pass on a live activity.'],
+            ['2. Handoff', 'Email, share, or copy the private continuation link.'],
+            ['3. Continue', 'Open it later; claim or prove separately when ready.'],
+          ].map(([label, detail]) => (
+            <div key={label} className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">{label}</div>
+              <p className="mt-2 text-sm leading-6 text-white/48">{detail}</p>
+            </div>
+          ))}
+        </section>
 
         {passState ? (
           <div className="mt-6 rounded-2xl border border-purple-300/20 bg-purple-500/[0.08] p-4 text-sm text-purple-100/75">
@@ -139,7 +152,7 @@ export default function MissionsClient() {
             <div className="mt-6 rounded-2xl border border-dashed border-white/10 p-7 text-center">
               <Compass className="mx-auto h-7 w-7 text-cyan-300" />
               <h3 className="mt-3 font-black">Nothing saved here yet</h3>
-              <p className="mt-1 text-sm text-white/40">Open the map and save the first mission that feels worth leaving the house for.</p>
+              <p className="mt-1 text-sm leading-6 text-white/40">Open a live activity from the map, then choose Save Mission Pass on its detail page.</p>
               <Link href="/map" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#f5c518] px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-[#15120c]">
                 Explore the map <ArrowRight className="h-4 w-4" />
               </Link>

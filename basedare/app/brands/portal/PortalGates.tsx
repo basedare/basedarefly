@@ -76,17 +76,21 @@ export default function PortalGates({
                 onClick={connectWallet}
                 className="activation-soft-button inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-white/14 px-5 text-sm font-black text-white/82 transition hover:border-white/26 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                Manage existing missions
+                Manage commissioned work
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
 
             <Link
-              href="/board"
+              href="/field-sprints/example"
               className="mt-4 inline-flex min-h-11 items-center justify-center px-4 text-sm font-black text-cyan-100/80 underline decoration-cyan-200/30 underline-offset-4 transition hover:text-cyan-100"
             >
-              See verified results
+              See an example receipt
             </Link>
+
+            <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/58">
+              No venue claim is required. Buyers can commission fieldwork about any eligible place; claiming is only for an authorized owner or manager who wants to maintain that place profile.
+            </p>
 
             <div className="mx-auto mt-7 flex max-w-2xl flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 text-left sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
