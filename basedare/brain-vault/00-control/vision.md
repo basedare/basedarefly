@@ -3,7 +3,7 @@ type: strategic_vision
 system: basedare-brain
 status: ACTIVE
 created_at: 2026-07-10
-updated_at: 2026-07-20
+updated_at: 2026-07-23
 owner: BaseDare
 ---
 
@@ -73,6 +73,8 @@ The mission compiler must make five things obvious: **Go / Do / Prove / Win / Ea
 For Field Truth, a supported negative answer is a successful paid result. “The café was closed” can be as valuable as “the café was open.” BaseDare pays for accepted evidence that answers the locked question—not for pleasing the buyer, manufacturing good news, or producing a desired venue state.
 
 Six contract families are defined: Field Truth, Experience Execution, Publication, Attention, Arrival/Redemption, and Qualified Action. The alpha activates only the first three. Higher proof families remain disabled until their independent proof rails exist. Automated slashing, broad payout freezes, and an autonomous Dare Director are not part of this release.
+
+Managed Field Truth work must also use a versioned **Mission Kit**. The kit constrains the observable question, structured answer, evidence, safety/privacy rules, freshness, rejection reasons, effort, and reward before funding. Accepted observations drive honest place health (**Fresh / Aging / Needs recheck / Disputed / Retired**), not star ratings. Playable routes use only healthy place records; scarce endorsements are earned through verified contribution; and every buyer receipt returns one conservative next action. The binding sequence lives in `05-playbooks/proven-product-mechanics.md`.
 
 ## First product shape
 

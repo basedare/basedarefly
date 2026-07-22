@@ -14,6 +14,7 @@ import {
 
 test('compiles four independent canonical Field Truth contracts', () => {
   const contracts = compileFieldSprintContracts({
+    missionKitKey: 'CROWD_LEVEL',
     buyerQuestion: 'Is the venue genuinely busy between 8pm and 10pm?',
     areaLabel: 'General Luna',
     freshnessWindowHours: 6,
@@ -42,18 +43,20 @@ test('allows only forward sprint transitions', () => {
 });
 
 test('requires real $125 nearby Field Truth escrow matching question and freshness', () => {
+  const buyerQuestion = 'Does the venue have at least 20 customers between 8pm and 9pm tonight?';
   const snapshot = compileFieldSprintContracts({
-    buyerQuestion: 'Is the venue busy tonight?', areaLabel: 'General Luna', freshnessWindowHours: 6,
+    missionKitKey: 'CROWD_LEVEL',
+    buyerQuestion, areaLabel: 'General Luna', freshnessWindowHours: 6,
   })[0].snapshot;
   assert.equal(validateSprintEscrow({
     grossRewardUsd: 125, status: 'PENDING', isSimulated: false, onChainDareId: '1',
     isNearbyDare: true, outcomeContractFamily: 'FIELD_TRUTH', outcomeContractVersion: 1,
-    outcomeContractSnapshot: snapshot, buyerQuestion: 'Is the venue busy tonight?', freshnessWindowHours: 6,
+    outcomeContractSnapshot: snapshot, buyerQuestion, freshnessWindowHours: 6,
   }).ok, true);
   assert.equal(validateSprintEscrow({
     grossRewardUsd: 125, status: 'PENDING', isSimulated: true, onChainDareId: '1',
     isNearbyDare: true, outcomeContractFamily: 'FIELD_TRUTH', outcomeContractVersion: 1,
-    outcomeContractSnapshot: snapshot, buyerQuestion: 'Is the venue busy tonight?', freshnessWindowHours: 6,
+    outcomeContractSnapshot: snapshot, buyerQuestion, freshnessWindowHours: 6,
   }).ok, false);
 });
 

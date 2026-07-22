@@ -3,7 +3,7 @@ type: open_loops
 status: ACTIVE
 owner: codex
 created_at: 2026-05-13
-updated_at: 2026-07-21
+updated_at: 2026-07-23
 ---
 
 # Open Loops
@@ -25,7 +25,11 @@ updated_at: 2026-07-21
 | Creator Journey attribution rail | product_growth_gate | ALPHA_LIVE | product/growth | [[05-playbooks/creator-attribution-journey]] |
 | Three-venue earned access pilot | experiment_design | NEEDS_PARTNERS | human | [[05-playbooks/earned-venue-access-graph]] |
 | Autonomous treasury and proof limits | operating_policy | NEXT | codex | [[00-control/vision]] |
-| Safe asynchronous dare template library | product_policy | NEXT | codex | [[00-control/vision]] |
+| Approved Mission Kits + preflight compiler | product_policy | SOFTWARE_READY | codex | [[05-playbooks/proven-product-mechanics]] |
+| Place-health maintenance outcomes | place_memory | NEXT | codex | [[05-playbooks/proven-product-mechanics]] |
+| Three-to-five-stop playable routes | consumer_product | NEXT | codex | [[05-playbooks/proven-product-mechanics]] |
+| Scarce verified endorsements | reputation | NEXT | codex | [[05-playbooks/proven-product-mechanics]] |
+| Buyer receipt next-action engine | buyer_product | NEXT | codex | [[05-playbooks/proven-product-mechanics]] |
 | Outcome Contract Engine alpha | product_policy | PRODUCTION_MIGRATED | product/release | [[05-playbooks/outcome-contract-engine]] |
 | Dare Director orchestration | automation | PARKED_UNTIL_CONTRACT_DATA | product | [[05-playbooks/outcome-contract-engine]] |
 | Siargao venue Spark Audit invite | outreach_draft | PARKED | human | [[02-outreach/drafts/siargao-venue-spark-audit-invite]] |

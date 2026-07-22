@@ -22,6 +22,7 @@ const StartSchema = z.object({
   buyerOrganization: z.string().max(191).nullable().optional(),
   buyerEmail: z.string().email().max(254).nullable().optional(),
   buyerQuestion: z.string().min(8).max(500),
+  missionKitKey: z.enum(['OPEN_NOW', 'OFFER_AVAILABLE', 'CURRENT_PRICE', 'EVENT_ACTIVE', 'ACCESSIBLE_NOW', 'CROWD_LEVEL']),
   areaLabel: z.string().min(2).max(191),
   freshnessWindowHours: z.number().int().min(1).max(168),
   campaignCode: z.string().min(3).max(64),

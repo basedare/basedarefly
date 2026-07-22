@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { isAddress } from 'viem';
 
 import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
+import type { MissionKitKey } from '@/lib/mission-kits';
 import { prisma } from '@/lib/prisma';
 import {
   buildFieldSprintReceiptSummary,
@@ -91,6 +92,7 @@ export async function startVerifiedFieldSprint(input: {
   buyerOrganization?: string | null;
   buyerEmail?: string | null;
   buyerQuestion: string;
+  missionKitKey: MissionKitKey;
   areaLabel: string;
   freshnessWindowHours: number;
   campaignCode: string;
@@ -132,6 +134,7 @@ export async function startVerifiedFieldSprint(input: {
     throw new Error('Both Field Stations must use the Sprint campaign code so acquisition remains attributable.');
   }
   const compiled = compileFieldSprintContracts({
+    missionKitKey: input.missionKitKey,
     buyerQuestion: input.buyerQuestion,
     areaLabel: input.areaLabel,
     freshnessWindowHours: input.freshnessWindowHours,

@@ -10,6 +10,7 @@ import {
   hasValidManagedFieldSprintPaymentLines,
   isEligibleManagedFieldSprintEscrow,
 } from '@/lib/financial-canon';
+import { preflightMissionKit, type MissionKitKey } from '@/lib/mission-kits';
 
 export const VERIFIED_FIELD_SPRINT_STATUSES = [
   'DRAFT', 'FUNDED', 'ROUTING', 'COLLECTING', 'REVIEW', 'COMPLETE',
@@ -68,22 +69,27 @@ export function validateSprintFunding(input: {
 }
 
 export function compileFieldSprintContracts(input: {
+  missionKitKey: MissionKitKey;
   buyerQuestion: string;
   areaLabel: string;
   freshnessWindowHours: number;
   createdAt?: Date;
 }) {
-  const question = input.buyerQuestion.replace(/\s+/g, ' ').trim();
-  const area = input.areaLabel.replace(/\s+/g, ' ').trim();
-  if (question.length < 8 || question.length > 500) throw new Error('Buyer question must be 8–500 characters.');
-  if (area.length < 2 || area.length > 191) throw new Error('Area must be 2–191 characters.');
-  if (!Number.isInteger(input.freshnessWindowHours) || input.freshnessWindowHours < 1 || input.freshnessWindowHours > 168) {
-    throw new Error('Freshness window must be 1–168 hours.');
-  }
   const createdAt = input.createdAt ?? new Date();
+  const preflight = preflightMissionKit({
+    kitKey: input.missionKitKey,
+    question: input.buyerQuestion,
+    freshnessWindowHours: input.freshnessWindowHours,
+    areaLabel: input.areaLabel,
+    createdAt,
+  });
+  if (!preflight.ok) throw new Error(`Mission preflight failed: ${preflight.errors.join(' ')}`);
+  const question = preflight.normalizedQuestion;
+  const area = preflight.normalizedAreaLabel;
   return Array.from({ length: MANAGED_FIELD_SPRINT.assignedContributorCount }, (_, index) => ({
     ordinal: index + 1,
-    snapshot: buildOutcomeContractSnapshot({
+    snapshot: {
+      ...buildOutcomeContractSnapshot({
       family: 'FIELD_TRUTH',
       title: `Field check ${index + 1}: ${question}`,
       buyerQuestion: question,
@@ -94,7 +100,9 @@ export function compileFieldSprintContracts(input: {
       isNearbyDare: true,
       maximumObservationAgeHours: input.freshnessWindowHours,
       createdAt,
-    }),
+      }),
+      missionKit: preflight.snapshot,
+    } satisfies OutcomeContractSnapshot,
   }));
 }
 

@@ -34,6 +34,8 @@ BaseDare proofs outcomes; it does not insure or guarantee them. Funds may be esc
 
 **Non-negotiable safety constraint:** dare briefs come from a constrained, pre-approved menu; payout never scales with danger, humiliation, harassment, drinking pressure, trespass, or escalation-for-views. Good discovery templates include **Verify**, **Correct**, **Taste**, **Hunt**, **Route**, and **Story** dares. The useful and safe version is the only version that pays.
 
+**Proven mechanics, BaseDare rails.** Approved Mission Kits compile bounded questions before funding. Accepted observations maintain place health and can trigger a human-approved recheck proposal. Three-to-five-stop playable routes use only healthy records. Scarce verified endorsements replace generic ratings. Buyer receipts recommend one conservative next action from the evidence. None of this authorizes open-ended mission generation, autonomous spend, or unsupported popularity claims.
+
 **⚠️ ANTI-DRIFT.** BaseDare is not a generic map, travel blog, influencer agency, events company requiring founder presence, passive check-in farm, token-farming scheme, or anonymous local operating business hidden behind crypto. The core is the dare + verification + place memory + receipt. Everything else must strengthen that loop.
 
 ## What BaseDare is (one sentence)

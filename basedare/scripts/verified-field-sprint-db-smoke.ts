@@ -103,6 +103,7 @@ async function main() {
   await prisma.founderEvent.update({ where: { id: intake.id }, data: { status: 'PAYMENT_SENT' } });
 
   const sprint = await startVerifiedFieldSprint({
+    missionKitKey: 'OPEN_NOW',
     activationIntakeId: intake.id,
     buyerName: 'Smoke Buyer',
     buyerOrganization: 'Smoke Design Partner',
@@ -119,6 +120,7 @@ async function main() {
   assert.equal(sprint.missions.length, 4);
 
   const duplicate = await startVerifiedFieldSprint({
+    missionKitKey: 'OPEN_NOW',
     activationIntakeId: intake.id,
     buyerName: 'Smoke Buyer',
     buyerOrganization: 'Smoke Design Partner',
@@ -156,6 +158,7 @@ async function main() {
 
   await startVerifiedFieldSprintRouting(sprint.id);
   const compiledContracts = compileFieldSprintContracts({
+    missionKitKey: 'OPEN_NOW',
     buyerQuestion: sprint.buyerQuestion,
     areaLabel: sprint.areaLabel,
     freshnessWindowHours: sprint.freshnessWindowHours,
@@ -410,6 +413,7 @@ async function main() {
   );
 
   const repeatSprint = await startVerifiedFieldSprint({
+    missionKitKey: 'OPEN_NOW',
     buyerName: 'Smoke Buyer',
     buyerOrganization: 'Smoke Design Partner',
     buyerEmail: 'smoke@example.com',

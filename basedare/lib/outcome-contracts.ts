@@ -73,6 +73,22 @@ export type OutcomeContractSnapshot = {
   };
   permittedReceiptWording: string;
   mission: MissionCompilerOutput;
+  missionKit?: {
+    key: string;
+    version: number;
+    label: string;
+    answerPrompt: string;
+    allowedOutcomes: readonly string[];
+    requiredEvidence: readonly string[];
+    safetyRules: readonly string[];
+    privacyRules: readonly string[];
+    rejectionReasons: readonly string[];
+    expectedMinutes: number;
+    recommendedGrossRewardUsd: number;
+    recheckRule: string;
+    compiledQuestion: string;
+    compiledAt: string;
+  };
 };
 
 export type OutcomeContractRequest = {
