@@ -660,7 +660,17 @@ export async function buildVerifiedFieldSprintReceipt(receiptCode: string, inclu
       reviewCostUsd: mission.reviewCostUsd,
     }];
   });
-  const summary = receiptMissions.length === 4 ? buildFieldSprintReceiptSummary(receiptMissions) : null;
+  const firstSnapshot = sprint.missions[0]?.dare?.outcomeContractSnapshot;
+  const missionKitKey = firstSnapshot && typeof firstSnapshot === 'object' && !Array.isArray(firstSnapshot)
+    && typeof (firstSnapshot as { missionKit?: { key?: unknown } }).missionKit?.key === 'string'
+      ? (firstSnapshot as { missionKit: { key: MissionKitKey } }).missionKit.key
+      : null;
+  const summary = receiptMissions.length === 4
+    ? buildFieldSprintReceiptSummary(receiptMissions, {
+        missionKitKey,
+        freshnessWindowHours: sprint.freshnessWindowHours,
+      })
+    : null;
   const stationCodes = sprint.stations.flatMap(({ link }) => link.stationCode ? [link.stationCode] : []);
   const campaignTouches = stationCodes.length ? await prisma.attributionEvent.findMany({
     where: {

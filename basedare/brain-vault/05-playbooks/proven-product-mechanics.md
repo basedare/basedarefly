@@ -63,3 +63,10 @@ No autonomous funding, generic ratings, open-ended mission generation, or route 
 - endorsements per qualified participant and retraction/report rate
 - buyer next-action acceptance and paid repeat rate
 
+## Implementation state
+
+- **Mission Kits + preflight:** software ready. Six approved versioned kits compile into immutable Outcome Contract snapshots before funding.
+- **Maintenance outcomes + place health:** software ready. Accepted Field Truth observations carry a typed maintenance result; Spot Vault derives health from append-only observations and may propose, but never fund, a recheck.
+- **Buyer next action:** software ready. Completed Sprint receipts select exactly one conservative recommendation and explain that it is advisory rather than automatic execution.
+- **Playable routes:** next build. Publish only three-to-five-stop routes whose stops pass the place-health gate.
+- **Worth a Detour:** next build. Eligibility must come from verified history and remain scarce, retractable, and moderation-safe.

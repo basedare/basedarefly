@@ -68,7 +68,27 @@ test('truthful negative field observation is a valid payable outcome', () => {
     observedAt: new Date().toISOString(),
   });
   assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.value.maintenanceOutcome, 'CHANGED');
   assert.match(contract.payoutTrigger, /whether.*positive or negative/i);
+});
+
+test('field result can explicitly report place closure or access risk', () => {
+  const closed = validateReportedOutcome(fieldTruth(), {
+    kind: 'NO',
+    summary: 'The venue sign says it has moved to a new address.',
+    observedAt: new Date().toISOString(),
+    maintenanceOutcome: 'CLOSED_OR_MOVED',
+  });
+  assert.equal(closed.ok, true);
+  if (closed.ok) assert.equal(closed.value.maintenanceOutcome, 'CLOSED_OR_MOVED');
+
+  const invalid = validateReportedOutcome(fieldTruth(), {
+    kind: 'NO',
+    summary: 'The venue looked different.',
+    observedAt: new Date().toISOString(),
+    maintenanceOutcome: 'MAKE_IT_DISAPPEAR',
+  });
+  assert.equal(invalid.ok, false);
 });
 
 test('evidence receipt reports the observation without claiming traffic or purchase', () => {

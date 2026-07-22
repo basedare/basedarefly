@@ -61,7 +61,9 @@ test('requires real $125 nearby Field Truth escrow matching question and freshne
 });
 
 test('keeps truthful negative and inconclusive results payable', () => {
-  assert.equal(parseAcceptedFieldTruthOutcome({ kind: 'NO', summary: 'No queue formed during the window.', observedAt: '2026-07-20T12:00:00Z' })?.kind, 'NO');
+  const negative = parseAcceptedFieldTruthOutcome({ kind: 'NO', summary: 'No queue formed during the window.', observedAt: '2026-07-20T12:00:00Z' });
+  assert.equal(negative?.kind, 'NO');
+  assert.equal(negative?.maintenanceOutcome, 'CHANGED');
   assert.equal(parseAcceptedFieldTruthOutcome({ kind: 'INCONCLUSIVE', summary: 'Weather interrupted observation.', observedAt: '2026-07-20T12:00:00Z' })?.kind, 'INCONCLUSIVE');
   assert.equal(parseAcceptedFieldTruthOutcome({ kind: 'PUBLISHED', summary: 'No.', observedAt: '2026-07-20T12:00:00Z' }), null);
 });
@@ -115,6 +117,25 @@ test('receipt reports distributions, evidence and costs without averaging away d
   assert.equal(summary.platformFeeUsd, 20);
   assert.equal(summary.reviewCostUsd, 18);
   assert.equal(summary.medianVerificationMinutes, 25);
+  assert.equal(summary.nextAction.kind, 'INVESTIGATE_CONFLICT');
+});
+
+test('receipt recommends one conservative next action', () => {
+  const mission = (ordinal: number, outcome: 'YES' | 'NO' | 'PARTIAL' | 'INCONCLUSIVE', evidenceQuality: 'HIGH' | 'MEDIUM' | 'LOW' = 'HIGH') => ({
+    ordinal, outcome, evidenceQuality, evidenceFreshnessHours: 1,
+    contributorPayoutUsd: 120, platformFeeUsd: 5, verificationTimeMinutes: 10,
+    reviewMinutes: 4, reviewCostUsd: 3,
+  });
+  const unavailable = buildFieldSprintReceiptSummary([
+    mission(1, 'NO'), mission(2, 'NO'), mission(3, 'NO'), mission(4, 'PARTIAL'),
+  ], { missionKitKey: 'OFFER_AVAILABLE', freshnessWindowHours: 6 });
+  assert.equal(unavailable.nextAction.kind, 'REPLACE_UNAVAILABLE_OFFER');
+
+  const supported = buildFieldSprintReceiptSummary([
+    mission(1, 'YES'), mission(2, 'YES'), mission(3, 'YES'), mission(4, 'PARTIAL', 'MEDIUM'),
+  ], { missionKitKey: 'OPEN_NOW', freshnessWindowHours: 24 });
+  assert.equal(supported.nextAction.kind, 'RECHECK_AFTER_FRESHNESS');
+  assert.match(supported.nextAction.timing, /24 hours/);
 });
 
 test('quality ladder is conservative', () => {

@@ -26,10 +26,10 @@ updated_at: 2026-07-23
 | Three-venue earned access pilot | experiment_design | NEEDS_PARTNERS | human | [[05-playbooks/earned-venue-access-graph]] |
 | Autonomous treasury and proof limits | operating_policy | NEXT | codex | [[00-control/vision]] |
 | Approved Mission Kits + preflight compiler | product_policy | SOFTWARE_READY | codex | [[05-playbooks/proven-product-mechanics]] |
-| Place-health maintenance outcomes | place_memory | NEXT | codex | [[05-playbooks/proven-product-mechanics]] |
+| Place-health maintenance outcomes | place_memory | SOFTWARE_READY | codex | [[05-playbooks/proven-product-mechanics]] |
 | Three-to-five-stop playable routes | consumer_product | NEXT | codex | [[05-playbooks/proven-product-mechanics]] |
 | Scarce verified endorsements | reputation | NEXT | codex | [[05-playbooks/proven-product-mechanics]] |
-| Buyer receipt next-action engine | buyer_product | NEXT | codex | [[05-playbooks/proven-product-mechanics]] |
+| Buyer receipt next-action engine | buyer_product | SOFTWARE_READY | codex | [[05-playbooks/proven-product-mechanics]] |
 | Outcome Contract Engine alpha | product_policy | PRODUCTION_MIGRATED | product/release | [[05-playbooks/outcome-contract-engine]] |
 | Dare Director orchestration | automation | PARKED_UNTIL_CONTRACT_DATA | product | [[05-playbooks/outcome-contract-engine]] |
 | Siargao venue Spark Audit invite | outreach_draft | PARKED | human | [[02-outreach/drafts/siargao-venue-spark-audit-invite]] |
@@ -55,7 +55,7 @@ updated_at: 2026-07-23
 | Media/data rights | PARTIAL | Extend current display/promotion license to explicit sponsor-facing commercial use where needed |
 | Design-partner receipt | SOFTWARE_READY | The production-migrated runner, immutable four-contract compilation, real-escrow gates, append-only place memory, and conservative receipt are built. Name one design partner/question, select two permissioned station links, create and fund four live $125 missions, run the pilot, then sell Sprint #2 only after the receipt exists |
 | First-node conversion | SOFTWARE_READY | Run one truthful venue brief through structured authorized response, scope approval, funding confirmation, canonical Sprint compilation, four real escrows, accepted outcomes, and an honest receipt |
-| Freshness / City Signal | NEXT | Timestamp every answer and define re-verification cadence from Sprint #1 |
+| Freshness / City Signal | SOFTWARE_READY | Typed accepted outcomes now derive Fresh / Aging / Needs recheck / Disputed / Retired and produce a bounded human-funded recheck proposal. Exercise it with Sprint #1 before automating any refresh spend |
 | Ecosystem funding | NEXT | Prepare Base/Coinbase/Optimism-style grant case around verifiable onchain real-world activity |
 | Organic multiplier | NEXT | Instrument unpaid useful actions generated per paid useful action |
 | Public data credibility | RISK | Remove or clearly label sample/test liquidity, creators, dares, and traction before acquisition spend |

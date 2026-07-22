@@ -2,6 +2,7 @@ import 'server-only';
 
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { derivePlaceHealth, type PlaceHealthSnapshot } from '@/lib/place-health';
 
 const COMPLETED_DARE_STATUSES = ['VERIFIED', 'PAID', 'COMPLETED', 'PENDING_PAYOUT'];
 const VAULT_CHECK_IN_PROOF_LEVELS = ['QR_AND_GPS', 'QR_ONLY'];
@@ -65,6 +66,7 @@ export type SpotVaultSnapshot = {
     recent: SpotVaultReviewSummary[];
     mine: SpotVaultReviewSummary | null;
   };
+  placeHealth: PlaceHealthSnapshot;
   timeline: SpotVaultTimelineItem[];
 };
 
@@ -298,6 +300,7 @@ export async function getSpotVaultSnapshot(input: {
     completedDares,
     memories,
     reviews,
+    placeObservations,
   ] = await Promise.all([
     getVenueReviewEligibility({ venueId: venue.id, walletAddress }),
     prisma.venueCheckIn.count({
@@ -413,6 +416,20 @@ export async function getSpotVaultSnapshot(input: {
       viewerWallet: walletAddress,
       limit: 5,
     }),
+    prisma.placeMemoryObservation.findMany({
+      where: { venueId: venue.id },
+      orderBy: { acceptedAt: 'desc' },
+      take: 20,
+      select: {
+        id: true,
+        buyerQuestion: true,
+        reportedOutcome: true,
+        observedAt: true,
+        acceptedAt: true,
+        refreshAt: true,
+        outcomeContractSnapshot: true,
+      },
+    }),
   ]);
 
   const proofItems: SpotVaultTimelineItem[] = recentProofs.map((proof) => ({
@@ -510,6 +527,7 @@ export async function getSpotVaultSnapshot(input: {
       completedDares: completedDaresCount,
     },
     reviews,
+    placeHealth: derivePlaceHealth(placeObservations),
     timeline,
   };
 }

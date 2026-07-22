@@ -31,6 +31,8 @@ export default function ExampleFieldSprintReceiptPage() {
           <Panel title="Evidence and delivery"><dl className="grid grid-cols-2 gap-3 text-sm"><Item label="High / medium / low" value="2 / 2 / 0" /><Item label="Contributor payouts" value="$480" /><Item label="Delivery window" value="7–10 days" /><Item label="Replacement attempts" value="1 disclosed" /></dl></Panel>
         </section>
 
+        <Panel title="Recommended next move"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#62efff]">Investigate conflict</p><h2 className="mt-2 text-xl font-black">Check why the visits disagreed</h2><p className="mt-2 text-xs leading-5 text-white/55">Compare the observation times and conditions before correcting the listing or buying another Sprint. The recommendation never launches or funds work automatically.</p></Panel>
+
         <section className="mt-6 grid gap-3 md:grid-cols-2">{checks.map((check, index) => <article key={check.kind} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
           <div className="flex items-center justify-between gap-3"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#62efff]">Independent check {index + 1}</p><b>{check.kind}</b></div>
           <h2 className="mt-3 text-xl font-black">Example venue</h2>

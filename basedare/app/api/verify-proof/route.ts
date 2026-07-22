@@ -114,6 +114,14 @@ const VerifyProofSchema = z.object({
     kind: z.enum(['YES', 'NO', 'PARTIAL', 'INCONCLUSIVE', 'COMPLETED', 'PUBLISHED']),
     summary: z.string().min(3).max(280),
     observedAt: z.string().datetime(),
+    maintenanceOutcome: z.enum([
+      'CONFIRMED',
+      'CHANGED',
+      'COULD_NOT_VERIFY',
+      'CLOSED_OR_MOVED',
+      'UNSAFE_OR_INACCESSIBLE',
+      'NEEDS_RECHECK',
+    ]).optional(),
   }).optional(),
 });
 

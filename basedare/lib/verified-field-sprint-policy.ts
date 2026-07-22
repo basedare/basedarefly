@@ -1,5 +1,8 @@
 import {
   buildOutcomeContractSnapshot,
+  defaultPlaceMaintenanceOutcome,
+  PLACE_MAINTENANCE_OUTCOMES,
+  type PlaceMaintenanceOutcome,
   type OutcomeContractSnapshot,
   type ReportedOutcome,
   type ReportedOutcomeKind,
@@ -31,6 +34,16 @@ export const MAX_FIELD_SPRINT_REPLACEMENTS_PER_MISSION = 1;
 export const FIELD_SPRINT_REPEAT_DECISIONS = ['REPEAT', 'ADJUST', 'ASK', 'STOP'] as const;
 export type FieldSprintRepeatDecision = (typeof FIELD_SPRINT_REPEAT_DECISIONS)[number];
 export const FIELD_SPRINT_REPEAT_TERMS_VERSION = 'verified-field-sprint-repeat-v1';
+export const FIELD_SPRINT_NEXT_ACTIONS = [
+  'RECHECK_AFTER_FRESHNESS',
+  'CORRECT_RECORD',
+  'TEST_DIFFERENT_TIME',
+  'COLLECT_SECOND_SAMPLE',
+  'REPLACE_UNAVAILABLE_OFFER',
+  'INVESTIGATE_CONFLICT',
+  'NO_ACTION',
+] as const;
+export type FieldSprintNextAction = (typeof FIELD_SPRINT_NEXT_ACTIONS)[number];
 
 const TRANSITIONS: Record<VerifiedFieldSprintStatus, readonly VerifiedFieldSprintStatus[]> = {
   DRAFT: ['FUNDED'],
@@ -187,6 +200,11 @@ export function parseAcceptedFieldTruthOutcome(value: unknown): ReportedOutcome 
     kind: candidate.kind as ReportedOutcomeKind,
     summary: candidate.summary.trim(),
     observedAt: new Date(candidate.observedAt).toISOString(),
+    maintenanceOutcome:
+      typeof candidate.maintenanceOutcome === 'string'
+      && PLACE_MAINTENANCE_OUTCOMES.includes(candidate.maintenanceOutcome as PlaceMaintenanceOutcome)
+        ? candidate.maintenanceOutcome as PlaceMaintenanceOutcome
+        : defaultPlaceMaintenanceOutcome(candidate.kind as ReportedOutcomeKind),
   };
 }
 
@@ -214,7 +232,42 @@ export type FieldSprintReceiptMission = {
   reviewCostUsd: number;
 };
 
-export function buildFieldSprintReceiptSummary(missions: FieldSprintReceiptMission[]) {
+export function deriveFieldSprintNextAction(input: {
+  missions: FieldSprintReceiptMission[];
+  missionKitKey?: MissionKitKey | null;
+  freshnessWindowHours?: number | null;
+}) {
+  const distribution = Object.fromEntries(FIELD_TRUTH_RESULTS.map((kind) => [kind, 0])) as Record<FieldTruthResult, number>;
+  for (const mission of input.missions) distribution[mission.outcome] += 1;
+  const freshness = input.freshnessWindowHours && input.freshnessWindowHours > 0
+    ? `after ${input.freshnessWindowHours} hours`
+    : 'when the current freshness window closes';
+
+  if (distribution.YES > 0 && distribution.NO > 0) {
+    return { kind: 'INVESTIGATE_CONFLICT' as const, label: 'Investigate the disagreement', reason: 'Accepted field checks disagree. Review timing and context before changing the place record.', timing: 'Before the next commercial decision' };
+  }
+  if (distribution.INCONCLUSIVE >= 2 || input.missions.filter((mission) => mission.evidenceQuality === 'LOW').length >= 2) {
+    return { kind: 'COLLECT_SECOND_SAMPLE' as const, label: 'Collect a clearer second sample', reason: 'The evidence did not close the question confidently enough for a durable decision.', timing: 'As soon as a better observation window is available' };
+  }
+  if (distribution.NO >= 3 && input.missionKitKey === 'OFFER_AVAILABLE') {
+    return { kind: 'REPLACE_UNAVAILABLE_OFFER' as const, label: 'Replace or remove the unavailable offer', reason: 'Most independent checks found that the advertised offer was unavailable.', timing: 'Before promoting the offer again' };
+  }
+  if (distribution.NO >= 3) {
+    return { kind: 'CORRECT_RECORD' as const, label: 'Correct the current place record', reason: 'Most independent checks returned a supported negative answer.', timing: 'Now, with the receipt attached' };
+  }
+  if (distribution.PARTIAL >= 2) {
+    return { kind: 'TEST_DIFFERENT_TIME' as const, label: 'Test a different time window', reason: 'The answer appears conditional rather than consistently true or false.', timing: 'During a deliberately different operating window' };
+  }
+  if (distribution.YES >= 3 && input.missions.every((mission) => mission.evidenceQuality !== 'LOW')) {
+    return { kind: 'RECHECK_AFTER_FRESHNESS' as const, label: 'Keep the answer, then recheck', reason: 'The current answer has strong independent support. Do not buy more fieldwork until it approaches expiry.', timing: freshness };
+  }
+  return { kind: 'NO_ACTION' as const, label: 'Take no action yet', reason: 'The current receipt does not justify a stronger operational move.', timing: 'Wait for a materially new question or freshness trigger' };
+}
+
+export function buildFieldSprintReceiptSummary(
+  missions: FieldSprintReceiptMission[],
+  context: { missionKitKey?: MissionKitKey | null; freshnessWindowHours?: number | null } = {},
+) {
   if (missions.length !== MANAGED_FIELD_SPRINT.assignedContributorCount) {
     throw new Error('A complete Sprint receipt requires exactly four independent missions.');
   }
@@ -234,6 +287,7 @@ export function buildFieldSprintReceiptSummary(missions: FieldSprintReceiptMissi
     medianVerificationMinutes: median(missions.flatMap((item) => item.verificationTimeMinutes === null ? [] : [item.verificationTimeMinutes])),
     medianFreshnessHours: median(missions.flatMap((item) => item.evidenceFreshnessHours === null ? [] : [item.evidenceFreshnessHours])),
     receiptMeaning: 'Four independently accepted field observations. Negative and inconclusive results are reported, not hidden.',
+    nextAction: deriveFieldSprintNextAction({ missions, ...context }),
   };
 }
 

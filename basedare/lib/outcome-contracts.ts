@@ -31,11 +31,30 @@ export const REPORTED_OUTCOME_KINDS = [
 
 export type ReportedOutcomeKind = (typeof REPORTED_OUTCOME_KINDS)[number];
 
+export const PLACE_MAINTENANCE_OUTCOMES = [
+  'CONFIRMED',
+  'CHANGED',
+  'COULD_NOT_VERIFY',
+  'CLOSED_OR_MOVED',
+  'UNSAFE_OR_INACCESSIBLE',
+  'NEEDS_RECHECK',
+] as const;
+
+export type PlaceMaintenanceOutcome = (typeof PLACE_MAINTENANCE_OUTCOMES)[number];
+
 export type ReportedOutcome = {
   kind: ReportedOutcomeKind;
   summary: string;
   observedAt: string;
+  maintenanceOutcome: PlaceMaintenanceOutcome;
 };
+
+export function defaultPlaceMaintenanceOutcome(kind: ReportedOutcomeKind): PlaceMaintenanceOutcome {
+  if (kind === 'NO') return 'CHANGED';
+  if (kind === 'PARTIAL') return 'NEEDS_RECHECK';
+  if (kind === 'INCONCLUSIVE') return 'COULD_NOT_VERIFY';
+  return 'CONFIRMED';
+}
 
 export type MissionCompilerOutput = {
   go: string;
@@ -402,7 +421,11 @@ export function validateReportedOutcome(
   if (maximumAge != null && Date.now() - observedMs > maximumAge * 60 * 60 * 1000) {
     return { ok: false, error: 'This observation is too old for the mission contract.' };
   }
-  return { ok: true, value: { kind: candidate.kind, summary, observedAt } };
+  const maintenanceOutcome = candidate.maintenanceOutcome ?? defaultPlaceMaintenanceOutcome(candidate.kind);
+  if (!PLACE_MAINTENANCE_OUTCOMES.includes(maintenanceOutcome)) {
+    return { ok: false, error: 'Choose a valid place-maintenance result.' };
+  }
+  return { ok: true, value: { kind: candidate.kind, summary, observedAt, maintenanceOutcome } };
 }
 
 export function formatAcceptedOutcomeReceipt(input: {

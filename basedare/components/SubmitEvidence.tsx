@@ -12,8 +12,10 @@ import SafetyWaiver from '@/components/SafetyWaiver';
 import CameraCaptureModal, { type CameraCaptureMode } from '@/components/media/CameraCaptureModal';
 import { PROOF_SUBMIT_WINDOW_MS, buildProofSubmitMessage } from '@/lib/proof-submit-auth';
 import {
+  defaultPlaceMaintenanceOutcome,
   getAllowedReportedOutcomes,
   parseOutcomeContractSnapshot,
+  type PlaceMaintenanceOutcome,
   type ReportedOutcome,
   type ReportedOutcomeKind,
 } from '@/lib/outcome-contracts';
@@ -99,6 +101,10 @@ export default function SubmitEvidence({
   const allowedOutcomes = outcomeContract ? getAllowedReportedOutcomes(outcomeContract) : [];
   const [outcomeKind, setOutcomeKind] = useState<ReportedOutcomeKind | ''>(initialOutcome?.kind ?? '');
   const [outcomeSummary, setOutcomeSummary] = useState(initialOutcome?.summary ?? '');
+  const [maintenanceOutcome, setMaintenanceOutcome] = useState<PlaceMaintenanceOutcome>(
+    initialOutcome?.maintenanceOutcome
+      ?? (initialOutcome?.kind ? defaultPlaceMaintenanceOutcome(initialOutcome.kind) : 'CONFIRMED'),
+  );
   const { toast } = useToast();
   const readStoredProofAuth = (walletAddress: string): StoredProofSubmitAuth | null => {
     if (typeof window === 'undefined') return null;
@@ -236,6 +242,7 @@ export default function SubmitEvidence({
                 kind: outcomeKind,
                 summary: outcomeSummary.trim(),
                 observedAt: initialOutcome?.observedAt ?? new Date().toISOString(),
+                maintenanceOutcome,
               },
             }
           : {}),
@@ -818,8 +825,13 @@ export default function SubmitEvidence({
                   allowedOutcomes={allowedOutcomes}
                   kind={outcomeKind}
                   summary={outcomeSummary}
-                  onKindChange={setOutcomeKind}
+                  maintenanceOutcome={maintenanceOutcome}
+                  onKindChange={(kind) => {
+                    setOutcomeKind(kind);
+                    setMaintenanceOutcome(defaultPlaceMaintenanceOutcome(kind));
+                  }}
                   onSummaryChange={setOutcomeSummary}
+                  onMaintenanceOutcomeChange={setMaintenanceOutcome}
                 />
               ) : null}
               <div className="text-left">
@@ -894,8 +906,13 @@ export default function SubmitEvidence({
                   allowedOutcomes={allowedOutcomes}
                   kind={outcomeKind}
                   summary={outcomeSummary}
-                  onKindChange={setOutcomeKind}
+                  maintenanceOutcome={maintenanceOutcome}
+                  onKindChange={(kind) => {
+                    setOutcomeKind(kind);
+                    setMaintenanceOutcome(defaultPlaceMaintenanceOutcome(kind));
+                  }}
                   onSummaryChange={setOutcomeSummary}
+                  onMaintenanceOutcomeChange={setMaintenanceOutcome}
                 />
               </div>
             ) : null}
@@ -1035,12 +1052,23 @@ const OUTCOME_LABELS: Record<ReportedOutcomeKind, string> = {
   PUBLISHED: 'Published',
 };
 
+const MAINTENANCE_LABELS: Record<PlaceMaintenanceOutcome, string> = {
+  CONFIRMED: 'Still accurate',
+  CHANGED: 'Changed',
+  COULD_NOT_VERIFY: "Couldn't verify",
+  CLOSED_OR_MOVED: 'Closed or moved',
+  UNSAFE_OR_INACCESSIBLE: 'Unsafe / inaccessible',
+  NEEDS_RECHECK: 'Needs recheck',
+};
+
 function OutcomeReportFields(props: {
   allowedOutcomes: readonly ReportedOutcomeKind[];
   kind: ReportedOutcomeKind | '';
   summary: string;
+  maintenanceOutcome: PlaceMaintenanceOutcome;
   onKindChange: (kind: ReportedOutcomeKind) => void;
   onSummaryChange: (summary: string) => void;
+  onMaintenanceOutcomeChange: (outcome: PlaceMaintenanceOutcome) => void;
 }) {
   return (
     <div
@@ -1072,6 +1100,28 @@ function OutcomeReportFields(props: {
         maxLength={280}
         className="mt-3 min-h-20 w-full resize-none rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-cyan-300/35"
       />
+      {props.kind ? (
+        <div className="mt-4 border-t border-white/8 pt-3">
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/55">What does this mean for the place?</p>
+          <p className="mt-1 text-[11px] text-white/42">This keeps the map current. Choose closed, moved, or unsafe only when you directly observed it.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(Object.keys(MAINTENANCE_LABELS) as PlaceMaintenanceOutcome[]).map((outcome) => (
+              <button
+                key={outcome}
+                type="button"
+                onClick={() => props.onMaintenanceOutcomeChange(outcome)}
+                className={`min-h-8 rounded-lg border px-2.5 text-[9px] font-black uppercase tracking-[0.12em] transition ${
+                  props.maintenanceOutcome === outcome
+                    ? 'border-emerald-200/55 bg-emerald-300/14 text-emerald-50'
+                    : 'border-white/8 bg-black/15 text-white/45 hover:border-white/20'
+                }`}
+              >
+                {MAINTENANCE_LABELS[outcome]}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
