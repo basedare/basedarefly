@@ -22,6 +22,7 @@ const eslintConfig = defineConfig([
     "hardhat.config.js",
     "place_campaign_acceptance.js",
     "scripts/**/*.js",
+    "scripts/**/*.cjs",
     "test/**/*.js",
   ]),
   {
