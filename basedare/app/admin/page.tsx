@@ -2079,6 +2079,7 @@ export default function AdminPage() {
                 {
                   label: 'Pipelines',
                   items: [
+                    { kind: 'link', href: '/admin/growth-os', icon: Users, label: 'Growth OS' },
                     { kind: 'link', href: '/admin/activation-intakes', icon: DollarSign, label: 'Activation Intakes' },
                     { kind: 'link', href: '/admin/field-sprints', icon: Shield, label: 'Field Sprint Runner' },
                     { kind: 'link', href: '/admin/field-stations', icon: MapPin, label: 'Field Stations' },
