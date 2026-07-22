@@ -25,6 +25,7 @@ import {
 } from './activation-packages';
 
 type MissionComposerProps = {
+  buyerWalletAddress?: string | null;
   checkoutSectionRef: RefObject<HTMLDivElement | null>;
   checkoutSteps: Array<{ label: string; detail: string; complete: boolean }>;
   formData: CampaignFormData;
@@ -51,6 +52,7 @@ const inputClass =
   'min-h-12 w-full rounded-2xl border border-white/12 bg-black/35 px-4 py-3 text-base font-semibold text-white outline-none transition placeholder:text-white/34 focus:border-yellow-300/55 focus:ring-2 focus:ring-yellow-300/15';
 
 export default function ActivationComposer({
+  buyerWalletAddress,
   checkoutSectionRef,
   checkoutSteps,
   formData,
@@ -122,6 +124,7 @@ export default function ActivationComposer({
   if (reportAttribution?.audience) invoiceParams.set('reportAudience', reportAttribution.audience);
   if (reportAttribution?.sessionKey) invoiceParams.set('reportSessionKey', reportAttribution.sessionKey);
   if (reportAttribution?.intent) invoiceParams.set('reportIntent', reportAttribution.intent);
+  if (buyerWalletAddress) invoiceParams.set('buyerWallet', buyerWalletAddress);
   const invoiceHref = `/activations?${invoiceParams.toString()}#activation-intake`;
 
   return (

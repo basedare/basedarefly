@@ -23,6 +23,7 @@
     "safety:rls": "node scripts/verify-rls.mjs",
     "safety:endpoints": "node scripts/production-endpoint-smoke.mjs",
     "safety:ux": "node scripts/launch-gauntlet.mjs",
+    "test:mission-pass:db": "bash scripts/run-mission-pass-db-integration.sh",
     "push:keys": "node scripts/generate-vapid-keys.mjs",
     "safety:static": "node scripts/static-production-safety.mjs",
     "graphify:rebuild": "bash scripts/rebuild-graphify.sh",

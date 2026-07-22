@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 
 import { Prisma } from '@prisma/client';
+import { isAddress } from 'viem';
 
 import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
 import { prisma } from '@/lib/prisma';
@@ -97,6 +98,7 @@ export async function startVerifiedFieldSprint(input: {
   createdBy: string;
 }) {
   const activationIntakeId = cleanOptional(input.activationIntakeId, 191);
+  let buyerWalletAddress: string | null = null;
   if (activationIntakeId) {
     const existingSprint = await prisma.verifiedFieldSprint.findUnique({
       where: { activationIntakeId },
@@ -112,6 +114,11 @@ export async function startVerifiedFieldSprint(input: {
     if (decision.decision !== 'APPROVE_SCOPE') {
       throw new Error('The buyer must approve the bounded scope before a Sprint can be compiled.');
     }
+    const attribution = asRecord(asRecord(intake.metadataJson).activationAttribution);
+    const attributedWallet = typeof attribution.buyerWalletAddress === 'string'
+      ? attribution.buyerWalletAddress.trim()
+      : '';
+    buyerWalletAddress = isAddress(attributedWallet) ? attributedWallet.toLowerCase() : null;
   }
   const stationLinkIds = Array.from(new Set(input.stationLinkIds));
   if (stationLinkIds.length !== 2) throw new Error('Exactly two distinct active Field Stations are required.');
@@ -136,6 +143,7 @@ export async function startVerifiedFieldSprint(input: {
       buyerName: cleanText(input.buyerName, 120),
       buyerOrganization: cleanOptional(input.buyerOrganization, 191),
       buyerEmail: cleanOptional(input.buyerEmail, 254)?.toLowerCase() ?? null,
+      buyerWalletAddress,
       buyerQuestion: input.buyerQuestion.replace(/\s+/g, ' ').trim(),
       areaLabel: input.areaLabel.replace(/\s+/g, ' ').trim(),
       freshnessWindowHours: input.freshnessWindowHours,

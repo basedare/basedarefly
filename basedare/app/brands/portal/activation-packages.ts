@@ -8,6 +8,7 @@ export interface Brand {
   walletAddress: string;
   verified: boolean;
   totalSpend: number;
+  latestCompletedSprintReceiptHref?: string;
   campaignSummary?: {
     total: number;
     live: number;

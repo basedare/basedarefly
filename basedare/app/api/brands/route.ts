@@ -19,6 +19,11 @@ const RegisterBrandSchema = z.object({
   walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address'),
 });
 
+const PRIVATE_RESPONSE_HEADERS = {
+  'Cache-Control': 'private, no-store, max-age=0',
+  Pragma: 'no-cache',
+};
+
 type WalletSession = {
   token?: string;
   walletAddress?: string;
@@ -55,12 +60,21 @@ export async function GET(request: NextRequest) {
     if (!walletAddress) {
       return NextResponse.json(
         { success: false, error: 'Wallet address required' },
-        { status: 400 }
+        { status: 400, headers: PRIVATE_RESPONSE_HEADERS }
       );
     }
 
+    if (!isAddress(walletAddress)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid wallet address' },
+        { status: 400, headers: PRIVATE_RESPONSE_HEADERS }
+      );
+    }
+
+    const normalizedWallet = walletAddress.toLowerCase();
+
     const brand = await prisma.brand.findUnique({
-      where: { walletAddress: walletAddress.toLowerCase() },
+      where: { walletAddress: normalizedWallet },
       include: {
         campaigns: {
           select: {
@@ -90,14 +104,25 @@ export async function GET(request: NextRequest) {
     if (!brand) {
       return NextResponse.json(
         { success: false, error: 'Brand not found', code: 'NOT_FOUND' },
-        { status: 404 }
+        { status: 404, headers: PRIVATE_RESPONSE_HEADERS }
       );
     }
 
-    const venueRadar = await getBrandVenueRadar({
-      brandWallet: walletAddress.toLowerCase(),
-      limit: 6,
-    });
+    const [venueRadar, latestCompletedSprint] = await Promise.all([
+      getBrandVenueRadar({
+        brandWallet: normalizedWallet,
+        limit: 6,
+      }),
+      prisma.verifiedFieldSprint.findFirst({
+        where: {
+          buyerWalletAddress: normalizedWallet,
+          status: 'COMPLETE',
+          completedAt: { not: null },
+        },
+        select: { receiptCode: true },
+        orderBy: { completedAt: 'desc' },
+      }),
+    ]);
 
     const liveCampaigns = brand.campaigns.filter((campaign) => ['LIVE', 'RECRUITING'].includes(campaign.status));
     const creatorMovement = brand.campaigns.filter(
@@ -120,6 +145,9 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         ...brand,
+        latestCompletedSprintReceiptHref: latestCompletedSprint
+          ? `/field-sprints/${encodeURIComponent(latestCompletedSprint.receiptCode)}`
+          : '/field-sprints/example',
         campaignSummary: {
           total: brand.campaigns.length,
           live: liveCampaigns.length,
@@ -136,13 +164,13 @@ export async function GET(request: NextRequest) {
         },
         venueRadar,
       },
-    });
+    }, { headers: PRIVATE_RESPONSE_HEADERS });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[BRANDS] Failed to fetch brand:', message);
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 }
+      { status: 500, headers: PRIVATE_RESPONSE_HEADERS }
     );
   }
 }

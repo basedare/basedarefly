@@ -1032,11 +1032,11 @@ export default function BrandPortalPage() {
               Scope a Sprint
             </button>
             <Link
-              href="/field-sprints/example"
+              href={brand?.latestCompletedSprintReceiptHref ?? '/field-sprints/example'}
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-cyan-300/[0.24] bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_28px_rgba(0,0,0,0.2)] transition hover:border-cyan-200/40 hover:bg-cyan-400/[0.14]"
             >
               <ReceiptText className="h-4 w-4" />
-              See an example receipt
+              See verified results
             </Link>
           </div>
           <p className="mt-4 text-sm font-semibold leading-6 text-white/58">
@@ -1045,6 +1045,7 @@ export default function BrandPortalPage() {
         </div>
 
         <ActivationComposer
+          buyerWalletAddress={address?.toLowerCase() ?? null}
           checkoutSectionRef={checkoutSectionRef}
           checkoutSteps={checkoutSteps}
           formData={formData}

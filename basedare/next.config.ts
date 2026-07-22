@@ -97,7 +97,19 @@ const nextConfig: NextConfig = {
     // gets severed on iOS Safari — the "This app doesn't support smart wallets"
     // error. `same-origin-allow-popups` is Coinbase's documented fix and also
     // keeps OAuth (tag-claim) popups working.
+    const privateSurfaceHeaders = [
+      { key: 'Cache-Control', value: 'private, no-store, max-age=0' },
+      { key: 'Pragma', value: 'no-cache' },
+      { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
+      { key: 'Referrer-Policy', value: 'no-referrer' },
+    ];
+
     return [
+      { source: '/missions', headers: privateSurfaceHeaders },
+      { source: '/continue/:path*', headers: privateSurfaceHeaders },
+      { source: '/field-sprints/:path*', headers: privateSurfaceHeaders },
+      { source: '/api/mission-passes/:path*', headers: privateSurfaceHeaders },
+      { source: '/api/field-sprints/:path*', headers: privateSurfaceHeaders },
       {
         source: '/:path*',
         headers: [

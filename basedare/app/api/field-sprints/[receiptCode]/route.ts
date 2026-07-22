@@ -8,6 +8,15 @@ export async function GET(
 ) {
   const { receiptCode } = await context.params;
   const receipt = await buildVerifiedFieldSprintReceipt(receiptCode);
-  if (!receipt) return NextResponse.json({ success: false, error: 'Receipt not found or not complete.' }, { status: 404 });
-  return NextResponse.json({ success: true, data: receipt }, { headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' } });
+  const headers = {
+    'Cache-Control': 'private, no-store, max-age=0',
+    Pragma: 'no-cache',
+  };
+  if (!receipt) {
+    return NextResponse.json(
+      { success: false, error: 'Receipt not found or not complete.' },
+      { status: 404, headers },
+    );
+  }
+  return NextResponse.json({ success: true, data: receipt }, { headers });
 }

@@ -58,6 +58,7 @@ export function getActivationFunnelAttribution(extra: Record<string, string | nu
     budgetRange: clean(params.get('budgetRange')) || extra.budgetRange || null,
     goal: clean(params.get('goal')) || extra.goal || null,
     buyerType: clean(params.get('buyerType')) || extra.buyerType || null,
+    buyerWalletAddress: clean(params.get('buyerWallet')) || extra.buyerWalletAddress || null,
     deadWindowTime: clean(params.get('deadWindowTime')) || extra.deadWindowTime || null,
     deadWindowCheckInTarget: clean(params.get('deadWindowCheckInTarget')) || extra.deadWindowCheckInTarget || null,
     deadWindowPerk: clean(params.get('deadWindowPerk')) || extra.deadWindowPerk || null,

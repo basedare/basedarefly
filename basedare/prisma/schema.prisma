@@ -1370,6 +1370,7 @@ model VerifiedFieldSprint {
   buyerName              String
   buyerOrganization      String?
   buyerEmail             String?
+  buyerWalletAddress     String?
   buyerQuestion          String
   areaLabel              String
   freshnessWindowHours   Int
@@ -1399,6 +1400,7 @@ model VerifiedFieldSprint {
 
   @@index([status, createdAt])
   @@index([buyerOrganization, createdAt])
+  @@index([buyerWalletAddress, status, completedAt])
 }
 
 model VerifiedFieldSprintMission {

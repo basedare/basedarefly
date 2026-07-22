@@ -188,6 +188,7 @@ type ActivationIntakeFormProps = {
   routedDeadWindowCheckInTarget?: string | null;
   routedDeadWindowPerk?: string | null;
   routedDeadWindowBaseline?: string | null;
+  routedBuyerWallet?: string | null;
 };
 
 export default function ActivationIntakeForm({
@@ -216,6 +217,7 @@ export default function ActivationIntakeForm({
   routedDeadWindowCheckInTarget,
   routedDeadWindowPerk,
   routedDeadWindowBaseline,
+  routedBuyerWallet,
 }: ActivationIntakeFormProps) {
   const initialNormalizedCreator = routedCreator
     ? routedCreator.startsWith('@')
@@ -779,6 +781,7 @@ export default function ActivationIntakeForm({
             deadWindowCheckInTarget: form.deadWindowCheckInTarget || undefined,
             deadWindowPerk: form.deadWindowPerk || undefined,
             deadWindowBaseline: form.deadWindowBaseline || undefined,
+            buyerWalletAddress: routedBuyerWallet || undefined,
           }),
         }),
       });

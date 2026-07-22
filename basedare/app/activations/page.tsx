@@ -43,6 +43,7 @@ type ActivationsPageProps = {
     contentRequired?: string;
     guestMission?: string;
     perkLabel?: string;
+    buyerWallet?: string;
   }>;
 };
 
@@ -249,6 +250,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
                 routedContentRequired={resolvedSearchParams.contentRequired || null}
                 routedGuestMission={resolvedSearchParams.guestMission || null}
                 routedPerkLabel={resolvedSearchParams.perkLabel || null}
+                routedBuyerWallet={resolvedSearchParams.buyerWallet || null}
               />
             </div>
           </div>
