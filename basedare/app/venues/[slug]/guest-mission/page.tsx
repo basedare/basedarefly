@@ -9,8 +9,8 @@ import VenuePageShell from '../../VenuePageShell';
 import SquircleLink from '@/components/ui/SquircleLink';
 
 export const metadata: Metadata = {
-  title: 'Guest Mission | BaseDare',
-  description: 'A simple BaseDare venue guest mission: check in, complete one action, unlock one perk, and leave a receipt.',
+  title: 'Guest Challenge Pilot | BaseDare',
+  description: 'An optional venue pilot: invite guests to complete one action, unlock one perk, and leave a measurable receipt.',
 };
 
 const raisedPanelClass =
@@ -91,7 +91,7 @@ export default async function VenueGuestMissionPage({ params }: VenueGuestMissio
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-500/[0.09] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">
                 <Users className="h-4 w-4" />
-                Guest Mission
+                Guest Challenge Pilot
               </div>
               <h1 className="mt-4 text-4xl font-black uppercase italic leading-[0.92] tracking-[-0.06em] text-white sm:text-6xl">
                 {mission.missionTitle}

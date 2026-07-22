@@ -138,14 +138,14 @@ function getStateCopy(state: SparkRunMomentumState) {
     case 'warming':
       return {
         label: 'Warming',
-        detail: 'Signal is visible. Route people.',
-        repeat: 'Push one creator or guest route into the window.',
+        detail: 'Signal is visible. Capture proof next.',
+        repeat: 'Open the live map and choose a proof or funded-mission path.',
       };
     case 'sparked':
       return {
         label: 'Sparked',
         detail: 'Plan is armed. Make it visible.',
-        repeat: 'Open the map signal and route first proof.',
+        repeat: 'Open the live map and collect the first proof.',
       };
     default:
       return {
@@ -165,7 +165,7 @@ function getPrimaryCta(state: SparkRunMomentumState, hrefs: SparkRunHrefInput) {
       return { label: hrefs.consoleHref ? 'Open console' : 'Open map', href: hrefs.consoleHref ?? hrefs.mapHref };
     case 'warming':
     case 'sparked':
-      return { label: 'Route proof', href: hrefs.mapHref };
+      return { label: 'Open live map', href: hrefs.mapHref };
     default:
       return { label: 'Start Spark', href: hrefs.launchHref };
   }

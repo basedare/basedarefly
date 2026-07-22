@@ -7,6 +7,7 @@ import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
 import { recordVenueReportEvent } from '@/lib/venue-report-pipeline';
 import { notifyVenueClaimSubmitted } from '@/lib/venue-notifications';
 import { alertVenueClaimSubmission } from '@/lib/telegram';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 
 type ClaimSession = {
   token?: string;
@@ -47,21 +48,21 @@ export async function POST(
     const reportSource = queryResult.data.reportSource ?? null;
     const reportAudience = queryResult.data.reportAudience === 'sponsor' ? 'sponsor' : 'venue';
     const reportSessionKey = queryResult.data.reportSessionKey ?? null;
+    const { slug } = await params;
+    if (!SlugSchema.safeParse(slug).success) {
+      return NextResponse.json({ success: false, error: 'Invalid venue slug' }, { status: 400 });
+    }
+
     const session = (await getServerSession(authOptions)) as ClaimSession | null;
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'Sign in required to claim a venue' }, { status: 401 });
-    }
-
-    const sessionToken = session?.token?.trim();
-    const bearerToken = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim();
-    if (sessionToken && (!bearerToken || bearerToken !== sessionToken)) {
-      return NextResponse.json({ success: false, error: 'Invalid session token' }, { status: 401 });
-    }
-
-    const walletAddress = getSessionWallet(session);
+    const walletHint = request.headers.get('x-basedare-wallet')?.trim() || getSessionWallet(session);
+    const walletAddress = await getAuthorizedWalletForRequest(request, {
+      walletAddress: walletHint,
+      action: 'venue:claim',
+      resource: slug,
+    });
     if (!walletAddress) {
       return NextResponse.json(
-        { success: false, error: 'Wallet session is missing. Reconnect and try again.' },
+        { success: false, error: 'Connect and sign with the wallet requesting venue access.' },
         { status: 401 }
       );
     }
@@ -69,14 +70,9 @@ export async function POST(
     const primaryTag = await findPrimaryCreatorTagForWallet(walletAddress);
     if (!primaryTag?.tag) {
       return NextResponse.json(
-        { success: false, error: 'Claim and verify your creator tag before claiming a venue.' },
+        { success: false, error: 'Set up a BaseDare tag for this wallet before requesting venue access.' },
         { status: 400 }
       );
-    }
-
-    const { slug } = await params;
-    if (!SlugSchema.safeParse(slug).success) {
-      return NextResponse.json({ success: false, error: 'Invalid venue slug' }, { status: 400 });
     }
     const venue = await prisma.venue.findUnique({
       where: { slug },
@@ -115,7 +111,7 @@ export async function POST(
         }
         return NextResponse.json({
           success: true,
-          message: 'Your venue claim is already pending moderator review.',
+          message: 'Your venue access request is already pending moderator review.',
           data: {
             venueId: venue.id,
             slug: venue.slug,
@@ -178,7 +174,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: 'Venue claim submitted. A moderator will review it shortly.',
+      message: 'Venue access requested. A moderator will review your authority before enabling operator tools.',
       data: updatedVenue,
     });
   } catch (error) {

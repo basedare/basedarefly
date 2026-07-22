@@ -2,7 +2,7 @@ import type { Session } from 'next-auth';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
-import { ArrowRight, BarChart3, CalendarDays, CheckCircle2, Clock3, CreditCard, ExternalLink, Flame, Globe2, Instagram, Mail, MapPin, MessageCircle, Phone, ShieldCheck, Sparkles, Users, Waves, Zap } from 'lucide-react';
+import { ArrowRight, CalendarDays, Clock3, CreditCard, ExternalLink, Flame, Globe2, Instagram, Mail, MapPin, MessageCircle, Phone, ShieldCheck, Sparkles, Waves, Zap } from 'lucide-react';
 import { authOptions } from '@/lib/auth-options';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import {
@@ -12,7 +12,6 @@ import {
   buildVenueChallengeCreateHref,
   buildVenueCreatorRouteComposerHref,
 } from '@/lib/venue-launch';
-import { buildVenueGuestMission } from '@/lib/venue-guest-missions';
 import { buildSparkRun } from '@/lib/spark-run';
 import VenuePageShell from '../VenuePageShell';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
@@ -264,20 +263,8 @@ export default async function VenueDetailPage(
     offerId: 'first-spark',
     source: 'venue',
   });
-  const venueGuestMission = buildVenueGuestMission({
-    venueName: venue.name,
-    categories: venue.categories,
-    activePerk: venue.activePerk,
-    liveSession: venue.liveSession,
-    hasActiveDrops: venue.activeDares.length > 0,
-  });
   const guestMissionPageHref = `/venues/${encodeURIComponent(venue.slug)}/guest-mission`;
   const baseCashHref = `/venues/${encodeURIComponent(venue.slug)}/basecash`;
-  const guestMissionProofSteps = [
-    venueGuestMission.proofLabel,
-    venue.activePerk ? `Unlock: ${venue.activePerk.title}` : `Perk: ${venueGuestMission.perkLabel}`,
-    venue.liveSession?.status === 'LIVE' ? 'QR rail is live' : 'Receipt-ready loop',
-  ];
   const venueReportHref = `/venues/${encodeURIComponent(venue.slug)}/report`;
   const venueRecapHref = `/venues/${encodeURIComponent(venue.slug)}/recap`;
   const creatorContribution = venue.creatorContribution;
@@ -365,12 +352,6 @@ export default async function VenueDetailPage(
     : venue.commandCenter.claimState === 'unclaimed'
       ? 'Start claim'
       : 'Open map';
-  const primaryLiveDrop =
-    focusedActivation ?? featuredPaidActivation ?? venue.activeDares[0] ?? null;
-  const firstMarkMoment =
-    venue.timelineMoments.find((moment) => moment.badges.includes('first spark')) ?? null;
-  const latestProofRelic =
-    venue.timelineMoments.find((moment) => moment.kind === 'DARE_COMPLETION' || Boolean(moment.mediaUrl)) ?? null;
   const receiptCheckIns = Math.max(
     venue.firstSparkWindow?.checkIns ?? 0,
     last7DayWindow.checkIns,
@@ -393,6 +374,7 @@ export default async function VenueDetailPage(
     pendingActivationCount,
     paidActivationCount > 0 ? 1 : 0
   );
+  const hasVenueReceipt = receiptCheckIns > 0 || receiptProofs > 0 || last7DayWindow.verifiedOutcomes > 0;
   const sparkRun = buildSparkRun({
     venue,
     launchHref: activateVenueHref,
@@ -529,16 +511,16 @@ export default async function VenueDetailPage(
                         Open The Board
                         <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
-                      <Link
-                        href={venueRecapHref}
-                        prefetch={false}
-                        className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-emerald-300/24 bg-emerald-500/[0.08] px-3.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:border-emerald-200/40 hover:text-white"
-                      >
-                        {venue.recentCheckIns.length > 0 || last7DayWindow.verifiedOutcomes > 0
-                          ? 'View receipt'
-                          : 'Open proof receipt'}
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
+                      {hasVenueReceipt ? (
+                        <Link
+                          href={venueRecapHref}
+                          prefetch={false}
+                          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-emerald-300/24 bg-emerald-500/[0.08] px-3.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:border-emerald-200/40 hover:text-white"
+                        >
+                          View activation receipt
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -582,17 +564,6 @@ export default async function VenueDetailPage(
                         Fund dare
                         <Zap className="h-4 w-4" />
                       </SquircleLink>
-                      <SquircleLink
-                        href={guestMissionPageHref}
-                        label="Guest mission"
-                        tone="teal"
-                        fullWidth
-                        height={44}
-                        labelClassName="text-[0.72rem] tracking-[0.08em] sm:text-[0.8rem]"
-                      >
-                        Guest mission
-                        <Users className="h-4 w-4" />
-                      </SquircleLink>
                       {/* Same feature set as the map pin popup — the venue page is the
                           ergonomic, full-screen version of that bottom sheet. */}
                       <Link
@@ -612,65 +583,41 @@ export default async function VenueDetailPage(
                   </div>
                   <div className={`${softCardClass} px-5 py-4`}>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Owner / host</p>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">For venue teams</p>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="text-lg font-bold">
                         {venue.commandCenter.consoleUrl
-                          ? 'Console ready'
+                          ? 'Venue tools ready'
                           : venue.commandCenter.claimState === 'pending'
-                            ? 'Claim pending'
-                            : 'Run this place'}
+                            ? 'Access pending'
+                            : 'Test one measurable visit loop'}
                       </span>
                     </div>
-                    <p className="mt-2 text-sm text-white/58">{venue.commandCenter.summary}</p>
+                    <p className="mt-2 text-sm leading-6 text-white/58">
+                      Pick one slow window and one perk. BaseDare sets up the route, proof rail, and receipt.
+                    </p>
                     <div className="mt-4 grid gap-2">
                       <SquircleLink
                         href={activateVenueHref}
-                        label="Run First Spark"
+                        label="Set up a venue pilot"
                         tone="yellow"
                         fullWidth
                         height={44}
                         labelClassName="text-[0.64rem] tracking-[0.06em] sm:text-[0.72rem] sm:tracking-[0.07em]"
                       >
-                        Run First Spark
+                        Set up a venue pilot
                         <Sparkles className="h-4 w-4" />
                       </SquircleLink>
                     </div>
+
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {venue.commandCenter.consoleUrl ? (
-                        <>
-                          <Link
-                            href={venueReportHref}
-                            className="inline-flex items-center gap-2 rounded-full border border-cyan-400/24 bg-cyan-500/[0.1] px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-cyan-300/38 hover:bg-cyan-500/[0.14]"
-                          >
-                            <BarChart3 className="h-4 w-4" />
-                            Report
-                          </Link>
-                          <Link
-                            href={venueRecapHref}
-                            className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.1] px-4 py-2 text-sm font-semibold text-[#f8dd72] shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.14]"
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                            Receipt
-                          </Link>
-                          {repeatActivationHref ? (
-                            <Link
-                              href={repeatActivationHref}
-                              className="inline-flex items-center gap-2 rounded-full border border-amber-400/24 bg-amber-500/[0.1] px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-amber-300/38 hover:bg-amber-500/[0.14]"
-                            >
-                              Re-run Activation
-                              <ArrowRight className="h-4 w-4" />
-                            </Link>
-                          ) : null}
-                        </>
-                      ) : null}
                       {venue.commandCenter.consoleUrl ? (
                         <Link
                           href={venue.commandCenter.consoleUrl}
                           className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
                         >
-                          Open Console
-                          <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                          Open venue console
+                          <ArrowRight className="h-4 w-4" />
                         </Link>
                       ) : (
                         <ClaimVenueButton
@@ -689,16 +636,41 @@ export default async function VenueDetailPage(
                         {venue.commandCenter.contactLabel}
                       </Link>
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold text-white/45">
-                      <Link href={fundChallengeHref} className="inline-flex items-center gap-1.5 transition hover:text-white">
-                        <ArrowRight className="h-3 w-3" />
-                        Fund a dare here
-                      </Link>
-                      <Link href={baseCashHref} className="inline-flex items-center gap-1.5 transition hover:text-white">
-                        <CreditCard className="h-3 w-3" />
-                        BaseCash
-                      </Link>
-                    </div>
+
+                    <details className="group mt-4 rounded-2xl border border-white/8 bg-black/18 px-4 py-3">
+                      <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.17em] text-white/48 transition group-open:text-white/72">
+                        More venue tools
+                      </summary>
+                      <p className="mt-2 text-xs leading-5 text-white/42">
+                        Optional pilots and evidence pages for authorized venue teams.
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+                        <Link href={guestMissionPageHref} className="rounded-full border border-cyan-300/16 bg-cyan-500/[0.07] px-3 py-2 text-cyan-100/78 transition hover:text-white">
+                          Guest challenge pilot
+                        </Link>
+                        <Link href={baseCashHref} className="inline-flex items-center gap-1.5 rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.07] px-3 py-2 text-[#f8dd72]/82 transition hover:text-white">
+                          <CreditCard className="h-3.5 w-3.5" />
+                          BaseCash manual pilot
+                        </Link>
+                        {venue.commandCenter.consoleUrl ? (
+                          <>
+                            <Link href={venueReportHref} className="rounded-full border border-cyan-300/16 bg-cyan-500/[0.07] px-3 py-2 text-cyan-100/78 transition hover:text-white">
+                              Decision brief
+                            </Link>
+                            {hasVenueReceipt ? (
+                              <Link href={venueRecapHref} className="rounded-full border border-emerald-300/16 bg-emerald-500/[0.07] px-3 py-2 text-emerald-100/78 transition hover:text-white">
+                                Activation receipt
+                              </Link>
+                            ) : null}
+                            {repeatActivationHref ? (
+                              <Link href={repeatActivationHref} className="rounded-full border border-amber-300/16 bg-amber-500/[0.07] px-3 py-2 text-amber-100/78 transition hover:text-white">
+                                Repeat activation
+                              </Link>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
+                    </details>
                   </div>
                 </div>
               </div>
@@ -728,76 +700,9 @@ export default async function VenueDetailPage(
             </div>
           </div>
 
-          <SparkRunCard sparkRun={sparkRun} />
-
-          <div className={`${raisedPanelClass} px-5 py-5 sm:px-7`}>
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(34,211,238,0.14),transparent_33%),radial-gradient(circle_at_92%_18%,rgba(16,185,129,0.11),transparent_30%),radial-gradient(circle_at_70%_100%,rgba(245,197,24,0.09),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_45%,rgba(0,0,0,0.24)_100%)]" />
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/34 to-transparent" />
-            <div className="relative grid gap-5 lg:grid-cols-[1fr_0.82fr] lg:items-center">
-              <div>
-                <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-500/[0.09] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">
-                    <Users className="h-4 w-4" />
-                    Guest Loop
-                  </div>
-                  <h2 className="mt-4 text-3xl font-black tracking-[-0.045em] text-white">
-                    {venueGuestMission.missionTitle}
-                  </h2>
-                  <p className="mt-3 max-w-xl text-sm leading-6 text-white/62">
-                    {venueGuestMission.guestMission}
-                  </p>
-                </div>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {[venueGuestMission.statusLabel, venueGuestMission.urgencyLabel, venueGuestMission.perkLabel].map((chip) => (
-                    <span
-                      key={chip}
-                      className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]"
-                    >
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className={`${insetCardClass} px-4 py-4`}>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/34">How it works</p>
-                <div className="mt-3 grid gap-2">
-                  {guestMissionProofSteps.slice(0, 3).map((step, index) => (
-                    <div key={step} className="flex items-center gap-3 rounded-[16px] border border-white/8 bg-white/[0.035] px-3 py-2">
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-cyan-200/16 bg-cyan-300/[0.08] text-xs font-black text-cyan-100">
-                        {index + 1}
-                      </span>
-                      <p className="min-w-0 text-sm font-black leading-5 text-white">{step}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <SquircleLink
-                    href={mapHref}
-                    label="Open Map"
-                    tone="teal"
-                    fullWidth
-                    height={42}
-                    labelClassName="text-[0.7rem] tracking-[0.08em] sm:text-[0.76rem]"
-                  >
-                    Open Map
-                    <ArrowRight className="h-4 w-4" />
-                  </SquircleLink>
-                  <SquircleLink
-                    href={guestMissionPageHref}
-                    label="Mission"
-                    tone="yellow"
-                    fullWidth
-                    height={42}
-                    labelClassName="text-[0.66rem] tracking-[0.06em] sm:text-[0.72rem] sm:tracking-[0.07em]"
-                  >
-                    Mission
-                    <Sparkles className="h-4 w-4" />
-                  </SquircleLink>
-                </div>
-              </div>
-            </div>
-          </div>
+          {sparkRun.state !== 'cold' || venue.commandCenter.consoleUrl ? (
+            <SparkRunCard sparkRun={sparkRun} />
+          ) : null}
 
           <div className={`${raisedPanelClass} px-4 py-4 sm:px-5 sm:py-5`}>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(245,197,24,0.10),transparent_30%),radial-gradient(circle_at_95%_20%,rgba(34,211,238,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.035)_0%,transparent_42%,rgba(0,0,0,0.18)_100%)]" />
