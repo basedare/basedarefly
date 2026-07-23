@@ -27,6 +27,7 @@ test('tracked links are local public BaseDare paths only', () => {
 test('target types fail closed', () => {
   assert.equal(normalizeTargetType('dare'), 'DARE');
   assert.equal(normalizeTargetType('meetup'), 'MEETUP');
+  assert.equal(normalizeTargetType('route'), 'ROUTE');
   assert.throws(() => normalizeTargetType('PAYOUT'));
 });
 

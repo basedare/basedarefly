@@ -12,7 +12,7 @@ const missionPassEmailEnabled = process.env.NEXT_PUBLIC_MISSION_PASS_EMAIL_ENABL
 type MissionPassSheetProps = {
   open: boolean;
   onClose: () => void;
-  targetType: 'DARE' | 'MEETUP' | 'DROP' | 'PAGE';
+  targetType: 'DARE' | 'MEETUP' | 'DROP' | 'PAGE' | 'ROUTE';
   targetId: string;
   targetHref: string;
   title: string;

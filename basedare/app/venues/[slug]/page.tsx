@@ -19,6 +19,7 @@ import SparkRunCard from '@/components/venues/SparkRunCard';
 import VenueMarkButton from '@/components/venues/VenueMarkButton';
 import VenueHostPanel from '@/components/venues/VenueHostPanel';
 import VenueCheckInButton from '@/components/venues/VenueCheckInButton';
+import WorthADetourCard from '@/components/venues/WorthADetourCard';
 import SquircleLink from '@/components/ui/SquircleLink';
 import { formatVenueContactConfirmedAt, formatVenueContactSource, type VenueContactChannel } from '@/lib/venue-contact-routes';
 
@@ -673,6 +674,7 @@ export default async function VenueDetailPage(
                     </details>
                   </div>
                 </div>
+                <WorthADetourCard venueSlug={venue.slug} venueName={venue.name} />
               </div>
               {venue.activeDares.length > 0 ||
               totalActiveChallengeFunding > 0 ||

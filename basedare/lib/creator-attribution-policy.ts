@@ -2,7 +2,7 @@ export const JOURNEY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const INTENT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MISSION_PASS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-export const ATTRIBUTION_TARGET_TYPES = ['DARE', 'MEETUP', 'DROP', 'PAGE'] as const;
+export const ATTRIBUTION_TARGET_TYPES = ['DARE', 'MEETUP', 'DROP', 'PAGE', 'ROUTE'] as const;
 export type AttributionTargetType = (typeof ATTRIBUTION_TARGET_TYPES)[number];
 
 const TARGET_TYPE_SET = new Set<string>(ATTRIBUTION_TARGET_TYPES);

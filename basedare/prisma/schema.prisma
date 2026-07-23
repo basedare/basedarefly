@@ -236,6 +236,8 @@ model Venue {
   placeTags            PlaceTag[]
   qrSessions           VenueQrSession[]
   reviews              VenueReview[]
+  routeStops           PlayableRouteStop[]
+  placeEndorsements    PlaceEndorsement[]
   roomMessages         VenueRoomMessage[]
   roomPresences        VenueRoomPresence[]
   contactRoutes        VenueContactRoute[]
@@ -433,26 +435,28 @@ model PlaceTag {
 }
 
 model VenueCheckIn {
-  id                String          @id @default(cuid())
+  id                String                  @id @default(cuid())
   venueId           String
   walletAddress     String
   tag               String?
   dareId            String?
-  status            String          @default("CONFIRMED")
-  proofLevel        String          @default("QR_AND_GPS")
-  source            String          @default("VENUE_QR")
+  status            String                  @default("CONFIRMED")
+  proofLevel        String                  @default("QR_AND_GPS")
+  source            String                  @default("VENUE_QR")
   venueSessionId    String?
   qrTokenHash       String?
   geoDistanceMeters Int?
-  scannedAt         DateTime        @default(now())
+  scannedAt         DateTime                @default(now())
   windowStartAt     DateTime?
   windowEndAt       DateTime?
   metadataJson      Json?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  venue             Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  session           VenueQrSession? @relation(fields: [venueSessionId], references: [id], onDelete: SetNull)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  venue             Venue                   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  session           VenueQrSession?         @relation(fields: [venueSessionId], references: [id], onDelete: SetNull)
   reviews           VenueReview[]
+  routeProgress     PlayableRouteProgress[]
+  placeEndorsements PlaceEndorsement[]
 
   @@index([venueId, scannedAt])
   @@index([venueSessionId])
@@ -482,6 +486,97 @@ model VenueReview {
   @@index([walletAddress, createdAt])
   @@index([checkInId])
   @@index([status])
+}
+
+model PlayableRoute {
+  id          String              @id @default(cuid())
+  slug        String              @unique
+  title       String
+  description String
+  mode        String              @default("ORDERED")
+  status      String              @default("DRAFT")
+  loreIntro   String?
+  createdBy   String
+  publishedAt DateTime?
+  retiredAt   DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  stops       PlayableRouteStop[]
+  runs        PlayableRouteRun[]
+
+  @@index([status, publishedAt])
+  @@index([createdBy, createdAt])
+}
+
+model PlayableRouteStop {
+  id        String                  @id @default(cuid())
+  routeId   String
+  venueId   String
+  ordinal   Int
+  loreTitle String
+  loreBody  String
+  createdAt DateTime                @default(now())
+  route     PlayableRoute           @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  venue     Venue                   @relation(fields: [venueId], references: [id], onDelete: Restrict)
+  progress  PlayableRouteProgress[]
+
+  @@unique([routeId, ordinal])
+  @@unique([routeId, venueId])
+  @@index([venueId])
+}
+
+model PlayableRouteRun {
+  id             String                  @id @default(cuid())
+  routeId        String
+  journeyId      String
+  actionIntentId String?                 @unique
+  walletAddress  String?
+  status         String                  @default("ACTIVE")
+  receiptCode    String                  @unique
+  startedAt      DateTime                @default(now())
+  completedAt    DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  route          PlayableRoute           @relation(fields: [routeId], references: [id], onDelete: Restrict)
+  journey        AttributionJourney      @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  actionIntent   ActionIntent?           @relation(fields: [actionIntentId], references: [id], onDelete: SetNull)
+  progress       PlayableRouteProgress[]
+
+  @@unique([routeId, journeyId])
+  @@index([walletAddress, status])
+  @@index([routeId, status])
+}
+
+model PlayableRouteProgress {
+  id          String            @id @default(cuid())
+  runId       String
+  stopId      String
+  checkInId   String            @unique
+  completedAt DateTime          @default(now())
+  run         PlayableRouteRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  stop        PlayableRouteStop @relation(fields: [stopId], references: [id], onDelete: Restrict)
+  checkIn     VenueCheckIn      @relation(fields: [checkInId], references: [id], onDelete: Restrict)
+
+  @@unique([runId, stopId])
+  @@index([stopId, completedAt])
+}
+
+model PlaceEndorsement {
+  id            String       @id @default(cuid())
+  venueId       String
+  walletAddress String
+  checkInId     String
+  tag           String?
+  status        String       @default("ACTIVE")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  venue         Venue        @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  checkIn       VenueCheckIn @relation(fields: [checkInId], references: [id], onDelete: Restrict)
+
+  @@unique([venueId, walletAddress])
+  @@index([venueId, status, createdAt])
+  @@index([walletAddress, status, createdAt])
+  @@index([checkInId])
 }
 
 model VenueMemory {
@@ -1221,6 +1316,7 @@ model AttributionJourney {
   intents       ActionIntent[]
   missionPasses MissionPass[]
   events        AttributionEvent[]
+  routeRuns     PlayableRouteRun[]
 
   @@index([participantKey, lastSeenAt])
   @@index([status, expiresAt])
@@ -1279,13 +1375,14 @@ model ActionIntent {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  journey         AttributionJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
-  primaryTouch    AttributionTouch?  @relation("IntentPrimaryTouch", fields: [primaryTouchId], references: [id], onDelete: SetNull)
-  stationTouch    AttributionTouch?  @relation("IntentStationTouch", fields: [stationTouchId], references: [id], onDelete: SetNull)
-  canonicalIntent ActionIntent?      @relation("IntentMerge", fields: [canonicalIntentId], references: [id], onDelete: SetNull)
-  mergedIntents   ActionIntent[]     @relation("IntentMerge")
-  missionPasses   MissionPass[]
-  events          AttributionEvent[]
+  journey          AttributionJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  primaryTouch     AttributionTouch?  @relation("IntentPrimaryTouch", fields: [primaryTouchId], references: [id], onDelete: SetNull)
+  stationTouch     AttributionTouch?  @relation("IntentStationTouch", fields: [stationTouchId], references: [id], onDelete: SetNull)
+  canonicalIntent  ActionIntent?      @relation("IntentMerge", fields: [canonicalIntentId], references: [id], onDelete: SetNull)
+  mergedIntents    ActionIntent[]     @relation("IntentMerge")
+  missionPasses    MissionPass[]
+  events           AttributionEvent[]
+  playableRouteRun PlayableRouteRun?
 
   @@unique([journeyId, targetType, targetId])
   @@index([participantKey, state, updatedAt])

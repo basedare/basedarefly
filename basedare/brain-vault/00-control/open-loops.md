@@ -27,8 +27,8 @@ updated_at: 2026-07-23
 | Autonomous treasury and proof limits | operating_policy | NEXT | codex | [[00-control/vision]] |
 | Approved Mission Kits + preflight compiler | product_policy | SOFTWARE_READY | codex | [[05-playbooks/proven-product-mechanics]] |
 | Place-health maintenance outcomes | place_memory | SOFTWARE_READY | codex | [[05-playbooks/proven-product-mechanics]] |
-| Three-to-five-stop playable routes | consumer_product | NEXT | codex | [[05-playbooks/proven-product-mechanics]] |
-| Scarce verified endorsements | reputation | NEXT | codex | [[05-playbooks/proven-product-mechanics]] |
+| Three-to-five-stop playable routes | consumer_product | SOFTWARE_READY | product/release | [[05-playbooks/proven-product-mechanics]] |
+| Scarce verified endorsements | reputation | SOFTWARE_READY | product/release | [[05-playbooks/proven-product-mechanics]] |
 | Buyer receipt next-action engine | buyer_product | SOFTWARE_READY | codex | [[05-playbooks/proven-product-mechanics]] |
 | Outcome Contract Engine alpha | product_policy | PRODUCTION_MIGRATED | product/release | [[05-playbooks/outcome-contract-engine]] |
 | Dare Director orchestration | automation | PARKED_UNTIL_CONTRACT_DATA | product | [[05-playbooks/outcome-contract-engine]] |
@@ -56,6 +56,8 @@ updated_at: 2026-07-23
 | Design-partner receipt | SOFTWARE_READY | The production-migrated runner, immutable four-contract compilation, real-escrow gates, append-only place memory, and conservative receipt are built. Name one design partner/question, select two permissioned station links, create and fund four live $125 missions, run the pilot, then sell Sprint #2 only after the receipt exists |
 | First-node conversion | SOFTWARE_READY | Run one truthful venue brief through structured authorized response, scope approval, funding confirmation, canonical Sprint compilation, four real escrows, accepted outcomes, and an honest receipt |
 | Freshness / City Signal | SOFTWARE_READY | Typed accepted outcomes now derive Fresh / Aging / Needs recheck / Disputed / Retired and produce a bounded human-funded recheck proposal. Exercise it with Sprint #1 before automating any refresh spend |
+| Playable discovery routes | SOFTWARE_READY | Apply the route/endorsement migration, publish one healthy three-stop route, then complete it on a real phone using secure venue check-ins and inspect the privacy-safe route receipt |
+| Worth a Detour | SOFTWARE_READY | Apply the migration, qualify one contributor through real secure visits and accepted contributions, then test signed eligibility, endorsement, retraction, and moderator suppression |
 | Ecosystem funding | NEXT | Prepare Base/Coinbase/Optimism-style grant case around verifiable onchain real-world activity |
 | Organic multiplier | NEXT | Instrument unpaid useful actions generated per paid useful action |
 | Public data credibility | RISK | Remove or clearly label sample/test liquidity, creators, dares, and traction before acquisition spend |

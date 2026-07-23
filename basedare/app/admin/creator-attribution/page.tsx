@@ -176,7 +176,7 @@ export default function CreatorAttributionAdminPage() {
                   <label>
                     <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35">targetType</span>
                     <select value={form.targetType} onChange={(event) => setForm((current) => ({ ...current, targetType: event.target.value }))} className="mt-1 h-11 w-full rounded-xl border border-white/10 bg-black/45 px-3 text-sm">
-                      <option>DARE</option><option>MEETUP</option><option>DROP</option><option>PAGE</option>
+                      <option>DARE</option><option>MEETUP</option><option>DROP</option><option>PAGE</option><option>ROUTE</option>
                     </select>
                   </label>
                   <label className="flex items-center gap-2 pt-6 text-xs text-white/55">
