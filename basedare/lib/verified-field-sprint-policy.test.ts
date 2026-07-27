@@ -29,6 +29,27 @@ test('compiles four independent canonical Field Truth contracts', () => {
   }
 });
 
+test('permissioned impact Sprints preserve authorization in every contract snapshot', () => {
+  const input = {
+    missionKitKey: 'IMPACT_CLEANUP' as const,
+    buyerQuestion:
+      'Did the authorized cleanup at Cloud 9 remove at least 10 bags during the agreed two-hour window?',
+    areaLabel: 'Cloud 9 public cleanup zone',
+    freshnessWindowHours: 12,
+    createdAt: new Date('2026-07-27T00:00:00Z'),
+  };
+  assert.throws(() => compileFieldSprintContracts(input), /authorization/i);
+
+  const contracts = compileFieldSprintContracts({
+    ...input,
+    authorizationConfirmed: true,
+  });
+  assert.equal(contracts.length, 4);
+  for (const contract of contracts) {
+    assert.equal(contract.snapshot.missionKit?.authorizationConfirmed, true);
+  }
+});
+
 test('enforces the managed-service and reward-pool lines', () => {
   assert.equal(validateSprintFunding({ serviceRevenueUsd: 2000, rewardPoolUsd: 500, designPartnerException: false, fundingReference: 'invoice-1' }).ok, true);
   assert.equal(validateSprintFunding({ serviceRevenueUsd: 0, rewardPoolUsd: 500, designPartnerException: true, fundingReference: 'design-partner-approved' }).ok, true);

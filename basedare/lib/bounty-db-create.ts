@@ -45,6 +45,7 @@ type CreateDatabaseBackedBountyInput = {
   locationLabel?: string | null;
   discoveryRadiusKm?: number | null;
   isSimulated?: boolean;
+  expiresAt?: Date;
   outcomeContract?: OutcomeContractRequest;
 };
 
@@ -54,7 +55,7 @@ export async function createDatabaseBackedBounty(input: CreateDatabaseBackedBoun
   const isAwaitingClaim = !isOpenBounty && !input.tagVerified;
   const inviteToken = isAwaitingClaim ? generateInviteToken() : null;
   const claimDeadline = isAwaitingClaim ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const expiresAt = input.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
   const shortId = generateShortId();
   const dareStatus = getPostFundingDareStatus({
     isAwaitingClaim,

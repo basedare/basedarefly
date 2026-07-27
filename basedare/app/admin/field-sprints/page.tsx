@@ -9,7 +9,14 @@ import { useAccount } from 'wagmi';
 import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
 import { MISSION_KITS, preflightMissionKit, type MissionKitKey } from '@/lib/mission-kits';
 
-type Station = { id: string; active: boolean; stationCode: string | null; campaignCode: string | null; stationHostVenue: { name: string } | null };
+type Station = {
+  id: string;
+  active: boolean;
+  stationCode: string | null;
+  campaignCode: string | null;
+  placementPermissionConfirmedAt: string | null;
+  stationHostVenue: { name: string } | null;
+};
 type Mission = { id: string; ordinal: number; status: string; dareId: string | null; evidenceDecision: string | null; evidenceQuality: string | null; contributorPayoutUsd: number | null; reviewMinutes: number; reviewCostUsd: number; outcomeContractSnapshot: { missionKit?: { key: string; label: string } } | null; dare: { shortId: string | null; status: string; title: string } | null; links: Array<{ id: string; sequence: number; linkKind: string }> };
 type MissionPlace = { id: string; name: string; slug: string; address: string | null };
 type Sprint = {
@@ -21,7 +28,19 @@ type Sprint = {
   buyerDecisions: Array<{ id: string; decision: string; contactName: string | null; email: string | null; nextQuestion: string | null; note: string | null; createdAt: string }>;
 };
 
-const EMPTY = { activationIntakeId: '', buyerName: '', buyerOrganization: '', buyerEmail: '', missionKitKey: 'OPEN_NOW' as MissionKitKey, buyerQuestion: '', areaLabel: 'General Luna, Siargao', freshnessWindowHours: 3, campaignCode: '', stationLinkIds: [] as string[] };
+const EMPTY = {
+  activationIntakeId: '',
+  buyerName: '',
+  buyerOrganization: '',
+  buyerEmail: '',
+  missionKitKey: 'OPEN_NOW' as MissionKitKey,
+  buyerQuestion: '',
+  areaLabel: 'General Luna, Siargao',
+  freshnessWindowHours: 3,
+  authorizationConfirmed: false,
+  campaignCode: '',
+  stationLinkIds: [] as string[],
+};
 
 export default function FieldSprintsAdminPage() {
   return (
@@ -57,7 +76,14 @@ function FieldSprintsAdminContent() {
     question: form.buyerQuestion,
     freshnessWindowHours: form.freshnessWindowHours,
     areaLabel: form.areaLabel,
-  }), [form.areaLabel, form.buyerQuestion, form.freshnessWindowHours, form.missionKitKey]);
+    authorizationConfirmed: form.authorizationConfirmed,
+  }), [
+    form.areaLabel,
+    form.authorizationConfirmed,
+    form.buyerQuestion,
+    form.freshnessWindowHours,
+    form.missionKitKey,
+  ]);
 
   const load = useCallback(async () => {
     if (!(await authenticate())) return;
@@ -71,7 +97,14 @@ function FieldSprintsAdminContent() {
       if (!sprintResponse.ok || !sprintPayload.success) throw new Error(sprintPayload.error || 'Unable to load Sprints.');
       if (!stationResponse.ok || !stationPayload.success) throw new Error(stationPayload.error || 'Unable to load Field Stations.');
       setSprints(sprintPayload.data);
-      setStations(stationPayload.data.links.filter((station: Station) => station.active && station.stationCode));
+      setStations(
+        stationPayload.data.links.filter(
+          (station: Station) =>
+            station.active &&
+            station.stationCode &&
+            station.placementPermissionConfirmedAt
+        )
+      );
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to load Sprint Runner.'); }
     finally { setBusy(false); }
   }, [authenticate, headers]);
@@ -137,11 +170,25 @@ function FieldSprintsAdminContent() {
           <Field label="Organization" value={form.buyerOrganization} onChange={(value) => setForm({ ...form, buyerOrganization: value })} />
           <Field label="Buyer email (internal)" value={form.buyerEmail} onChange={(value) => setForm({ ...form, buyerEmail: value })} type="email" />
           <Field label="Area" value={form.areaLabel} onChange={(value) => setForm({ ...form, areaLabel: value })} required />
-          <label><span className="text-[10px] font-black uppercase tracking-[0.15em] text-white/45">Approved Mission Kit</span><select value={form.missionKitKey} onChange={(event) => { const missionKitKey = event.target.value as MissionKitKey; const kit = MISSION_KITS[missionKitKey]; setForm({ ...form, missionKitKey, buyerQuestion: kit.questionExample, freshnessWindowHours: kit.defaultFreshnessHours }); }} className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-black/50 px-3">{Object.values(MISSION_KITS).map((kit) => <option key={kit.key} value={kit.key}>{kit.label}</option>)}</select></label>
+          <label><span className="text-[10px] font-black uppercase tracking-[0.15em] text-white/45">Approved Mission Kit</span><select value={form.missionKitKey} onChange={(event) => { const missionKitKey = event.target.value as MissionKitKey; const kit = MISSION_KITS[missionKitKey]; setForm({ ...form, missionKitKey, buyerQuestion: kit.questionExample, freshnessWindowHours: kit.defaultFreshnessHours, authorizationConfirmed: false }); }} className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-black/50 px-3">{Object.values(MISSION_KITS).map((kit) => <option key={kit.key} value={kit.key}>{kit.label}</option>)}</select></label>
           <div className="rounded-xl border border-white/10 bg-black/35 p-3 text-xs leading-5 text-white/50"><b className="text-white">{MISSION_KITS[form.missionKitKey].useWhen}</b><span className="mt-1 block">Expected field time: {MISSION_KITS[form.missionKitKey].expectedMinutes} min · recommended gross reward: ${MISSION_KITS[form.missionKitKey].recommendedGrossRewardUsd}</span></div>
           <label className="md:col-span-2"><span className="text-[10px] font-black uppercase tracking-[0.15em] text-white/45">One precise real-world question</span><textarea value={form.buyerQuestion} placeholder={MISSION_KITS[form.missionKitKey].questionExample} onChange={(event) => setForm({ ...form, buyerQuestion: event.target.value })} required className="mt-2 min-h-24 w-full rounded-xl border border-white/10 bg-black/50 p-3" /></label>
           <Field label="Campaign code (must match both stations)" value={form.campaignCode} onChange={(value) => setForm({ ...form, campaignCode: value })} required />
           <label><span className="text-[10px] font-black uppercase tracking-[0.15em] text-white/45">Freshness window</span><select value={form.freshnessWindowHours} onChange={(event) => setForm({ ...form, freshnessWindowHours: Number(event.target.value) })} className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-black/50 px-3">{MISSION_KITS[form.missionKitKey].allowedFreshnessHours.map((hours) => <option key={hours} value={hours}>{hours} hour{hours === 1 ? '' : 's'}</option>)}</select></label>
+          {MISSION_KITS[form.missionKitKey].requiresAuthorization ? (
+            <label className="md:col-span-2 flex items-start gap-3 rounded-xl border border-amber-300/20 bg-amber-300/[0.06] p-4 text-sm text-amber-50/75">
+              <input
+                type="checkbox"
+                checked={form.authorizationConfirmed}
+                onChange={(event) => setForm({ ...form, authorizationConfirmed: event.target.checked })}
+                className="mt-1"
+              />
+              <span>
+                <b className="block text-amber-50">Organizer authorization recorded</b>
+                The consenting organization, approved task/zone, safety plan, coordinator, and privacy boundary are documented before contributors are routed.
+              </span>
+            </label>
+          ) : null}
           <div className={`md:col-span-2 rounded-xl border p-4 text-sm ${preflight.ok ? 'border-emerald-300/20 bg-emerald-300/[0.06]' : 'border-red-300/20 bg-red-300/[0.06]'}`}><b>{preflight.ok ? 'Preflight clear' : 'Fix before funding'}</b>{preflight.errors.map((item) => <p key={item} className="mt-1 text-red-100/75">• {item}</p>)}{preflight.warnings.map((item) => <p key={item} className="mt-1 text-amber-100/70">• {item}</p>)}<details className="mt-3"><summary className="cursor-pointer text-[10px] font-black uppercase tracking-[0.12em] text-white/55">Evidence, safety and rejection rails</summary><div className="mt-2 grid gap-3 text-xs text-white/45 md:grid-cols-3"><div><b className="text-white/70">Required evidence</b>{preflight.kit.requiredEvidence.map((item) => <p key={item}>• {item}</p>)}</div><div><b className="text-white/70">Safety + privacy</b>{[...preflight.kit.safetyRules, ...preflight.kit.privacyRules].map((item) => <p key={item}>• {item}</p>)}</div><div><b className="text-white/70">Reject when</b>{preflight.kit.rejectionReasons.map((item) => <p key={item}>• {item}</p>)}</div></div></details></div>
           <fieldset className="md:col-span-2"><legend className="text-[10px] font-black uppercase tracking-[0.15em] text-white/45">Exactly two permissioned Field Stations</legend><div className="mt-2 grid gap-2 md:grid-cols-2">{stations.map((station) => <label key={station.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/35 p-3"><input type="checkbox" checked={form.stationLinkIds.includes(station.id)} onChange={(event) => setForm({ ...form, stationLinkIds: event.target.checked ? [...form.stationLinkIds, station.id].slice(-2) : form.stationLinkIds.filter((id) => id !== station.id) })} /><span className="text-sm"><b>{station.stationCode}</b> · {station.stationHostVenue?.name ?? 'Unknown host'}<small className="block text-white/35">{station.campaignCode}</small></span></label>)}</div></fieldset>
           <div className="md:col-span-2 grid gap-2 rounded-xl border border-white/10 bg-black/35 p-4 text-sm sm:grid-cols-3"><b>$2,000 managed service</b><b>$500 reward pool</b><b>4 × $125 gross → $120 net</b></div>

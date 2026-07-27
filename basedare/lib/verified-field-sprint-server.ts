@@ -95,6 +95,7 @@ export async function startVerifiedFieldSprint(input: {
   missionKitKey: MissionKitKey;
   areaLabel: string;
   freshnessWindowHours: number;
+  authorizationConfirmed?: boolean;
   campaignCode: string;
   stationLinkIds: string[];
   createdBy: string;
@@ -126,10 +127,22 @@ export async function startVerifiedFieldSprint(input: {
   if (stationLinkIds.length !== 2) throw new Error('Exactly two distinct active Field Stations are required.');
   const campaignCode = cleanCode(input.campaignCode);
   const links = await prisma.creatorAttributionLink.findMany({
-    where: { id: { in: stationLinkIds }, active: true, stationCode: { not: null } },
-    select: { id: true, campaignCode: true, stationCode: true },
+    where: {
+      id: { in: stationLinkIds },
+      active: true,
+      stationCode: { not: null },
+      placementPermissionConfirmedAt: { not: null },
+    },
+    select: {
+      id: true,
+      campaignCode: true,
+      stationCode: true,
+      placementPermissionConfirmedAt: true,
+    },
   });
-  if (links.length !== 2) throw new Error('Both Field Station links must exist and be active.');
+  if (links.length !== 2) {
+    throw new Error('Both Field Station links must exist, be physically permissioned, and be active.');
+  }
   if (links.some((link) => link.campaignCode !== campaignCode)) {
     throw new Error('Both Field Stations must use the Sprint campaign code so acquisition remains attributable.');
   }
@@ -138,6 +151,7 @@ export async function startVerifiedFieldSprint(input: {
     buyerQuestion: input.buyerQuestion,
     areaLabel: input.areaLabel,
     freshnessWindowHours: input.freshnessWindowHours,
+    authorizationConfirmed: input.authorizationConfirmed,
   });
   return prisma.verifiedFieldSprint.create({
     data: {

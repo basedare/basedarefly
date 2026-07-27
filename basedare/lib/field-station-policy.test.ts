@@ -32,6 +32,15 @@ test('specific station promises fall back below the density gate', () => {
       fallbackReason: 'BELOW_MINIMUM_DENSITY',
     }
   );
+  assert.equal(
+    resolveFieldStationAttention({
+      requested: 'ACTION',
+      fallback: 'NEARBY',
+      densityCount: 1,
+      minimumDensity: 2,
+    }).resolvedAttention,
+    'NEARBY'
+  );
 });
 
 test('density boundary is inclusive and neutral entries never need inventory', () => {
@@ -95,7 +104,9 @@ test('station context preserves local query state while forcing the answer-first
 
 test('station policy normalizes modes, map intent, thresholds and serials', () => {
   assert.equal(normalizeFieldStationAttention(' mystery '), 'MYSTERY');
+  assert.equal(normalizeFieldStationAttention(' action '), 'ACTION');
   assert.equal(fieldStationAttentionToMapIntent('social'), 'meet');
+  assert.equal(fieldStationAttentionToMapIntent('action'), null);
   assert.equal(mapIntentToFieldStationAttention('meet'), 'SOCIAL');
   assert.equal(fieldStationAttentionToMapIntent('nearby'), null);
   assert.equal(normalizeMinimumDensity(undefined), 3);

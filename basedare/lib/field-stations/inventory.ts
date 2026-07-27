@@ -19,6 +19,11 @@ import {
 } from '@/lib/siargao-nightlife';
 import { GRACE_STARTED_MS, isMeetupTonight, tonightWindow } from '@/lib/tonight';
 import {
+  formatLocalRitualTime,
+  localRitualFreshness,
+  nextLocalRitualOccurrence,
+} from '@/lib/local-rituals';
+import {
   selectFieldStationInventory,
   type FieldStationInventoryCandidate,
 } from './inventory-policy';
@@ -281,6 +286,132 @@ async function rewardCandidates(input: {
   });
 }
 
+async function communitySparkCandidates(input: {
+  origin: { latitude: number; longitude: number };
+  radiusKm: number;
+  now: Date;
+}) {
+  const box = boundingBox(input.origin.latitude, input.origin.longitude, input.radiusKm);
+  const dares = await prisma.dare.findMany({
+    where: {
+      status: 'PENDING',
+      bounty: 0,
+      tag: 'community',
+      streamId: { startsWith: 'community-spark:' },
+      claimedBy: null,
+      targetWalletAddress: null,
+      latitude: box.latitude,
+      longitude: box.longitude,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: input.now } }],
+    },
+    select: {
+      id: true,
+      shortId: true,
+      title: true,
+      latitude: true,
+      longitude: true,
+      locationLabel: true,
+      createdAt: true,
+      venue: { select: { id: true, slug: true, name: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
+
+  return dares.flatMap<FieldStationInventoryCandidate>((dare) => {
+    if (dare.latitude === null || dare.longitude === null) return [];
+    const distance = distanceKm(input.origin, {
+      latitude: dare.latitude,
+      longitude: dare.longitude,
+    });
+    if (distance > input.radiusKm) return [];
+    return [{
+      id: dare.id,
+      source: 'DARE',
+      attention: 'ACTION',
+      title: dare.title,
+      placeLabel: dare.venue?.name ?? dare.locationLabel ?? 'Nearby free challenge',
+      venueId: dare.venue?.id ?? null,
+      venueSlug: dare.venue?.slug ?? null,
+      href: dare.shortId ? `/dare/${encodeURIComponent(dare.shortId)}` : '/map',
+      targetType: 'DARE',
+      targetId: dare.id,
+      distanceKm: distance,
+      startsAt: null,
+      endsAt: null,
+      lastVerifiedAt: dare.createdAt.toISOString(),
+      trustLabel: 'Free Community Spark',
+      freshnessLabel: `No cash payout · ${formatDistance(distance)}`,
+      disclaimer:
+        'Self-directed free play. Not an official competition, venue offer, or payout promise.',
+      qualityScore: 88,
+    }];
+  });
+}
+
+async function ritualCandidates(input: {
+  origin: { latitude: number; longitude: number };
+  radiusKm: number;
+  now: Date;
+}) {
+  const box = boundingBox(input.origin.latitude, input.origin.longitude, input.radiusKm);
+  const rows = await prisma.venueRitual.findMany({
+    where: {
+      status: 'ACTIVE',
+      venue: {
+        status: 'ACTIVE',
+        latitude: box.latitude,
+        longitude: box.longitude,
+      },
+    },
+    include: {
+      venue: {
+        select: { id: true, slug: true, name: true, latitude: true, longitude: true },
+      },
+    },
+    take: 100,
+  });
+
+  return rows.flatMap<FieldStationInventoryCandidate>((ritual) => {
+    if (localRitualFreshness({ ...ritual, now: input.now }) !== 'CONFIRMED') return [];
+    const distance = distanceKm(input.origin, ritual.venue);
+    if (distance > input.radiusKm) return [];
+    const next = nextLocalRitualOccurrence({
+      weekday: ritual.weekday,
+      startLocalMinutes: ritual.startLocalMinutes,
+      endLocalMinutes: ritual.endLocalMinutes,
+      timeZone: ritual.timezone,
+      now: input.now,
+    });
+    return [{
+      id: ritual.id,
+      source: 'RITUAL',
+      attention: 'ACTION',
+      title: ritual.title,
+      placeLabel: ritual.venue.name,
+      venueId: ritual.venue.id,
+      venueSlug: ritual.venue.slug,
+      href: `/venues/${encodeURIComponent(ritual.venue.slug)}`,
+      targetType: 'VENUE_RITUAL',
+      targetId: ritual.id,
+      distanceKm: distance,
+      startsAt: next.startsAt.toISOString(),
+      endsAt: next.endsAt?.toISOString() ?? null,
+      lastVerifiedAt: ritual.sourceLastConfirmedAt.toISOString(),
+      trustLabel:
+        ritual.permissionStatus === 'VENUE_CONFIRMED'
+          ? 'Venue-confirmed ritual'
+          : 'Fresh local ritual',
+      freshnessLabel: `${formatLocalRitualTime(ritual)} · ${formatDistance(distance)}`,
+      disclaimer:
+        ritual.permissionStatus === 'PUBLICLY_REPORTED'
+          ? 'Publicly reported schedule. Conditions can change; confirm with the venue.'
+          : null,
+      qualityScore: ritual.permissionStatus === 'VENUE_CONFIRMED' ? 98 : 92,
+    }];
+  });
+}
+
 async function localSignalCandidates(input: {
   attention: 'MYSTERY' | 'TONIGHT';
   origin: { latitude: number; longitude: number };
@@ -429,6 +560,12 @@ async function buildInventory(input: {
       nightGuideCandidates({ origin, radiusKm: input.radiusKm, now: input.now }),
     ]);
     candidates = [...signals, ...meetups, ...guide];
+  } else if (input.attention === 'ACTION') {
+    const [rituals, sparks] = await Promise.all([
+      ritualCandidates({ origin, radiusKm: input.radiusKm, now: input.now }),
+      communitySparkCandidates({ origin, radiusKm: input.radiusKm, now: input.now }),
+    ]);
+    candidates = [...rituals, ...sparks];
   }
 
   const selection = selectFieldStationInventory(

@@ -13,7 +13,7 @@ A Field Station is a 2cm menu sticker, PeeBear card, counter stand or occasional
 2. **Secure venue handshake remains separate.** Only the rotating venue QR plus existing server checks can create a verified venue arrival.
 3. **Scans are interest.** Never report a scan, map render, tap or Mission Pass as a physical visit.
 4. **Ask before recommending.** `ASK` and `NEARBY` land on the next-two-hours question. Venue recommendations appear only after the player states intent.
-5. **Specific promises require quality density.** `TONIGHT`, `MYSTERY`, `SOCIAL` and `REWARD` open directly only when the configured minimum current, relevant and safe inventory exists near the station. Raw row count is not enough.
+5. **Specific promises require quality density.** `TONIGHT`, `MYSTERY`, `SOCIAL`, `REWARD` and `ACTION` open directly only when the configured minimum current, relevant and safe inventory exists near the station. Raw row count is not enough.
 6. **Fallbacks are honest.** If inventory is thin or unavailable, the same QR opens the neutral answer-first view and records the fallback.
 7. **Free roam makes no recommendation.** It simply releases the map.
 8. **The Board answers before the map loads.** Field Station traffic first receives a server-rendered maximum of three ranked answers. MapLibre is progressive enhancement after an explicit tap.
@@ -78,3 +78,5 @@ The integrated design-partner operating sequence, cost caps, automated scorecard
 The design partner is the business whose decision the experiment is meant to improve. The precise question is one bounded, decision-changing question encoded in the funded mission brief; the campaign code groups its two station links and receipts. Field Station hosts are permissioned distribution points and do not need to be the design partner or measured destination.
 
 Every active code has an admin kill switch. Pause it immediately when placement permission is withdrawn, the physical code is damaged or tampered with, inventory becomes misleading, or the printed promise can no longer be fulfilled. Pausing prevents new entries while preserving historical receipts; it never deletes evidence.
+
+No station may become active until placement permission is explicitly recorded with a timestamp and responsible person. This applies even when the venue already exists on the public map.

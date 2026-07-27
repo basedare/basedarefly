@@ -22,6 +22,7 @@ Operationalize BaseDare as a remote-first playable social map:
 6. pursue ecosystem funding, then run a bounded multi-market tournament
 7. use short-form stories to turn attention into attributable map participation
 8. preserve creator attribution with an explicit passwordless Mission Pass while keeping social webviews wallet-free
+9. make Wakepark and other activity venues playable through fresh rituals and safety-bounded free Community Sparks
 
 ## Active Context
 
@@ -39,6 +40,7 @@ Operationalize BaseDare as a remote-first playable social map:
 - The five proven mechanics now form one software-ready product layer: approved Mission Kits compile buyer questions, accepted observations derive place health, healthy places can become three-to-five-stop routes, qualified contributors can spend one of three scarce Worth a Detour signals, and completed Sprint receipts recommend one conservative next action. Routes and endorsements still require their production migration and real-device/wallet smoke tests before launch claims.
 - Publicly pseudonymous branding is compatible with the vision; concealed employment, ownership, payment activity, or local commercial control is not.
 - Growth is judged by useful proof density, contributor repeat behavior, organic actions per paid action, and sponsor pull—not raw bounty volume.
+- Wakepark Sunday Funday now has a freshness-expiring ritual record, and action-sports Community Sparks are free-play supply with no payout promise. A Wakepark Field Station remains blocked until placement permission and healthy ACTION inventory are recorded.
 
 ## Top Priorities
 
@@ -56,6 +58,8 @@ Operationalize BaseDare as a remote-first playable social map:
 | 10 | Creator Journey attribution rail | product/growth | ALPHA_LIVE | Verify Resend domain before enabling email, then run real Instagram/TikTok → Safari/Chrome handoff tests on iOS and Android; keep performance bonuses disabled |
 | 11 | Field Station-backed Verified Field Sprint | growth/product + human | RELEASE_BLOCKED | Reconcile legacy migration/schema drift, then name the real design partner/question, select two permissioned station links, confirm the $2,000 + $500 funding lines, create and fund four real $125 escrows, and run the closure pilot in `04-experiments/verified-field-sprint-closure-pilot.md` |
 | 12 | First-node buyer conversion loop | product/growth | SOFTWARE_READY | Use one truthful venue brief to run the integrated response → scope approval → funding confirmation → Sprint → four escrows → receipt path; record repeat, adjust, or stop |
+| 13 | Wakepark ritual + Community Spark pilot | product/growth + human | SOFTWARE_READY | Apply the production migration, record placement permission, reconfirm ritual conditions, activate healthy ACTION inventory, and test one real QR handoff |
+| 14 | Manual Creator Drop | product/growth + human | READY_FOR_HUMAN_PILOT | Run one existing Dare through claim → proof → review/reject → settlement → receipt and record operator cost before building orchestration |
 
 ## Safe Automatic Work
 

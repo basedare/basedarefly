@@ -86,6 +86,7 @@ export function compileFieldSprintContracts(input: {
   buyerQuestion: string;
   areaLabel: string;
   freshnessWindowHours: number;
+  authorizationConfirmed?: boolean;
   createdAt?: Date;
 }) {
   const createdAt = input.createdAt ?? new Date();
@@ -94,6 +95,7 @@ export function compileFieldSprintContracts(input: {
     question: input.buyerQuestion,
     freshnessWindowHours: input.freshnessWindowHours,
     areaLabel: input.areaLabel,
+    authorizationConfirmed: input.authorizationConfirmed,
     createdAt,
   });
   if (!preflight.ok) throw new Error(`Mission preflight failed: ${preflight.errors.join(' ')}`);

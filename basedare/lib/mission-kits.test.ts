@@ -11,6 +11,9 @@ test('approved kits declare evidence, safety, privacy, rejection and recheck rai
     assert.ok(kit.rejectionReasons.length >= 3);
     assert.ok(kit.recheckRule.length > 20);
     assert.equal(kit.recommendedGrossRewardUsd, 125);
+    if (kit.requiresAuthorization) {
+      assert.ok((kit.authorizationRules?.length ?? 0) >= 2);
+    }
   }
 });
 
@@ -33,4 +36,25 @@ test('crowd kit requires a threshold and compiles an immutable snapshot', () => 
   assert.equal(result.ok, true);
   assert.equal(result.snapshot.key, 'CROWD_LEVEL');
   assert.equal(result.snapshot.compiledAt, '2026-07-23T00:00:00.000Z');
+});
+
+test('impact kits cannot compile without recorded partner authorization', () => {
+  const base = {
+    kitKey: 'IMPACT_CLEANUP' as const,
+    question:
+      'Did the authorized cleanup at Cloud 9 remove at least 10 bags during the agreed two-hour window?',
+    freshnessWindowHours: 12,
+    areaLabel: 'Cloud 9 public cleanup zone',
+    createdAt: new Date('2026-07-27T00:00:00Z'),
+  };
+  const unauthorized = preflightMissionKit(base);
+  assert.equal(unauthorized.ok, false);
+  assert.match(unauthorized.errors.join(' '), /authorization/i);
+
+  const authorized = preflightMissionKit({
+    ...base,
+    authorizationConfirmed: true,
+  });
+  assert.equal(authorized.ok, true);
+  assert.equal(authorized.snapshot.authorizationConfirmed, true);
 });

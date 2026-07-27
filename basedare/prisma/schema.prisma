@@ -243,6 +243,7 @@ model Venue {
   contactRoutes        VenueContactRoute[]
   reportEvents         VenueReportEvent[]
   reportLeads          VenueReportLead[]
+  rituals              VenueRitual[]
   founderEvents        FounderEvent[]
   baseCashCredits      BaseCashVenueCredit[]
   fieldStationLinks    CreatorAttributionLink[]     @relation("FieldStationHostVenue")
@@ -259,6 +260,37 @@ model Venue {
   @@index([claimedBy])
   @@index([discoveryScoutId])
   @@index([activeScoutId])
+}
+
+// Fresh, source-backed local schedules. Rituals are place truth, not rewards:
+// rewardDareId is only surfaced when it resolves to a live, funded escrow.
+model VenueRitual {
+  id                       String   @id @default(cuid())
+  venueId                  String
+  slug                     String   @unique
+  title                    String
+  summary                  String
+  weekday                  Int
+  startLocalMinutes        Int
+  endLocalMinutes          Int?
+  timezone                 String   @default("Asia/Manila")
+  sourceKind               String
+  sourceLabel              String
+  sourceUrl                String?
+  sourceLastConfirmedAt    DateTime
+  freshnessExpiresAt       DateTime
+  status                   String   @default("ACTIVE")
+  permissionStatus         String   @default("PUBLICLY_REPORTED")
+  offerLabel               String?
+  rewardDareId             String?
+  createdBy                String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  venue                    Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([venueId, status, freshnessExpiresAt])
+  @@index([weekday, status, freshnessExpiresAt])
+  @@index([rewardDareId])
 }
 
 model VenueContactRoute {
@@ -1288,6 +1320,8 @@ model CreatorAttributionLink {
   minimumDensity        Int?
   densityRadiusKm       Float?
   active                Boolean  @default(true)
+  placementPermissionConfirmedAt DateTime?
+  placementPermissionConfirmedBy String?
   createdBy             String?
   createdAt             DateTime @default(now())
 

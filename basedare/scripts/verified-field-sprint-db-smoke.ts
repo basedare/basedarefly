@@ -64,6 +64,8 @@ async function main() {
       stationCode: `${runId.toUpperCase()}-${ordinal}`,
       stationHostVenueId: venue.id,
       attentionMode: 'nearby',
+      placementPermissionConfirmedAt: new Date(),
+      placementPermissionConfirmedBy: `Smoke Station Host ${ordinal}`,
       active: true,
     },
   })));
@@ -434,6 +436,8 @@ async function main() {
           stationCode: `${runId.toUpperCase()}-R${index + 1}`,
           stationHostVenueId: venue.id,
           attentionMode: 'nearby',
+          placementPermissionConfirmedAt: new Date(),
+          placementPermissionConfirmedBy: `Smoke Repeat Station Host ${index + 1}`,
           active: true,
         },
       });
