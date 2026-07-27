@@ -102,6 +102,13 @@ test('beaches, attractions, and outdoor activities use the palm marker', () => {
     }),
     'palm'
   );
+  assert.equal(
+    getAdventurePlaceSprite({
+      challengeLiveCount: 0,
+      categories: ['activity', 'wakepark', 'wakeboard', 'hydrofoil'],
+    }),
+    'palm'
+  );
 });
 
 test('a beach bar keeps its nightlife identity beside beach activities', () => {
