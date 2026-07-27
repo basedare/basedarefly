@@ -16,7 +16,7 @@ As observed on 2026-07-27:
 - SiargaoVibes packages island discovery into restaurants, tourism, nightlife, surf, activities, events, NGOs, services, and artists.
 - Its venue pages emphasize hours, directions, bookmarks, reviews, business claims, and sponsored visibility.
 - Its physical Wakepark banner uses a tracked campaign URL. This validates physical QR distribution where travellers are already deciding what to do.
-- Its published Wakepark Sunday Funday occurrences were dated March–April 2026. Treat the recurring ritual as historical evidence, not a currently confirmed event.
+- Its published Wakepark Sunday Funday occurrences were dated March–April 2026. The founder separately field-confirmed on 2026-07-27 that Sunday Funday still runs with DJs and a free wakeboard ride with a drink purchase. The field confirmation, not the old event page, is the current source and expires unless reconfirmed.
 - Siargao Wakepark publicly describes an action-sports lake in Barangay Consuelo with wakeboarding, wakeskating, hydrofoil practice, a water zipline, ice bath, minigolf, and basketball.
 
 Sources:
@@ -110,7 +110,7 @@ Promoted placement may exist only when labeled **Promoted**, frequency-capped, a
 1. Add Siargao Wakepark as an ordinary discovery place.
 2. Pilot a permissioned Field Station QR there or at another willing activity venue.
 3. Seed a small number of safe Community Sparks after the map has delivered value.
-4. Add a freshness-aware ritual record only after one venue agrees to maintain its schedule.
+4. Run the freshness-aware Wakepark ritual as publicly reported founder-confirmed information; seek venue-maintained confirmation before representing it as official.
 5. Add filmer routing only after repeated action-sports missions reveal a real buyer and participant need.
 
 ## Success measures

@@ -4,7 +4,8 @@ export type FieldStationInventorySource =
   | 'MEETUP'
   | 'DARE'
   | 'LOCAL_SIGNAL'
-  | 'NIGHT_GUIDE';
+  | 'NIGHT_GUIDE'
+  | 'RITUAL';
 
 export type FieldStationInventoryCandidate = {
   id: string;

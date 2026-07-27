@@ -237,6 +237,11 @@ const ATTENTION_COPY: Record<Exclude<FieldStationAttentionMode, 'ASK' | 'NEARBY'
     title: 'Where the island moves tonight',
     detail: 'The Siargao weekly pattern first; confirmed events outrank the guide.',
   },
+  ACTION: {
+    eyebrow: 'Free play + fresh venue rituals',
+    title: 'Action sports near this station',
+    detail: 'Safe, self-directed Community Sparks and confirmed rituals. No payout unless a funded reward is shown.',
+  },
 };
 
 function StationInventoryCard({ item }: { item: FieldStationInventoryCandidate }) {

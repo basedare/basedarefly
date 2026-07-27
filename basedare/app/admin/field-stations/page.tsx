@@ -18,6 +18,8 @@ type StationLink = {
   attentionMode: string;
   serial: string;
   publicPath: string;
+  placementPermissionConfirmedAt: string | null;
+  placementPermissionConfirmedBy: string | null;
   stationHostVenue: { name: string; slug: string; city: string | null } | null;
 };
 type Report = {
@@ -77,6 +79,9 @@ type Report = {
       campaignCode: string | null;
       contentCode: string;
       requestedAttention: string;
+      active: boolean;
+      placementPermissionConfirmedAt: string | null;
+      placementPermissionConfirmedBy: string | null;
       status: 'READY' | 'DEGRADED' | 'BLOCKED';
       stationHostVenue: { name: string; slug: string } | null;
       issues: Array<{ severity: 'BLOCKER' | 'WARNING'; code: string; message: string }>;
@@ -116,6 +121,21 @@ const EMPTY_FORM = {
   minimumDensity: 3,
   densityRadiusKm: 3,
   targetHref: '/board',
+  active: false,
+  placementPermissionConfirmed: false,
+};
+
+const WAKEPARK_ACTION_PRESET = {
+  ...EMPTY_FORM,
+  slug: 'siargao-wakepark-action',
+  stationCode: 'wakepark-action-01',
+  stationHostVenueSlug: 'siargao-wakepark',
+  contentCode: 'wakepark-sunday-funday',
+  campaignCode: 'siargao-action-sports-v1',
+  attentionMode: 'ACTION',
+  fallbackAttentionMode: 'ASK',
+  minimumDensity: 1,
+  densityRadiusKm: 5,
 };
 
 function count(counts: Counts, key: string) {
@@ -177,7 +197,10 @@ export default function FieldStationsAdminPage() {
       : null,
     [created, report]
   );
-  const createdIsPrintable = createdReadiness !== null && createdReadiness.status !== 'BLOCKED';
+  const createdIsPrintable =
+    createdReadiness !== null &&
+    createdReadiness.status !== 'BLOCKED' &&
+    Boolean(created?.placementPermissionConfirmedAt);
 
   const authenticate = useCallback(async () => {
     if (address || hasAdminSession) return true;
@@ -248,7 +271,10 @@ export default function FieldStationsAdminPage() {
     URL.revokeObjectURL(url);
   };
 
-  const updateStationStatus = async (link: StationLink) => {
+  const updateStation = async (
+    link: StationLink,
+    patch: { active?: boolean; placementPermissionConfirmed?: boolean }
+  ) => {
     if (!(await authenticate())) return;
     setUpdatingLinkId(link.id);
     setError(null);
@@ -256,7 +282,7 @@ export default function FieldStationsAdminPage() {
       const response = await fetch('/api/admin/field-stations', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify({ linkId: link.id, active: !link.active }),
+        body: JSON.stringify({ linkId: link.id, ...patch }),
       });
       const payload = await response.json();
       if (!response.ok || !payload.success) {
@@ -269,6 +295,9 @@ export default function FieldStationsAdminPage() {
       setUpdatingLinkId(null);
     }
   };
+
+  const updateStationStatus = (link: StationLink) =>
+    updateStation(link, { active: !link.active });
 
   return (
     <main className="min-h-screen bg-[#07070b] px-4 pb-24 pt-24 text-white sm:px-6">
@@ -318,7 +347,16 @@ export default function FieldStationsAdminPage() {
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_0.8fr]">
           <form onSubmit={createStation} className="rounded-3xl border border-[#ffe36a]/15 bg-[linear-gradient(145deg,rgba(255,227,106,.08),rgba(255,255,255,.025))] p-5 sm:p-7">
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#ffe36a]">New immutable short link</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#ffe36a]">New immutable short link</p>
+              <button
+                type="button"
+                onClick={() => setForm(WAKEPARK_ACTION_PRESET)}
+                className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100"
+              >
+                Load Wakepark preset
+              </button>
+            </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {[
                 ['Station host venue slug', 'stationHostVenueSlug', 'catangnan-coffee'],
@@ -333,7 +371,7 @@ export default function FieldStationsAdminPage() {
               ))}
               <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/45">Promise
                 <select value={form.attentionMode} onChange={(event) => setForm((current) => ({ ...current, attentionMode: event.target.value }))} className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/60 px-3 text-sm text-white">
-                  <option value="ASK">Ask first</option><option value="TONIGHT">Tonight</option><option value="MYSTERY">Mystery</option><option value="SOCIAL">Meet people</option><option value="REWARD">Paid mission</option>
+                  <option value="ASK">Ask first</option><option value="TONIGHT">Tonight</option><option value="MYSTERY">Mystery</option><option value="SOCIAL">Meet people</option><option value="REWARD">Paid mission</option><option value="ACTION">Action sports</option>
                 </select>
               </label>
               <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/45">Minimum useful options
@@ -346,6 +384,29 @@ export default function FieldStationsAdminPage() {
                 <select value={form.fallbackAttentionMode} onChange={(event) => setForm((current) => ({ ...current, fallbackAttentionMode: event.target.value }))} className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-black/60 px-3 text-sm text-white">
                   <option value="NEARBY">Nearby / answer first</option><option value="ASK">Ask first</option>
                 </select>
+              </label>
+              <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/35 p-3 text-xs normal-case tracking-normal text-white/65 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={form.placementPermissionConfirmed}
+                  onChange={(event) => setForm((current) => ({
+                    ...current,
+                    placementPermissionConfirmed: event.target.checked,
+                    active: event.target.checked ? current.active : false,
+                  }))}
+                  className="mt-0.5"
+                />
+                <span><b className="text-white">Physical placement permission confirmed.</b><small className="mt-1 block text-white/40">The host approved this exact QR location. This is required before printing or activation.</small></span>
+              </label>
+              <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/35 p-3 text-xs normal-case tracking-normal text-white/65 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={form.active}
+                  disabled={!form.placementPermissionConfirmed}
+                  onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))}
+                  className="mt-0.5"
+                />
+                <span><b className="text-white">Activate immediately.</b><small className="mt-1 block text-white/40">Leave paused until inventory and the printed QR have both passed preflight.</small></span>
               </label>
             </div>
             <button disabled={saving} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#f5c518] text-xs font-black uppercase tracking-[0.17em] text-black disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Create station QR</button>
@@ -366,7 +427,7 @@ export default function FieldStationsAdminPage() {
                   <button disabled={!createdIsPrintable} onClick={() => { if (createdIsPrintable) window.print(); }} className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 px-3 text-[10px] font-black uppercase tracking-[0.12em] disabled:cursor-not-allowed disabled:opacity-30"><Printer className="h-4 w-4" /> Print</button>
                 </div>
                 <p className="mt-4 text-xs leading-5 text-white/35">Level H correction · four-module quiet zone · no logo over the code.</p>
-                {!createdIsPrintable ? <p className="mt-2 text-xs leading-5 text-red-200/70">Printing stays locked until the station has useful inventory, a verified-outcome path, and the Journey secret.</p> : null}
+                {!createdIsPrintable ? <p className="mt-2 text-xs leading-5 text-red-200/70">Printing stays locked until placement permission, useful inventory, a verified-outcome path, and the Journey secret all pass.</p> : null}
               </div>
             ) : <div className="mt-5 grid min-h-72 place-items-center rounded-2xl border border-dashed border-white/10 text-center text-sm text-white/30">Create a station to generate its serialized QR.</div>}
           </section>
@@ -384,17 +445,30 @@ export default function FieldStationsAdminPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="truncate text-xs font-black text-white">{link.stationHostVenue?.name ?? link.stationCode}</p>
                         <span className={`rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] ${link.active ? statusClass('PASS') : 'border-white/10 bg-white/[0.04] text-white/40'}`}>{link.active ? 'Active' : 'Paused'}</span>
+                        <span className={`rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] ${link.placementPermissionConfirmedAt ? statusClass('PASS') : statusClass('FAIL')}`}>{link.placementPermissionConfirmedAt ? 'Permission logged' : 'No permission'}</span>
                       </div>
                       <p className="mt-1 truncate font-mono text-[10px] text-white/35">{link.serial} · {link.publicPath} · {link.contentCode}</p>
                     </div>
-                    <button
-                      type="button"
-                      disabled={updatingLinkId === link.id}
-                      onClick={() => void updateStationStatus(link)}
-                      className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/30 px-3 text-[9px] font-black uppercase tracking-[0.12em] text-white/65 transition hover:border-white/25 hover:text-white disabled:cursor-wait disabled:opacity-40"
-                    >
-                      {updatingLinkId === link.id ? 'Saving…' : link.active ? 'Pause' : 'Activate'}
-                    </button>
+                    <div className="flex shrink-0 gap-2">
+                      {!link.placementPermissionConfirmedAt ? (
+                        <button
+                          type="button"
+                          disabled={updatingLinkId === link.id}
+                          onClick={() => void updateStation(link, { placementPermissionConfirmed: true })}
+                          className="inline-flex h-9 items-center justify-center rounded-xl border border-amber-200/20 bg-amber-200/[0.08] px-3 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100 disabled:cursor-wait disabled:opacity-40"
+                        >
+                          Confirm permission
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        disabled={updatingLinkId === link.id || (!link.active && !link.placementPermissionConfirmedAt)}
+                        onClick={() => void updateStationStatus(link)}
+                        className="inline-flex h-9 items-center justify-center rounded-xl border border-white/10 bg-black/30 px-3 text-[9px] font-black uppercase tracking-[0.12em] text-white/65 transition hover:border-white/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {updatingLinkId === link.id ? 'Saving…' : link.active ? 'Pause' : 'Activate'}
+                      </button>
+                    </div>
                   </article>
                 )) : <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-white/30">No Field Station links yet.</div>}
               </div>

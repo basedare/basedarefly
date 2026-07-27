@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
 import { ArrowRight, CalendarDays, Clock3, CreditCard, ExternalLink, Flame, Globe2, Instagram, Mail, MapPin, MessageCircle, Phone, ShieldCheck, Sparkles, Waves, Zap } from 'lucide-react';
 import { authOptions } from '@/lib/auth-options';
+import { getVenueRitualsBySlug } from '@/lib/local-rituals-server';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import {
   buildActivationReplayComposerHref,
@@ -104,6 +105,17 @@ function formatVenueLogbookDate(value: string) {
     month: 'short',
     day: 'numeric',
   });
+}
+
+function formatRitualOccurrence(value: string, timezone: string) {
+  return new Intl.DateTimeFormat('en-PH', {
+    timeZone: timezone,
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
 }
 
 function getReviewSlaClass(tone: string) {
@@ -217,7 +229,10 @@ export default async function VenueDetailPage(
     session?.walletAddress?.trim().toLowerCase() ??
     session?.user?.walletAddress?.trim().toLowerCase() ??
     null;
-  const venue = await getVenueDetailBySlug(slug, creatorWalletAddress);
+  const [venue, venueRituals] = await Promise.all([
+    getVenueDetailBySlug(slug, creatorWalletAddress),
+    getVenueRitualsBySlug(slug).catch(() => []),
+  ]);
 
   if (!venue) {
     notFound();
@@ -489,6 +504,105 @@ export default async function VenueDetailPage(
                             </span>
                           </a>
                         ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {venueRituals.length > 0 ? (
+                    <div className="mt-5 rounded-[22px] border border-[#f5c518]/18 bg-[linear-gradient(145deg,rgba(245,197,24,0.09)_0%,rgba(8,8,16,0.78)_48%,rgba(34,211,238,0.05)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_16px_30px_rgba(0,0,0,0.18)]">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f8dd72]">
+                            Local rituals
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-white/54">
+                            Recurring local rhythm with a source and freshness date—not a permanent promise.
+                          </p>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-[#f8dd72]">
+                          <Clock3 className="h-3.5 w-3.5" />
+                          Schedule
+                        </span>
+                      </div>
+                      <div className="mt-3 grid gap-2">
+                        {venueRituals.map((ritual) => {
+                          const needsConfirmation = ritual.freshness === 'NEEDS_CONFIRMATION';
+                          return (
+                            <article
+                              key={ritual.id}
+                              className={`rounded-2xl border p-3.5 ${
+                                needsConfirmation
+                                  ? 'border-amber-300/18 bg-amber-500/[0.06]'
+                                  : 'border-white/[0.08] bg-black/24'
+                              }`}
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <h3 className="text-sm font-black text-white">{ritual.title}</h3>
+                                  <p className="mt-1 text-xs leading-5 text-white/52">{ritual.summary}</p>
+                                </div>
+                                <span
+                                  className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${
+                                    needsConfirmation
+                                      ? 'border-amber-300/20 bg-amber-500/[0.08] text-amber-100'
+                                      : 'border-emerald-300/18 bg-emerald-500/[0.08] text-emerald-100'
+                                  }`}
+                                >
+                                  {needsConfirmation ? 'Needs confirmation' : 'Fresh'}
+                                </span>
+                              </div>
+                              <div className="mt-3 grid gap-2 text-xs text-white/58 sm:grid-cols-2">
+                                <span className="inline-flex items-center gap-2">
+                                  <CalendarDays className="h-3.5 w-3.5 text-[#f8dd72]" />
+                                  {ritual.scheduleLabel}
+                                </span>
+                                <span className="inline-flex items-center gap-2">
+                                  <Clock3 className="h-3.5 w-3.5 text-cyan-200" />
+                                  Next · {formatRitualOccurrence(ritual.nextStartsAt, ritual.timezone)}
+                                </span>
+                              </div>
+                              {ritual.offerLabel ? (
+                                <p className="mt-3 rounded-xl border border-white/[0.07] bg-white/[0.035] px-3 py-2 text-xs font-bold text-white/68">
+                                  {ritual.offerLabel}
+                                </p>
+                              ) : null}
+                              <div className="mt-3 flex flex-wrap items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.11em] text-white/36">
+                                {ritual.source.url ? (
+                                  <a
+                                    href={ritual.source.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-cyan-100/58 transition hover:text-cyan-100"
+                                  >
+                                    {ritual.source.label}
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                ) : (
+                                  <span>{ritual.source.label}</span>
+                                )}
+                                <span>Confirmed {new Date(ritual.source.lastConfirmedAt).toLocaleDateString()}</span>
+                                <span>Refresh by {new Date(ritual.source.expiresAt).toLocaleDateString()}</span>
+                              </div>
+                              {ritual.reward ? (
+                                <Link
+                                  href={`/dare/${ritual.reward.shortId}`}
+                                  prefetch={false}
+                                  className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/[0.12] px-3.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#f8dd72] transition hover:border-[#f5c518]/50 hover:text-white"
+                                >
+                                  Funded reward · ${ritual.reward.grossRewardUsd}
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                </Link>
+                              ) : (
+                                <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/34">
+                                  Community listing · no payout attached
+                                </p>
+                              )}
+                              {ritual.disclaimer ? (
+                                <p className="mt-2 text-[10px] leading-4 text-amber-100/62">{ritual.disclaimer}</p>
+                              ) : null}
+                            </article>
+                          );
+                        })}
                       </div>
                     </div>
                   ) : null}

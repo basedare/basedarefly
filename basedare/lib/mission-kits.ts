@@ -7,6 +7,8 @@ export const MISSION_KIT_KEYS = [
   'EVENT_ACTIVE',
   'ACCESSIBLE_NOW',
   'CROWD_LEVEL',
+  'IMPACT_CLEANUP',
+  'IMPACT_ANIMAL_WELFARE',
 ] as const;
 
 export type MissionKitKey = (typeof MISSION_KIT_KEYS)[number];
@@ -28,11 +30,14 @@ export type MissionKit = {
   expectedMinutes: number;
   recommendedGrossRewardUsd: number;
   recheckRule: string;
+  requiresAuthorization?: boolean;
+  authorizationRules?: readonly string[];
 };
 
 export type MissionKitSnapshot = MissionKit & {
   compiledQuestion: string;
   compiledAt: string;
+  authorizationConfirmed: boolean | null;
 };
 
 export const MISSION_KITS: Record<MissionKitKey, MissionKit> = {
@@ -114,6 +119,36 @@ export const MISSION_KITS: Record<MissionKitKey, MissionKit> = {
     defaultFreshnessHours: 3, allowedFreshnessHours: [1, 3, 6], expectedMinutes: 30,
     recommendedGrossRewardUsd: 125, recheckRule: 'Treat the answer as expired after the exact observation window; compare only like-for-like windows.',
   },
+  IMPACT_CLEANUP: {
+    key: 'IMPACT_CLEANUP', version: MISSION_KIT_VERSION, label: 'Permissioned cleanup',
+    useWhen: 'An authorized community partner or sponsor needs a bounded cleanup outcome—not a vague volunteer-content claim.',
+    questionExample: 'Did the authorized cleanup at [public zone] remove at least 10 full bags of ordinary litter during the agreed two-hour window?',
+    answerPrompt: 'Report the agreed bag/item count, disposal handoff, cleanup window, and any excluded hazardous material.',
+    allowedOutcomes: ['YES', 'NO', 'PARTIAL', 'INCONCLUSIVE'],
+    requiredEvidence: ['Fresh before-and-after wide views from the approved zone.', 'A bounded bag or item count.', 'Coordinator or disposal handoff confirmation.', 'Device-reported presence within the mission radius.'],
+    safetyRules: ['Use gloves and any organizer-required protective equipment.', 'Do not handle needles, medical waste, chemicals, sharp objects, wildlife, or unknown hazardous material.', 'Stop and notify the named coordinator when hazardous material or unsafe weather/tide conditions are found.', 'Operate only in the approved public or partner-authorized zone.'],
+    privacyRules: ['Avoid identifiable faces unless consented and necessary.', 'Do not expose sensitive nesting, wildlife, resident, or waste-source locations.', 'Show aggregate cleanup evidence rather than vulnerable people.'],
+    rejectionReasons: ['No named authorized coordinator or disposal plan.', 'The evidence does not establish the approved zone or window.', 'Bag/item count is unsupported.', 'Hazardous material was handled contrary to the brief.'],
+    defaultFreshnessHours: 12, allowedFreshnessHours: [6, 12, 24, 72], expectedMinutes: 120,
+    recommendedGrossRewardUsd: 125, recheckRule: 'Create a new dated contract for each cleanup window; never carry the prior result forward as current ground truth.',
+    requiresAuthorization: true,
+    authorizationRules: ['Name the consenting organizer, land/venue authority, or community partner.', 'Record the approved zone, time window, disposal plan, and emergency contact before routing contributors.'],
+  },
+  IMPACT_ANIMAL_WELFARE: {
+    key: 'IMPACT_ANIMAL_WELFARE', version: MISSION_KIT_VERSION, label: 'Authorized animal welfare',
+    useWhen: 'An animal-welfare organization needs one safe, coordinator-directed and countable field outcome.',
+    questionExample: 'Did the authorized organization complete the named care task for at least 10 animals during the agreed service window?',
+    answerPrompt: 'Report the bounded task, aggregate animal count, service window, coordinator confirmation, and any incomplete portion.',
+    allowedOutcomes: ['YES', 'NO', 'PARTIAL', 'INCONCLUSIVE'],
+    requiredEvidence: ['Coordinator confirmation for the exact task and window.', 'Aggregate task and animal count.', 'Privacy-safe evidence that does not expose vulnerable locations.', 'Device-reported presence when field presence is part of the contract.'],
+    safetyRules: ['Follow the organization’s handling, hygiene, vaccination, and supervision rules.', 'No unsupervised animal handling, transport, medical treatment, feeding, capture, or release.', 'Stop when an animal, contributor, or bystander may be at risk.'],
+    privacyRules: ['Never expose precise locations of vulnerable animals, shelters, foster homes, or rescue operations.', 'Avoid identifiable beneficiaries and staff unless explicit consent exists.', 'Use aggregate counts and coordinator-approved media.'],
+    rejectionReasons: ['No named authorized organization or coordinator.', 'The contributor performed unsupervised care or treatment.', 'Evidence exposes a sensitive animal or shelter location.', 'The result is not tied to the exact bounded task and window.'],
+    defaultFreshnessHours: 24, allowedFreshnessHours: [12, 24, 72, 168], expectedMinutes: 120,
+    recommendedGrossRewardUsd: 125, recheckRule: 'Each service window requires a new contract and coordinator confirmation; do not infer continuing welfare outcomes.',
+    requiresAuthorization: true,
+    authorizationRules: ['Name the consenting organization and responsible coordinator.', 'Record the exact allowed task, supervision plan, welfare safeguards, and privacy boundary before routing contributors.'],
+  },
 };
 
 const SUBJECTIVE_TERMS = /\b(best|amazing|cool|popular|good|bad|worth it|safe|vibe|fun)\b/i;
@@ -128,6 +163,7 @@ export function preflightMissionKit(input: {
   question: string;
   freshnessWindowHours: number;
   areaLabel: string;
+  authorizationConfirmed?: boolean;
   createdAt?: Date;
 }) {
   const kit = MISSION_KITS[input.kitKey];
@@ -143,6 +179,9 @@ export function preflightMissionKit(input: {
   }
   if (SUBJECTIVE_TERMS.test(question)) errors.push('Replace subjective wording with one observable state, threshold, price, offer, or access condition.');
   if (UNSAFE_TERMS.test(question)) errors.push('The brief asks for unsafe or unauthorized conduct.');
+  if (kit.requiresAuthorization && !input.authorizationConfirmed) {
+    errors.push('This impact kit requires recorded organizer or venue authorization before it can be funded.');
+  }
   if (!/\b(at|in|near|for|between|during|today|tonight|currently|current|now)\b/i.test(question)) {
     warnings.push('Name the place and observation window explicitly before funding.');
   }
@@ -161,6 +200,9 @@ export function preflightMissionKit(input: {
       ...kit,
       compiledQuestion: question,
       compiledAt: compiledAt.toISOString(),
+      authorizationConfirmed: kit.requiresAuthorization
+        ? Boolean(input.authorizationConfirmed)
+        : null,
     } satisfies MissionKitSnapshot,
   };
 }

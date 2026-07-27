@@ -35,6 +35,7 @@ import { prisma } from '@/lib/prisma';
 
 type FieldStationLink = {
   id: string;
+  active: boolean;
   serialNumber: number;
   stationCode: string | null;
   stationHostVenueId: string | null;
@@ -43,6 +44,8 @@ type FieldStationLink = {
   minimumDensity: number | null;
   densityRadiusKm: number | null;
   targetHref: string;
+  placementPermissionConfirmedAt: Date | null;
+  placementPermissionConfirmedBy: string | null;
   stationHostVenue?: {
     id: string;
     slug: string;
@@ -60,7 +63,7 @@ type FieldStationReportLink = FieldStationLink & {
   active: boolean;
 };
 
-const FIELD_STATION_PILOT_LANES = ['SOCIAL', 'MYSTERY', 'REWARD', 'TONIGHT'] as const;
+const FIELD_STATION_PILOT_LANES = ['SOCIAL', 'MYSTERY', 'REWARD', 'TONIGHT', 'ACTION'] as const;
 
 export type ResolvedFieldStationRedirect = {
   isFieldStation: boolean;
@@ -387,12 +390,22 @@ async function buildFieldStationPilotReadiness(links: FieldStationReportLink[]) 
       const issues = configurationIssue
         ? [{ severity: 'BLOCKER' as const, code: 'STATION_HOST_MISSING', message: configurationIssue }, ...derived.issues]
         : derived.issues;
+      if (!link.placementPermissionConfirmedAt) {
+        issues.unshift({
+          severity: 'BLOCKER' as const,
+          code: 'PLACEMENT_PERMISSION_MISSING',
+          message: 'The physical host has not confirmed permission for this Field Station placement.',
+        });
+      }
       return {
         linkId: link.id,
         stationCode: link.stationCode,
         serial: formatFieldStationSerial(link.serialNumber),
         campaignCode: link.campaignCode,
         contentCode: link.contentCode,
+        active: link.active,
+        placementPermissionConfirmedAt: link.placementPermissionConfirmedAt?.toISOString() ?? null,
+        placementPermissionConfirmedBy: link.placementPermissionConfirmedBy,
         stationHostVenue: link.stationHostVenue ?? null,
         requestedAttention,
         status: issues.some((issue) => issue.severity === 'BLOCKER')
@@ -442,9 +455,8 @@ export async function buildFieldStationReport(periodDays: number) {
   const venueById = new Map(venues.map((venue) => [venue.id, venue]));
   const receipts = aggregateFieldStationReceiptCounts(events);
   const timeToAction = computeFieldStationTimeToAction(events);
-  const activeLinks = links.filter((link) => link.active);
   const [pilotReadiness, campaignReceipts] = await Promise.all([
-    buildFieldStationPilotReadiness(activeLinks),
+    buildFieldStationPilotReadiness(links),
     Promise.resolve(buildFieldSprintPilotScorecards(inheritStationCampaignAcrossJourney(events))),
   ]);
   const entryPerformance = new Map<string, number[]>();
@@ -472,7 +484,7 @@ export async function buildFieldStationReport(periodDays: number) {
     const requested = typeof metadata.requestedAttentionMode === 'string'
       ? metadata.requestedAttentionMode.toUpperCase()
       : '';
-    if (!['TONIGHT', 'MYSTERY', 'SOCIAL', 'REWARD'].includes(requested)) continue;
+    if (!['TONIGHT', 'MYSTERY', 'SOCIAL', 'REWARD', 'ACTION'].includes(requested)) continue;
     const current = inventoryHealth.get(event.stationCode) ?? {
       targetedScans: 0,
       fallbackScans: 0,

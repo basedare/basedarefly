@@ -32,6 +32,8 @@ updated_at: 2026-07-23
 | Buyer receipt next-action engine | buyer_product | SOFTWARE_READY | codex | [[05-playbooks/proven-product-mechanics]] |
 | Outcome Contract Engine alpha | product_policy | PRODUCTION_MIGRATED | product/release | [[05-playbooks/outcome-contract-engine]] |
 | Dare Director orchestration | automation | PARKED_UNTIL_CONTRACT_DATA | product | [[05-playbooks/outcome-contract-engine]] |
+| Wakepark ritual + Community Sparks | consumer_supply | SOFTWARE_READY | product/growth + human | [[05-playbooks/local-rituals-community-sparks]] |
+| Manual Creator Drop pilot | operating_test | READY_FOR_HUMAN_PILOT | product/growth + human | [[05-playbooks/manual-creator-drop-pilot]] |
 | Siargao venue Spark Audit invite | outreach_draft | PARKED | human | [[02-outreach/drafts/siargao-venue-spark-audit-invite]] |
 | Siargao Beach Club Spark Audit | spark_audit | PARKED | human | [[02-outreach/drafts/siargao-beach-club-spark-audit]] |
 | Hideaway Spark Audit | spark_audit | PARKED | human | [[02-outreach/drafts/hideaway-spark-audit]] |
@@ -55,6 +57,8 @@ updated_at: 2026-07-23
 | Media/data rights | PARTIAL | Extend current display/promotion license to explicit sponsor-facing commercial use where needed |
 | Design-partner receipt | SOFTWARE_READY | The production-migrated runner, immutable four-contract compilation, real-escrow gates, append-only place memory, and conservative receipt are built. Name one design partner/question, select two permissioned station links, create and fund four live $125 missions, run the pilot, then sell Sprint #2 only after the receipt exists |
 | First-node conversion | SOFTWARE_READY | Run one truthful venue brief through structured authorized response, scope approval, funding confirmation, canonical Sprint compilation, four real escrows, accepted outcomes, and an honest receipt |
+| Local ritual → action | SOFTWARE_READY | Apply the migration, record Wakepark placement permission, keep the ritual freshness current, activate a healthy ACTION station, and measure useful destination actions without calling scans visits |
+| Manual Creator Drop | READY_FOR_HUMAN_PILOT | Operate one existing Dare through the canonical money/proof rails; include one truthful rejected attempt and record the human work before designing orchestration |
 | Freshness / City Signal | SOFTWARE_READY | Typed accepted outcomes now derive Fresh / Aging / Needs recheck / Disputed / Retired and produce a bounded human-funded recheck proposal. Exercise it with Sprint #1 before automating any refresh spend |
 | Playable discovery routes | SOFTWARE_READY | Apply the route/endorsement migration, publish one healthy three-stop route, then complete it on a real phone using secure venue check-ins and inspect the privacy-safe route receipt |
 | Worth a Detour | SOFTWARE_READY | Apply the migration, qualify one contributor through real secure visits and accepted contributions, then test signed eligibility, endorsement, retraction, and moderator suppression |

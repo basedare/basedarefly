@@ -19,6 +19,7 @@ export const FIELD_STATION_ATTENTION_MODES = [
   'MYSTERY',
   'SOCIAL',
   'REWARD',
+  'ACTION',
 ] as const;
 
 export type FieldStationAttentionMode = (typeof FIELD_STATION_ATTENTION_MODES)[number];
@@ -114,6 +115,8 @@ export function fieldStationAttentionToMapIntent(
       return 'now';
     case 'tonight':
       return 'tonight';
+    case 'action':
+      return null;
     default:
       return null;
   }

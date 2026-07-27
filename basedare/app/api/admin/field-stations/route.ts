@@ -20,6 +20,7 @@ import {
   normalizeTargetType,
 } from '@/lib/creator-attribution-policy';
 import { prisma } from '@/lib/prisma';
+import { ensureCuratedVenueRecords } from '@/lib/curated-venues';
 
 const StationSchema = z.object({
   slug: z.string().min(1).max(64),
@@ -34,11 +35,14 @@ const StationSchema = z.object({
   targetType: z.string().max(20).optional().default('PAGE'),
   targetId: z.string().max(191).optional(),
   targetHref: z.string().max(1024).optional().default('/board'),
+  active: z.boolean().optional().default(false),
+  placementPermissionConfirmed: z.boolean().optional().default(false),
 });
 
 const StationStatusSchema = z.object({
   linkId: z.string().min(1).max(191),
-  active: z.boolean(),
+  active: z.boolean().optional(),
+  placementPermissionConfirmed: z.boolean().optional(),
 });
 
 function appUrl(request: NextRequest) {
@@ -81,6 +85,7 @@ export async function POST(request: NextRequest) {
   if (!auth.authorized) return unauthorizedAdminResponse(auth);
   try {
     const body = StationSchema.parse(await request.json());
+    await ensureCuratedVenueRecords([body.stationHostVenueSlug.trim().toLowerCase()]);
     const host = await prisma.venue.findUnique({
       where: { slug: body.stationHostVenueSlug.trim().toLowerCase() },
       select: { id: true, slug: true, name: true },
@@ -90,6 +95,13 @@ export async function POST(request: NextRequest) {
     }
     const stationCode = normalizeFieldStationCode(body.stationCode);
     const targetType = normalizeTargetType(body.targetType);
+    if (body.active && !body.placementPermissionConfirmed) {
+      return NextResponse.json(
+        { success: false, error: 'Venue placement permission is required before a physical Field Station can go live.' },
+        { status: 409 }
+      );
+    }
+    const permissionAt = body.placementPermissionConfirmed ? new Date() : null;
     const link = await prisma.creatorAttributionLink.create({
       data: {
         slug: normalizeAttributionCode(body.slug, 'slug'),
@@ -107,6 +119,9 @@ export async function POST(request: NextRequest) {
         minimumDensity: normalizeMinimumDensity(body.minimumDensity),
         densityRadiusKm: normalizeDensityRadiusKm(body.densityRadiusKm),
         createdBy: auth.walletAddress,
+        active: body.active && body.placementPermissionConfirmed,
+        placementPermissionConfirmedAt: permissionAt,
+        placementPermissionConfirmedBy: permissionAt ? auth.walletAddress : null,
       },
     });
     const publicPath = `/go/${link.slug}`;
@@ -136,12 +151,49 @@ export async function PATCH(request: NextRequest) {
   if (!auth.authorized) return unauthorizedAdminResponse(auth);
   try {
     const body = StationStatusSchema.parse(await request.json());
+    const current = await prisma.creatorAttributionLink.findFirst({
+      where: { id: body.linkId, stationCode: { not: null } },
+      select: {
+        id: true,
+        active: true,
+        placementPermissionConfirmedAt: true,
+      },
+    });
+    if (!current) {
+      return NextResponse.json(
+        { success: false, error: 'Field Station link not found.' },
+        { status: 404 }
+      );
+    }
+    const permissionConfirmed =
+      body.placementPermissionConfirmed ??
+      Boolean(current.placementPermissionConfirmedAt);
+    if (body.active === true && !permissionConfirmed) {
+      return NextResponse.json(
+        { success: false, error: 'Confirm venue placement permission before activating this Field Station.' },
+        { status: 409 }
+      );
+    }
+    const permissionAt = body.placementPermissionConfirmed === true
+      ? new Date()
+      : body.placementPermissionConfirmed === false
+        ? null
+        : undefined;
     const result = await prisma.creatorAttributionLink.updateMany({
       where: {
         id: body.linkId,
         stationCode: { not: null },
       },
-      data: { active: body.active },
+      data: {
+        ...(body.active !== undefined ? { active: body.active } : {}),
+        ...(permissionAt !== undefined
+          ? {
+              placementPermissionConfirmedAt: permissionAt,
+              placementPermissionConfirmedBy: permissionAt ? auth.walletAddress : null,
+              ...(permissionAt ? {} : { active: false }),
+            }
+          : {}),
+      },
     });
     if (result.count !== 1) {
       return NextResponse.json(
@@ -151,7 +203,14 @@ export async function PATCH(request: NextRequest) {
     }
     const link = await prisma.creatorAttributionLink.findUnique({
       where: { id: body.linkId },
-      select: { id: true, active: true, stationCode: true, slug: true },
+      select: {
+        id: true,
+        active: true,
+        stationCode: true,
+        slug: true,
+        placementPermissionConfirmedAt: true,
+        placementPermissionConfirmedBy: true,
+      },
     });
     return NextResponse.json({ success: true, data: link }, {
       headers: { 'Cache-Control': 'no-store' },
