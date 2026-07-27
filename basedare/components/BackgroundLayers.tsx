@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { getClientPerformanceHints, shouldPreferLightweightClient } from '@/lib/client-performance';
+import { getClientPerformanceHints } from '@/lib/client-performance';
 
 const HyperspaceBackground = dynamic(() => import('@/components/HyperspaceBackground'), {
   ssr: false,
@@ -52,19 +52,27 @@ export default function BackgroundLayers() {
 
       const hints = getClientPerformanceHints();
       setShouldRenderAnimatedBackground(
-        !(hints.isConstrainedViewport || shouldPreferLightweightClient())
+        !(
+          hints.isConstrainedViewport ||
+          hints.prefersReducedMotion ||
+          hints.saveData ||
+          hints.slowConnection
+        )
       );
     });
 
     return () => window.cancelAnimationFrame(frameId);
   }, [shouldSkipAnimatedBackground]);
 
-  if (shouldSkipAnimatedBackground || !shouldRenderAnimatedBackground) return null;
+  if (shouldSkipAnimatedBackground) return null;
 
   return (
-    <div className="bd-background-root fixed inset-0 z-0 pointer-events-none overflow-hidden">
+    <div
+      className="bd-background-root fixed inset-0 z-0 pointer-events-none overflow-hidden"
+      data-background-motion={shouldRenderAnimatedBackground ? 'animated' : 'static'}
+    >
       <CosmicLayer />
-      <HyperspaceBackground />
+      {shouldRenderAnimatedBackground ? <HyperspaceBackground /> : null}
     </div>
   );
 }
