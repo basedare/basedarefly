@@ -1,11 +1,11 @@
-# Graph Report - .  (2026-07-28)
+# Graph Report - .  (2026-07-29)
 
 ## Corpus Check
-- 897 files · ~1,437,981 words
+- 897 files · ~1,440,447 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3336 nodes · 4214 edges · 694 communities detected
+- 3338 nodes · 4222 edges · 694 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -764,16 +764,16 @@ Cohesion: 0.11
 Nodes (24): addCreatorSignal(), asRecord(), buildCreatorReliability(), buildFirstSparkMissionControlReport(), buildGuestPerks(), buildMissionRows(), buildPilotTargets(), buildRecapPreview() (+16 more)
 
 ### Community 8 - "Community 8"
+Cohesion: 0.15
+Nodes (28): addEnvCheck(), addressesMatch(), addRuntimeQueuesCheck(), buildActivationCheck(), buildFieldSprintLaunchReadinessSnapshot(), buildMoneyRailsSettlementSnapshot(), buildPaidActivationSmokeSnapshot(), buildProductionSafetyReport() (+20 more)
+
+### Community 9 - "Community 9"
 Cohesion: 0.19
 Nodes (27): appBaseUrl(), asRecord(), buildActivationCloseRoomAbsoluteHref(), buildActivationCloseRoomAdminState(), buildActivationCloseRoomFromEvent(), buildActivationCloseRoomHref(), buildActivationCloseRoomToken(), buildMailtoHref() (+19 more)
 
-### Community 9 - "Community 9"
+### Community 10 - "Community 10"
 Cohesion: 0.09
 Nodes (11): fetchDares(), formatStatusTimestamp(), formatTimeLeft(), formatTimelineMoment(), getClaimLoopState(), getDareResponseAuthHeaders(), getStatusMoment(), handleActivationResponse() (+3 more)
-
-### Community 10 - "Community 10"
-Cohesion: 0.15
-Nodes (26): addEnvCheck(), addressesMatch(), addRuntimeQueuesCheck(), buildActivationCheck(), buildMoneyRailsSettlementSnapshot(), buildPaidActivationSmokeSnapshot(), buildProductionSafetyReport(), buildQueueSummary() (+18 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.09
@@ -1461,19 +1461,19 @@ Nodes (0):
 
 ### Community 182 - "Community 182"
 Cohesion: 0.5
-Nodes (0):
+Nodes (1): MetallicPaint()
 
 ### Community 183 - "Community 183"
 Cohesion: 0.5
 Nodes (0):
 
 ### Community 184 - "Community 184"
-Cohesion: 0.67
-Nodes (2): formatActivityTiming(), getActivityMeta()
+Cohesion: 0.5
+Nodes (0):
 
 ### Community 185 - "Community 185"
-Cohesion: 0.5
-Nodes (1): MetallicPaint()
+Cohesion: 0.67
+Nodes (2): formatActivityTiming(), getActivityMeta()
 
 ### Community 186 - "Community 186"
 Cohesion: 0.5

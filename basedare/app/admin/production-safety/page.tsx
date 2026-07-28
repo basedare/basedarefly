@@ -32,6 +32,7 @@ type ProductionSafetyReport = {
   }>;
   settlement: MoneyRailsSettlementSnapshot | null;
   activationSmoke: PaidActivationSmokeSnapshot | null;
+  fieldSprintLaunch: FieldSprintLaunchReadinessSnapshot | null;
 };
 
 type SettlementQueueItem = {
@@ -139,6 +140,54 @@ type PaidActivationSmokeSnapshot = {
     linkedDareIsSimulated: boolean | null;
     createdAt: string;
   } | null;
+};
+
+type FieldSprintLaunchReadinessSnapshot = {
+  generatedAt: string;
+  modeLabel: string;
+  severity: ProductionSafetySeverity;
+  canRunFirstSprint: boolean;
+  summary: {
+    blockers: number;
+    warnings: number;
+    passes: number;
+    permissionedStationLinks: number;
+    readyStationCampaigns: number;
+    activeSprints: number;
+    canonicalFundedSprints: number;
+    fourMissionReadySprints: number;
+    completedReceipts: number;
+    buyerRepeatDecisions: number;
+  };
+  checks: PaidActivationSmokeStep[];
+  operatorChecklist: PaidActivationSmokeStep[];
+  readyCampaigns: Array<{
+    campaignCode: string;
+    stationLinks: number;
+  }>;
+  latestSprint: {
+    id: string;
+    receiptCode: string;
+    status: string;
+    buyerQuestion: string;
+    buyerOrganization: string | null;
+    campaignCode: string;
+    stationLinks: number;
+    missionLinks: number;
+    acceptedMissions: number;
+    distinctContributorWallets: number;
+    serviceFeeConfirmedUsd: number | null;
+    rewardPoolConfirmedUsd: number | null;
+    designPartnerException: boolean;
+    fundingReference: string | null;
+    completedAt: string | null;
+    receiptHref: string | null;
+  } | null;
+  links: Array<{
+    label: string;
+    path: string;
+    note: string;
+  }>;
 };
 
 type TelegramTestTarget = 'admin-alerts' | 'tag-claim-alert' | 'signal-room';
@@ -523,6 +572,178 @@ function ActivationSmokePanel({ smoke }: { smoke: PaidActivationSmokeSnapshot })
   );
 }
 
+function FieldSprintLaunchPanel({ launch }: { launch: FieldSprintLaunchReadinessSnapshot }) {
+  return (
+    <section className="rounded-[2.5rem] border border-cyan-300/15 bg-[#050914]/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_30px_120px_rgba(0,0,0,0.55)] sm:p-6">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-100/55">
+            First receipt rail
+          </p>
+          <h2 className="mt-2 text-xl font-black uppercase tracking-[0.14em]">
+            Verified Field Sprint #1
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm font-bold leading-relaxed text-white/48">
+            Read-only launch cockpit for the first sellable vertical slice: one buyer question, two permissioned
+            Field Stations, four independent $125 missions, verified outcomes, and one buyer receipt.
+          </p>
+        </div>
+        <div className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] ${severityClasses(launch.severity)}`}>
+          {launch.modeLabel}
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-4">
+        <ActivationSmokeMetric
+          label="Station links"
+          value={launch.summary.permissionedStationLinks}
+          hint={`${launch.summary.readyStationCampaigns} campaign(s) have a pair`}
+        />
+        <ActivationSmokeMetric
+          label="Active Sprints"
+          value={launch.summary.activeSprints}
+          hint={`${launch.summary.canonicalFundedSprints} with locked economics`}
+        />
+        <ActivationSmokeMetric
+          label="Four-mission rails"
+          value={launch.summary.fourMissionReadySprints}
+          hint="Real $125 mission wiring"
+        />
+        <ActivationSmokeMetric
+          label="Receipts"
+          value={launch.summary.completedReceipts}
+          hint={`${launch.summary.buyerRepeatDecisions} buyer repeat decisions`}
+        />
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="rounded-[1.75rem] border border-white/10 bg-black/25 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white/80">Sprint launch checks</h3>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+              {launch.summary.blockers} block / {launch.summary.warnings} warn
+            </span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {launch.checks.map((check) => (
+              <ActivationSmokeStepCard key={check.id} step={check} />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">Latest Sprint</p>
+                <h3 className="mt-2 text-lg font-black text-white">
+                  {launch.latestSprint?.buyerOrganization ?? launch.latestSprint?.receiptCode ?? 'No Sprint drafted yet'}
+                </h3>
+              </div>
+              {launch.latestSprint && (
+                <span className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-50/80">
+                  {launch.latestSprint.status}
+                </span>
+              )}
+            </div>
+            {launch.latestSprint ? (
+              <>
+                <p className="mt-3 text-sm font-bold leading-relaxed text-white/60">
+                  “{launch.latestSprint.buyerQuestion}”
+                </p>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-white/50">
+                  <span className="rounded-2xl border border-white/8 bg-black/25 p-3">
+                    Stations {launch.latestSprint.stationLinks}
+                  </span>
+                  <span className="rounded-2xl border border-white/8 bg-black/25 p-3">
+                    Missions {launch.latestSprint.missionLinks}
+                  </span>
+                  <span className="rounded-2xl border border-white/8 bg-black/25 p-3">
+                    Accepted {launch.latestSprint.acceptedMissions}
+                  </span>
+                  <span className="rounded-2xl border border-white/8 bg-black/25 p-3">
+                    Contributors {launch.latestSprint.distinctContributorWallets}
+                  </span>
+                </div>
+                <p className="mt-3 rounded-2xl border border-yellow-300/15 bg-yellow-300/[0.07] p-3 text-xs font-bold leading-relaxed text-yellow-50/75">
+                  Service {formatMoney(launch.latestSprint.serviceFeeConfirmedUsd ?? 0)} / Pool{' '}
+                  {formatMoney(launch.latestSprint.rewardPoolConfirmedUsd ?? 0)} /{' '}
+                  {launch.latestSprint.designPartnerException ? 'design-partner exception' : 'paid service'} /{' '}
+                  {launch.latestSprint.fundingReference ? 'funding reference present' : 'funding reference missing'}
+                </p>
+                {launch.latestSprint.receiptHref && (
+                  <Link
+                    href={launch.latestSprint.receiptHref}
+                    className="mt-4 inline-flex rounded-full border border-yellow-300/20 bg-yellow-300/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-yellow-100 transition hover:border-yellow-300/40"
+                  >
+                    Open receipt
+                  </Link>
+                )}
+              </>
+            ) : (
+              <p className="mt-3 text-sm font-bold leading-relaxed text-white/45">
+                Draft Sprint #1 after the buyer question and two station hosts are named.
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-4">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white/80">Operator checklist</h3>
+            <div className="mt-3 space-y-3">
+              {launch.operatorChecklist.map((step) => (
+                <ActivationSmokeStepCard key={step.id} step={step} compact />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-5">
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">Ready station campaigns</p>
+          {launch.readyCampaigns.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {launch.readyCampaigns.map((campaign) => (
+                <span
+                  key={campaign.campaignCode}
+                  className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-50/80"
+                >
+                  {campaign.campaignCode} · {campaign.stationLinks} stations
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm font-bold leading-relaxed text-white/45">
+              No campaign has the required two permissioned station links yet.
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-5">
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">Operator links</p>
+          <div className="mt-3 grid gap-2">
+            {launch.links.map((link) => (
+              <Link
+                key={link.path}
+                href={link.path}
+                className="rounded-2xl border border-white/8 bg-black/25 p-3 transition hover:border-white/18 hover:bg-white/[0.06]"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-black text-white">{link.label}</p>
+                  <code className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold text-cyan-100/80">
+                    {link.path}
+                  </code>
+                </div>
+                <p className="mt-2 text-xs font-bold leading-relaxed text-white/45">{link.note}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function ProductionSafetyPage() {
   const { address, isConnected } = useAccount();
   const [report, setReport] = useState<ProductionSafetyReport | null>(null);
@@ -874,6 +1095,8 @@ export default function ProductionSafetyPage() {
             </div>
 
             {report.activationSmoke && <ActivationSmokePanel smoke={report.activationSmoke} />}
+
+            {report.fieldSprintLaunch && <FieldSprintLaunchPanel launch={report.fieldSprintLaunch} />}
 
             {report.settlement && (
               <section className="rounded-[2.5rem] border border-white/10 bg-[#070712]/85 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_30px_120px_rgba(0,0,0,0.55)] sm:p-6">

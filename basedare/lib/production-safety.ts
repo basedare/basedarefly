@@ -132,6 +132,54 @@ export type PaidActivationSmokeSnapshot = {
   } | null;
 };
 
+export type FieldSprintLaunchReadinessSnapshot = {
+  generatedAt: string;
+  modeLabel: string;
+  severity: ProductionSafetySeverity;
+  canRunFirstSprint: boolean;
+  summary: {
+    blockers: number;
+    warnings: number;
+    passes: number;
+    permissionedStationLinks: number;
+    readyStationCampaigns: number;
+    activeSprints: number;
+    canonicalFundedSprints: number;
+    fourMissionReadySprints: number;
+    completedReceipts: number;
+    buyerRepeatDecisions: number;
+  };
+  checks: PaidActivationSmokeStep[];
+  operatorChecklist: PaidActivationSmokeStep[];
+  readyCampaigns: Array<{
+    campaignCode: string;
+    stationLinks: number;
+  }>;
+  latestSprint: {
+    id: string;
+    receiptCode: string;
+    status: string;
+    buyerQuestion: string;
+    buyerOrganization: string | null;
+    campaignCode: string;
+    stationLinks: number;
+    missionLinks: number;
+    acceptedMissions: number;
+    distinctContributorWallets: number;
+    serviceFeeConfirmedUsd: number | null;
+    rewardPoolConfirmedUsd: number | null;
+    designPartnerException: boolean;
+    fundingReference: string | null;
+    completedAt: string | null;
+    receiptHref: string | null;
+  } | null;
+  links: Array<{
+    label: string;
+    path: string;
+    note: string;
+  }>;
+};
+
 export type ProductionSafetyReport = {
   generatedAt: string;
   environment: {
@@ -147,6 +195,7 @@ export type ProductionSafetyReport = {
   checks: ProductionSafetyCheck[];
   settlement: MoneyRailsSettlementSnapshot | null;
   activationSmoke: PaidActivationSmokeSnapshot | null;
+  fieldSprintLaunch: FieldSprintLaunchReadinessSnapshot | null;
 };
 
 const RLS_TABLES = rlsTables;
@@ -252,6 +301,14 @@ function hasEnv(name: string) {
 
 function roundCurrency(value: number | null | undefined) {
   return Math.round((value ?? 0) * 100) / 100;
+}
+
+function formatMoney(value: number | null | undefined) {
+  const rounded = roundCurrency(value);
+  return `$${rounded.toLocaleString(undefined, {
+    minimumFractionDigits: Number.isInteger(rounded) ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 function roundHours(value: number) {
@@ -1275,6 +1332,375 @@ export async function buildPaidActivationSmokeSnapshot(): Promise<PaidActivation
   };
 }
 
+export async function buildFieldSprintLaunchReadinessSnapshot(): Promise<FieldSprintLaunchReadinessSnapshot> {
+  const now = new Date();
+  const hasDatabase = hasEnv('DATABASE_URL');
+  const hasAdminSecret = hasEnv('ADMIN_SECRET');
+  const hasProofStorage = hasEnv('PINATA_JWT');
+  const hasVenueQrSecret = hasEnv('VENUE_QR_SECRET');
+  const hasMissionPassSecret = hasEnv('MISSION_PASS_HMAC_SECRET');
+  const hasResend = hasEnv('RESEND_API_KEY') && hasEnv('MISSION_PASS_FROM_EMAIL');
+
+  const [
+    permissionedLinks,
+    sprintRows,
+    activeSprints,
+    canonicalFundedSprints,
+    fourMissionReadySprints,
+    completedReceipts,
+    buyerRepeatDecisions,
+  ] = await Promise.all([
+    prisma.creatorAttributionLink.findMany({
+      where: {
+        active: true,
+        placementPermissionConfirmedAt: { not: null },
+        campaignCode: { not: null },
+      },
+      orderBy: [{ campaignCode: 'asc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        campaignCode: true,
+      },
+    }),
+    prisma.verifiedFieldSprint.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        receiptCode: true,
+        status: true,
+        buyerQuestion: true,
+        buyerOrganization: true,
+        campaignCode: true,
+        serviceFeeConfirmedUsd: true,
+        rewardPoolConfirmedUsd: true,
+        designPartnerException: true,
+        fundingReference: true,
+        completedAt: true,
+        stations: {
+          select: { id: true },
+        },
+        missions: {
+          select: {
+            id: true,
+            status: true,
+            dareId: true,
+            contributorWallet: true,
+            links: {
+              select: { id: true },
+            },
+          },
+        },
+        buyerDecisions: {
+          select: { id: true },
+          take: 1,
+        },
+      },
+    }),
+    prisma.verifiedFieldSprint.count({
+      where: {
+        status: { in: ['DRAFT', 'FUNDED', 'ROUTING', 'COLLECTING', 'REVIEW'] },
+      },
+    }),
+    prisma.verifiedFieldSprint.count({
+      where: {
+        rewardPoolConfirmedUsd: 500,
+        fundingReference: { not: null },
+        OR: [{ serviceFeeConfirmedUsd: 2000 }, { designPartnerException: true }],
+      },
+    }),
+    prisma.verifiedFieldSprint.count({
+      where: {
+        AND: [
+          { missions: { some: {} } },
+          {
+            missions: {
+              every: {
+                dareId: { not: null },
+                grossRewardUsd: 125,
+              },
+            },
+          },
+        ],
+      },
+    }),
+    prisma.verifiedFieldSprint.count({
+      where: { status: 'COMPLETE' },
+    }),
+    prisma.verifiedFieldSprintBuyerDecision.count({
+      where: { decision: { in: ['REPEAT', 'ADJUST', 'ASK'] } },
+    }),
+  ]);
+
+  const stationCountsByCampaign = new Map<string, number>();
+  for (const link of permissionedLinks) {
+    if (!link.campaignCode) continue;
+    stationCountsByCampaign.set(link.campaignCode, (stationCountsByCampaign.get(link.campaignCode) ?? 0) + 1);
+  }
+
+  const readyCampaigns = Array.from(stationCountsByCampaign.entries())
+    .filter(([, stationLinks]) => stationLinks >= 2)
+    .map(([campaignCode, stationLinks]) => ({ campaignCode, stationLinks }))
+    .sort((left, right) => right.stationLinks - left.stationLinks || left.campaignCode.localeCompare(right.campaignCode));
+
+  const latestSprintRow = sprintRows[0] ?? null;
+  const latestMissionLinks =
+    latestSprintRow?.missions.reduce((total, mission) => total + mission.links.length, 0) ?? 0;
+  const latestAcceptedMissions =
+    latestSprintRow?.missions.filter((mission) => mission.status === 'ACCEPTED').length ?? 0;
+  const latestDistinctContributorWallets = new Set(
+    (latestSprintRow?.missions ?? [])
+      .map((mission) => normalizeAddress(mission.contributorWallet))
+      .filter((wallet): wallet is string => Boolean(wallet))
+  ).size;
+
+  const hasReadyStationPair = readyCampaigns.length > 0;
+  const latestSprintHasCanonicalFunding = Boolean(
+    latestSprintRow &&
+      latestSprintRow.rewardPoolConfirmedUsd === 500 &&
+      Boolean(latestSprintRow.fundingReference) &&
+      (latestSprintRow.serviceFeeConfirmedUsd === 2000 || latestSprintRow.designPartnerException)
+  );
+  const latestSprintHasFourMissionLinks = Boolean(
+    latestSprintRow &&
+      latestSprintRow.missions.length === 4 &&
+      latestSprintRow.missions.every((mission) => mission.dareId && mission.links.length > 0)
+  );
+  const latestSprintIsReceiptReady = Boolean(
+    latestSprintRow &&
+      latestSprintRow.status === 'COMPLETE' &&
+      latestAcceptedMissions === 4 &&
+      latestDistinctContributorWallets === 4 &&
+      latestSprintRow.buyerDecisions.length > 0
+  );
+
+  const checks = [
+    buildActivationCheck({
+      id: 'sprint.database',
+      label: 'Sprint storage',
+      severity: hasDatabase ? 'pass' : 'block',
+      detail: hasDatabase
+        ? `${activeSprints} active Sprint(s), ${completedReceipts} completed receipt(s), ${canonicalFundedSprints} canonical funded Sprint(s).`
+        : 'DATABASE_URL is missing, so the Sprint Runner cannot store buyer, mission, station, and receipt state.',
+      nextAction: hasDatabase ? undefined : 'Set DATABASE_URL and run production migrations before opening the Runner.',
+    }),
+    buildActivationCheck({
+      id: 'sprint.station-pair',
+      label: 'Two permissioned Field Stations',
+      severity: hasReadyStationPair ? 'pass' : 'block',
+      detail: hasReadyStationPair
+        ? `${readyCampaigns.length} campaign(s) have at least two active permissioned station links.`
+        : `${permissionedLinks.length} active permissioned station link(s) exist, but no campaign has the required pair.`,
+      nextAction: hasReadyStationPair
+        ? undefined
+        : 'Pick two permissioned Field Station hosts in one small area and create active station links under the same campaign code.',
+      href: '/admin/field-stations',
+    }),
+    buildActivationCheck({
+      id: 'sprint.buyer-question',
+      label: 'One buyer question',
+      severity: latestSprintRow ? 'pass' : 'warn',
+      detail: latestSprintRow
+        ? `Latest Sprint asks: “${latestSprintRow.buyerQuestion}”`
+        : 'No Verified Field Sprint has been drafted yet.',
+      nextAction: latestSprintRow
+        ? undefined
+        : 'Name one design partner and one exact real-world question, then draft it in the Field Sprint Runner.',
+      href: '/admin/field-sprints',
+    }),
+    buildActivationCheck({
+      id: 'sprint.canonical-funding',
+      label: 'Locked Sprint economics',
+      severity: latestSprintHasCanonicalFunding ? 'pass' : latestSprintRow ? 'block' : 'warn',
+      detail: latestSprintRow
+        ? latestSprintHasCanonicalFunding
+          ? latestSprintRow.designPartnerException
+            ? 'Latest Sprint has the $500 creator pool and a recorded design-partner service-fee exception.'
+            : 'Latest Sprint has $2,000 managed service plus $500 creator pool confirmed.'
+          : `Latest Sprint funding is not canonical yet: service ${formatMoney(latestSprintRow.serviceFeeConfirmedUsd ?? 0)}, pool ${formatMoney(latestSprintRow.rewardPoolConfirmedUsd ?? 0)}, reference ${latestSprintRow.fundingReference ? 'present' : 'missing'}.`
+        : 'No Sprint exists yet, so funding has not been confirmed.',
+      nextAction: latestSprintHasCanonicalFunding
+        ? undefined
+        : 'Confirm $2,000 service + $500 creator pool, or explicitly record a Sprint #1 design-partner exception plus the $500 pool.',
+      href: '/admin/field-sprints',
+    }),
+    buildActivationCheck({
+      id: 'sprint.four-missions',
+      label: 'Four real $125 missions',
+      severity: latestSprintHasFourMissionLinks ? 'pass' : latestSprintRow ? 'block' : 'warn',
+      detail: latestSprintRow
+        ? latestSprintHasFourMissionLinks
+          ? 'Latest Sprint has four compiled missions linked to real escrow dares.'
+          : `Latest Sprint has ${latestSprintRow.missions.length}/4 compiled missions and ${latestMissionLinks} mission-dare link(s).`
+        : 'No Sprint exists yet, so the four independent missions are not linked.',
+      nextAction: latestSprintHasFourMissionLinks
+        ? undefined
+        : 'Create and fund four $125 mission dares, then link each one to a compiled Sprint mission.',
+      href: '/admin/field-sprints',
+    }),
+    buildActivationCheck({
+      id: 'sprint.proof-rails',
+      label: 'Proof + Mission Pass rails',
+      severity: hasProofStorage && hasMissionPassSecret && hasResend ? 'pass' : 'warn',
+      detail: `Proof storage ${hasProofStorage ? 'configured' : 'missing'}; Mission Pass secret ${hasMissionPassSecret ? 'configured' : 'missing'}; email handoff ${hasResend ? 'configured' : 'missing'}.`,
+      nextAction:
+        hasProofStorage && hasMissionPassSecret && hasResend
+          ? undefined
+          : 'Set PINATA_JWT, MISSION_PASS_HMAC_SECRET, RESEND_API_KEY, and MISSION_PASS_FROM_EMAIL before using social/QR handoffs for Sprint participants.',
+    }),
+    buildActivationCheck({
+      id: 'sprint.venue-qr',
+      label: 'Venue QR / arrival boundary',
+      severity: hasVenueQrSecret ? 'pass' : 'warn',
+      detail: hasVenueQrSecret
+        ? 'VENUE_QR_SECRET is configured for secure venue pass/check-in rails.'
+        : 'VENUE_QR_SECRET is missing; Field Station acquisition can work, but venue-supported check-ins are not release-grade.',
+      nextAction: hasVenueQrSecret
+        ? undefined
+        : 'Set VENUE_QR_SECRET before promising venue QR check-in as verified arrival.',
+    }),
+    buildActivationCheck({
+      id: 'sprint.receipt-close',
+      label: 'Receipt + repeat decision',
+      severity: latestSprintIsReceiptReady ? 'pass' : completedReceipts > 0 ? 'warn' : 'warn',
+      detail: latestSprintIsReceiptReady
+        ? 'Latest Sprint has four accepted settled outcomes, four contributor wallets, and a buyer repeat/adjust/ask decision.'
+        : completedReceipts > 0
+          ? `${completedReceipts} Sprint receipt(s) exist, but the latest Sprint is not closed with a repeat decision.`
+          : 'No completed Sprint receipt exists yet.',
+      nextAction: latestSprintIsReceiptReady
+        ? undefined
+        : 'Run the real report → approval → funding → proof → payout → receipt → buyer decision smoke.',
+      href: latestSprintRow?.status === 'COMPLETE' ? `/field-sprints/${latestSprintRow.receiptCode}` : '/admin/field-sprints',
+    }),
+    buildActivationCheck({
+      id: 'sprint.human-operator',
+      label: 'Human operator gate',
+      severity: hasAdminSecret ? 'pass' : 'block',
+      detail: hasAdminSecret
+        ? 'ADMIN_SECRET is configured; this panel stays behind operator control.'
+        : 'ADMIN_SECRET is missing, so Sprint launch controls cannot be safely operated.',
+      nextAction: hasAdminSecret ? undefined : 'Set ADMIN_SECRET before routing Sprint funding or review ops.',
+    }),
+  ];
+
+  const checkSummary = summarizeSmokeChecks(checks);
+  const severity: ProductionSafetySeverity =
+    checkSummary.blockers > 0 ? 'block' : checkSummary.warnings > 0 ? 'warn' : 'pass';
+  const canRunFirstSprint =
+    hasReadyStationPair &&
+    Boolean(latestSprintRow) &&
+    latestSprintHasCanonicalFunding &&
+    latestSprintHasFourMissionLinks &&
+    checkSummary.blockers === 0;
+  const modeLabel =
+    checkSummary.blockers > 0
+      ? 'Blocked before Sprint #1'
+      : canRunFirstSprint
+        ? 'Ready to run Sprint #1'
+        : 'Needs founder inputs';
+
+  return {
+    generatedAt: now.toISOString(),
+    modeLabel,
+    severity,
+    canRunFirstSprint,
+    summary: {
+      ...checkSummary,
+      permissionedStationLinks: permissionedLinks.length,
+      readyStationCampaigns: readyCampaigns.length,
+      activeSprints,
+      canonicalFundedSprints,
+      fourMissionReadySprints,
+      completedReceipts,
+      buyerRepeatDecisions,
+    },
+    checks,
+    operatorChecklist: [
+      {
+        id: 'operator.1',
+        label: 'Name the design partner',
+        severity: latestSprintRow ? 'pass' : 'warn',
+        detail: 'One real buyer or venue contact must be attached to one real question. Do not run a generic demo Sprint.',
+        nextAction: latestSprintRow ? undefined : 'Write the partner name, contact, and exact question into the Sprint draft.',
+        href: '/admin/field-sprints',
+      },
+      {
+        id: 'operator.2',
+        label: 'Pick two station hosts',
+        severity: hasReadyStationPair ? 'pass' : 'block',
+        detail: 'Use two permissioned hosts in one tight area. Station scans measure acquisition; venue QR/proof verifies presence.',
+        nextAction: hasReadyStationPair ? undefined : 'Create two active permissioned station links with matching campaign code.',
+        href: '/admin/field-stations',
+      },
+      {
+        id: 'operator.3',
+        label: 'Recruit four contributors',
+        severity: latestSprintHasFourMissionLinks ? 'pass' : 'warn',
+        detail: 'Each contributor gets one independent $125 mission. No single creator can make the buyer answer look stronger alone.',
+        nextAction: latestSprintHasFourMissionLinks ? undefined : 'Create four claimable missions and assign/link them through the Runner.',
+      },
+      {
+        id: 'operator.4',
+        label: 'Force one bad attempt',
+        severity: 'warn',
+        detail: 'Before claiming victory, deliberately test one rejected or inconclusive proof so replacement and receipt language are real.',
+        nextAction: 'Record the rejection/inconclusive path in the pilot notes and verify it does not inflate the buyer receipt.',
+      },
+      {
+        id: 'operator.5',
+        label: 'Close with a buyer decision',
+        severity: latestSprintIsReceiptReady ? 'pass' : 'warn',
+        detail: 'The Sprint is not commercially proven until the buyer chooses repeat, adjust, ask, or stop from the receipt.',
+        nextAction: latestSprintIsReceiptReady ? undefined : 'Send the completed receipt and capture the buyer decision before building more automation.',
+      },
+    ],
+    readyCampaigns: readyCampaigns.slice(0, 6),
+    latestSprint: latestSprintRow
+      ? {
+          id: latestSprintRow.id,
+          receiptCode: latestSprintRow.receiptCode,
+          status: latestSprintRow.status,
+          buyerQuestion: latestSprintRow.buyerQuestion,
+          buyerOrganization: latestSprintRow.buyerOrganization,
+          campaignCode: latestSprintRow.campaignCode,
+          stationLinks: latestSprintRow.stations.length,
+          missionLinks: latestMissionLinks,
+          acceptedMissions: latestAcceptedMissions,
+          distinctContributorWallets: latestDistinctContributorWallets,
+          serviceFeeConfirmedUsd: latestSprintRow.serviceFeeConfirmedUsd,
+          rewardPoolConfirmedUsd: latestSprintRow.rewardPoolConfirmedUsd,
+          designPartnerException: latestSprintRow.designPartnerException,
+          fundingReference: latestSprintRow.fundingReference,
+          completedAt: latestSprintRow.completedAt?.toISOString() ?? null,
+          receiptHref: latestSprintRow.status === 'COMPLETE' ? `/field-sprints/${latestSprintRow.receiptCode}` : null,
+        }
+      : null,
+    links: [
+      {
+        label: 'Field Sprint Runner',
+        path: '/admin/field-sprints',
+        note: 'Draft, fund, route, link missions, sync outcomes, and close the receipt.',
+      },
+      {
+        label: 'Field Stations',
+        path: '/admin/field-stations',
+        note: 'Create permissioned station links and printable QR assets for the two-host acquisition test.',
+      },
+      {
+        label: 'Buyer Portal',
+        path: '/brands/portal',
+        note: 'The public buyer-facing way to scope the bounded question and request the invoice.',
+      },
+      {
+        label: 'Example receipt',
+        path: '/field-sprints/example',
+        note: 'Privacy-safe expectation-setting receipt for buyers before Sprint #1 closes.',
+      },
+    ],
+  };
+}
+
 function addRuntimeQueuesCheck(
   checks: ProductionSafetyCheck[],
   settlement: MoneyRailsSettlementSnapshot | null
@@ -1459,6 +1885,32 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
     const message = error instanceof Error ? error.message : 'Unknown activation smoke error';
     console.error('[PRODUCTION_SAFETY] Could not build paid activation smoke snapshot:', message);
   }
+
+  let fieldSprintLaunch: FieldSprintLaunchReadinessSnapshot | null = null;
+  try {
+    fieldSprintLaunch = await buildFieldSprintLaunchReadinessSnapshot();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown field sprint launch error';
+    console.error('[PRODUCTION_SAFETY] Could not build field sprint launch snapshot:', message);
+  }
+
+  checks.push({
+    id: 'runtime.field-sprint-launch',
+    label: 'Verified Field Sprint launch',
+    severity: fieldSprintLaunch
+      ? fieldSprintLaunch.severity === 'block'
+        ? 'warn'
+        : fieldSprintLaunch.severity
+      : 'warn',
+    detail: fieldSprintLaunch
+      ? `${fieldSprintLaunch.modeLabel}: ${fieldSprintLaunch.summary.readyStationCampaigns} ready station campaign(s), ${fieldSprintLaunch.summary.activeSprints} active Sprint(s), ${fieldSprintLaunch.summary.completedReceipts} completed receipt(s).`
+      : 'Could not read Verified Field Sprint launch state.',
+    nextAction:
+      fieldSprintLaunch && fieldSprintLaunch.canRunFirstSprint
+        ? 'Run Sprint #1 with the named design partner, then close the buyer receipt and repeat decision.'
+        : 'Open the Sprint launch readiness cockpit and clear blockers before promising Sprint #1.',
+  });
+
   checks.push({
     id: 'runtime.paid-activation-smoke',
     label: 'Paid activation smoke',
@@ -1504,5 +1956,6 @@ export async function buildProductionSafetyReport(): Promise<ProductionSafetyRep
     checks,
     settlement,
     activationSmoke,
+    fieldSprintLaunch,
   };
 }
