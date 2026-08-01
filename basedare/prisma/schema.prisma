@@ -1312,6 +1312,7 @@ model CreatorAttributionLink {
   targetType            String
   targetId              String
   targetHref            String
+  metadataJson          Json?
   participationOwner    Boolean  @default(false)
   stationCode           String?
   stationHostVenueId    String?

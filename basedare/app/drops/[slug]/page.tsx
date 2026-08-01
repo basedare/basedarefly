@@ -4,8 +4,12 @@ import { Sparkles } from 'lucide-react';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
+import { normalizeTargetType } from '@/lib/creator-attribution-policy';
+import { parseCreatorDropMetadata } from '@/lib/creator-drops';
 import { getDrop, type RosterView } from '@/lib/drops';
 import { getRosterView } from '@/lib/drops-server';
+import { prisma } from '@/lib/prisma';
+import CreatorDropLanding from './CreatorDropLanding';
 import JoinDropForm from './JoinDropForm';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +22,19 @@ type DropPageProps = {
 export async function generateMetadata({ params }: DropPageProps): Promise<Metadata> {
   const { slug } = await params;
   const drop = getDrop(slug);
-  if (!drop) return { title: 'Games Night | BaseDare' };
+  if (!drop) {
+    const creatorDrop = await getCreatorDropLink(slug);
+    if (!creatorDrop) return { title: 'Creator Drop | BaseDare' };
+    return {
+      title: `${creatorDrop.metadata.title} | BaseDare`,
+      description: creatorDrop.metadata.hook,
+      openGraph: {
+        title: `${creatorDrop.metadata.title} | BaseDare`,
+        description: creatorDrop.metadata.hook,
+        type: 'website',
+      },
+    };
+  }
   const title = `${drop.title} — ${drop.tagline}`;
   const description = `${drop.capacity} spots · ${drop.details} Claim yours.`;
   return {
@@ -38,10 +54,54 @@ const EMPTY_ROSTER = (capacity: number, unlockAt: number): RosterView => ({
   roster: [],
 });
 
+async function getCreatorDropLink(slug: string) {
+  const link = await prisma.creatorAttributionLink.findUnique({
+    where: { slug },
+    select: {
+      slug: true,
+      creatorCode: true,
+      contentCode: true,
+      campaignCode: true,
+      targetType: true,
+      targetId: true,
+      targetHref: true,
+      active: true,
+      metadataJson: true,
+    },
+  });
+  if (!link || !link.active || link.targetHref !== `/drops/${slug}`) return null;
+  const metadata = parseCreatorDropMetadata(link.metadataJson);
+  if (!metadata) return null;
+
+  try {
+    return {
+      ...link,
+      targetType: normalizeTargetType(link.targetType),
+      metadata,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default async function DropInvitePage({ params, searchParams }: DropPageProps) {
   const { slug } = await params;
   const drop = getDrop(slug);
-  if (!drop) notFound();
+  if (!drop) {
+    const creatorDrop = await getCreatorDropLink(slug);
+    if (!creatorDrop) notFound();
+    return (
+      <CreatorDropLanding
+        creatorCode={creatorDrop.creatorCode}
+        contentCode={creatorDrop.contentCode}
+        campaignCode={creatorDrop.campaignCode}
+        targetType={creatorDrop.targetType}
+        targetId={creatorDrop.targetId}
+        publicPath={`/go/${creatorDrop.slug}`}
+        metadata={creatorDrop.metadata}
+      />
+    );
+  }
 
   const sp = (await searchParams) || {};
   const src = typeof sp.src === 'string' ? sp.src : '';
