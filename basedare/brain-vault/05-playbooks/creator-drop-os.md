@@ -1,7 +1,7 @@
 ---
 type: product_growth_playbook
 system: basedare-brain
-status: IMPLEMENTED_ALPHA_NOT_DEPLOYED
+status: IMPLEMENTED_ALPHA_PENDING_MIGRATION
 created_at: 2026-08-01
 owner: BaseDare
 ---
@@ -100,6 +100,37 @@ Good drop packets are small enough to send in WhatsApp:
 4. What viewers should do
 5. What counts as success
 
+## Activation queue
+
+The activation queue is the manual operating layer for creator outreach. It turns a
+created drop into a specific assignment:
+
+`drop -> creator -> outreach copy -> sent -> accepted -> posted -> intent locked -> verified -> repeat/kill`
+
+It is deliberately not an auto-DM system. BaseDare may draft the message and remember the
+state, but a human still sends it, reads the reply, and decides whether the relationship
+is worth pushing.
+
+Track each creator by:
+
+- creator code
+- contact channel and handle
+- assigned drop
+- priority
+- status
+- last touch
+- notes and objections
+- touches, Mission Pass saves, action intents, and verified completions
+
+The repeat decision should be boring and honest:
+
+- **Repeat** when verified completions exist.
+- **Watch** when people saved/started the mission but nobody verified yet.
+- **Kill or rewrite** when the creator only creates clicks.
+
+No creator earns an automated bonus from this queue. Bonuses, perks, paid briefs, and
+sponsor media reuse remain separate reviewed decisions.
+
 ## Metrics
 
 Judge every drop by the same ladder:
@@ -139,4 +170,3 @@ The content should be about the place, the moment, the people, and why it is wor
 
 Each must point to live inventory or a safe fallback. Never send a creator audience to an
 empty map promise.
-

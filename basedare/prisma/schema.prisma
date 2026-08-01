@@ -1327,6 +1327,7 @@ model CreatorAttributionLink {
   createdAt             DateTime @default(now())
 
   touches          AttributionTouch[]
+  dropAssignments  CreatorDropAssignment[]
   sprintStations   VerifiedFieldSprintStation[]
   stationHostVenue Venue?                       @relation("FieldStationHostVenue", fields: [stationHostVenueId], references: [id], onDelete: SetNull)
 
@@ -1334,6 +1335,32 @@ model CreatorAttributionLink {
   @@index([targetType, targetId, active])
   @@index([stationCode, active, createdAt])
   @@index([stationHostVenueId, active])
+}
+
+model CreatorDropAssignment {
+  id             String    @id @default(cuid())
+  linkId         String?
+  creatorCode    String
+  creatorName    String?
+  contactChannel String?
+  contactHandle  String?
+  status         String    @default("DRAFTED")
+  priority       Int       @default(0)
+  notes          String?
+  askText        String?
+  followupText   String?
+  lastTouchAt    DateTime?
+  acceptedAt     DateTime?
+  postedAt       DateTime?
+  createdBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  link CreatorAttributionLink? @relation(fields: [linkId], references: [id], onDelete: SetNull)
+
+  @@index([status, updatedAt])
+  @@index([creatorCode, createdAt])
+  @@index([linkId])
 }
 
 model AttributionJourney {

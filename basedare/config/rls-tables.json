@@ -55,6 +55,7 @@
   "MeetupReport",
   "MeetupBlock",
   "CreatorAttributionLink",
+  "CreatorDropAssignment",
   "AttributionJourney",
   "AttributionTouch",
   "ActionIntent",

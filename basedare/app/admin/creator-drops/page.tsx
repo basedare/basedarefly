@@ -1,6 +1,7 @@
 'use client';
 
-import { BarChart3, Copy, Loader2, Plus, RefreshCw, Share2, Sparkles } from 'lucide-react';
+import { BarChart3, Copy, Loader2, Plus, RefreshCw, Send, Share2, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAccount } from 'wagmi';
 
@@ -173,10 +174,16 @@ export default function CreatorDropsAdminPage() {
               Build one creator-facing drop page, route through <code className="text-white/70">/go</code>, preserve Mission Pass handoff, and measure verified outcomes without promising automatic bonuses.
             </p>
           </div>
-          <button onClick={() => void load()} disabled={loading} className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-black uppercase tracking-[0.12em] text-white/65">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Refresh
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/creator-drop-queue" className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-4 text-xs font-black uppercase tracking-[0.12em] text-[#ffe36a]">
+              <Send className="h-4 w-4" />
+              Activation queue
+            </Link>
+            <button onClick={() => void load()} disabled={loading} className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-black uppercase tracking-[0.12em] text-white/65">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Refresh
+            </button>
+          </div>
         </div>
 
         {!address && !hasAdminSession ? (
