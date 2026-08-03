@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Clock, CheckCircle, XCircle, Loader2, LogIn, ChevronDown, ChevronRight, Settings2, Zap, Building2, MapPinned, Compass, Target } from "lucide-react";
+import { Plus, Clock, CheckCircle, XCircle, Loader2, LogIn, ChevronDown, ChevronRight, Settings2, Zap, Building2, MapPinned, Compass, Target, ArrowRight, Radio, ShieldCheck } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
 import ShareWinButton from "@/components/ShareWinButton";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
@@ -195,12 +195,37 @@ type DashboardQuickAction = {
   onSelect: () => void;
 };
 
+type DashboardCommandAction = DashboardQuickAction & {
+  eyebrow: string;
+  metric?: string;
+};
+
 const ACTION_ROLE_LABELS: Record<DashboardInboxItem['role'], string> = {
   creator: 'Creator side',
   funder: 'Funder side',
   ops: 'Ops',
   system: 'System',
 };
+
+function getDashboardToneClasses(tone: DashboardQuickAction['tone']): string {
+  if (tone === 'yellow') {
+    return 'border-yellow-300/18 bg-[linear-gradient(160deg,rgba(65,52,22,0.92)_0%,rgba(26,22,18,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-yellow-200/32';
+  }
+  if (tone === 'cyan') {
+    return 'border-cyan-300/16 bg-[linear-gradient(160deg,rgba(18,50,60,0.9)_0%,rgba(15,24,34,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-cyan-200/28';
+  }
+  if (tone === 'purple') {
+    return 'border-fuchsia-300/18 bg-[linear-gradient(160deg,rgba(45,27,70,0.94)_0%,rgba(25,18,39,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-fuchsia-200/28';
+  }
+  return 'border-white/10 bg-[linear-gradient(160deg,rgba(40,44,58,0.72)_0%,rgba(20,22,32,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-white/18';
+}
+
+function getDashboardIconClasses(tone: DashboardQuickAction['tone']): string {
+  if (tone === 'yellow') return 'text-yellow-200';
+  if (tone === 'cyan') return 'text-cyan-200';
+  if (tone === 'purple') return 'text-fuchsia-200';
+  return 'text-white/70';
+}
 
 const raisedPanelClass =
   "relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
@@ -1067,16 +1092,20 @@ export default function Dashboard() {
     dashboardQuickActions.push(action);
   };
 
+  const primaryInboxItem = visibleActionInbox[0] || null;
+  let primaryDashboardMove: DashboardCommandAction | null = null;
+
   if (!isConnected) {
-    pushQuickAction({
-      id: 'connect',
-      label: 'Connect wallet',
-      detail: 'Enter your command base.',
-      cta: isConnecting ? 'Connecting' : 'Connect',
+    primaryDashboardMove = {
+      id: 'connect-primary',
+      eyebrow: 'Start here',
+      label: 'Enter command base',
+      detail: 'Connect your wallet to see assigned proof work, venue signals, payouts, and saved actions in one place.',
+      cta: isConnecting ? 'Connecting' : 'Connect wallet',
       tone: 'yellow',
       icon: LogIn,
       onSelect: handleConnect,
-    });
+    };
     pushQuickAction({
       id: 'map',
       label: 'Open the map',
@@ -1094,6 +1123,120 @@ export default function Dashboard() {
       tone: 'purple',
       icon: Target,
       onSelect: () => router.push('/create'),
+    });
+  } else if (primaryActivation && primaryActivationState) {
+    const readyForProof = primaryActivationState.label === 'Ready for Proof';
+    const needsResponse = primaryActivationState.label === 'Respond Now';
+    primaryDashboardMove = {
+      id: `activation-primary-${primaryActivation.id}`,
+      eyebrow: readyForProof ? 'Proof ready' : needsResponse ? 'Response needed' : 'Live activation',
+      label: readyForProof ? 'Submit proof' : needsResponse ? 'Review the dare' : 'Open activation',
+      detail: readyForProof
+        ? `${primaryActivation.title} is waiting for your proof.`
+        : needsResponse
+          ? `${primaryActivation.title} needs an accept or decline before the route can move.`
+          : primaryActivationState.detail,
+      cta: readyForProof ? 'Submit proof' : needsResponse ? 'Review dare' : 'Open',
+      tone: readyForProof ? 'yellow' : needsResponse ? 'cyan' : 'purple',
+      icon: readyForProof ? ShieldCheck : Zap,
+      onSelect: () => jumpToActivation(primaryActivation.id),
+      metric: primaryActivation.bounty ? `${primaryActivation.bounty} USDC` : primaryActivationState.label,
+    };
+  } else if (primaryInboxItem) {
+    const shouldJumpToActivation =
+      Boolean(primaryInboxItem.dareId) &&
+      (primaryInboxItem.category === 'Ready for proof' || primaryInboxItem.category === 'Needs response');
+
+    primaryDashboardMove = {
+      id: `inbox-primary-${primaryInboxItem.id}`,
+      eyebrow: primaryInboxItem.category,
+      label: primaryInboxItem.cta,
+      detail: primaryInboxItem.detail || primaryInboxItem.title,
+      cta: primaryInboxItem.cta,
+      tone:
+        primaryInboxItem.category === 'Ready for proof'
+          ? 'yellow'
+          : primaryInboxItem.category === 'Needs response'
+            ? 'cyan'
+            : primaryInboxItem.category === 'Venue lead follow-up'
+              ? 'purple'
+              : 'neutral',
+      icon:
+        primaryInboxItem.category === 'Ready for proof'
+          ? ShieldCheck
+          : primaryInboxItem.category === 'Venue lead follow-up'
+            ? Building2
+            : Radio,
+      onSelect: () => {
+        if (shouldJumpToActivation) {
+          jumpToActivation(primaryInboxItem.dareId);
+          return;
+        }
+        router.push(primaryInboxItem.href);
+      },
+      metric: primaryInboxItem.bounty ? `${primaryInboxItem.bounty} USDC` : primaryInboxItem.statusLabel || undefined,
+    };
+  } else if (primaryVenueDashboardItem?.claimState === 'claimed') {
+    primaryDashboardMove = {
+      id: `venue-primary-${primaryVenueDashboardItem.id}`,
+      eyebrow: 'Venue operator',
+      label: 'Open venue console',
+      detail: `${primaryVenueDashboardItem.name} is ready for check-ins, proof routing, and the next repeatable receipt.`,
+      cta: 'Open console',
+      tone: 'cyan',
+      icon: Building2,
+      onSelect: () => router.push(`/venues/${primaryVenueDashboardItem.slug}/console`),
+      metric: `${primaryVenueDashboardItem.metrics.checkIns} check-ins`,
+    };
+  } else {
+    primaryDashboardMove = {
+      id: 'map-scout-primary',
+      eyebrow: 'Clear state',
+      label: 'Find paid missions',
+      detail: 'Nothing urgent is waiting. Open the map, scout live places, or create the next useful mission.',
+      cta: 'Open map',
+      tone: 'cyan',
+      icon: Compass,
+      onSelect: () => router.push('/map'),
+    };
+  }
+
+  if (isConnected) {
+    pushQuickAction({
+      id: 'map',
+      label: 'Explore map',
+      detail: 'Find venues, directions, and live proof work.',
+      cta: 'Map',
+      tone: 'cyan',
+      icon: Compass,
+      onSelect: () => router.push('/map'),
+    });
+    pushQuickAction({
+      id: 'action-center',
+      label: 'Action center',
+      detail: visibleActionInbox.length > 0 ? `${visibleActionInbox.length} open actions to review.` : 'Your detailed proof and payout queue.',
+      cta: 'Inbox',
+      tone: visibleActionInbox.length > 0 ? 'yellow' : 'neutral',
+      icon: Radio,
+      onSelect: () => router.push('/action-center'),
+    });
+    pushQuickAction({
+      id: 'create',
+      label: 'Create dare',
+      detail: 'Fund a useful mission for the grid.',
+      cta: 'Create',
+      tone: 'purple',
+      icon: Target,
+      onSelect: () => router.push('/create'),
+    });
+    pushQuickAction({
+      id: 'profile',
+      label: creatorProfileHref ? 'Edit profile' : 'Claim handle',
+      detail: creatorProfileHref ? 'Tune your public creator card.' : 'Secure your public BaseDare handle.',
+      cta: creatorProfileHref ? 'Edit' : 'Claim',
+      tone: 'neutral',
+      icon: Settings2,
+      onSelect: () => router.push(creatorProfileHref || claimTagHref),
     });
   }
 
@@ -1269,67 +1412,101 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {dashboardQuickActions.length > 0 ? (
-        <div className="order-2 mb-6">
-          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-base font-black uppercase tracking-[0.14em] text-white">Next move</h2>
-              <p className="mt-1 text-sm text-white/50">
-                Start with one clean action.
-              </p>
+        {primaryDashboardMove || dashboardQuickActions.length > 0 ? (
+          <div className="order-2 mb-6">
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-base font-black uppercase tracking-[0.14em] text-white">Command cockpit</h2>
+                <p className="mt-1 text-sm text-white/50">
+                  One highest-signal move first. Utility controls stay secondary.
+                </p>
+              </div>
+              {isConnected ? (
+                <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-400/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100">
+                  <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.65)]" />
+                  Wallet live
+                </span>
+              ) : null}
+            </div>
+
+            <div className="grid gap-3 xl:grid-cols-[1.1fr_0.9fr]">
+              {primaryDashboardMove ? (() => {
+                const Icon = primaryDashboardMove.icon;
+                return (
+                  <button
+                    type="button"
+                    onClick={primaryDashboardMove.onSelect}
+                    disabled={primaryDashboardMove.id === 'connect-primary' && isConnecting}
+                    className={`${raisedTileClass} ${getDashboardToneClasses(primaryDashboardMove.tone)} group min-h-[172px] p-5 text-left transition-[transform,border-color,background] duration-150 ease-out hover:-translate-y-[1px] active:translate-y-[1px] disabled:cursor-wait disabled:opacity-70 sm:p-6`}
+                  >
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_8%,rgba(250,204,21,0.14),transparent_28%),radial-gradient(circle_at_92%_72%,rgba(34,211,238,0.12),transparent_30%)] opacity-80" />
+                    <div className="relative flex h-full flex-col justify-between gap-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/52">
+                          <Icon className={`h-3.5 w-3.5 ${getDashboardIconClasses(primaryDashboardMove.tone)}`} />
+                          {primaryDashboardMove.eyebrow}
+                        </span>
+                        {primaryDashboardMove.metric ? (
+                          <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/62">
+                            {primaryDashboardMove.metric}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div>
+                        <p className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+                          {primaryDashboardMove.label}
+                        </p>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">
+                          {primaryDashboardMove.detail}
+                        </p>
+                      </div>
+                      <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/78 transition group-hover:border-white/18 group-hover:text-white">
+                        {primaryDashboardMove.cta}
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                    </div>
+                  </button>
+                );
+              })() : null}
+
+              {dashboardQuickActions.length > 0 ? (
+                <div className={`${softCardClass} p-4`}>
+                  <div className="relative flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/45">Secondary controls</p>
+                      <p className="mt-1 text-sm text-white/58">Map, profile, creation, and full inbox.</p>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">
+                      {dashboardQuickActions.length} tools
+                    </span>
+                  </div>
+
+                  <div className="relative mt-4 grid gap-2 sm:grid-cols-2">
+                    {dashboardQuickActions.map((action) => {
+                      const Icon = action.icon;
+
+                      return (
+                        <button
+                          key={action.id}
+                          type="button"
+                          onClick={action.onSelect}
+                          className={`${raisedTileClass} ${getDashboardToneClasses(action.tone)} group flex min-h-[84px] items-center gap-3 p-3 text-left transition-[transform,border-color,background] duration-150 ease-out hover:-translate-y-[1px] active:translate-y-[1px]`}
+                        >
+                          <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.045] ${getDashboardIconClasses(action.tone)}`}>
+                            <Icon className="h-[18px] w-[18px]" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-black text-white">{action.label}</span>
+                            <span className="mt-1 line-clamp-1 block text-xs leading-4 text-white/50">{action.detail}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
-
-          <div className="grid gap-2.5 md:grid-cols-2 md:gap-3 xl:grid-cols-4">
-            {dashboardQuickActions.map((action) => {
-              const Icon = action.icon;
-              const toneClass =
-                action.tone === 'yellow'
-                  ? 'border-yellow-300/18 bg-[linear-gradient(160deg,rgba(65,52,22,0.92)_0%,rgba(26,22,18,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-yellow-200/32'
-                  : action.tone === 'cyan'
-                    ? 'border-cyan-300/16 bg-[linear-gradient(160deg,rgba(18,50,60,0.9)_0%,rgba(15,24,34,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-cyan-200/28'
-                    : action.tone === 'purple'
-                      ? 'border-fuchsia-300/18 bg-[linear-gradient(160deg,rgba(45,27,70,0.94)_0%,rgba(25,18,39,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-fuchsia-200/28'
-                      : 'border-white/10 bg-[linear-gradient(160deg,rgba(40,44,58,0.72)_0%,rgba(20,22,32,0.98)_42%,rgba(10,10,18,1)_100%)] hover:border-white/18';
-              const iconClass =
-                action.tone === 'yellow'
-                  ? 'text-yellow-200'
-                  : action.tone === 'cyan'
-                    ? 'text-cyan-200'
-                    : action.tone === 'purple'
-                      ? 'text-fuchsia-200'
-                      : 'text-white/70';
-
-              return (
-                <button
-                  key={action.id}
-                  type="button"
-                  onClick={action.onSelect}
-                  disabled={action.id === 'connect' && isConnecting}
-                  className={`${raisedTileClass} ${toneClass} group flex min-h-[82px] items-center gap-3 p-3 text-left transition-[transform,border-color,background] duration-150 ease-out hover:-translate-y-[1px] active:translate-y-[1px] disabled:cursor-wait disabled:opacity-70 sm:min-h-[132px] sm:flex-col sm:items-stretch sm:justify-between sm:p-4 xl:min-h-[152px]`}
-                >
-                  <span className="flex shrink-0 items-center gap-3 sm:items-start sm:justify-between">
-                    <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] border border-white/10 bg-white/[0.045] sm:h-10 sm:w-10 sm:rounded-[14px] ${iconClass}`}>
-                      <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-                    </span>
-                    <span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/48 sm:inline-flex">
-                      {action.cta}
-                    </span>
-                  </span>
-                  <span className="block min-w-0 flex-1 sm:mt-5 sm:flex-none">
-                    <span className="block text-sm font-black text-white sm:text-base">{action.label}</span>
-                    <span className="mt-1 line-clamp-1 block text-xs leading-4 text-white/56 sm:mt-1.5 sm:line-clamp-2 sm:text-sm sm:leading-5">
-                      {action.detail}
-                    </span>
-                  </span>
-                  <span className="ml-auto inline-flex shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.15em] text-white/48 sm:hidden">
-                    {action.cta}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
         ) : null}
 
         {isConnected && primaryActivation && primaryActivationState ? (
@@ -1339,7 +1516,7 @@ export default function Dashboard() {
               <div className="min-w-0">
                 <div className="inline-flex items-center gap-2 rounded-full border border-yellow-300/20 bg-yellow-400/[0.08] px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100 shadow-[0_0_18px_rgba(250,204,21,0.12)]">
                   <Zap className="h-3.5 w-3.5 text-yellow-300" />
-                  New Dare Incoming
+                  Activation detail
                 </div>
                 <p className="mt-3 text-lg font-black text-white sm:text-xl">
                   {primaryActivation.title}
@@ -1551,9 +1728,9 @@ export default function Dashboard() {
         <div className={`${softCardClass} order-3 mb-8 p-4 sm:p-6`}>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Action inbox</h2>
+              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Detailed inbox</h2>
               <p className="mt-1 text-sm text-white/52">
-                What needs your action now.
+                Proof, response, payout, and venue follow-up after the main move.
               </p>
             </div>
             {isConnected ? (

@@ -2,22 +2,22 @@ import type { Metadata } from 'next';
 import CreatorsPage from '@/components/creators/PublicCreators';
 
 export const metadata: Metadata = {
-  title: 'BaseDare Creators — Get Paid for IRL and Online Dares',
+  title: 'BaseDare Creators — Paid Missions and Proof Records',
   description:
-    'Claim your tag, verify your identity, and earn from BaseDare completions across IRL missions and online dares.',
+    'Find live BaseDare missions, submit verified proof, and build a proof record that unlocks better work.',
   openGraph: {
-    title: 'BaseDare Creators — Get Paid for IRL and Online Dares',
+    title: 'BaseDare Creators — Paid Missions and Proof Records',
     description:
-      'Claim your tag, verify your identity, and earn from BaseDare completions across IRL missions and online dares.',
+      'Find live BaseDare missions, submit verified proof, and build a proof record that unlocks better work.',
     url: 'https://www.basedare.xyz/creators',
     siteName: 'BaseDare',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BaseDare Creators — Get Paid for IRL and Online Dares',
+    title: 'BaseDare Creators — Paid Missions and Proof Records',
     description:
-      'Claim your tag, verify your identity, and earn from BaseDare completions across IRL missions and online dares.',
+      'Find live BaseDare missions, submit verified proof, and build a proof record that unlocks better work.',
   },
   alternates: {
     canonical: '/creators',

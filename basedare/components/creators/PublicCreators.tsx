@@ -77,6 +77,38 @@ const launchCreatorMissionHref = buildCreatorMissionActivationHref({
   skills: ["Venue scouting", "Proof capture", "Local clips"],
 });
 
+const creatorLoopSteps: Array<{
+  label: string;
+  detail: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "cyan" | "purple" | "yellow" | "neutral";
+}> = [
+  {
+    label: "Find mission",
+    detail: "Pick paid work from the map.",
+    icon: Briefcase,
+    tone: "cyan",
+  },
+  {
+    label: "Show up",
+    detail: "Follow the place brief safely.",
+    icon: MapPin,
+    tone: "purple",
+  },
+  {
+    label: "Submit proof",
+    detail: "Photo, clip, receipt, or field note.",
+    icon: Shield,
+    tone: "yellow",
+  },
+  {
+    label: "Build record",
+    detail: "Your proof history compounds.",
+    icon: Trophy,
+    tone: "neutral",
+  },
+];
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -289,7 +321,7 @@ export default function CreatorsPage() {
               </h1>
 
               <p className="mt-4 text-gray-400 font-mono text-sm max-w-xl mx-auto mb-8">
-                Claim your tag, complete live dares, and build verified momentum on the grid.
+                Open the map, choose real missions, submit useful proof, and build a public proof record that unlocks better work.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-2xl mx-auto">
@@ -329,6 +361,34 @@ export default function CreatorsPage() {
                   Apply as a Local Partner
                 </Link>
               </p>
+              <div className="mx-auto mt-6 grid max-w-4xl gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {creatorLoopSteps.map((step) => {
+                  const StepIcon = step.icon;
+                  const toneClass =
+                    step.tone === "cyan"
+                      ? "border-cyan-300/16 bg-cyan-400/[0.055] text-cyan-100"
+                      : step.tone === "purple"
+                        ? "border-fuchsia-300/16 bg-fuchsia-400/[0.055] text-fuchsia-100"
+                        : step.tone === "yellow"
+                          ? "border-yellow-300/18 bg-yellow-400/[0.07] text-yellow-100"
+                          : "border-white/10 bg-white/[0.035] text-white/72";
+
+                  return (
+                    <div
+                      key={step.label}
+                      className={`rounded-[18px] border p-3 text-left shadow-[0_12px_20px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.06)] ${toneClass}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] border border-white/10 bg-black/24">
+                          <StepIcon className="h-4 w-4" />
+                        </span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.14em]">{step.label}</span>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-white/52">{step.detail}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </motion.div>
@@ -349,10 +409,10 @@ export default function CreatorsPage() {
                     Creator availability
                   </div>
                   <h2 className="mt-4 text-xl font-black tracking-tight text-white italic">
-                    Ready creators
+                    Route-ready creators
                   </h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-                    Invite by area, proof record, and skill. Exact location stays private.
+                    Pick contributors by area, proof record, and skill. Exact location stays private until a mission is accepted.
                   </p>
                 </div>
                 <Link
@@ -360,7 +420,7 @@ export default function CreatorsPage() {
                   className={`${goldButtonClass} min-h-[2.75rem] gap-2 px-4 text-[11px]`}
                 >
                   <Briefcase className="h-3.5 w-3.5" />
-                  Launch dare
+                  Route mission
                 </Link>
               </div>
 
