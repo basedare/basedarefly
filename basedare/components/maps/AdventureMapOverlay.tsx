@@ -173,6 +173,7 @@ export default function AdventureMapOverlay({
   const showPanel = enabled && panelOpen && !obscured;
   const showIntentCard = !obscured && !intent && guideOpen;
   const showRecommendationCard = !obscured && Boolean(intent) && guideOpen;
+  const showGuideDock = enabled && !obscured;
   const guideLines = useMemo(() => {
     const personalLine =
       intent === "meet"
@@ -593,9 +594,11 @@ export default function AdventureMapOverlay({
         ) : null}
       </div>
 
-      {!showIntentCard ? (
+      {showGuideDock ? (
         <div
-          className={`pointer-events-auto absolute right-4 z-[16] flex max-w-[min(20rem,calc(100%-2rem))] items-end gap-2 text-left transition-[bottom] duration-200 md:right-6 ${
+          className={`pointer-events-auto absolute right-4 z-[16] max-w-[min(20rem,calc(100%-2rem))] items-end gap-2 text-left transition-[bottom] duration-200 md:right-6 ${
+            showIntentCard ? "hidden md:flex" : "flex"
+          } ${
             obscured
               ? "bottom-28"
               : "bottom-[calc(6.5rem+env(safe-area-inset-bottom))] xl:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"
@@ -620,6 +623,11 @@ export default function AdventureMapOverlay({
           <button
             type="button"
             onClick={() => {
+              if (showIntentCard) {
+                onGuideOpenChange(false);
+                setGuideSpeechOpen(true);
+                return;
+              }
               setGuideSpeechOpen(true);
               if (guideSpeechOpen) {
                 setGuideLineIndex((current) => (current + 1) % guideLines.length);
@@ -628,7 +636,7 @@ export default function AdventureMapOverlay({
             aria-label="Ask PeeBear for another field hint"
             className="flex items-end gap-2 text-left"
           >
-            {guideSpeechOpen ? (
+            {guideSpeechOpen && !showIntentCard ? (
               <span className="mb-2 max-w-[12rem] rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.96),rgba(5,7,14,0.98))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/86 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl sm:max-w-[15rem]">
                 {guideLines[guideLineIndex % guideLines.length]}
               </span>
