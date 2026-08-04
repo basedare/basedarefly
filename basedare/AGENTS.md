@@ -16,6 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Sprint Launch Pack (2026-08-04)
+- Added the operator-only `/admin/sprint-launch` cockpit and linked it from Mission Control.
+- Locked the BaseDare headline to **“Turn real-world curiosity into playable proof.”** and centralized the four-packet sequence in `lib/sprint-launch-pack.ts`: Creator Starter Pack → Sprint Operator Checklist → Venue / Field Station Packet → Receipt Close.
+- Added focused copy/order coverage plus the matching Brain playbook at `brain-vault/05-playbooks/sprint-launch-pack.md`.
+- This slice is guidance only: no schema, payout, proof-state, map-renderer, or external-action changes.
+
 ### Codex earned venue access graph pilot (2026-07-14)
 - Brain canon now defines an earned access graph: useful verified contribution may unlock structured introduction/perk requests, never purchased reputation or entitlement to another person's attention. Mayor remains earned place reputation; Ambassador and Host require explicit, scoped, revocable venue authorization.
 - The first shipped primitive is official venue contact routing only: `VenueContactRoute`, `/api/venues/[slug]/contacts`, the venue-console editor, and a compact **Connect with venue** block on the public venue profile. Public reads fail closed to active, public, verified, confirmed routes; personal contacts require explicit consent.
