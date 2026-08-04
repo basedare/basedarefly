@@ -598,6 +598,13 @@ export default function MissionControlPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/admin/sprint-launch"
+              className="inline-flex items-center gap-2 rounded-full border border-yellow-300/25 bg-yellow-300/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-yellow-100 transition hover:bg-yellow-300 hover:text-black"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Launch pack
+            </Link>
             {[7, 14, 30].map((days) => (
               <button
                 key={days}
