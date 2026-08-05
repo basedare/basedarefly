@@ -135,6 +135,14 @@ Recurring content formats:
 - **Rumor or Real?** — turn one safe local question into a mission and honest outcome.
 - **Worth It Right Now?** — answer one current place question with a timestamped receipt.
 
+For surf, weather, traffic, or similar changing conditions, PeeBear must separate a
+model signal from an observed place report. The Siargao surf ping uses a cached
+Open-Meteo Marine offshore swell model and names its model time and attribution. It
+may say the model looks quiet, playful, or pumping, but it must also say that reef
+size, tide, wind, and currents can differ and route the visitor to current local
+guidance. A model response never becomes verified place memory on its own; a fresh
+Community Spark or paid proof is the durable observation.
+
 Use TikTok and Instagram as narrated entrances to a live, populated map state. The full
 format factory, episode anatomy, rights gate, and 30-day test live in
 `brain-vault/06-social/short-form-participation-loop.md`.

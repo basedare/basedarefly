@@ -16,6 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Siargao surf signal + Kanaway launch pin (2026-08-05)
+- Added `/api/surf-signal`, backed by a cached Open-Meteo Marine model point east of Siargao. `lib/siargao-surf-signal.ts` fails closed on invalid or stale data and separates quiet / playful / pumping model language from observed surf conditions.
+- PeeBear’s existing Adventure guide now leads with the live model signal when available, names Rock Island / Stimpy’s / Bumee / Tuason as local-guide checks, links the data attribution, and disappears cleanly when the provider is unavailable.
+- The existing `kanaway-surf-school` place record was enriched rather than duplicated: its pin now includes board access plus the adjacent public Catangnan beach launch context. Availability, boats, tide, conditions, and safe break choice must still be confirmed locally; this is not a venue partnership claim.
+- No MapLibre renderer, camera, marker, mission lifecycle, payout, schema, or migration behavior changed. The six Community Spark presets remain the existing action-sports registry.
+
 ### Codex Sprint Launch Pack (2026-08-04)
 - Added the operator-only `/admin/sprint-launch` cockpit and linked it from Mission Control.
 - Locked the BaseDare headline to **“Turn real-world curiosity into playable proof.”** and centralized the four-packet sequence in `lib/sprint-launch-pack.ts`: Creator Starter Pack → Sprint Operator Checklist → Venue / Field Station Packet → Receipt Close.

@@ -11,6 +11,7 @@ import {
   MoonStar,
   Sparkles,
   Users,
+  Waves,
   X,
 } from "lucide-react";
 import type {
@@ -19,6 +20,7 @@ import type {
 } from "@/components/maps/useTonightActivity";
 import type { AdventureSpriteKind } from "@/lib/map-adventure-policy";
 import { getSiargaoNightGuide } from "@/lib/siargao-nightlife";
+import { useSiargaoSurfSignal } from "@/components/maps/useSiargaoSurfSignal";
 
 type AdventureMapOverlayProps = {
   enabled: boolean;
@@ -86,6 +88,14 @@ const PEEBEAR_FIELD_LINES = [
   "Zoom closer and the hidden details come into focus.",
 ];
 
+function formatSurfModelTime(modelTime: string) {
+  return new Intl.DateTimeFormat("en", {
+    timeZone: "Asia/Manila",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(modelTime));
+}
+
 function formatActivityTiming(activity: TonightActivity) {
   if (!activity.startsAt) {
     if (!activity.endsAt) return "Open now";
@@ -138,6 +148,7 @@ export default function AdventureMapOverlay({
 }: AdventureMapOverlayProps) {
   const [guideLineIndex, setGuideLineIndex] = useState(0);
   const [guideSpeechOpen, setGuideSpeechOpen] = useState(false);
+  const surfSignal = useSiargaoSurfSignal(!obscured);
   const nightGuide = getSiargaoNightGuide();
   const confirmedTonightActivities = useMemo(
     () =>
@@ -193,6 +204,9 @@ export default function AdventureMapOverlay({
         : "Tell me what would make your next two hours better.";
 
     return [
+      ...(surfSignal
+        ? [`Surf ping: ${surfSignal.headline} ${surfSignal.guidance}`]
+        : []),
       personalLine,
       trailCount > 0
         ? `Your trail remembers ${trailCount} verified ${
@@ -207,6 +221,7 @@ export default function AdventureMapOverlay({
     intent,
     nightGuide.headline,
     nightGuide.weekday,
+    surfSignal,
     trailCount,
   ]);
 
@@ -327,6 +342,46 @@ export default function AdventureMapOverlay({
               <p className="mt-2 rounded-xl border border-cyan-200/12 bg-cyan-300/[0.05] px-3 py-2 text-[10px] leading-4 text-cyan-50/62">
                 That specific layer is quiet nearby right now, so I’m starting with useful choices instead.
               </p>
+            ) : null}
+            {surfSignal ? (
+              <div className="mt-3 block w-full rounded-[18px] border border-cyan-200/18 bg-[radial-gradient(circle_at_100%_0%,rgba(34,211,238,0.14),transparent_40%),rgba(34,211,238,0.055)] px-3 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+                <span className="flex items-start gap-2.5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cyan-100/16 bg-black/25">
+                    <Waves className="h-4 w-4 text-cyan-100" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-cyan-100/58">
+                      Live surf signal · {formatSurfModelTime(surfSignal.modelTime)}
+                    </span>
+                    <span className="mt-1 block text-xs font-black leading-4 text-white">
+                      {surfSignal.headline}
+                    </span>
+                    <span className="mt-1.5 block text-[10px] font-semibold leading-4 text-white/52">
+                      {surfSignal.guidance}
+                    </span>
+                    <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <button
+                        type="button"
+                        onClick={() => onSelectPlace(surfSignal.launchPlace.slug)}
+                        className="text-[9px] font-bold text-[#f8dd72]/72 transition hover:text-[#fff0a8]"
+                      >
+                        Open Kanaway launch pin →
+                      </button>
+                      <a
+                        href={surfSignal.source.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[8px] font-semibold text-cyan-100/48 underline decoration-cyan-100/18 underline-offset-2 transition hover:text-cyan-100/72"
+                      >
+                        {surfSignal.source.attribution}
+                      </a>
+                    </span>
+                    <span className="mt-1.5 block border-t border-white/8 pt-1.5 text-[8px] font-medium leading-3 text-white/34">
+                      {surfSignal.caveat}
+                    </span>
+                  </span>
+                </span>
+              </div>
             ) : null}
             <div className="mt-3 grid gap-2">
               {INTENT_OPTIONS.map((option) => (
