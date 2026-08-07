@@ -1,4 +1,7 @@
-import { DARE_STATUS_DECLINED, DARE_STATUS_PENDING_ACCEPTANCE } from '@/lib/dare-status';
+// Keep this view-model dependency-free so the lifecycle policy can run in the
+// native Node test harness. These values mirror lib/dare-status.ts.
+const DARE_STATUS_DECLINED = 'DECLINED';
+const DARE_STATUS_PENDING_ACCEPTANCE = 'PENDING_ACCEPTANCE';
 
 const OPEN_STREAMER_HANDLES = new Set(['@open', 'open', '@everyone', 'everyone']);
 
@@ -11,7 +14,10 @@ export type DareTimelineStepKey =
   | 'claimed'
   | 'proofSubmitted'
   | 'payoutQueued'
-  | 'completed';
+  | 'completed'
+  | 'sparkOpen'
+  | 'sparkPlaying'
+  | 'sparkReceipt';
 
 export type DareLifecycleInput = {
   status?: string | null;
@@ -29,6 +35,7 @@ export type DareLifecycleInput = {
   moderatedAt?: string | null;
   expiresAt?: string | null;
   videoUrl?: string | null;
+  isCommunitySpark?: boolean | null;
 };
 
 export const DARE_STATUS_MAP = {
@@ -88,6 +95,18 @@ const STEP_META: Record<
     label: 'Completed',
     description: 'Approved and settled from escrow.',
   },
+  sparkOpen: {
+    label: 'Open',
+    description: 'Pick up this free activity and make it your own.',
+  },
+  sparkPlaying: {
+    label: 'Play',
+    description: 'Do the activity safely and capture the moment worth sharing.',
+  },
+  sparkReceipt: {
+    label: 'Receipt',
+    description: 'Close the loop with the clip and leave a little place memory behind.',
+  },
 };
 
 type DareLifecycleStep = {
@@ -124,6 +143,23 @@ function getCurrentStepKey(input: DareLifecycleInput): DareTimelineStepKey {
   const status = normalizeStatus(input.status);
   const dareType = getDareLifecycleType(input);
 
+  if (input.isCommunitySpark) {
+    if (
+      input.videoUrl ||
+      ['PENDING_REVIEW', 'PENDING_PAYOUT', 'VERIFIED', 'PAID', 'COMPLETED'].includes(status)
+    ) {
+      return 'sparkReceipt';
+    }
+    if (
+      input.claimedBy ||
+      input.claimRequestStatus === 'PENDING' ||
+      input.claimRequestStatus === 'APPROVED'
+    ) {
+      return 'sparkPlaying';
+    }
+    return 'sparkOpen';
+  }
+
   if (status === 'FUNDING') return 'funding';
   if (status === 'PENDING_REVIEW') return 'proofSubmitted';
   if (status === 'PENDING_PAYOUT') return 'payoutQueued';
@@ -152,7 +188,8 @@ function getCurrentStepKey(input: DareLifecycleInput): DareTimelineStepKey {
   return dareType === 'open' ? 'liveOpen' : 'claimed';
 }
 
-function getStepSequence(dareType: DareLifecycleType): DareTimelineStepKey[] {
+function getStepSequence(input: DareLifecycleInput, dareType: DareLifecycleType): DareTimelineStepKey[] {
+  if (input.isCommunitySpark) return ['sparkOpen', 'sparkPlaying', 'sparkReceipt'];
   return dareType === 'open'
     ? ['funding', 'liveOpen', 'claimed', 'proofSubmitted', 'payoutQueued', 'completed']
     : ['funding', 'waitingCreator', 'claimed', 'proofSubmitted', 'payoutQueued', 'completed'];
@@ -161,6 +198,33 @@ function getStepSequence(dareType: DareLifecycleType): DareTimelineStepKey[] {
 function getNextActionCopy(input: DareLifecycleInput, currentStep: DareTimelineStepKey) {
   const status = normalizeStatus(input.status);
   const dareType = getDareLifecycleType(input);
+
+  if (input.isCommunitySpark) {
+    if (status === 'PENDING_REVIEW') {
+      return 'Your moment is in. BaseDare is checking the receipt; there is nothing else to do right now.';
+    }
+    if (status === 'PENDING_PAYOUT') {
+      return 'The moment was accepted and its receipt is closing. This Spark has no cash reward.';
+    }
+    if (['VERIFIED', 'PAID', 'COMPLETED'].includes(status)) {
+      return 'Spark played. Watch the moment, cheer it on, or share it with the next person.';
+    }
+    if (status === 'FAILED') {
+      return input.videoUrl
+        ? 'That clip did not close the Spark. Check the feedback before trying a genuinely new moment.'
+        : 'This Spark closed without a completed moment.';
+    }
+    if (status === 'EXPIRED' || status === 'REFUNDED') {
+      return 'This Spark has closed. Find another free activity on the map.';
+    }
+    if (input.claimRequestStatus === 'PENDING') {
+      return 'A join request is in. Once it is accepted, the player can capture the moment.';
+    }
+    if (currentStep === 'sparkPlaying') {
+      return 'Play it your way within the brief, capture the fun part, then close with a receipt.';
+    }
+    return 'This Spark is open. Join it, make the moment yours, and invite someone else into the play.';
+  }
 
   if (status === 'FUNDING') {
     return 'Escrow is being initialized on Base. Once confirmed, this dare goes live.';
@@ -236,6 +300,24 @@ function getNextActionCopy(input: DareLifecycleInput, currentStep: DareTimelineS
 }
 
 function getStatusTone(status: string, input: DareLifecycleInput) {
+  if (input.isCommunitySpark) {
+    if (status === 'VERIFIED' || status === 'PAID' || status === 'COMPLETED') {
+      return 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300';
+    }
+    if (status === 'PENDING_REVIEW' || status === 'PENDING_PAYOUT' || input.videoUrl) {
+      return 'bg-yellow-500/15 border-yellow-500/30 text-yellow-300';
+    }
+    if (status === DARE_STATUS_DECLINED || status === 'FAILED') {
+      return 'bg-red-500/15 border-red-500/30 text-red-200';
+    }
+    if (status === 'REFUNDED' || status === 'EXPIRED') {
+      return 'bg-white/[0.08] border-white/[0.12] text-white/60';
+    }
+    if (input.claimedBy || input.claimRequestStatus === 'PENDING' || input.claimRequestStatus === 'APPROVED') {
+      return 'bg-fuchsia-500/15 border-fuchsia-500/30 text-fuchsia-200';
+    }
+    return 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200';
+  }
   if (status === 'PENDING' && input.videoUrl) {
     return 'bg-yellow-500/15 border-yellow-500/30 text-yellow-300';
   }
@@ -267,7 +349,7 @@ export function getDareLifecycleModel(input: DareLifecycleInput) {
   const status = normalizeStatus(input.status);
   const dareType = getDareLifecycleType(input);
   const currentStep = getCurrentStepKey(input);
-  const sequence = getStepSequence(dareType);
+  const sequence = getStepSequence(input, dareType);
   const currentIndex = sequence.indexOf(currentStep);
   const terminal = [DARE_STATUS_DECLINED, 'FAILED', 'REFUNDED', 'EXPIRED'].includes(status);
 
@@ -292,8 +374,21 @@ export function getDareLifecycleModel(input: DareLifecycleInput) {
     dareType,
     status,
     currentStep,
-    currentStatusLabel:
-      status === 'PENDING' && input.videoUrl
+    currentStatusLabel: input.isCommunitySpark
+      ? status === 'PENDING_REVIEW'
+        ? 'Moment sent'
+        : status === 'PENDING_PAYOUT'
+          ? 'Receipt closing'
+          : ['VERIFIED', 'PAID', 'COMPLETED'].includes(status)
+            ? 'Played'
+            : input.claimRequestStatus === 'PENDING'
+              ? 'Join requested'
+              : currentStep === 'sparkPlaying'
+                ? 'Playing'
+                : [DARE_STATUS_DECLINED, 'FAILED', 'REFUNDED', 'EXPIRED'].includes(status)
+                  ? getTerminalLabel(status)
+                  : 'Open to play'
+      : status === 'PENDING' && input.videoUrl
         ? DARE_STATUS_MAP.PROOF_UPLOADED.label
         : status === 'PENDING' && dareType === 'open' && !input.claimedBy && input.claimRequestStatus !== 'APPROVED'
         ? STEP_META.liveOpen.label

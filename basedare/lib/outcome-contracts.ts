@@ -330,7 +330,9 @@ export function buildOutcomeContractSnapshot(input: BuildOutcomeContractInput): 
       requestedFamily === 'FIELD_TRUTH'
         ? 'A supported YES, NO, partial, or inconclusive observation counts. Good news is not required.'
         : policy.payableOutcomes[0],
-    earn: `${completerPayout.toFixed(2)} USDC after ${reviewExpectation} (${grossReward.toFixed(2)} USDC gross reward less the ${OUTCOME_CONTRACT_SETTLEMENT_FEE_PERCENT}% settlement fee).`,
+    earn: grossReward <= 0
+      ? 'No cash reward. An accepted completion closes with a BaseDare receipt and community reputation.'
+      : `${completerPayout.toFixed(2)} USDC after ${reviewExpectation} (${grossReward.toFixed(2)} USDC gross reward less the ${OUTCOME_CONTRACT_SETTLEMENT_FEE_PERCENT}% settlement fee).`,
   };
 
   return {

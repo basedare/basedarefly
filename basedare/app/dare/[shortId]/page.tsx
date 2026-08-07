@@ -8,7 +8,8 @@ import Link from 'next/link';
 import {
   ArrowLeft, Share2, Clock, Heart, MessageCircle,
   ExternalLink, AlertCircle, Loader2, CheckCircle,
-  ChevronDown, Send, Shield, Zap, LayoutDashboard, Star,
+  ChevronDown, Send, Zap, LayoutDashboard, Star,
+  Play, Camera, Users, Sparkles,
 } from 'lucide-react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSignMessage } from 'wagmi';
 import { parseUnits } from 'viem';
@@ -62,6 +63,17 @@ interface DareDetail {
   outcomeContractSnapshot?: unknown;
   reportedOutcome?: unknown;
   evidenceDecision?: string | null;
+  communitySparkPlay?: {
+    hook: string;
+    instructions: string;
+    capturePrompt: string;
+    socialPrompt: string;
+    safety: string;
+    estimatedMinutes: number;
+    crew: string;
+    version: number;
+    isCurrentVersion: boolean;
+  } | null;
 }
 
 interface Comment {
@@ -152,34 +164,6 @@ function CommentItem({ comment }: { comment: Comment }) {
   );
 }
 
-// ── Steal modal ────────────────────────────────────────────────────────────
-function StealModal({ onClose }: { onClose: () => void }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
-        onClick={e => e.stopPropagation()}
-        className="bg-[#0d0d14] border border-yellow-500/30 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl"
-      >
-        <div className="text-4xl mb-3">🔒</div>
-        <h3 className="text-lg font-black text-white mb-2">Coming Soon</h3>
-        <p className="text-sm text-gray-400 mb-4">
-          The <span className="text-yellow-400 font-bold">Steal</span> mechanism is exclusive to{' '}
-          <span className="text-yellow-400 font-bold">Genesis Pass</span> holders.<br />
-          Claim a bounty before time runs out and pocket the pot.
-        </p>
-        <button onClick={onClose} className="w-full py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-bold text-sm hover:bg-yellow-500/20 transition-colors">
-          Got it
-        </button>
-      </motion.div>
-    </motion.div>
-  );
-}
-
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function DareDetailPage() {
   const params = useParams();
@@ -206,7 +190,6 @@ export default function DareDetailPage() {
   const [addAmount, setAddAmount] = useState('5');
   const [showAddInput, setShowAddInput] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
-  const [showStealModal, setShowStealModal] = useState(false);
 
   // Comments state
   const [comments, setComments] = useState<Comment[]>([]);
@@ -217,6 +200,8 @@ export default function DareDetailPage() {
   const [commentError, setCommentError] = useState<string | null>(null);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
+  const communityJoinRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLDivElement>(null);
   const [creatorReview, setCreatorReview] = useState<CreatorReview | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewBody, setReviewBody] = useState('');
@@ -579,7 +564,9 @@ export default function DareDetailPage() {
     !creatorReview
   );
 
-  const lifecycle = dare ? getDareLifecycleModel(dare) : null;
+  const safeBountyAmount = Number.isFinite(dare?.bounty) ? (dare?.bounty ?? 0) : 0;
+  const isCommunitySpark = Boolean(dare?.isCommunitySpark || (safeBountyAmount <= 0 && dare?.missionTag === 'community'));
+  const lifecycle = dare ? getDareLifecycleModel({ ...dare, isCommunitySpark }) : null;
   const sc = lifecycle
     ? {
         label: lifecycle.currentStatusLabel.toUpperCase(),
@@ -588,8 +575,6 @@ export default function DareDetailPage() {
     : null;
   const isExpired = dare?.status?.toUpperCase() === 'EXPIRED' || dare?.status?.toUpperCase() === 'FAILED';
   const timerColor = getTimerColor(dare?.expiresAt ?? null);
-  const safeBountyAmount = Number.isFinite(dare?.bounty) ? (dare?.bounty ?? 0) : 0;
-  const isCommunitySpark = Boolean(dare?.isCommunitySpark || (safeBountyAmount <= 0 && dare?.missionTag === 'community'));
   const safeUpvoteCount = Number.isFinite(dare?.upvoteCount) ? (dare?.upvoteCount ?? 0) : 0;
   const lifecycleMoments = dare
     ? [
@@ -600,7 +585,7 @@ export default function DareDetailPage() {
         {
           label:
             dare.status?.toUpperCase() === 'VERIFIED' || dare.status?.toUpperCase() === 'PAID'
-              ? 'Paid'
+              ? isCommunitySpark ? 'Completed' : 'Paid'
               : dare.status?.toUpperCase() === 'PENDING_PAYOUT'
                 ? 'Approved'
                 : 'Updated',
@@ -617,6 +602,19 @@ export default function DareDetailPage() {
     const status = dare.status?.toUpperCase();
 
     if (status === 'PENDING_REVIEW') {
+      if (isCommunitySpark) {
+        return {
+          title: 'Moment in review',
+          tone: 'border-yellow-500/20 bg-yellow-500/[0.08] text-yellow-100',
+          bullets: [
+            dare.updatedAt
+              ? `Moment received ${formatDistanceToNow(new Date(dare.updatedAt), { addSuffix: true })}.`
+              : 'Your moment has been received.',
+            'BaseDare is checking that the Spark stayed safe and matched the activity.',
+            'There is nothing else to do right now.',
+          ],
+        };
+      }
       return {
         title: 'Review in progress',
         tone: 'border-yellow-500/20 bg-yellow-500/[0.08] text-yellow-100',
@@ -633,6 +631,17 @@ export default function DareDetailPage() {
     }
 
     if (status === 'PENDING_PAYOUT') {
+      if (isCommunitySpark) {
+        return {
+          title: 'Receipt closing',
+          tone: 'border-amber-500/20 bg-amber-500/[0.08] text-amber-100',
+          bullets: [
+            'The moment was accepted.',
+            'BaseDare is closing the Spark receipt and adding the completion to community memory.',
+            'This free Spark has no cash reward or payout step.',
+          ],
+        };
+      }
       return {
         title: 'Approved, payout queued',
         tone: 'border-amber-500/20 bg-amber-500/[0.08] text-amber-100',
@@ -647,6 +656,19 @@ export default function DareDetailPage() {
     }
 
     if (['VERIFIED', 'PAID', 'COMPLETED'].includes(status)) {
+      if (isCommunitySpark) {
+        return {
+          title: 'Spark played',
+          tone: 'border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-100',
+          bullets: [
+            dare.verifiedAt
+              ? `Moment accepted ${formatDistanceToNow(new Date(dare.verifiedAt), { addSuffix: true })}.`
+              : 'This Spark has a completed moment.',
+            'The receipt now adds a small piece of memory to this place.',
+            'Cheer it on or share the Spark with the next person.',
+          ],
+        };
+      }
       return {
         title: 'Completed and settled',
         tone: 'border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-100',
@@ -661,6 +683,17 @@ export default function DareDetailPage() {
     }
 
     if (status === 'PENDING_ACCEPTANCE' || status === 'AWAITING_CLAIM') {
+      if (isCommunitySpark) {
+        return {
+          title: 'Getting a player ready',
+          tone: 'border-fuchsia-500/20 bg-fuchsia-500/[0.08] text-fuchsia-100',
+          bullets: [
+            'This Spark is waiting for someone to join it.',
+            'Once joined, the player can do the activity and capture the fun part.',
+            'The close is a community receipt, not a cash payout.',
+          ],
+        };
+      }
       return {
         title: 'Waiting on the creator side',
         tone: 'border-fuchsia-500/20 bg-fuchsia-500/[0.08] text-fuchsia-100',
@@ -682,6 +715,36 @@ export default function DareDetailPage() {
   const reportedOutcome = dare?.reportedOutcome && typeof dare.reportedOutcome === 'object'
     ? (dare.reportedOutcome as Partial<ReportedOutcome>)
     : null;
+  const communitySparkBrief = dare && isCommunitySpark
+    ? dare.communitySparkPlay ?? {
+        hook: 'Turn a small real-world activity into a moment worth sharing.',
+        instructions: outcomeContract?.buyerQuestion ?? dare.title,
+        capturePrompt: 'Capture the most alive 5–15 seconds without blocking the activity or filming people without consent.',
+        socialPrompt: 'Invite a friend to try their own version or pass the Spark on.',
+        safety: 'Stay within your ability, follow venue rules, and stop if the situation feels unsafe.',
+        estimatedMinutes: 15,
+        crew: 'Solo or with friends',
+        version: 1,
+        isCurrentVersion: false,
+      }
+    : null;
+  const communityActionLabel = dare?.videoUrl
+    ? 'Watch the moment'
+    : dare?.awaitingClaim && !dare.targetWalletAddress && !dare.claimRequestWallet
+      ? 'Play this Spark'
+      : 'Share this Spark';
+  const handleCommunitySparkAction = () => {
+    if (!dare) return;
+    if (dare.videoUrl) {
+      videoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (dare.awaitingClaim && !dare.targetWalletAddress && !dare.claimRequestWallet) {
+      communityJoinRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    void handleShare();
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────
   if (loading) return (
@@ -749,7 +812,7 @@ export default function DareDetailPage() {
             <DareVisual
               imageUrl={dare.imageUrl}
               streamerName={dare.streamerHandle || ''}
-              type={dare.streamerHandle ? 'streamer' : 'open'}
+              type={isCommunitySpark ? 'community' : dare.streamerHandle ? 'streamer' : 'open'}
             />
             <div className="absolute inset-0 bg-gradient-to-b from-[rgba(10,12,26,0.14)] via-[rgba(10,12,26,0.09)] to-[rgba(10,12,26,0.06)]" />
           </div>
@@ -840,9 +903,76 @@ export default function DareDetailPage() {
           </button>
         </div>
 
-        <DareStatusTimeline dare={dare} size="full" />
+        {communitySparkBrief ? (
+          <section className="overflow-hidden rounded-[26px] border border-fuchsia-300/18 bg-[linear-gradient(145deg,rgba(98,35,135,.18),rgba(8,199,157,.08))] p-5 shadow-[0_18px_54px_rgba(48,16,70,.2)] backdrop-blur-xl md:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-xl">
+                <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-200">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Free to play
+                </p>
+                <h2 className="mt-3 text-xl font-black leading-tight text-white md:text-2xl">
+                  {communitySparkBrief.hook}
+                </h2>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/65">
+                  ~{communitySparkBrief.estimatedMinutes} min
+                </span>
+                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/65">
+                  {communitySparkBrief.crew}
+                </span>
+              </div>
+            </div>
 
-        {outcomeContract ? (
+            {!isExpired ? (
+              <div className="mt-5 grid grid-cols-[minmax(0,1fr)_76px] gap-2">
+                <button
+                  type="button"
+                  onClick={handleCommunitySparkAction}
+                  className="flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#f5c518]/35 bg-[linear-gradient(135deg,#f4d44d,#b87c0b)] px-4 text-sm font-black uppercase tracking-[0.16em] text-[#171108] shadow-[0_8px_26px_rgba(245,197,24,.18)] transition hover:brightness-110"
+                >
+                  <Play className="h-5 w-5 fill-current" />
+                  {communityActionLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUpvote}
+                  disabled={upvoteLoading}
+                  aria-label="Cheer this Spark"
+                  className="flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-xl border border-fuchsia-400/18 bg-fuchsia-500/10 text-fuchsia-100 transition hover:bg-fuchsia-500/18 disabled:opacity-60"
+                >
+                  {upvoteLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Heart className="h-5 w-5" />}
+                  <span className="text-[9px] font-black uppercase tracking-wider">Cheer</span>
+                </button>
+              </div>
+            ) : null}
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              {[
+                { icon: Play, label: 'Play', copy: communitySparkBrief.instructions },
+                { icon: Camera, label: 'Capture', copy: communitySparkBrief.capturePrompt },
+                { icon: Users, label: 'Pass it on', copy: communitySparkBrief.socialPrompt },
+              ].map(({ icon: Icon, label, copy }) => (
+                <div key={label} className="rounded-2xl border border-white/[0.08] bg-black/20 p-4">
+                  <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-fuchsia-200">
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-white/70">{copy}</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-4 text-xs leading-5 text-white/48">
+              <span className="font-bold text-white/65">Keep it fun:</span> {communitySparkBrief.safety}
+            </p>
+          </section>
+        ) : null}
+
+        <DareStatusTimeline dare={{ ...dare, isCommunitySpark }} size="full" />
+
+        {outcomeContract && !isCommunitySpark ? (
           <section className="rounded-2xl border border-cyan-300/16 bg-cyan-400/[0.055] p-4 backdrop-blur-md md:p-5">
             <p className="text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-cyan-100">Outcome contract · {outcomeContract.family.replaceAll('_', ' ')}</p>
             <h2 className="mt-2 text-lg font-black text-white">What counts was locked before funding</h2>
@@ -865,7 +995,7 @@ export default function DareDetailPage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/45">
-                  Review & settlement
+                  {isCommunitySpark ? 'Spark receipt' : 'Review & settlement'}
                 </p>
                 <h2 className="mt-2 text-lg font-black text-white">{trustPanel.title}</h2>
               </div>
@@ -894,10 +1024,10 @@ export default function DareDetailPage() {
               ))}
             </ul>
             <Link
-              href="/trust"
+              href={isCommunitySpark ? '/how-it-works' : '/trust'}
               className="mt-4 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/70 transition hover:text-white"
             >
-              See how review and payout work
+              {isCommunitySpark ? 'How Spark receipts work' : 'See how review and payout work'}
               <ExternalLink className="h-3.5 w-3.5" />
             </Link>
           </section>
@@ -922,7 +1052,7 @@ export default function DareDetailPage() {
             {txError}
           </div>
         )}
-        {!isOnchainContractsReady && (
+        {!isCommunitySpark && !isOnchainContractsReady && (
           <div className="flex items-center gap-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-yellow-300 text-sm">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {onchainConfigError || 'Contract configuration missing. Pool funding is temporarily unavailable.'}
@@ -936,7 +1066,7 @@ export default function DareDetailPage() {
         )}
 
         {/* Action bar (inline, transparent — no fixed black footer overlay) */}
-        {!isExpired && (
+        {!isExpired && !isCommunitySpark && (
           <div className="sticky bottom-[calc(0.85rem+env(safe-area-inset-bottom))] z-30 -mx-1 rounded-[24px] border border-white/[0.12] bg-[rgba(7,8,18,0.9)] p-2 shadow-[0_18px_42px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md md:static md:mx-0 md:rounded-2xl md:bg-[rgba(15,18,38,0.18)] md:p-4 md:shadow-[0_10px_40px_rgba(8,10,24,0.35)] md:backdrop-blur-2xl">
             {/* Add-to-pool amount input (expandable) */}
             <AnimatePresence>
@@ -966,18 +1096,16 @@ export default function DareDetailPage() {
             </AnimatePresence>
 
             {/* CTA buttons */}
-            <div className={`grid gap-2 ${isCommunitySpark ? 'grid-cols-2' : 'grid-cols-3'}`}>
-              {/* Upvote */}
-              <button
-                onClick={handleUpvote}
-                disabled={upvoteLoading}
-                className="flex min-h-[48px] flex-col items-center gap-1 rounded-xl border border-white/[0.08] bg-white/[0.04] py-2 text-white/60 transition-all hover:text-white disabled:opacity-60 md:py-3"
-              >
-                {upvoteLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Heart className="w-5 h-5" />}
-                <span className="text-[10px] font-black uppercase tracking-wider">Upvote</span>
-              </button>
+            <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleUpvote}
+                  disabled={upvoteLoading}
+                  className="flex min-h-[48px] flex-col items-center gap-1 rounded-xl border border-white/[0.08] bg-white/[0.04] py-2 text-white/60 transition-all hover:text-white disabled:opacity-60 md:py-3"
+                >
+                  {upvoteLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Heart className="w-5 h-5" />}
+                  <span className="text-[10px] font-black uppercase tracking-wider">Upvote</span>
+                </button>
 
-              {!isCommunitySpark && (
                 <button
                   onClick={() => {
                     if (!isOnchainContractsReady) { setTxError(onchainConfigError || 'Contract configuration missing'); return; }
@@ -993,34 +1121,24 @@ export default function DareDetailPage() {
                   }
                   <span className="text-[10px] font-black uppercase tracking-wider">Add Pool</span>
                 </button>
-              )}
-
-              {/* Steal */}
-              <button
-                onClick={() => setShowStealModal(true)}
-                className="flex min-h-[48px] flex-col items-center gap-1 rounded-xl border border-yellow-500/20 bg-yellow-500/10 py-2 text-yellow-400 transition-all hover:bg-yellow-500/20 md:py-3"
-              >
-                <Shield className="w-5 h-5" />
-                <span className="text-[10px] font-black uppercase tracking-wider">Steal?</span>
-              </button>
             </div>
           </div>
         )}
 
         {/* Claim section (preserved for open/target dares) */}
         {dare.awaitingClaim && !dare.targetWalletAddress && isConnected && !dare.claimRequestWallet && (
-          <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl">
+          <div ref={communityJoinRef} className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl scroll-mt-28">
             <h3 className="text-sm font-black text-purple-300 mb-2">
-              {isCommunitySpark ? 'Community Spark — Join It' : 'Open Bounty — Claim It'}
+              {isCommunitySpark ? 'Ready to play?' : 'Open Bounty — Claim It'}
             </h3>
             <p className="text-xs text-white/50 mb-3">
               {isCommunitySpark
-                ? 'Request this spark to coordinate proof and build community reputation.'
+                ? 'Join this Spark, capture the fun part when it happens, and close with a community receipt. Free to play · no cash reward.'
                 : 'You can request to accept this dare and earn the full bounty.'}
             </p>
             {claimError && <p className="text-xs text-red-400 mb-2">{claimError}</p>}
             <div className="mb-3">
-              <SafetyWaiver checked={claimWaiverAccepted} onChange={setClaimWaiverAccepted} context="claim" />
+              <SafetyWaiver checked={claimWaiverAccepted} onChange={setClaimWaiverAccepted} context={isCommunitySpark ? 'spark' : 'claim'} />
             </div>
             <CosmicButton
               onClick={handleClaimRequest}
@@ -1030,21 +1148,27 @@ export default function DareDetailPage() {
               fullWidth
             >
               {claimLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {claimSuccess ? '✓ Request Sent' : 'Request to Claim'}
+              {claimSuccess
+                ? isCommunitySpark ? '✓ Join request sent' : '✓ Request sent'
+                : isCommunitySpark ? 'Join this Spark' : 'Request to Claim'}
             </CosmicButton>
           </div>
         )}
 
         {dare.awaitingClaim && !dare.targetWalletAddress && !isConnected && !dare.claimRequestWallet && (
-          <div className="rounded-2xl border border-[#f5c518]/20 bg-[linear-gradient(145deg,rgba(245,197,24,.1),rgba(79,45,120,.08))] p-4">
+          <div ref={communityJoinRef} className="rounded-2xl border border-[#f5c518]/20 bg-[linear-gradient(145deg,rgba(245,197,24,.1),rgba(79,45,120,.08))] p-4 scroll-mt-28">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#ffe36a]">
-              {isSocialWebview ? `Opened inside ${socialWebviewLabel}` : 'Not ready to claim yet?'}
+              {isSocialWebview ? `Opened inside ${socialWebviewLabel}` : isCommunitySpark ? 'Want to play later?' : 'Not ready to claim yet?'}
             </p>
-            <h3 className="mt-2 text-base font-black text-white">Take this mission with you</h3>
+            <h3 className="mt-2 text-base font-black text-white">
+              {isCommunitySpark ? 'Save this Spark' : 'Take this mission with you'}
+            </h3>
             <p className="mt-1 text-xs leading-5 text-white/50">
               {isSocialWebview
                 ? 'Save a private Mission Pass, then open it in Safari or Chrome before you connect a wallet.'
-                : 'Save it without an account, or use Sign in above when you are ready to request the mission.'}
+                : isCommunitySpark
+                  ? 'Keep it on this device, then come back when you are near the place and ready to play.'
+                  : 'Save it without an account, or use Sign in above when you are ready to request the mission.'}
             </p>
             <CosmicButton
               onClick={() => setShowMissionPass(true)}
@@ -1053,25 +1177,31 @@ export default function DareDetailPage() {
               fullWidth
               className="mt-4"
             >
-              Save Mission Pass
+              {isCommunitySpark ? 'Save Spark Pass' : 'Save Mission Pass'}
             </CosmicButton>
           </div>
         )}
 
         {dare.awaitingClaim && dare.claimRequestStatus === 'PENDING' && dare.claimRequestWallet && (
           <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl">
-            <h3 className="text-sm font-black text-cyan-300 mb-2">Activation claim pending</h3>
+            <h3 className="text-sm font-black text-cyan-300 mb-2">
+              {isCommunitySpark ? 'Join request sent' : 'Activation claim pending'}
+            </h3>
             <p className="text-xs text-white/55">
               {dare.claimRequestWallet?.toLowerCase() === address?.toLowerCase()
-                ? 'Your claim request is in. A moderator will review it before this activation is assigned.'
-                : `${dare.claimRequestTag ?? 'Someone'} has already requested this activation. Check back soon or browse another live brief.`}
+                ? isCommunitySpark
+                  ? 'You are in the queue for this Spark. Once accepted, go make the moment yours.'
+                  : 'Your claim request is in. A moderator will review it before this activation is assigned.'
+                : isCommunitySpark
+                  ? `${dare.claimRequestTag ?? 'Someone'} is getting ready to play this Spark. Cheer them on or find another one nearby.`
+                  : `${dare.claimRequestTag ?? 'Someone'} has already requested this activation. Check back soon or browse another live brief.`}
             </p>
           </div>
         )}
 
         {/* Video proof */}
         {dare.videoUrl && (
-          <div className="rounded-2xl overflow-hidden border border-white/[0.08]">
+          <div ref={videoRef} className="rounded-2xl overflow-hidden border border-white/[0.08] scroll-mt-28">
             <video src={dare.videoUrl} controls className="w-full rounded-2xl" />
           </div>
         )}
@@ -1230,10 +1360,6 @@ export default function DareDetailPage() {
         title={dare.title}
       />
 
-      {/* Steal modal */}
-      <AnimatePresence>
-        {showStealModal && <StealModal onClose={() => setShowStealModal(false)} />}
-      </AnimatePresence>
     </main>
   );
 }

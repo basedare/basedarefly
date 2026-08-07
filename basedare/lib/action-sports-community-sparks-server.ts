@@ -4,6 +4,7 @@ import {
   ACTION_SPORTS_COMMUNITY_SPARKS,
   COMMUNITY_SPARK_DISCLAIMER,
   getActionSportsCommunitySpark,
+  getActionSportsCommunitySparkStreamId,
   type ActionSportsCommunitySparkKey,
 } from '@/lib/action-sports-community-sparks';
 import { createDatabaseBackedBounty } from '@/lib/bounty-db-create';
@@ -11,6 +12,31 @@ import { ensureCuratedVenueRecords } from '@/lib/curated-venues';
 import { prisma } from '@/lib/prisma';
 
 const COMMUNITY_SPARK_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
+
+async function expireUntouchedLegacyVersions(
+  key: ActionSportsCommunitySparkKey,
+  currentStreamId: string,
+) {
+  const streamPrefix = `community-spark:${key.toLowerCase()}:`;
+  const now = new Date();
+  const result = await prisma.dare.updateMany({
+    where: {
+      streamId: { startsWith: streamPrefix, not: currentStreamId },
+      status: 'PENDING',
+      bounty: 0,
+      claimedBy: null,
+      claimRequestWallet: null,
+      targetWalletAddress: null,
+      videoUrl: null,
+      expiresAt: { gt: now },
+    },
+    data: {
+      status: 'EXPIRED',
+      expiresAt: now,
+    },
+  });
+  return result.count;
+}
 
 export async function seedActionSportsCommunitySpark(
   key: ActionSportsCommunitySparkKey,
@@ -32,7 +58,7 @@ export async function seedActionSportsCommunitySpark(
   });
   if (!venue) throw new Error(`Venue ${preset.venueSlug} is unavailable.`);
 
-  const streamId = `community-spark:${preset.key.toLowerCase()}:v1`;
+  const streamId = getActionSportsCommunitySparkStreamId(preset.key);
   const existing = await prisma.dare.findFirst({
     where: {
       streamId,
@@ -42,7 +68,10 @@ export async function seedActionSportsCommunitySpark(
     },
     select: { id: true, shortId: true, title: true, expiresAt: true, venueId: true },
   });
-  if (existing) return { created: false as const, dare: existing, preset };
+  if (existing) {
+    const supersededCount = await expireUntouchedLegacyVersions(preset.key, streamId);
+    return { created: false as const, dare: existing, preset, supersededCount };
+  }
 
   const title = preset.title;
   const result = await createDatabaseBackedBounty({
@@ -69,7 +98,8 @@ export async function seedActionSportsCommunitySpark(
       maximumObservationAgeHours: 24,
     },
   });
-  return { created: true as const, dare: result.dare, preset };
+  const supersededCount = await expireUntouchedLegacyVersions(preset.key, streamId);
+  return { created: true as const, dare: result.dare, preset, supersededCount };
 }
 
 export async function listActionSportsCommunitySparks() {

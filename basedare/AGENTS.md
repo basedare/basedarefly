@@ -16,6 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Community Spark play-first pass (2026-08-07)
+- Branch `codex/community-spark-play-pass` turns the public free-Spark surface into a play-first journey: **Open → Play → Receipt**, with Play/Cheer actions and no free-Spark payout or escrow language. The dead `Steal` placeholder was removed from all dare detail pages.
+- The six action-sports presets are versioned as v2 with distinct hooks, capture ideas, social pass-ons, time/crew context, and bounded safety copy. Reseeding a preset expires only untouched live legacy rows; claimed, requested, uploaded, or otherwise in-progress v1 rows remain intact.
+- Files owned in this pass: `app/dare/[shortId]/page.tsx`, `app/api/dare/[shortId]/route.ts`, `components/DareStatusTimeline.tsx`, `components/DareVisual.tsx`, `components/SafetyWaiver.tsx`, `lib/action-sports-community-sparks*`, `lib/dare-lifecycle*`, and the zero-reward wording branch in `lib/outcome-contracts*`.
+- No schema, migration, proof authorization, verification decision, payout execution, map renderer, or production data was changed. After deployment, an admin must reseed the six presets to publish the v2 titles/contracts; this is intentionally not an automatic production mutation.
+
 ### Codex Siargao surf signal + Kanaway launch pin (2026-08-05)
 - Added `/api/surf-signal`, backed by a cached Open-Meteo Marine model point east of Siargao. `lib/siargao-surf-signal.ts` fails closed on invalid or stale data and separates quiet / playful / pumping model language from observed surf conditions.
 - PeeBear’s existing Adventure guide now leads with the live model signal when available, names Rock Island / Stimpy’s / Bumee / Tuason as local-guide checks, links the data attribution, and disappears cleanly when the provider is unavailable.

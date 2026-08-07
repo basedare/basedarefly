@@ -59,6 +59,13 @@ test('mission compiler locks Go / Do / Prove / Win / Earn before funding', () =>
   assert.match(contract.mission.earn, /20\.00 USDC gross reward/);
 });
 
+test('free missions describe a receipt instead of a zero-value payout and fee', () => {
+  const contract = fieldTruth({ amount: 0 });
+  assert.match(contract.mission.earn, /no cash reward/i);
+  assert.match(contract.mission.earn, /receipt/i);
+  assert.doesNotMatch(contract.mission.earn, /0\.00 USDC|settlement fee/i);
+});
+
 test('truthful negative field observation is a valid payable outcome', () => {
   const contract = fieldTruth();
   assert.deepEqual(getAllowedReportedOutcomes(contract), ['YES', 'NO', 'PARTIAL', 'INCONCLUSIVE']);

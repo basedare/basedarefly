@@ -55,10 +55,12 @@ export default function DareStatusTimeline({
       <div className={`flex flex-col gap-3 ${compact ? 'md:flex-row md:items-center md:justify-between' : 'lg:flex-row lg:items-center lg:justify-between'}`}>
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/35">
-            Dare lifecycle
+            {dare.isCommunitySpark ? 'Spark journey' : 'Dare lifecycle'}
           </p>
           <p className="mt-2 text-sm text-white/55">
-            {lifecycle.dareType === 'open'
+            {dare.isCommunitySpark
+              ? 'Free to play · no cash reward'
+              : lifecycle.dareType === 'open'
               ? 'Open dare flow'
               : 'Targeted dare flow'}
           </p>

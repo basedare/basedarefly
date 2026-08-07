@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { reconcileFundingDare } from '@/lib/bounty-reconciliation';
 import { getStakerAvatarMap, resolveDareImageUrl } from '@/lib/dare-images';
+import { getActionSportsCommunitySparkByStreamId } from '@/lib/action-sports-community-sparks';
 
 export async function GET(
   request: NextRequest,
@@ -31,6 +32,10 @@ export async function GET(
     const reconciledDare = await reconcileFundingDare(dare);
     const stakerAvatarMap = await getStakerAvatarMap([reconciledDare.stakerAddress]);
     const imageUrl = resolveDareImageUrl(reconciledDare, stakerAvatarMap);
+    const resolvedCommunitySparkPlay = getActionSportsCommunitySparkByStreamId(reconciledDare.streamId);
+    const communitySparkPlay = resolvedCommunitySparkPlay?.isCurrentVersion
+      ? resolvedCommunitySparkPlay
+      : null;
 
     return NextResponse.json({
       id: reconciledDare.id,
@@ -39,6 +44,7 @@ export async function GET(
       bounty: reconciledDare.bounty,
       missionTag: reconciledDare.tag,
       isCommunitySpark: reconciledDare.bounty <= 0 && reconciledDare.tag === 'community',
+      communitySparkPlay,
       upvoteCount: reconciledDare.upvoteCount ?? 0,
       streamerHandle: reconciledDare.streamerHandle,
       status: reconciledDare.status,

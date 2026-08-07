@@ -12,8 +12,8 @@ import { ShieldCheck } from 'lucide-react';
 type SafetyWaiverProps = {
   checked: boolean;
   onChange: (checked: boolean) => void;
-  /** 'claim' tweaks the lead line for the claim step; 'proof' for submission. */
-  context?: 'claim' | 'proof';
+  /** Copy matches the paid claim, free Spark, or proof-submission moment. */
+  context?: 'claim' | 'spark' | 'proof';
 };
 
 export function SafetyWaiver({ checked, onChange, context = 'claim' }: SafetyWaiverProps) {
@@ -29,7 +29,9 @@ export function SafetyWaiver({ checked, onChange, context = 'claim' }: SafetyWai
       <p className="mt-2 text-xs leading-5 text-white/62">
         {context === 'claim'
           ? 'Missions are skill-based tasks — never chance, wagering, or anything dangerous.'
-          : 'Proof must show a skill-based task completed safely and legally.'}{' '}
+          : context === 'spark'
+            ? 'Keep it within your ability, follow venue rules, and get consent before filming anyone.'
+            : 'Proof must show a skill-based task completed safely and legally.'}{' '}
         By continuing you confirm you are 18+, you will act safely and legally, you will not
         endanger yourself or others, and you accept full responsibility for your actions.
         Unsafe or illegal submissions are rejected and can end your account.
