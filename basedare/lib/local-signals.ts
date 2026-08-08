@@ -2,6 +2,7 @@ import 'server-only';
 
 import type { FounderEvent } from '@prisma/client';
 
+import { LOCAL_POST_TYPES, type LocalPostType } from '@/lib/community-around-policy';
 import { calculateDistance } from '@/lib/geo';
 
 export const LOCAL_SIGNAL_EVENT_TYPE = 'LOCAL_SIGNAL';
@@ -14,10 +15,14 @@ export type LocalSignalItem = {
   title: string;
   status: LocalSignalStatus;
   category: string;
+  postType: LocalPostType;
+  venueId: string | null;
+  venueSlug: string;
   venueName: string;
   city: string;
   notes: string;
   sourceUrl: string;
+  sourceAttribution: string;
   startsAt: string | null;
   endsAt: string | null;
   latitude: number | null;
@@ -50,6 +55,10 @@ function numberValue(value: unknown) {
 
 function normalizeStatus(value: string | null | undefined): LocalSignalStatus {
   return LOCAL_SIGNAL_STATUSES.includes(value as LocalSignalStatus) ? (value as LocalSignalStatus) : 'NEW';
+}
+
+function normalizePostType(value: unknown): LocalPostType {
+  return LOCAL_POST_TYPES.includes(value as LocalPostType) ? (value as LocalPostType) : 'signal';
 }
 
 export function formatLocalSignalDistance(distanceKm: number | null) {
@@ -92,10 +101,14 @@ export function serializeLocalSignal(
     title: event.title || stringValue(metadata.title) || 'Local signal',
     status: normalizeStatus(event.status),
     category: stringValue(metadata.category) || 'local',
+    postType: normalizePostType(metadata.postType),
+    venueId: event.venueId,
+    venueSlug: event.venueSlug || stringValue(metadata.venueSlug),
     venueName: stringValue(metadata.venueName),
     city: stringValue(metadata.city),
     notes: stringValue(metadata.notes),
     sourceUrl: stringValue(metadata.sourceUrl),
+    sourceAttribution: stringValue(metadata.sourceAttribution),
     startsAt: stringValue(metadata.startsAt) || null,
     endsAt: stringValue(metadata.endsAt) || null,
     latitude,

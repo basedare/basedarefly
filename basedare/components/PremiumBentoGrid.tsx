@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { ArrowRight, Loader2, MapPin, Radio, Search } from 'lucide-react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { ArrowRight, Loader2, MapPin, Radio, Search, Users } from 'lucide-react';
 import PremiumDareCard, { PremiumDareCardStatus, SentinelSkeleton } from './PremiumDareCard';
-import ProofViewer from './ProofViewer';
+import CommunityActivityCard from '@/components/community/CommunityActivityCard';
+import { getLocalPostMapHref, type LocalPostType } from '@/lib/community-around-policy';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { cloneActiveVenueFallbacks } from '@/lib/home-active-venues';
 import './PremiumBentoGrid.css';
@@ -18,6 +19,14 @@ const FILTERS = [
   { key: 'EXPIRED', label: 'PAST' },
 ] as const;
 type Filter = (typeof FILTERS)[number]['key'];
+type MobileFilter = 'ALL' | 'PLAY' | 'MEET' | 'LOCAL';
+
+const MOBILE_FILTERS: { key: MobileFilter; label: string }[] = [
+  { key: 'ALL', label: 'ALL' },
+  { key: 'PLAY', label: 'PLAY' },
+  { key: 'MEET', label: 'MEET' },
+  { key: 'LOCAL', label: 'LOCAL' },
+];
 
 interface NearbyDare {
   id: string;
@@ -47,6 +56,34 @@ type Dare = {
   short_id?: string;
   require_sentinel?: boolean;
   sentinel_verified?: boolean;
+  mission_tag?: string | null;
+  is_community_spark?: boolean;
+  location_label?: string | null;
+  venue_id?: string | null;
+};
+
+type MeetupActivity = {
+  id: string;
+  title: string;
+  type: string;
+  placeLabel: string;
+  startTime: string;
+  note: string | null;
+  creator: { tag: string; pfpUrl: string | null } | null;
+};
+
+type LocalActivity = {
+  id: string;
+  title: string;
+  postType: LocalPostType;
+  category: string;
+  venueSlug: string;
+  venueName: string;
+  city: string;
+  notes: string;
+  sourceUrl: string;
+  startsAt: string | null;
+  submittedBy: string;
 };
 
 type PremiumBentoGridProps = {
@@ -98,34 +135,33 @@ function normalizeStatus(status?: string): PremiumDareCardStatus {
   return 'live';
 }
 
-function calculateTimeRemaining(expiresAt?: string | null): { display: string; secondsLeft: number } {
+function calculateTimeRemaining(expiresAt: string | null | undefined, nowMs: number): { display: string; secondsLeft: number } {
   if (!expiresAt) return { display: '24h left', secondsLeft: 86400 };
 
-  const now = Date.now();
   const expiry = new Date(expiresAt).getTime();
-  const diff = expiry - now;
+  const diff = expiry - nowMs;
 
   if (diff <= 0) return { display: 'EXPIRED', secondsLeft: 0 };
 
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
   if (hours > 0) {
     return { display: `${hours}h ${minutes}m left`, secondsLeft: Math.floor(diff / 1000) };
   } else if (minutes > 0) {
-    return { display: `${minutes}m ${seconds}s left`, secondsLeft: Math.floor(diff / 1000) };
+    return { display: `${minutes}m left`, secondsLeft: Math.floor(diff / 1000) };
   } else {
-    return { display: `${seconds}s left`, secondsLeft: Math.floor(diff / 1000) };
+    return { display: 'Ending soon', secondsLeft: Math.floor(diff / 1000) };
   }
 }
 
 export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
   const [filter, setFilter] = useState<Filter>('ALL');
+  const [mobileFilter, setMobileFilter] = useState<MobileFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [proofUrl, setProofUrl] = useState<string | null>(null);
-  const loadingTimeoutRef = useRef<number | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [meetups, setMeetups] = useState<MeetupActivity[]>([]);
+  const [localActivities, setLocalActivities] = useState<LocalActivity[]>([]);
+  const [communityLoading, setCommunityLoading] = useState(true);
 
   // Nearby dares state
   const [nearbyDares, setNearbyDares] = useState<NearbyDare[]>([]);
@@ -133,6 +169,39 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
   const [nearbyError, setNearbyError] = useState<string | null>(null);
   const { coordinates, loading: geoLoading, error: geoError, requestLocation } = useGeolocation();
   const venueDiscoveryLinks = useMemo(() => cloneActiveVenueFallbacks().slice(0, 3), []);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void Promise.all([
+      fetch('/api/meetups', { signal: controller.signal, cache: 'no-store' }),
+      fetch('/api/local-signals?limit=8', { signal: controller.signal }),
+    ])
+      .then(async ([meetupResponse, localResponse]) => {
+        const [meetupPayload, localPayload] = await Promise.all([
+          meetupResponse.json(),
+          localResponse.json(),
+        ]);
+        if (meetupResponse.ok && meetupPayload?.success && Array.isArray(meetupPayload.data)) {
+          setMeetups(meetupPayload.data);
+        }
+        if (localResponse.ok && localPayload?.success && Array.isArray(localPayload.data?.signals)) {
+          setLocalActivities(localPayload.data.signals);
+        }
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        console.error('[LIVE_AROUND] Community activity failed:', error);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCommunityLoading(false);
+      });
+    return () => controller.abort();
+  }, []);
 
   // Fetch nearby dares when we have coordinates and NEARBY filter is active
   const fetchNearbyDares = useCallback(async (lat: number, lng: number) => {
@@ -167,18 +236,6 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
     }
   }, [filter, coordinates, geoLoading, geoError, requestLocation]);
 
-  useEffect(() => {
-    return () => {
-      if (loadingTimeoutRef.current != null) window.clearTimeout(loadingTimeoutRef.current);
-    };
-  }, []);
-
-  const triggerLoading = () => {
-    setIsLoading(true);
-    if (loadingTimeoutRef.current != null) window.clearTimeout(loadingTimeoutRef.current);
-    loadingTimeoutRef.current = window.setTimeout(() => setIsLoading(false), 600);
-  };
-
   type Card = {
       id: string;
       shortId: string;
@@ -191,13 +248,13 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       timeRemaining?: string;
       expiresAt?: string | null;
       isOpenBounty: boolean;
-      proofUrl?: string;
       isNearby?: boolean;
       distanceKm?: number;
       distanceDisplay?: string;
       locationLabel?: string | null;
       requireSentinel?: boolean;
       sentinelVerified?: boolean;
+      isCommunitySpark?: boolean;
   };
 
   const cards = useMemo<Card[]>(() => {
@@ -207,10 +264,9 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
 
       const streamerName = d.streamer_name || '';
       const streamerImage = d.image_url || undefined;
-      const proof = d.video_url;
 
       // Calculate real time remaining from expiresAt
-      const timeInfo = calculateTimeRemaining(d.expires_at);
+      const timeInfo = calculateTimeRemaining(d.expires_at, nowMs);
       const isExpired = timeInfo.secondsLeft <= 0;
 
       // Check if this is an open bounty (no streamer, @open, or @everyone)
@@ -240,14 +296,15 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
         timeRemaining: status === 'live' || status === 'open' ? timeInfo.display : (isExpired ? 'EXPIRED' : undefined),
         expiresAt: d.expires_at,
         isOpenBounty: isOpenTarget || status === 'open',
-        proofUrl: proof,
         requireSentinel: d.require_sentinel ?? false,
         sentinelVerified: d.sentinel_verified ?? false,
+        isCommunitySpark: d.is_community_spark ?? (d.stake_amount <= 0 && d.mission_tag === 'community'),
+        locationLabel: d.location_label,
       };
     });
 
     return mapped;
-  }, [dares]);
+  }, [dares, nowMs]);
 
   // Convert nearby dares to Card format
   const nearbyCards = useMemo<Card[]>(() => {
@@ -268,6 +325,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       locationLabel: d.locationLabel,
       requireSentinel: d.requireSentinel ?? false,
       sentinelVerified: d.sentinelVerified ?? false,
+      isCommunitySpark: false,
     }));
   }, [nearbyDares]);
 
@@ -312,9 +370,108 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
     });
   }, [cards, nearbyCards, filter, searchQuery]);
 
+  const mobileDareCards = useMemo(
+    () => cards.filter((card) => card.status !== 'expired' && card.status !== 'restricted').slice(0, 8),
+    [cards]
+  );
+  const showMobileDares = mobileFilter === 'ALL' || mobileFilter === 'PLAY';
+  const showMobileMeetups = mobileFilter === 'ALL' || mobileFilter === 'MEET';
+  const showMobileLocal = mobileFilter === 'ALL' || mobileFilter === 'LOCAL';
+
   return (
     <div className="w-full flex flex-col items-center">
-      <div className="premium-bounties-controls-wrap relative w-full max-w-[1400px] mb-10">
+      <section className="live-around-mobile w-full" aria-label="Live Around You">
+        <div className="live-around-mobile__filters" role="group" aria-label="Filter nearby activity">
+          {MOBILE_FILTERS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setMobileFilter(tab.key)}
+              className={`live-around-mobile__filter ${mobileFilter === tab.key ? 'live-around-mobile__filter--active' : ''}`}
+              aria-pressed={mobileFilter === tab.key}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="live-around-mobile__rail" aria-live="polite">
+          {communityLoading && mobileFilter !== 'PLAY'
+            ? Array.from({ length: 2 }).map((_, index) => <SentinelSkeleton key={`community-${index}`} />)
+            : null}
+          {showMobileDares
+            ? mobileDareCards.map((card) => (
+                <PremiumDareCard
+                  key={`mobile-dare-${card.id}`}
+                  shortId={card.shortId}
+                  dare={card.dare}
+                  bounty={card.bounty}
+                  streamer={card.streamer}
+                  streamerImage={card.streamerImage}
+                  emoji={card.emoji}
+                  status={card.status}
+                  timeRemaining={card.timeRemaining}
+                  expiresAt={card.expiresAt}
+                  isOpenBounty={card.isOpenBounty}
+                  isNearby={card.isNearby}
+                  distanceDisplay={card.distanceDisplay}
+                  locationLabel={card.locationLabel}
+                  requireSentinel={card.requireSentinel}
+                  sentinelVerified={card.sentinelVerified}
+                  isCommunitySpark={card.isCommunitySpark}
+                  nowMs={nowMs}
+                />
+              ))
+            : null}
+          {showMobileMeetups
+            ? meetups.slice(0, 5).map((meetup) => (
+                <CommunityActivityCard
+                  key={`meetup-${meetup.id}`}
+                  kind="meetup"
+                  title={meetup.title}
+                  place={meetup.placeLabel}
+                  startsAt={meetup.startTime}
+                  note={meetup.note}
+                  author={meetup.creator?.tag ? `@${meetup.creator.tag.replace(/^@/, '')}` : null}
+                  href={`/map?meetupId=${encodeURIComponent(meetup.id)}&source=live-around`}
+                />
+              ))
+            : null}
+          {showMobileLocal
+            ? localActivities.slice(0, 6).map((activity) => (
+                <CommunityActivityCard
+                  key={`local-${activity.id}`}
+                  kind={activity.postType === 'ask' ? 'ask' : activity.postType === 'offer' ? 'offer' : 'hang'}
+                  title={activity.title}
+                  place={activity.venueName || activity.city}
+                  startsAt={activity.startsAt}
+                  note={activity.notes}
+                  author={activity.submittedBy}
+                  href={getLocalPostMapHref(activity)}
+                />
+              ))
+            : null}
+          {!communityLoading &&
+          ((mobileFilter === 'MEET' && meetups.length === 0) ||
+            (mobileFilter === 'LOCAL' && localActivities.length === 0) ||
+            (mobileFilter === 'PLAY' && mobileDareCards.length === 0)) ? (
+            <Link href="/community" prefetch={false} className="live-around-mobile__empty">
+              <Users className="h-6 w-6 text-cyan-200" aria-hidden="true" />
+              <strong>Start the first local move</strong>
+              <span>Post a meetup, Ask, or Offer around a real place.</span>
+            </Link>
+          ) : null}
+        </div>
+
+        <div className="mt-3 flex items-center justify-between px-1">
+          <p className="text-[10px] font-bold text-white/42">Swipe for what is live nearby.</p>
+          <Link href="/community" prefetch={false} className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-200">
+            Community hub →
+          </Link>
+        </div>
+      </section>
+
+      <div className="live-around-desktop-only premium-bounties-controls-wrap relative w-full max-w-[1400px] mb-10">
         <div className="premium-filter-row premium-bounties-controls flex flex-col md:flex-row items-stretch md:items-center justify-between w-full px-3 md:px-4 py-3 gap-4">
           {/* Horizontally scrollable filter buttons on mobile */}
           <div className="overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
@@ -324,7 +481,6 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
                   key={tab.key}
                   type="button"
                   onClick={() => {
-                    triggerLoading();
                     setFilter(tab.key);
                   }}
                   className={`premium-filter-chip ${
@@ -353,10 +509,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
                 type="text"
                 placeholder="SEARCH TARGET OR DARE..."
                 value={searchQuery}
-                onChange={(e) => {
-                  triggerLoading();
-                  setSearchQuery(e.target.value);
-                }}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="premium-search-input w-full bg-transparent rounded-[1.05rem] py-3 pl-12 pr-4 text-[10px] font-mono tracking-widest text-white placeholder:text-white/30 focus:outline-none transition-all"
               />
             </div>
@@ -375,14 +528,14 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
           </span>
           <span className="min-w-0">
             <span className="premium-venue-discovery-label">Live venue map</span>
-            <span className="premium-venue-discovery-meta">Proof routes nearby</span>
+            <span className="premium-venue-discovery-meta">Meetups + Sparks nearby</span>
           </span>
           <ArrowRight className="premium-venue-discovery-arrow" />
         </Link>
         {venueDiscoveryLinks.map((venue) => (
           <Link
             key={venue.slug}
-            href={venue.primaryHref}
+            href={`${venue.primaryHref}&room=1`}
             prefetch={false}
             className="premium-venue-discovery-card group"
           >
@@ -391,16 +544,54 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
             </span>
             <span className="min-w-0">
               <span className="premium-venue-discovery-label">{venue.name}</span>
-              <span className="premium-venue-discovery-meta">{venue.activityLabel}</span>
+              <span className="premium-venue-discovery-meta">Open place room</span>
             </span>
             <ArrowRight className="premium-venue-discovery-arrow" />
           </Link>
         ))}
       </div>
 
+      <section className="live-around-desktop-community mb-8 w-full max-w-[1400px]" aria-label="Community around you">
+        <div className="mb-3 flex items-end justify-between gap-4 px-1">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-200/58">Community around you</p>
+            <p className="mt-1 text-sm font-black text-white/80">Meetups, hangs, and useful local posts</p>
+          </div>
+          <Link href="/community" prefetch={false} className="text-[10px] font-black uppercase tracking-[0.13em] text-cyan-200/78 hover:text-cyan-100">
+            Open hub →
+          </Link>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {meetups.slice(0, 2).map((meetup) => (
+            <CommunityActivityCard
+              key={`desktop-meetup-${meetup.id}`}
+              kind="meetup"
+              title={meetup.title}
+              place={meetup.placeLabel}
+              startsAt={meetup.startTime}
+              note={meetup.note}
+              author={meetup.creator?.tag ? `@${meetup.creator.tag.replace(/^@/, '')}` : null}
+              href={`/map?meetupId=${encodeURIComponent(meetup.id)}&source=live-around`}
+            />
+          ))}
+          {localActivities.slice(0, Math.max(1, 3 - Math.min(meetups.length, 2))).map((activity) => (
+            <CommunityActivityCard
+              key={`desktop-local-${activity.id}`}
+              kind={activity.postType === 'ask' ? 'ask' : activity.postType === 'offer' ? 'offer' : 'hang'}
+              title={activity.title}
+              place={activity.venueName || activity.city}
+              startsAt={activity.startsAt}
+              note={activity.notes}
+              author={activity.submittedBy}
+              href={getLocalPostMapHref(activity)}
+            />
+          ))}
+        </div>
+      </section>
+
       {/* NEARBY filter special states */}
       {filter === 'NEARBY' && (geoLoading || nearbyLoading) && (
-        <div className="w-full max-w-[1400px] px-6 mb-8">
+        <div className="live-around-desktop-only w-full max-w-[1400px] px-6 mb-8">
           <div className="bd-dent-surface bd-dent-surface--soft flex items-center justify-center gap-3 p-6 border border-white/[0.06] rounded-2xl">
             <Loader2 className="w-5 h-5 text-[#FACC15] animate-spin" />
             <span className="text-sm text-gray-400 font-mono">
@@ -411,7 +602,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       )}
 
       {filter === 'NEARBY' && geoError && (
-        <div className="w-full max-w-[1400px] px-6 mb-8">
+        <div className="live-around-desktop-only w-full max-w-[1400px] px-6 mb-8">
           <div className="bd-dent-surface bd-dent-surface--soft flex flex-col items-center gap-3 p-6 border border-red-500/20 rounded-2xl">
             <MapPin className="w-8 h-8 text-red-400" />
             <p className="text-sm text-red-400 text-center">{geoError}</p>
@@ -426,7 +617,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       )}
 
       {filter === 'NEARBY' && nearbyError && !geoError && (
-        <div className="w-full max-w-[1400px] px-6 mb-8">
+        <div className="live-around-desktop-only w-full max-w-[1400px] px-6 mb-8">
           <div className="bd-dent-surface bd-dent-surface--soft p-4 border border-red-500/20 rounded-xl text-center">
             <p className="text-sm text-red-400">{nearbyError}</p>
           </div>
@@ -434,7 +625,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       )}
 
       {filter === 'NEARBY' && coordinates && !nearbyLoading && nearbyDares.length === 0 && !nearbyError && (
-        <div className="w-full max-w-[1400px] px-6 mb-8">
+        <div className="live-around-desktop-only w-full max-w-[1400px] px-6 mb-8">
           <div className="bd-dent-surface bd-dent-surface--soft flex flex-col items-center gap-3 p-8 border border-white/[0.06] rounded-2xl">
             <MapPin className="w-10 h-10 text-gray-500" />
             <p className="text-lg font-bold text-white">No nearby bounty yet</p>
@@ -445,8 +636,8 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
         </div>
       )}
 
-      {!isLoading && filter !== 'NEARBY' && filteredCards.length === 0 ? (
-        <div className="w-full max-w-[1400px] px-6 mb-8">
+      {filter !== 'NEARBY' && filteredCards.length === 0 ? (
+        <div className="live-around-desktop-only w-full max-w-[1400px] px-6 mb-8">
           <div className="bd-dent-surface bd-dent-surface--soft flex flex-col items-center gap-3 rounded-2xl border border-white/[0.06] p-8 text-center">
             <MapPin className="h-10 w-10 text-white/40" />
             <p className="text-lg font-black text-white">First dares are forming in Siargao</p>
@@ -466,12 +657,11 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
       ) : null}
 
       <div className="premium-bento-grid premium-bento-stage">
-        {isLoading || (filter === 'NEARBY' && (geoLoading || nearbyLoading))
+        {filter === 'NEARBY' && (geoLoading || nearbyLoading)
           ? Array.from({ length: 6 }).map((_, i) => <SentinelSkeleton key={i} />)
           : filteredCards.map((card) => (
               <PremiumDareCard
                 key={card.id}
-                id={card.id}
                 shortId={card.shortId}
                 dare={card.dare}
                 bounty={card.bounty}
@@ -482,18 +672,17 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
                 timeRemaining={card.timeRemaining}
                 expiresAt={card.expiresAt}
                 isOpenBounty={card.isOpenBounty}
-                proofUrl={card.proofUrl}
-                onViewProof={(url) => setProofUrl(url)}
                 isNearby={card.isNearby}
                 distanceDisplay={card.distanceDisplay}
                 locationLabel={card.locationLabel}
                 requireSentinel={card.requireSentinel}
                 sentinelVerified={card.sentinelVerified}
+                isCommunitySpark={card.isCommunitySpark}
+                nowMs={nowMs}
               />
             ))}
       </div>
 
-      {proofUrl ? <ProofViewer videoUrl={proofUrl} onClose={() => setProofUrl(null)} /> : null}
     </div>
   );
 }

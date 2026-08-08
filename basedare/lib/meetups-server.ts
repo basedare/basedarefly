@@ -56,7 +56,8 @@ export async function resolveSessionBaretag(
  */
 export async function resolveHostBaretag(
   request: NextRequest,
-  claimedWallet?: string | null
+  claimedWallet?: string | null,
+  authorization?: { action: string; resource: string }
 ): Promise<{ id: string; tag: string } | null> {
   const sessionBaretag = await resolveSessionBaretag(request);
   if (sessionBaretag) return sessionBaretag;
@@ -64,8 +65,8 @@ export async function resolveHostBaretag(
   if (!claimedWallet || !isAddress(claimedWallet)) return null;
   const authorizedWallet = await getAuthorizedWalletForRequest(request, {
     walletAddress: claimedWallet,
-    action: 'meetups:host',
-    resource: 'meetups:host',
+    action: authorization?.action ?? 'meetups:host',
+    resource: authorization?.resource ?? 'meetups:host',
   });
   if (!authorizedWallet) return null;
   const primary = await findPrimaryCreatorTagForWallet(authorizedWallet);

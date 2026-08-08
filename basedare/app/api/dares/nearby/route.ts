@@ -3,21 +3,57 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import {
   encodeGeohash,
-  getNeighborGeohashes,
   calculateDistance,
   formatDistance,
   isValidCoordinates,
 } from '@/lib/geo';
+import {
+  isCommunitySparkRecord,
+  resolveCommunitySparkPlayAccess,
+  shouldShowDareInMapViewport,
+} from '@/lib/community-spark-map-policy';
 
 // Query schema
+const requiredLatitude = z.preprocess(
+  (value) => value === null || value === '' ? undefined : value,
+  z.coerce.number().min(-90).max(90),
+);
+const requiredLongitude = z.preprocess(
+  (value) => value === null || value === '' ? undefined : value,
+  z.coerce.number().min(-180).max(180),
+);
+const optionalLatitude = z.preprocess(
+  (value) => value === null || value === '' ? undefined : value,
+  z.coerce.number().min(-90).max(90).optional(),
+);
+const optionalLongitude = z.preprocess(
+  (value) => value === null || value === '' ? undefined : value,
+  z.coerce.number().min(-180).max(180).optional(),
+);
 const NearbyQuerySchema = z.object({
-  lat: z.coerce.number().min(-90).max(90),
-  lng: z.coerce.number().min(-180).max(180),
+  lat: requiredLatitude,
+  lng: requiredLongitude,
   radius: z.coerce.number().min(0.5).max(50).default(10),
   limit: z.coerce.number().min(1).max(50).default(20),
-});
+  viewerLat: optionalLatitude,
+  viewerLng: optionalLongitude,
+}).refine(
+  ({ viewerLat, viewerLng }) =>
+    (viewerLat === undefined && viewerLng === undefined) ||
+    (viewerLat !== undefined && viewerLng !== undefined),
+  { message: 'viewerLat and viewerLng must be supplied together' },
+);
 const NEARBY_DARES_TIMEOUT_MS = 1200;
 const NEARBY_DARES_CACHE_HEADER = 'public, max-age=15, stale-while-revalidate=60';
+const PERSONALIZED_NEARBY_DARES_CACHE_HEADER = 'private, no-store';
+
+function setNearbyCacheHeaders(response: NextResponse, personalized = false) {
+  response.headers.set(
+    'Cache-Control',
+    personalized ? PERSONALIZED_NEARBY_DARES_CACHE_HEADER : NEARBY_DARES_CACHE_HEADER,
+  );
+  return response;
+}
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -31,7 +67,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
 }
 
 function nearbyFallback(queryGeohash: string | null, message: string) {
-  const response = NextResponse.json({
+  const response = setNearbyCacheHeaders(NextResponse.json({
     success: true,
     data: {
       dares: [],
@@ -42,8 +78,7 @@ function nearbyFallback(queryGeohash: string | null, message: string) {
     },
     source: 'fallback',
     warning: message,
-  });
-  response.headers.set('Cache-Control', NEARBY_DARES_CACHE_HEADER);
+  }));
   response.headers.set('X-BaseDare-Data-Source', 'fallback');
   return response;
 }
@@ -79,6 +114,8 @@ export async function GET(request: NextRequest) {
       lng: searchParams.get('lng'),
       radius: searchParams.get('radius'),
       limit: searchParams.get('limit'),
+      viewerLat: searchParams.get('viewerLat'),
+      viewerLng: searchParams.get('viewerLng'),
     });
 
     if (!queryResult.success) {
@@ -95,7 +132,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { lat, lng, radius, limit } = queryResult.data;
+    const { lat, lng, radius, limit, viewerLat, viewerLng } = queryResult.data;
+    const viewerLocation = viewerLat !== undefined && viewerLng !== undefined
+      ? { latitude: viewerLat, longitude: viewerLng }
+      : null;
 
     // Validate coordinates
     if (!isValidCoordinates(lat, lng)) {
@@ -108,7 +148,6 @@ export async function GET(request: NextRequest) {
     // Get geohash for the query location
     const queryGeohash = encodeGeohash(lat, lng, 6);
     fallbackGeohash = queryGeohash;
-    const neighborHashes = getNeighborGeohashes(queryGeohash);
     const bounds = getBoundingBox(lat, lng, radius);
 
     console.log(
@@ -128,9 +167,16 @@ export async function GET(request: NextRequest) {
         OR: [
           {
             isNearbyDare: true,
-            geohash: { in: neighborHashes },
-            latitude: { not: null },
-            longitude: { not: null },
+            latitude: {
+              not: null,
+              gte: bounds.minLat,
+              lte: bounds.maxLat,
+            },
+            longitude: {
+              not: null,
+              gte: bounds.minLng,
+              lte: bounds.maxLng,
+            },
           },
           {
             venueId: { not: null },
@@ -185,12 +231,34 @@ export async function GET(request: NextRequest) {
         if (sourceLatitude === null || sourceLongitude === null) return null;
 
         const distanceKm = calculateDistance(lat, lng, sourceLatitude, sourceLongitude);
+        const isCommunitySpark = isCommunitySparkRecord({
+          bounty: dare.bounty,
+          missionTag: dare.tag,
+        });
 
-        // Check if within query radius AND within the dare's discovery radius
-        const dareRadius = dare.discoveryRadiusKm ?? 5;
-        if (distanceKm > radius || distanceKm > dareRadius) {
+        if (!shouldShowDareInMapViewport({
+          isCommunitySpark,
+          distanceFromViewportCenterKm: distanceKm,
+          viewportRadiusKm: radius,
+          discoveryRadiusKm: dare.discoveryRadiusKm,
+        })) {
           return null;
         }
+
+        const distanceFromPlayerKm = viewerLocation
+          ? calculateDistance(
+              viewerLocation.latitude,
+              viewerLocation.longitude,
+              sourceLatitude,
+              sourceLongitude,
+            )
+          : null;
+        const playAccess = isCommunitySpark
+          ? resolveCommunitySparkPlayAccess({
+              distanceFromPlayerKm,
+              playRadiusKm: dare.discoveryRadiusKm,
+            })
+          : null;
 
         return {
           id: dare.id,
@@ -198,11 +266,16 @@ export async function GET(request: NextRequest) {
           title: dare.title,
           bounty: dare.bounty,
           missionTag: dare.tag,
-          isCommunitySpark: dare.bounty <= 0 && dare.tag === 'community',
+          isCommunitySpark,
           status: dare.status,
           locationLabel: dare.locationLabel ?? dare.venue?.name ?? null,
           distanceKm: Math.round(distanceKm * 100) / 100,
           distanceDisplay: formatDistance(distanceKm),
+          playRadiusKm: playAccess?.playRadiusKm ?? null,
+          isPlayableHere: playAccess?.isPlayableHere ?? null,
+          playAccessReason: playAccess?.reason ?? null,
+          playerDistanceDisplay:
+            distanceFromPlayerKm === null ? null : formatDistance(distanceFromPlayerKm),
           expiresAt: dare.expiresAt?.toISOString() || null,
           createdAt: dare.createdAt.toISOString(),
           streamerHandle: dare.streamerHandle,
@@ -220,7 +293,7 @@ export async function GET(request: NextRequest) {
       `[NEARBY] Found ${nearbyDares.length} dares within ${radius}km of (${lat}, ${lng})`
     );
 
-    const response = NextResponse.json({
+    const response = setNearbyCacheHeaders(NextResponse.json({
       success: true,
       data: {
         dares: nearbyDares,
@@ -230,8 +303,7 @@ export async function GET(request: NextRequest) {
           geohash: queryGeohash,
         },
       },
-    });
-    response.headers.set('Cache-Control', NEARBY_DARES_CACHE_HEADER);
+    }), Boolean(viewerLocation));
     response.headers.set('X-BaseDare-Data-Source', 'database');
     return response;
   } catch (error) {

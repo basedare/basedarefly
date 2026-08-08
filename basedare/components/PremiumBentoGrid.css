@@ -8,6 +8,14 @@
   margin: 0 auto;
 }
 
+.live-around-mobile {
+  display: none;
+}
+
+.live-around-desktop-community {
+  display: block;
+}
+
 .premium-bounties-controls {
   border-radius: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -273,6 +281,116 @@
 }
 
 @media (max-width: 768px) {
+  .live-around-mobile {
+    display: block;
+    margin-bottom: 1.5rem;
+  }
+
+  .live-around-desktop-only,
+  .live-around-desktop-community,
+  .premium-bento-stage {
+    display: none;
+  }
+
+  .live-around-mobile__filters {
+    display: flex;
+    gap: 0.45rem;
+    overflow-x: auto;
+    padding: 0.1rem 0.1rem 0.65rem;
+    scrollbar-width: none;
+  }
+
+  .live-around-mobile__filters::-webkit-scrollbar,
+  .live-around-mobile__rail::-webkit-scrollbar,
+  .premium-bounty-discovery-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .live-around-mobile__filter {
+    min-height: 2.65rem;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    background: rgba(9, 10, 20, 0.88);
+    padding: 0 1rem;
+    color: rgba(255, 255, 255, 0.48);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+  }
+
+  .live-around-mobile__filter--active {
+    border-color: rgba(52, 211, 153, 0.26);
+    background: rgba(16, 185, 129, 0.12);
+    color: #a7f3d0;
+  }
+
+  .live-around-mobile__rail {
+    display: flex;
+    gap: 0.75rem;
+    width: calc(100% + 1rem);
+    margin-right: -1rem;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding: 0.2rem 1rem 0.9rem 0.1rem;
+    scroll-padding-left: 0.1rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .live-around-mobile__rail > * {
+    width: min(82vw, 21rem);
+    min-width: min(82vw, 21rem);
+    flex: 0 0 min(82vw, 21rem);
+    scroll-snap-align: start;
+  }
+
+  .live-around-mobile__empty {
+    display: flex;
+    min-height: 12rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border-radius: 1.35rem;
+    border: 1px dashed rgba(103, 232, 249, 0.22);
+    background: rgba(6, 9, 17, 0.8);
+    padding: 1.25rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .live-around-mobile__empty span {
+    max-width: 15rem;
+    font-size: 0.72rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.46);
+  }
+
+  .premium-bounty-discovery-rail {
+    display: flex;
+    width: calc(100% + 1rem);
+    margin-right: -1rem;
+    overflow-x: auto;
+    padding: 0.15rem 1rem 0.75rem 0.1rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .premium-venue-discovery-card {
+    width: min(78vw, 19rem);
+    min-width: min(78vw, 19rem);
+    flex: 0 0 min(78vw, 19rem);
+    scroll-snap-align: start;
+  }
+
+  .premium-bounties-controls {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
   .premium-filter-row {
     justify-content: center;
   }

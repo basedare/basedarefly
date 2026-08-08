@@ -9,7 +9,7 @@ import {
   ArrowLeft, Share2, Clock, Heart, MessageCircle,
   ExternalLink, AlertCircle, Loader2, CheckCircle,
   ChevronDown, Send, Zap, LayoutDashboard, Star,
-  Play, Camera, Users, Sparkles,
+  Play, Camera, Users, Sparkles, MapPin,
 } from 'lucide-react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSignMessage } from 'wagmi';
 import { parseUnits } from 'viem';
@@ -22,6 +22,7 @@ import SentinelBadge from '@/components/SentinelBadge';
 import CosmicButton from '@/components/ui/CosmicButton';
 import { BOUNTY_CONTRACT_ADDRESS as CONTRACT_ADDR, CONTRACT_VALIDATION, USDC_ADDRESS } from '@/lib/contracts';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
+import { formatCommunitySparkPlayRadius } from '@/lib/community-spark-map-policy';
 import { buildXSharePayload } from '@/lib/social-share';
 import { buildCreatorReviewMessage } from '@/lib/creator-review-auth';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
@@ -74,7 +75,14 @@ interface DareDetail {
     version: number;
     isCurrentVersion: boolean;
   } | null;
+  communitySparkPlayRadiusKm?: number | null;
 }
+
+type CommunityPlayAccessState = {
+  status: 'idle' | 'checking' | 'ready' | 'blocked' | 'error';
+  message: string | null;
+  location: { latitude: number; longitude: number } | null;
+};
 
 interface Comment {
   id: string; walletAddress: string; displayName: string;
@@ -125,6 +133,28 @@ function formatStatusMoment(value: string | null | undefined) {
   } catch {
     return null;
   }
+}
+
+function requestCommunitySparkLocation() {
+  return new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      reject(new Error('Location is not available in this browser.'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      }),
+      () => reject(new Error('Share location when you are near the place to unlock Play.')),
+      {
+        enableHighAccuracy: true,
+        timeout: 12_000,
+        maximumAge: 30_000,
+      },
+    );
+  });
 }
 
 // ── Skeleton ───────────────────────────────────────────────────────────────
@@ -213,8 +243,17 @@ export default function DareDetailPage() {
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [claimWaiverAccepted, setClaimWaiverAccepted] = useState(false);
+  const [communityPlayAccess, setCommunityPlayAccess] = useState<CommunityPlayAccessState>({
+    status: 'idle',
+    message: null,
+    location: null,
+  });
   const [showMissionPass, setShowMissionPass] = useState(false);
   const { isSocialWebview, label: socialWebviewLabel } = useSocialWebview();
+
+  useEffect(() => {
+    setCommunityPlayAccess({ status: 'idle', message: null, location: null });
+  }, [shortId]);
 
   // Wagmi tx hooks
   const { writeContract: writeApprove, data: approveHash, isPending: approvePending } = useWriteContract();
@@ -537,7 +576,10 @@ export default function DareDetailPage() {
           'Content-Type': 'application/json',
           ...authHeaders,
         },
-        body: JSON.stringify({ walletAddress: address }),
+        body: JSON.stringify({
+          walletAddress: address,
+          ...(communityPlayAccess.location ?? {}),
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -550,7 +592,14 @@ export default function DareDetailPage() {
       } else { setClaimError(data.error || 'Claim request failed'); }
     } catch { setClaimError('Network error'); }
     finally { setClaimLoading(false); }
-  }, [dare, address, sessionToken, sessionWallet, signMessageAsync]);
+  }, [
+    dare,
+    address,
+    sessionToken,
+    sessionWallet,
+    signMessageAsync,
+    communityPlayAccess.location,
+  ]);
 
   const isUserInvolved = dare && address &&
     (address.toLowerCase() === dare.stakerAddress?.toLowerCase() ||
@@ -731,15 +780,68 @@ export default function DareDetailPage() {
   const communityActionLabel = dare?.videoUrl
     ? 'Watch the moment'
     : dare?.awaitingClaim && !dare.targetWalletAddress && !dare.claimRequestWallet
-      ? 'Play this Spark'
+      ? communityPlayAccess.status === 'blocked'
+        ? 'Move closer to play'
+        : communityPlayAccess.status === 'error'
+          ? 'Check location to play'
+          : 'Play this Spark'
       : 'Share this Spark';
-  const handleCommunitySparkAction = () => {
+  const communitySparkPlayRadiusLabel =
+    isCommunitySpark &&
+    typeof dare?.communitySparkPlayRadiusKm === 'number' &&
+    dare.communitySparkPlayRadiusKm > 0
+      ? formatCommunitySparkPlayRadius(dare.communitySparkPlayRadiusKm)
+      : null;
+  const checkCommunitySparkPlayAccess = async () => {
+    if (!dare) return false;
+
+    setCommunityPlayAccess({ status: 'checking', message: 'Checking the play zone…', location: null });
+    try {
+      const location = await requestCommunitySparkLocation();
+      const url = new URL(`/api/dare/${encodeURIComponent(dare.shortId)}/play-access`, window.location.origin);
+      url.searchParams.set('lat', String(location.latitude));
+      url.searchParams.set('lng', String(location.longitude));
+      const response = await fetch(url.toString(), { cache: 'no-store' });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Unable to check the play zone.');
+      }
+      if (payload.data?.isPlayableHere !== true) {
+        setCommunityPlayAccess({
+          status: 'blocked',
+          message: `You are ${payload.data?.distanceDisplay ?? 'outside the play zone'}. Get within ${payload.data?.playRadiusLabel ?? 'the marked radius'} to unlock Play.`,
+          location: null,
+        });
+        return false;
+      }
+
+      setCommunityPlayAccess({
+        status: 'ready',
+        message: `You’re inside the ${payload.data.playRadiusLabel} play zone.`,
+        location,
+      });
+      return true;
+    } catch (playError) {
+      setCommunityPlayAccess({
+        status: 'error',
+        message: playError instanceof Error
+          ? playError.message
+          : 'Share location when you are near the place to unlock Play.',
+        location: null,
+      });
+      return false;
+    }
+  };
+  const handleCommunitySparkAction = async () => {
     if (!dare) return;
     if (dare.videoUrl) {
       videoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     if (dare.awaitingClaim && !dare.targetWalletAddress && !dare.claimRequestWallet) {
+      const canPlay = communityPlayAccess.status === 'ready' || await checkCommunitySparkPlayAccess();
+      if (!canPlay) return;
       communityJoinRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -916,6 +1018,12 @@ export default function DareDetailPage() {
                 </h2>
               </div>
               <div className="flex flex-wrap gap-2">
+                {communitySparkPlayRadiusLabel ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/16 bg-emerald-500/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/75">
+                    <MapPin className="h-3 w-3" />
+                    Play zone · {communitySparkPlayRadiusLabel}
+                  </span>
+                ) : null}
                 <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/65">
                   ~{communitySparkBrief.estimatedMinutes} min
                 </span>
@@ -929,11 +1037,14 @@ export default function DareDetailPage() {
               <div className="mt-5 grid grid-cols-[minmax(0,1fr)_76px] gap-2">
                 <button
                   type="button"
-                  onClick={handleCommunitySparkAction}
+                  onClick={() => { void handleCommunitySparkAction(); }}
+                  disabled={communityPlayAccess.status === 'checking'}
                   className="flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#f5c518]/35 bg-[linear-gradient(135deg,#f4d44d,#b87c0b)] px-4 text-sm font-black uppercase tracking-[0.16em] text-[#171108] shadow-[0_8px_26px_rgba(245,197,24,.18)] transition hover:brightness-110"
                 >
-                  <Play className="h-5 w-5 fill-current" />
-                  {communityActionLabel}
+                  {communityPlayAccess.status === 'checking'
+                    ? <Loader2 className="h-5 w-5 animate-spin" />
+                    : <Play className="h-5 w-5 fill-current" />}
+                  {communityPlayAccess.status === 'checking' ? 'Checking location' : communityActionLabel}
                 </button>
                 <button
                   type="button"
@@ -945,6 +1056,19 @@ export default function DareDetailPage() {
                   {upvoteLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Heart className="h-5 w-5" />}
                   <span className="text-[9px] font-black uppercase tracking-wider">Cheer</span>
                 </button>
+              </div>
+            ) : null}
+
+            {communityPlayAccess.message ? (
+              <div
+                className={`mt-3 flex items-start gap-2 rounded-xl border px-3 py-2.5 text-xs leading-5 ${
+                  communityPlayAccess.status === 'ready'
+                    ? 'border-emerald-300/20 bg-emerald-500/[0.08] text-emerald-100'
+                    : 'border-white/10 bg-black/20 text-white/62'
+                }`}
+              >
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{communityPlayAccess.message}</span>
               </div>
             ) : null}
 
@@ -1141,16 +1265,31 @@ export default function DareDetailPage() {
               <SafetyWaiver checked={claimWaiverAccepted} onChange={setClaimWaiverAccepted} context={isCommunitySpark ? 'spark' : 'claim'} />
             </div>
             <CosmicButton
-              onClick={handleClaimRequest}
-              disabled={claimLoading || claimSuccess || !claimWaiverAccepted}
+              onClick={() => {
+                if (isCommunitySpark && communityPlayAccess.status !== 'ready') {
+                  void handleCommunitySparkAction();
+                  return;
+                }
+                void handleClaimRequest();
+              }}
+              disabled={
+                claimLoading ||
+                claimSuccess ||
+                !claimWaiverAccepted ||
+                communityPlayAccess.status === 'checking'
+              }
               variant="gold"
               size="md"
               fullWidth
             >
-              {claimLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {claimLoading || communityPlayAccess.status === 'checking'
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : null}
               {claimSuccess
                 ? isCommunitySpark ? '✓ Join request sent' : '✓ Request sent'
-                : isCommunitySpark ? 'Join this Spark' : 'Request to Claim'}
+                : isCommunitySpark
+                  ? communityPlayAccess.status === 'ready' ? 'Join this Spark' : 'Check location to play'
+                  : 'Request to Claim'}
             </CosmicButton>
           </div>
         )}

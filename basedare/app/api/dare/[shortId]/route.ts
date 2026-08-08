@@ -45,6 +45,10 @@ export async function GET(
       missionTag: reconciledDare.tag,
       isCommunitySpark: reconciledDare.bounty <= 0 && reconciledDare.tag === 'community',
       communitySparkPlay,
+      communitySparkPlayRadiusKm:
+        reconciledDare.bounty <= 0 && reconciledDare.tag === 'community'
+          ? reconciledDare.discoveryRadiusKm
+          : null,
       upvoteCount: reconciledDare.upvoteCount ?? 0,
       streamerHandle: reconciledDare.streamerHandle,
       status: reconciledDare.status,

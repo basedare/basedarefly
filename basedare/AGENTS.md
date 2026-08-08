@@ -16,6 +16,13 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Community Spark discovery + Community Hub (2026-08-08 — SHIPPED)
+- Free Community Sparks remain discoverable across the visible map viewport; their 250–400 m radius gates **Play**, not discovery. The server revalidates Play proximity without persisting or publicly exposing player coordinates.
+- Mobile **Live Around You** is a responsive Play / Meet / Local swipe rail with minute-level timers, visible sharing, and no fake loading delay or mobile shimmer/blur. Desktop retains the established dare controls and adds a compact community preview.
+- `/community` surfaces existing meetups, recurring public hangs, bounded venue rooms, and Baretag-authenticated Ask/Offer posts. Ask/Offer posts require an active BaseDare place, expire after 72 hours, enter Local Signal moderation, and reject marketplace/payment/housing/shipping/prohibited-goods language.
+- Happiness Beach Bar's published Sunday Fun Day schedule is represented as a sourced recurring community hang, not a BaseDare-hosted event or partnership. Place-bound hangs/posts decorate the canonical venue marker rather than stacking another flag.
+- No schema, migration, payout, proof-settlement, generic feed, marketplace, direct-message, group-chat, or voice-room rail was introduced.
+
 ### Codex canonical Spark marker + surf-model wording (2026-08-08 — SHIPPED)
 - Venue-backed dare activity reuses the canonical venue flag when that venue marker is rendered, preventing stacked flags at Kanaway, Marco, Malinao, and other venue-backed Sparks. Standalone dares and meetup activity retain dedicated markers.
 - PeeBear labels the Siargao condition as one offshore model rather than observed surf, links the Open-Meteo marine model source plus a Cloud 9 Surf-Forecast comparison, and keeps explicit breaking-wave/safety caveats.

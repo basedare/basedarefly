@@ -14,10 +14,9 @@ function formatTimeRemaining(ms: number): string {
   if (ms <= 0) return 'EXPIRED';
   const hours = Math.floor(ms / (1000 * 60 * 60));
   const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((ms % (1000 * 60)) / 1000);
   if (hours > 0) return `${hours}h ${minutes}m left`;
-  if (minutes > 0) return `${minutes}m ${seconds}s left`;
-  return `${seconds}s left`;
+  if (minutes > 0) return `${minutes}m left`;
+  return 'Ending soon';
 }
 
 export type PremiumDareCardStatus =
@@ -29,7 +28,6 @@ export type PremiumDareCardStatus =
   | 'pending_verification';
 
 export type PremiumDareCardProps = {
-  id: string;
   shortId: string;
   dare: string;
   bounty: number;
@@ -39,15 +37,14 @@ export type PremiumDareCardProps = {
   status: PremiumDareCardStatus;
   timeRemaining?: string;
   expiresAt?: string | null;
-  livenessLeftSeconds?: number;
-  proofUrl?: string;
   isOpenBounty?: boolean;
-  onViewProof?: (proofUrl: string) => void;
   isNearby?: boolean;
   distanceDisplay?: string;
   locationLabel?: string | null;
   requireSentinel?: boolean;
   sentinelVerified?: boolean;
+  isCommunitySpark?: boolean;
+  nowMs: number;
 };
 
 export function SentinelSkeleton() {
@@ -65,7 +62,6 @@ export function SentinelSkeleton() {
 }
 
 export default function PremiumDareCard({
-  id,
   shortId,
   dare,
   bounty,
@@ -75,36 +71,24 @@ export default function PremiumDareCard({
   status,
   timeRemaining,
   expiresAt,
-  livenessLeftSeconds,
-  proofUrl,
   isOpenBounty = false,
-  onViewProof,
   isNearby = false,
   distanceDisplay,
   locationLabel,
   requireSentinel = false,
   sentinelVerified = false,
+  isCommunitySpark = false,
+  nowMs,
 }: PremiumDareCardProps) {
   const router = useRouter();
   const [likeCount, setLikeCount] = useState(0);
   const [liked, setLiked] = useState(false);
-  const [nowMs, setNowMs] = useState(() => Date.now());
   const [isDesktop, setIsDesktop] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
   const isRealDare = !shortId.startsWith('open-') && !shortId.startsWith('live-') && !shortId.startsWith('pass-');
   const isExpired = status === 'expired';
   const isRestricted = status === 'restricted';
-
-  useEffect(() => {
-    if (!expiresAt || isExpired || status === 'completed' || isRestricted) {
-      return;
-    }
-    const id = window.setInterval(() => {
-      setNowMs(Date.now());
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [expiresAt, status, isExpired, isRestricted]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');
@@ -161,7 +145,9 @@ export default function PremiumDareCard({
     pending_verification: { label: 'AUDIT', dot: true, cls: 'dare-status-audit' },
     restricted: { label: 'PASS', dot: false, cls: 'dare-status-expired' },
   };
-  const sc = statusConfig[status];
+  const sc = isCommunitySpark
+    ? { label: 'SPARK', dot: false, cls: 'dare-status-community' }
+    : statusConfig[status];
 
   const displayStreamer = streamer && streamer.trim().length > 0 && streamer !== 'OPEN TO ALL'
     ? streamer.startsWith('@') ? streamer : `@${streamer}`
@@ -177,12 +163,22 @@ export default function PremiumDareCard({
       className="premium-dare-electric-wrap"
     >
     <motion.div
-      className={`dare-card group select-none ${isExpired ? 'dare-card--expired' : ''}`}
+      className={`dare-card group select-none ${isExpired ? 'dare-card--expired' : ''} ${isCommunitySpark ? 'dare-card--community' : ''}`}
       onClick={handleCardClick}
       whileHover={isRealDare ? { scale: 1.01 } : undefined}
       transition={{ duration: 0.18 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleCardClick();
+        }
+      }}
+      role={isRealDare ? 'link' : undefined}
+      tabIndex={isRealDare ? 0 : undefined}
+      aria-label={isRealDare ? `Open ${isCommunitySpark ? 'Community Spark' : 'dare'}: ${dare}` : undefined}
     >
       {/* Background image */}
       <div className="dare-card-bg" aria-hidden="true">
@@ -214,7 +210,7 @@ export default function PremiumDareCard({
               placeName={locationLabel}
               status="live"
               compact
-              className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
+              className="dare-card-share transition-opacity duration-200"
             />
           </div>
         </div>
@@ -246,7 +242,9 @@ export default function PremiumDareCard({
                 <span className="dare-target-handle">{displayStreamer}</span>
               </button>
             ) : isOpenBounty ? (
-              <span className="dare-open-tag">OPEN TO ALL</span>
+              <span className={`dare-open-tag ${isCommunitySpark ? 'dare-open-tag--community' : ''}`}>
+                {isCommunitySpark ? 'PLAY FOR FUN' : 'OPEN TO ALL'}
+              </span>
             ) : null}
 
             {isNearby && distanceDisplay && (
@@ -260,10 +258,17 @@ export default function PremiumDareCard({
           {/* Bounty + timer + likes */}
           <div className="dare-card-amounts-row">
             {/* Bounty - prominent green badge */}
-            <div className="dare-bounty-badge">
-              <span className="dare-bounty-amount">{bounty.toLocaleString()}</span>
-              <span className="dare-bounty-currency">USDC</span>
-            </div>
+            {isCommunitySpark ? (
+              <div className="dare-community-badge">
+                <span>FREE</span>
+                <span className="dare-community-badge__label">COMMUNITY</span>
+              </div>
+            ) : (
+              <div className="dare-bounty-badge">
+                <span className="dare-bounty-amount">{bounty.toLocaleString()}</span>
+                <span className="dare-bounty-currency">USDC</span>
+              </div>
+            )}
 
             <div className="flex items-center gap-3">
               {/* Countdown timer */}

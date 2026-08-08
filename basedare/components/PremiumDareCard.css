@@ -230,6 +230,16 @@
   background: #facc15;
 }
 
+.dare-status-community {
+  border: 1px solid rgba(52, 211, 153, 0.34);
+  background: rgba(16, 185, 129, 0.16);
+  color: #6ee7b7;
+}
+
+.dare-card--community {
+  border-color: rgba(52, 211, 153, 0.16);
+}
+
 /* === DARE TITLE === */
 .dare-card-body {
   flex: 1;
@@ -313,6 +323,12 @@
   border: 1px solid rgba(139, 92, 246, 0.25);
 }
 
+.dare-open-tag--community {
+  border-color: rgba(52, 211, 153, 0.25);
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+}
+
 /* Amounts row: bounty + timer + likes */
 .dare-card-amounts-row {
   display: flex;
@@ -346,6 +362,37 @@
   font-weight: 700;
   color: rgba(52, 211, 153, 0.7);
   letter-spacing: 0.04em;
+}
+
+.dare-community-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.dare-community-badge__label {
+  color: rgba(167, 243, 208, 0.68);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.dare-card-share {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.dare-card:hover .dare-card-share,
+.dare-card:focus-within .dare-card-share {
+  pointer-events: auto;
+  opacity: 1;
 }
 
 /* Timer */
@@ -452,6 +499,32 @@
 
 /* === RESPONSIVE === */
 @media (max-width: 768px) {
+  .dare-card {
+    min-height: 190px;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow:
+      0 12px 28px rgba(0, 0, 0, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .dare-card:hover {
+    transform: none;
+    box-shadow:
+      0 12px 28px rgba(0, 0, 0, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .dare-card-share {
+    pointer-events: auto;
+    opacity: 1;
+  }
+
+  .dare-card-shimmer,
+  .dare-status-dot {
+    animation: none;
+  }
+
   .dare-title {
     font-size: 15px;
   }
@@ -460,7 +533,14 @@
     font-size: 14px;
   }
 
-  .dare-card {
-    min-height: 160px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dare-card-shimmer,
+  .dare-status-dot,
+  .dare-card-skeleton-img,
+  .dare-card-skeleton-line,
+  .shimmer-sweep {
+    animation: none;
   }
 }

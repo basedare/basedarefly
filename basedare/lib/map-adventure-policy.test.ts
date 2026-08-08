@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import {
   getAdventurePlaceSprite,
   shouldRenderAdventureActivityMarker,
+  shouldRenderLocalSignalMarker,
   SURF_SIGNAL_PATTERN,
 } from './map-adventure-policy.ts';
 
@@ -161,6 +162,21 @@ test('standalone dares and meetups keep their dedicated activity marker', () => 
       venueId: 'venue-kanaway',
       renderedVenueIds,
     }),
+    true,
+  );
+});
+
+test('place-bound local posts decorate one canonical marker instead of stacking', () => {
+  const renderedVenueSlugs = new Set(['happiness-beach-bar-siargao']);
+  assert.equal(
+    shouldRenderLocalSignalMarker({
+      venueSlug: 'happiness-beach-bar-siargao',
+      renderedVenueSlugs,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldRenderLocalSignalMarker({ venueSlug: '', renderedVenueSlugs }),
     true,
   );
 });

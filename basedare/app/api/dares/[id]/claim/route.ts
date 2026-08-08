@@ -8,6 +8,11 @@ import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limit';
 import { evaluateClaimEligibility } from '@/lib/dare-claim-policy';
 import { bindDareIntentToWallet } from '@/lib/creator-attribution-server';
+import {
+  isCommunitySparkRecord,
+  resolveCommunitySparkPlayAccess,
+} from '@/lib/community-spark-map-policy';
+import { calculateDistance, isValidCoordinates } from '@/lib/geo';
 
 // ============================================================================
 // CLAIM DARE API - For @open dares (moderated claim request flow)
@@ -22,7 +27,14 @@ import { bindDareIntentToWallet } from '@/lib/creator-attribution-server';
 
 const ClaimSchema = z.object({
   walletAddress: z.string().optional(),
-});
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+}).refine(
+  ({ latitude, longitude }) =>
+    (latitude === undefined && longitude === undefined) ||
+    (latitude !== undefined && longitude !== undefined),
+  { message: 'latitude and longitude must be supplied together' },
+);
 
 function normalizeWallet(value: string | null | undefined): string | null {
   if (!value || !isAddress(value)) return null;
@@ -83,9 +95,85 @@ export async function POST(
     const userTag = await findPrimaryCreatorTagForWallet(lowerWallet);
     const claimDisplay = userTag?.tag ?? shortenWallet(lowerWallet);
 
-    const dare = await prisma.dare.findUnique({ where: { id: dareId } });
+    const dare = await prisma.dare.findUnique({
+      where: { id: dareId },
+      include: {
+        venue: {
+          select: {
+            latitude: true,
+            longitude: true,
+          },
+        },
+      },
+    });
     if (!dare) {
       return NextResponse.json({ success: false, error: 'Dare not found' }, { status: 404 });
+    }
+
+    if (isCommunitySparkRecord({ bounty: dare.bounty, missionTag: dare.tag })) {
+      const targetLatitude = dare.latitude ?? dare.venue?.latitude ?? null;
+      const targetLongitude = dare.longitude ?? dare.venue?.longitude ?? null;
+      if (
+        targetLatitude === null ||
+        targetLongitude === null ||
+        !isValidCoordinates(targetLatitude, targetLongitude)
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'This Spark needs a corrected map location before Play can unlock.',
+            code: 'COMMUNITY_SPARK_LOCATION_MISCONFIGURED',
+          },
+          { status: 409 },
+        );
+      }
+
+      const playerLatitude = validation.data.latitude;
+      const playerLongitude = validation.data.longitude;
+      if (
+        playerLatitude === undefined ||
+        playerLongitude === undefined ||
+        !isValidCoordinates(playerLatitude, playerLongitude)
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Share location when you are near the place to unlock Play.',
+            code: 'COMMUNITY_SPARK_LOCATION_REQUIRED',
+          },
+          { status: 400 },
+        );
+      }
+
+      const playAccess = resolveCommunitySparkPlayAccess({
+        distanceFromPlayerKm: calculateDistance(
+          playerLatitude,
+          playerLongitude,
+          targetLatitude,
+          targetLongitude,
+        ),
+        playRadiusKm: dare.discoveryRadiusKm,
+      });
+      if (playAccess.reason === 'INVALID_PLAY_RADIUS') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'This Spark needs a corrected play radius before Play can unlock.',
+            code: 'COMMUNITY_SPARK_RADIUS_MISCONFIGURED',
+          },
+          { status: 409 },
+        );
+      }
+      if (!playAccess.isPlayableHere) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Move into this Spark’s local play zone and try again.',
+            code: 'COMMUNITY_SPARK_OUTSIDE_PLAY_ZONE',
+          },
+          { status: 403 },
+        );
+      }
     }
 
     const now = new Date();

@@ -84,3 +84,13 @@ export function shouldRenderAdventureActivityMarker(input: {
   if (input.activityType !== 'dare' || !input.venueId) return true;
   return !input.renderedVenueIds.has(input.venueId);
 }
+
+export function shouldRenderLocalSignalMarker(input: {
+  venueSlug?: string | null;
+  renderedVenueSlugs: ReadonlySet<string>;
+}) {
+  // A venue-bound Hang/Ask/Offer decorates the canonical venue marker. Only
+  // signals without a rendered place need their own standalone marker.
+  if (!input.venueSlug) return true;
+  return !input.renderedVenueSlugs.has(input.venueSlug);
+}

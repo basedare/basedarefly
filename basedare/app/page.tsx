@@ -380,7 +380,7 @@ function HomeContent() {
                         textShadow: '0 0 10px rgba(168,85,247,0.6), 0 0 30px rgba(168,85,247,0.3), 0 0 60px rgba(168,85,247,0.15)',
                       }}
                     >
-                      Live Dares
+                      Live Around You
                     </h3>
                     <div className="bd-purple-pulse-line mt-3 h-px w-32" />
                   </div>

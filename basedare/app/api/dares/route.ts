@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
 import { reconcileFundingDares } from '@/lib/bounty-reconciliation';
 import { getStakerAvatarMap, resolveDareImageUrl } from '@/lib/dare-images';
+import { isCommunitySparkRecord } from '@/lib/community-spark-map-policy';
 
 const PUBLIC_DARE_QUERY_TIMEOUT_MS = 900;
 const PUBLIC_DARE_FALLBACK_COOLDOWN_MS = 30_000;
@@ -236,6 +237,10 @@ export async function GET(request: NextRequest) {
         expires_at: dare.expiresAt?.toISOString() || null,
         short_id: dare.shortId || dare.id.slice(0, 8),
         image_url: resolveDareImageUrl(dare, stakerAvatarMap) ?? "",
+        mission_tag: dare.tag,
+        is_community_spark: isCommunitySparkRecord({ bounty: dare.bounty, missionTag: dare.tag }),
+        location_label: dare.locationLabel,
+        venue_id: dare.venueId,
         require_sentinel: dare.requireSentinel,
         sentinel_verified: dare.sentinelVerified,
       };

@@ -17,6 +17,8 @@ type LocalSignalItem = {
   title: string;
   status: LocalSignalStatus;
   category: string;
+  postType: 'signal' | 'ask' | 'offer';
+  venueSlug: string;
   venueName: string;
   city: string;
   notes: string;
@@ -324,7 +326,7 @@ export default function AdminLocalSignalsPage() {
                         {signal.status}
                       </span>
                       <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/50">
-                        {signal.category}
+                        {signal.postType === 'signal' ? signal.category : signal.postType}
                       </span>
                       <span className="rounded-full border border-cyan-200/15 bg-cyan-300/[0.07] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-cyan-100/70">
                         {formatDateTime(signal.startsAt)}
