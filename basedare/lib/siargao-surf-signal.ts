@@ -16,6 +16,11 @@ export const KANAWAY_SURF_LAUNCH = {
   name: 'Kanaway Surf School',
 } as const;
 
+export const CLOUD_9_SURF_FORECAST_CROSS_CHECK = {
+  label: 'Compare Cloud 9 forecast',
+  href: 'https://www.surf-forecast.com/breaks/Cloud-Nine/forecasts/latest/six_day',
+} as const;
+
 export type SiargaoSurfSignalTier = 'quiet' | 'playful' | 'pumping';
 
 export type SiargaoSurfSignal = {
@@ -42,6 +47,7 @@ export type SiargaoSurfSignal = {
     attribution: 'Open-Meteo / DWD';
     href: 'https://open-meteo.com/en/docs/marine-weather-api';
   };
+  crossCheck: typeof CLOUD_9_SURF_FORECAST_CROSS_CHECK;
 };
 
 type MarineCurrent = {
@@ -143,10 +149,10 @@ export function buildSiargaoSurfSignal(
   const periodLabel = Math.round(swellPeriodSeconds);
   const headline =
     tier === 'pumping'
-      ? `The offshore swell model is pumping: ${swellHeightLabel} at ${periodLabel}s from ${swellDirectionLabel}.`
+      ? `One offshore model shows a stronger swell: ${swellHeightLabel} at ${periodLabel}s from ${swellDirectionLabel}.`
       : tier === 'playful'
-        ? `The offshore swell model looks playful: ${swellHeightLabel} at ${periodLabel}s from ${swellDirectionLabel}.`
-        : `The offshore swell model looks quiet: ${swellHeightLabel} at ${periodLabel}s from ${swellDirectionLabel}.`;
+        ? `One offshore model shows some swell: ${swellHeightLabel} at ${periodLabel}s from ${swellDirectionLabel}.`
+        : `One offshore model looks small: ${swellHeightLabel} at ${periodLabel}s from ${swellDirectionLabel}.`;
 
   return {
     area: SIARGAO_SURF_MODEL_POINT.label,
@@ -155,12 +161,12 @@ export function buildSiargaoSurfSignal(
     headline,
     guidance:
       tier === 'quiet'
-        ? 'Ask a local guide where the smaller, safer window is before choosing a break.'
-        : `Worth checking ${SIARGAO_SURF_CHECKS.join(', ').replace(', Tuason', ', or Tuason')} with a local guide.`,
+        ? 'Cross-check wind, tide, a spot forecast, and local guidance before choosing a break.'
+        : `Cross-check wind, tide, and a spot forecast before asking a local guide about ${SIARGAO_SURF_CHECKS.join(', ').replace(', Tuason', ', or Tuason')}.`,
     kanawayNote:
       'Kanaway is the map’s board-and-guide stop beside the Catangnan beach launch for the outer reefs. Confirm boats, rentals, tide, and the safe spot choice on site.',
     caveat:
-      'Offshore model signal—not an observed break report or safety forecast. Reef size, tide, wind, and currents can differ.',
+      'Modelled primary swell component—not breaking-wave height, an observation, or a safety forecast. Other models and actual reef conditions can differ.',
     spots: SIARGAO_SURF_CHECKS,
     launchPlace: KANAWAY_SURF_LAUNCH,
     model: {
@@ -177,5 +183,6 @@ export function buildSiargaoSurfSignal(
       attribution: 'Open-Meteo / DWD',
       href: 'https://open-meteo.com/en/docs/marine-weather-api',
     },
+    crossCheck: CLOUD_9_SURF_FORECAST_CROSS_CHECK,
   };
 }

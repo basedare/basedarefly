@@ -27,9 +27,13 @@ test('turns a strong period swell into a conservative pumping signal', () => {
   assert.equal(signal.tier, 'pumping');
   assert.equal(signal.model.swellHeightLabel, '2–3 ft');
   assert.equal(signal.model.swellDirectionLabel, 'NE');
-  assert.match(signal.headline, /offshore swell model is pumping/i);
+  assert.match(signal.headline, /one offshore model shows a stronger swell/i);
   assert.match(signal.guidance, /Rock Island, Stimpy’s, Bumee, or Tuason/);
-  assert.match(signal.caveat, /not an observed break report or safety forecast/i);
+  assert.match(signal.caveat, /not breaking-wave height, an observation, or a safety forecast/i);
+  assert.equal(
+    signal.crossCheck.href,
+    'https://www.surf-forecast.com/breaks/Cloud-Nine/forecasts/latest/six_day'
+  );
 });
 
 test('uses total-wave fields when the provider omits primary swell fields', () => {
@@ -48,6 +52,30 @@ test('uses total-wave fields when the provider omits primary swell fields', () =
   assert.ok(signal);
   assert.equal(signal.tier, 'playful');
   assert.equal(signal.model.swellDirectionLabel, 'E');
+});
+
+test('labels the current-style short-period SE model component conservatively', () => {
+  const signal = buildSiargaoSurfSignal(
+    {
+      current: {
+        time: '2026-08-05T04:30Z',
+        wave_height: 1.2,
+        wave_direction: 100,
+        wave_period: 9.1,
+        swell_wave_height: 0.92,
+        swell_wave_direction: 129,
+        swell_wave_period: 7.15,
+      },
+    },
+    receivedAt,
+  );
+
+  assert.ok(signal);
+  assert.equal(signal.tier, 'playful');
+  assert.equal(signal.model.swellHeightLabel, '3–4 ft');
+  assert.equal(signal.model.swellDirectionLabel, 'SE');
+  assert.match(signal.headline, /one offshore model shows some swell/i);
+  assert.doesNotMatch(signal.headline, /surf is|waves are|pumping/i);
 });
 
 test('does not label short-period or small swell as pumping', () => {

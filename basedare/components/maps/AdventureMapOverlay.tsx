@@ -205,7 +205,7 @@ export default function AdventureMapOverlay({
 
     return [
       ...(surfSignal
-        ? [`Surf ping: ${surfSignal.headline} ${surfSignal.guidance}`]
+        ? [`Offshore model: ${surfSignal.headline} ${surfSignal.guidance}`]
         : []),
       personalLine,
       trailCount > 0
@@ -351,7 +351,7 @@ export default function AdventureMapOverlay({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-cyan-100/58">
-                      Live surf signal · {formatSurfModelTime(surfSignal.modelTime)}
+                      Offshore model · {formatSurfModelTime(surfSignal.modelTime)}
                     </span>
                     <span className="mt-1 block text-xs font-black leading-4 text-white">
                       {surfSignal.headline}
@@ -374,6 +374,14 @@ export default function AdventureMapOverlay({
                         className="text-[8px] font-semibold text-cyan-100/48 underline decoration-cyan-100/18 underline-offset-2 transition hover:text-cyan-100/72"
                       >
                         {surfSignal.source.attribution}
+                      </a>
+                      <a
+                        href={surfSignal.crossCheck.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[8px] font-semibold text-cyan-100/48 underline decoration-cyan-100/18 underline-offset-2 transition hover:text-cyan-100/72"
+                      >
+                        {surfSignal.crossCheck.label}
                       </a>
                     </span>
                     <span className="mt-1.5 block border-t border-white/8 pt-1.5 text-[8px] font-medium leading-3 text-white/34">

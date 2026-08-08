@@ -72,3 +72,15 @@ export function getAdventurePlaceSprite({
   if (GATHERING_SIGNAL_PATTERN.test(categoryText)) return 'gathering';
   return 'rumor';
 }
+
+export function shouldRenderAdventureActivityMarker(input: {
+  activityType: 'dare' | 'meetup';
+  venueId: string | null;
+  renderedVenueIds: ReadonlySet<string>;
+}) {
+  // A venue-backed dare is already expressed by that venue's live flag. A
+  // second focal-activity flag at the same venue creates the doubled marker
+  // seen on Community Sparks. Keep standalone dares and meetup markers intact.
+  if (input.activityType !== 'dare' || !input.venueId) return true;
+  return !input.renderedVenueIds.has(input.venueId);
+}

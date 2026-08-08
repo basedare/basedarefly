@@ -16,6 +16,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex canonical Spark marker + surf-model wording (2026-08-08 — SHIPPED)
+- Venue-backed dare activity reuses the canonical venue flag when that venue marker is rendered, preventing stacked flags at Kanaway, Marco, Malinao, and other venue-backed Sparks. Standalone dares and meetup activity retain dedicated markers.
+- PeeBear labels the Siargao condition as one offshore model rather than observed surf, links the Open-Meteo marine model source plus a Cloud 9 Surf-Forecast comparison, and keeps explicit breaking-wave/safety caveats.
+- Scope is limited to marker presentation and surf-signal wording/attribution. No schema, migration, mission lifecycle, payout, proof, camera, or MapLibre renderer behavior changed.
+
 ### Codex Community Spark play-first pass (2026-08-07)
 - Branch `codex/community-spark-play-pass` turns the public free-Spark surface into a play-first journey: **Open → Play → Receipt**, with Play/Cheer actions and no free-Spark payout or escrow language. The dead `Steal` placeholder was removed from all dare detail pages.
 - The six action-sports presets are versioned as v2 with distinct hooks, capture ideas, social pass-ons, time/crew context, and bounded safety copy. Reseeding a preset expires only untouched live legacy rows; claimed, requested, uploaded, or otherwise in-progress v1 rows remain intact.

@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import {
   getAdventurePlaceSprite,
+  shouldRenderAdventureActivityMarker,
   SURF_SIGNAL_PATTERN,
 } from './map-adventure-policy.ts';
 
@@ -125,5 +126,41 @@ test('a live funded challenge remains the strongest marker state', () => {
   assert.equal(
     getAdventurePlaceSprite({ challengeLiveCount: 1, categories: ['nightlife', 'bar'] }),
     'flag'
+  );
+});
+
+test('venue-backed dares reuse the venue flag instead of stacking a focal flag', () => {
+  const renderedVenueIds = new Set(['venue-kanaway', 'venue-marco', 'venue-malinao']);
+
+  for (const venueId of renderedVenueIds) {
+    assert.equal(
+      shouldRenderAdventureActivityMarker({
+        activityType: 'dare',
+        venueId,
+        renderedVenueIds,
+      }),
+      false,
+    );
+  }
+});
+
+test('standalone dares and meetups keep their dedicated activity marker', () => {
+  const renderedVenueIds = new Set(['venue-kanaway']);
+
+  assert.equal(
+    shouldRenderAdventureActivityMarker({
+      activityType: 'dare',
+      venueId: null,
+      renderedVenueIds,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldRenderAdventureActivityMarker({
+      activityType: 'meetup',
+      venueId: 'venue-kanaway',
+      renderedVenueIds,
+    }),
+    true,
   );
 });

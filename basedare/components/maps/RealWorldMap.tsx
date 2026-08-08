@@ -74,6 +74,7 @@ import { triggerHaptic } from '@/lib/mobile-haptics';
 import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
 import {
   getAdventurePlaceSprite,
+  shouldRenderAdventureActivityMarker,
   SURF_SIGNAL_PATTERN,
   type AdventureSpriteKind,
 } from '@/lib/map-adventure-policy';
@@ -7516,6 +7517,23 @@ export default function RealWorldMap() {
     return [...markers, ...activatedMarkers];
   }, [filteredNearbyPlaces, mapZoom, matchedVenueIndex, showMatchedLayer]);
 
+  const renderedVenueMarkerIdSet = useMemo(
+    () => new Set(
+      clusteredNearbyMarkers.flatMap((marker) =>
+        marker.kind === 'place' ? [marker.place.id] : [],
+      ),
+    ),
+    [clusteredNearbyMarkers],
+  );
+  const shouldRenderFocalAdventureActivityMarker = Boolean(
+    focalAdventureActivity &&
+    shouldRenderAdventureActivityMarker({
+      activityType: focalAdventureActivity.type,
+      venueId: focalAdventureActivity.place.venueId,
+      renderedVenueIds: renderedVenueMarkerIdSet,
+    }),
+  );
+
   const selectedPlaceNeedsDedicatedMarker = useMemo(() => {
     if (!selectedPlace || mapZoom < 14) {
       return false;
@@ -9059,7 +9077,12 @@ export default function RealWorldMap() {
         });
     }
 
-    if (adventureMode && mapZoom >= 14 && focalAdventureActivity) {
+    if (
+      adventureMode &&
+      mapZoom >= 14 &&
+      focalAdventureActivity &&
+      shouldRenderFocalAdventureActivityMarker
+    ) {
       addMarker({
         key: `adventure-activity:${focalAdventureActivity.type}:${focalAdventureActivity.id}`,
         latitude: focalAdventureActivity.place.lat,
@@ -9217,6 +9240,7 @@ export default function RealWorldMap() {
     selectedPlace,
     selectedPlaceMarkerHtml,
     selectedPlaceNeedsDedicatedMarker,
+    shouldRenderFocalAdventureActivityMarker,
     showFootprintLayer,
     showMatchedLayer,
     userLocation,
