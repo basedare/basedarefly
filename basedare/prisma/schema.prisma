@@ -244,6 +244,7 @@ model Venue {
   reportEvents         VenueReportEvent[]
   reportLeads          VenueReportLead[]
   rituals              VenueRitual[]
+  surfBoatCrews        SurfBoatCrew[]
   founderEvents        FounderEvent[]
   baseCashCredits      BaseCashVenueCredit[]
   fieldStationLinks    CreatorAttributionLink[]     @relation("FieldStationHostVenue")
@@ -1293,6 +1294,60 @@ model MeetupBlock {
 
   @@unique([blockerBaretagId, blockedBaretagId])
   @@index([blockerBaretagId])
+}
+
+// ============================================================================
+// KANAWAY SURF BOAT BOARD — free, place-bound coordination only.
+// BaseDare forms compatible crews and records consent to the operator's final
+// details. The boat operator sets the actual price, capacity, destination and
+// departure; BaseDare does not collect or split the fare.
+// ============================================================================
+model SurfBoatCrew {
+  id                           String               @id @default(cuid())
+  venueId                      String
+  creatorBaretagId             String
+  departureDay                 String
+  timeWindow                   String
+  destination                  String
+  abilityLane                  String
+  minimumCrew                  Int                  @default(4)
+  indicativeTotalPhp           Int                  @default(1200)
+  status                       String               @default("FORMING")
+  operatorTokenHash            String?
+  operatorTokenExpiresAt       DateTime?
+  operatorName                 String?
+  operatorConfirmedDestination String?
+  operatorConfirmedTotalPhp    Int?
+  operatorConfirmedCapacity    Int?
+  operatorConfirmedDepartureAt DateTime?
+  operatorNote                 String?
+  operatorConfirmedAt          DateTime?
+  termsVersion                 Int                  @default(0)
+  expiresAt                    DateTime
+  createdAt                    DateTime             @default(now())
+  updatedAt                    DateTime             @updatedAt
+  venue                        Venue                @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  members                      SurfBoatCrewMember[]
+
+  @@index([venueId, status, expiresAt])
+  @@index([departureDay, status])
+  @@index([creatorBaretagId])
+}
+
+model SurfBoatCrewMember {
+  id                   String       @id @default(cuid())
+  crewId               String
+  baretagId            String
+  commitment           String
+  abilityLane          String
+  needsBoard           Boolean      @default(false)
+  acceptedTermsVersion Int?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  crew                 SurfBoatCrew @relation(fields: [crewId], references: [id], onDelete: Cascade)
+
+  @@unique([crewId, baretagId])
+  @@index([baretagId])
 }
 
 // ============================================================================

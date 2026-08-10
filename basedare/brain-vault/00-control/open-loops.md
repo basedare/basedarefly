@@ -33,6 +33,7 @@ updated_at: 2026-07-23
 | Outcome Contract Engine alpha | product_policy | PRODUCTION_MIGRATED | product/release | [[05-playbooks/outcome-contract-engine]] |
 | Dare Director orchestration | automation | PARKED_UNTIL_CONTRACT_DATA | product | [[05-playbooks/outcome-contract-engine]] |
 | Wakepark ritual + Community Sparks | consumer_supply | SOFTWARE_READY | product/growth + human | [[05-playbooks/local-rituals-community-sparks]] |
+| Kanaway daily surf boat board | community_retention_experiment | SOFTWARE_READY_NOT_LIVE | product + local operator | [[04-experiments/kanaway-daily-surf-boat-board]] |
 | Manual Creator Drop pilot | operating_test | READY_FOR_HUMAN_PILOT | product/growth + human | [[05-playbooks/manual-creator-drop-pilot]] |
 | Siargao venue Spark Audit invite | outreach_draft | PARKED | human | [[02-outreach/drafts/siargao-venue-spark-audit-invite]] |
 | Siargao Beach Club Spark Audit | spark_audit | PARKED | human | [[02-outreach/drafts/siargao-beach-club-spark-audit]] |

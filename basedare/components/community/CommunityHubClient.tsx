@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
-import { HandHeart, Map, MessageCircle, ShieldCheck, Store, Users } from 'lucide-react';
+import { HandHeart, Map, MessageCircle, ShieldCheck, ShipWheel, Store, Users } from 'lucide-react';
 
 import CommunityActivityCard from '@/components/community/CommunityActivityCard';
 import { getLocalPostMapHref, type LocalPostType } from '@/lib/community-around-policy';
@@ -187,6 +187,22 @@ export default function CommunityHubClient() {
             </div>
           </div>
         </section>
+
+        <Link
+          href="/community/boat/kanaway"
+          className="mt-5 flex items-center justify-between gap-4 rounded-[1.5rem] border border-[#f5c518]/20 bg-[linear-gradient(135deg,rgba(245,197,24,0.11),rgba(34,211,238,0.07),rgba(0,0,0,0.35))] p-4 transition hover:-translate-y-px hover:border-[#f8dd72]/35 sm:p-5"
+        >
+          <span className="flex min-w-0 items-center gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#f5c518]/20 bg-[#f5c518]/10 text-[#f8dd72]">
+              <ShipWheel className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <strong className="block text-lg font-black text-white">Find a Kanaway boat crew</strong>
+              <span className="mt-1 block text-xs text-white/46">Get four compatible surfers, then let the real operator confirm the ride.</span>
+            </span>
+          </span>
+          <span className="shrink-0 rounded-full border border-[#f5c518]/20 px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#f8dd72]">Open</span>
+        </Link>
 
         <section className="mt-8">
           <div className="flex items-end justify-between gap-4">

@@ -88,6 +88,11 @@ import {
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { isSiargaoVenueFeaturedTonight } from '@/lib/siargao-nightlife';
 import {
+  KANAWAY_BOAT_VENUE_SLUG,
+  getBoatCrewMapLabel,
+  type BoatCrewSummary,
+} from '@/lib/surf-boat-board';
+import {
   SIARGAO_CANONICAL_SURF_BREAK_VENUE_SLUGS,
   SIARGAO_SURF_BREAK_POINTS,
 } from '@/lib/siargao-surf-breaks';
@@ -3498,6 +3503,7 @@ export default function RealWorldMap() {
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [nearbyDares, setNearbyDares] = useState<NearbyDare[]>([]);
   const [meetups, setMeetups] = useState<MeetupPin[]>([]);
+  const [boatCrews, setBoatCrews] = useState<BoatCrewSummary[]>([]);
   const [mapLayerFilter, setMapLayerFilter] = useState<MapLayerFilter>('all');
   const [selectedMeetup, setSelectedMeetup] = useState<MeetupPin | null>(null);
   // Guard: a stale "Free Meetups" selection must never keep paid pins hidden
@@ -4736,6 +4742,32 @@ export default function RealWorldMap() {
       window.clearInterval(interval);
     };
   }, [mapReady, meetupsRefreshNonce]);
+
+  // ── Kanaway Boat Board: one canonical venue signal, never a second pin. ──
+  useEffect(() => {
+    if (!mapReady) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const response = await fetch('/api/boat-crews', { cache: 'no-store' });
+        const payload = (await response.json()) as {
+          success?: boolean;
+          data?: { crews?: BoatCrewSummary[] };
+        };
+        if (!cancelled && response.ok && payload.success && Array.isArray(payload.data?.crews)) {
+          setBoatCrews(payload.data.crews);
+        }
+      } catch {
+        // Social coordination must never interrupt the venue map.
+      }
+    };
+    void load();
+    const interval = window.setInterval(load, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [mapReady]);
 
   // ── Free meetup layer (Stage 3): marker reconcile ─────────────────────────
   // Reconciles our OWN marker set against the meetups visible for the active
@@ -6832,6 +6864,24 @@ export default function RealWorldMap() {
     ),
     [communitySparkVenueSlugSet, fundedDareVenueSlugSet],
   );
+  const activeBoatCrew = useMemo(
+    () =>
+      [...boatCrews]
+        .filter((crew) => crew.status !== 'DEPARTED' && crew.status !== 'CANCELLED')
+        .sort((a, b) => b.confirmedCount - a.confirmedCount)[0] ?? null,
+    [boatCrews],
+  );
+  const boatCrewLabelByVenueSlug = useMemo(() => {
+    const labels = new Map<string, string>();
+    if (!activeBoatCrew) return labels;
+    const label = getBoatCrewMapLabel(activeBoatCrew);
+    if (label) labels.set(KANAWAY_BOAT_VENUE_SLUG, label);
+    return labels;
+  }, [activeBoatCrew]);
+  const boatCrewVenueSlugSet = useMemo(
+    () => new Set(boatCrewLabelByVenueSlug.keys()),
+    [boatCrewLabelByVenueSlug],
+  );
   const localSignalLabelByVenueSlug = useMemo(() => {
     const labels = new Map<string, string>();
     localSignals.forEach((signal) => {
@@ -7600,6 +7650,7 @@ export default function RealWorldMap() {
     const preserveActivatedMarkers = roundedZoom >= 14;
     const preservedPlaces = filteredNearbyPlaces.filter((place) =>
       communitySparkVenueSlugSet.has(place.slug) ||
+      boatCrewVenueSlugSet.has(place.slug) ||
       localSignalVenueSlugSet.has(place.slug) ||
       SIARGAO_CANONICAL_SURF_BREAK_VENUE_SLUGS.has(place.slug) ||
       (preserveActivatedMarkers && isVenueActivated(place.commandCenter))
@@ -7688,7 +7739,7 @@ export default function RealWorldMap() {
     });
 
     return [...markers, ...preservedMarkers];
-  }, [communitySparkVenueSlugSet, filteredNearbyPlaces, localSignalVenueSlugSet, mapZoom, matchedVenueIndex, showMatchedLayer]);
+  }, [boatCrewVenueSlugSet, communitySparkVenueSlugSet, filteredNearbyPlaces, localSignalVenueSlugSet, mapZoom, matchedVenueIndex, showMatchedLayer]);
 
   const renderedVenueMarkerIdSet = useMemo(
     () => new Set(
@@ -8379,6 +8430,11 @@ export default function RealWorldMap() {
     return reasons.slice(0, 3);
   }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
   const selectedVenueNextMove = useMemo(() => {
+    if (selectedPlace?.slug === KANAWAY_BOAT_VENUE_SLUG) {
+      return activeBoatCrew
+        ? `${activeBoatCrew.confirmedCount}/${activeBoatCrew.minimumCrew} surfers confirmed. Join the boat call or start a compatible crew.`
+        : "Start today's first boat call for Rock Island, Stimpy's, or Bumee/Bomi.";
+    }
     if (selectedPlaceActionPolicy.primary === 'directions') {
       return selectedPlaceClaimedMission
         ? 'Start the journey in Google Maps; BaseDare keeps the mission and proof here.'
@@ -8412,9 +8468,23 @@ export default function RealWorldMap() {
     selectedPlaceActionPolicy.secondary,
     selectedPlaceClaimedMission,
     selectedPlaceMatch,
+    selectedPlace?.slug,
     showMatchedLayer,
+    activeBoatCrew,
   ]);
   const selectedPrimaryAction = useMemo(() => {
+    if (selectedPlace?.slug === KANAWAY_BOAT_VENUE_SLUG) {
+      return {
+        label: 'Find a boat crew',
+        detail: activeBoatCrew
+          ? `${activeBoatCrew.confirmedCount}/${activeBoatCrew.minimumCrew} confirmed · about ₱${activeBoatCrew.projectedSharePhp} each`
+          : 'Start the first shared surf boat for today or tomorrow.',
+        tone: 'gold' as const,
+        href: '/community/boat/kanaway',
+        actionLabel: 'Open Boat Board',
+        resolveAction: null as SelectedCommandAction | null,
+      };
+    }
     if (selectedPlaceActionPolicy.primary === 'directions') {
       return {
         label: selectedPlaceClaimedMission ? 'Start journey' : 'Directions',
@@ -8486,6 +8556,8 @@ export default function RealWorldMap() {
     selectedPlaceActionPolicy.verifyLabel,
     selectedPlaceActiveDares,
     selectedVenueHref,
+    selectedPlace?.slug,
+    activeBoatCrew,
   ]);
   const selectedVenueCommandCards = useMemo(() => {
     const rewardTotal = selectedPlaceActiveDares.reduce((total, dare) => total + dare.bounty, 0);
@@ -9225,7 +9297,8 @@ export default function RealWorldMap() {
             isVenueNightTonight(place.name, place.slug),
           mayorTag: place.mayor?.tag ?? null,
           localSignalLabel:
-            place.activeDareCount > 0 ? null : localSignalLabelByVenueSlug.get(place.slug) ?? null,
+            boatCrewLabelByVenueSlug.get(place.slug) ??
+            (place.activeDareCount > 0 ? null : localSignalLabelByVenueSlug.get(place.slug) ?? null),
         }),
         className: `basedare-maplibre-marker basedare-maplibre-marker--venue${
           isAttentionPick ? ' basedare-maplibre-marker--attention-pick' : ''
@@ -9455,6 +9528,7 @@ export default function RealWorldMap() {
     handleAdventureActivitySelect,
     localSignals,
     localSignalLabelByVenueSlug,
+    boatCrewLabelByVenueSlug,
     mapAttentionSuggestedSlugSet,
     mapAttentionIntent,
     renderedVenueMarkerSlugSet,
@@ -9847,6 +9921,17 @@ export default function RealWorldMap() {
       </Link>
     ) : null;
 
+  const selectedPlaceBoatCrewButton =
+    selectedPlace?.slug === KANAWAY_BOAT_VENUE_SLUG ? (
+      <Link
+        href="/community/boat/kanaway"
+        className="map-primary-action-button map-primary-action-button--proof"
+        aria-label="Find a surf boat crew at Kanaway"
+      >
+        <span>Find a boat crew</span>
+      </Link>
+    ) : null;
+
   const selectedPlaceActionButtons: Partial<Record<PlaceActionId, ReactNode>> = {
     'join-live-dare': selectedPlaceJoinDareButton,
     directions: selectedPlaceDirectionsButton,
@@ -9856,9 +9941,13 @@ export default function RealWorldMap() {
     'fund-dare': selectedPlaceFundDareButton,
   };
   const selectedPlaceLeadActions = [
-    selectedPlaceActionPolicy.primary,
-    selectedPlaceActionPolicy.secondary,
-  ]
+    ...(selectedPlaceBoatCrewButton
+      ? [{ id: 'boat-crew', node: selectedPlaceBoatCrewButton }]
+      : []),
+    ...[
+      selectedPlaceActionPolicy.primary,
+      selectedPlaceActionPolicy.secondary,
+    ]
     .filter(
       (action): action is PlaceActionId =>
         action !== null && (!isMobileViewport || action !== 'check-in')
@@ -9866,7 +9955,8 @@ export default function RealWorldMap() {
     .flatMap((action) => {
       const node = selectedPlaceActionButtons[action];
       return node ? [{ id: action, node }] : [];
-    });
+    }),
+  ].slice(0, 2);
   const selectedPlaceUtilityActions = [
     ...selectedPlaceActionPolicy.tertiary.flatMap((action) => {
       const node = selectedPlaceActionButtons[action];
