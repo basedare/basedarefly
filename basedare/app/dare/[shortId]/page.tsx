@@ -9,7 +9,7 @@ import {
   ArrowLeft, Share2, Clock, Heart, MessageCircle,
   ExternalLink, AlertCircle, Loader2, CheckCircle,
   ChevronDown, Send, Zap, LayoutDashboard, Star,
-  Play, Camera, Users, Sparkles, MapPin,
+  Play, Users, Sparkles, MapPin,
 } from 'lucide-react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSignMessage } from 'wagmi';
 import { parseUnits } from 'viem';
@@ -65,6 +65,7 @@ interface DareDetail {
   reportedOutcome?: unknown;
   evidenceDecision?: string | null;
   communitySparkPlay?: {
+    title: string;
     hook: string;
     instructions: string;
     capturePrompt: string;
@@ -760,17 +761,23 @@ export default function DareDetailPage() {
 
     return null;
   })();
+  const showTrustPanel = Boolean(
+    trustPanel &&
+    (!isCommunitySpark ||
+      !['PENDING_ACCEPTANCE', 'AWAITING_CLAIM'].includes(dare?.status?.toUpperCase() ?? '')),
+  );
   const outcomeContract = parseOutcomeContractSnapshot(dare?.outcomeContractSnapshot);
   const reportedOutcome = dare?.reportedOutcome && typeof dare.reportedOutcome === 'object'
     ? (dare.reportedOutcome as Partial<ReportedOutcome>)
     : null;
   const communitySparkBrief = dare && isCommunitySpark
     ? dare.communitySparkPlay ?? {
-        hook: 'Turn a small real-world activity into a moment worth sharing.',
-        instructions: outcomeContract?.buyerQuestion ?? dare.title,
-        capturePrompt: 'Capture the most alive 5–15 seconds without blocking the activity or filming people without consent.',
-        socialPrompt: 'Invite a friend to try their own version or pass the Spark on.',
-        safety: 'Stay within your ability, follow venue rules, and stop if the situation feels unsafe.',
+        title: dare.title.split('—')[0]?.trim() || 'Play this Spark',
+        hook: 'Try it your way. Save the best moment. Pass it on.',
+        instructions: 'Do the challenge in your own safe style.',
+        capturePrompt: 'Save the best 5–15 seconds.',
+        socialPrompt: 'Tag the friend who should try next.',
+        safety: 'Stay within your ability, follow local rules, and stop if it feels unsafe.',
         estimatedMinutes: 15,
         crew: 'Solo or with friends',
         version: 1,
@@ -909,7 +916,7 @@ export default function DareDetailPage() {
           </div>
         )}
 
-        <div className="relative mx-auto min-h-[250px] max-w-3xl overflow-hidden rounded-[28px] border border-white/[0.12] bg-[rgba(13,16,35,0.20)] shadow-[0_12px_45px_rgba(5,8,24,0.45)] backdrop-blur-xl md:min-h-[400px] md:backdrop-blur-2xl">
+        <div className={`relative mx-auto max-w-3xl overflow-hidden rounded-[28px] border border-white/[0.12] bg-[rgba(13,16,35,0.20)] shadow-[0_12px_45px_rgba(5,8,24,0.45)] backdrop-blur-xl md:backdrop-blur-2xl ${isCommunitySpark ? 'min-h-[225px] md:min-h-[300px]' : 'min-h-[250px] md:min-h-[400px]'}`}>
           <div className="absolute inset-0">
             <DareVisual
               imageUrl={dare.imageUrl}
@@ -918,7 +925,7 @@ export default function DareDetailPage() {
             />
             <div className="absolute inset-0 bg-gradient-to-b from-[rgba(10,12,26,0.14)] via-[rgba(10,12,26,0.09)] to-[rgba(10,12,26,0.06)]" />
           </div>
-          <div className="relative z-10 flex h-full min-h-[250px] flex-col justify-end px-5 pb-6 md:min-h-[400px] md:px-8 md:pb-8">
+          <div className={`relative z-10 flex h-full flex-col justify-end px-5 pb-6 md:px-8 md:pb-8 ${isCommunitySpark ? 'min-h-[225px] md:min-h-[300px]' : 'min-h-[250px] md:min-h-[400px]'}`}>
             {/* Status + timer badges */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
               {sc && (
@@ -933,15 +940,17 @@ export default function DareDetailPage() {
                   {countdown}
                 </span>
               )}
-              <span className="flex items-center gap-1.5 text-xs font-mono text-white/40">
-                <MessageCircle className="w-3.5 h-3.5" />
-                {comments.length} comments
-              </span>
+              {!isCommunitySpark ? (
+                <span className="flex items-center gap-1.5 text-xs font-mono text-white/40">
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  {comments.length} comments
+                </span>
+              ) : null}
             </div>
 
             {/* Title */}
             <h1 className="mb-4 text-2xl font-black italic uppercase leading-tight tracking-tight text-[#f8dd72] drop-shadow-[0_4px_22px_rgba(0,0,0,0.78)] md:text-5xl">
-              {dare.title}
+              {communitySparkBrief?.title ?? dare.title}
             </h1>
 
             <SentinelBadge
@@ -975,24 +984,16 @@ export default function DareDetailPage() {
       {/* ── CONTENT ── */}
       <div className="relative z-10 max-w-3xl mx-auto px-4 md:px-8 space-y-6 mt-4">
 
-        {/* Bounty + likes row */}
+        {/* Paid dares keep the money summary. Free Sparks put the challenge first. */}
+        {!isCommunitySpark ? (
         <div className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4 backdrop-blur-md md:backdrop-blur-xl">
           <div>
               <p className="text-[10px] text-white/30 uppercase tracking-wider font-bold mb-0.5">
-                {isCommunitySpark ? 'Spark Type' : 'Pot Size'}
+                Pot Size
               </p>
               <div className="flex items-baseline gap-1.5">
-              {isCommunitySpark ? (
-                <>
-                  <span className="text-3xl font-black text-emerald-300">Community</span>
-                  <span className="text-sm font-bold text-emerald-500">SPARK</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-3xl font-black text-green-400">{safeBountyAmount.toLocaleString()}</span>
-                  <span className="text-sm font-bold text-green-600">USDC</span>
-                </>
-              )}
+                <span className="text-3xl font-black text-green-400">{safeBountyAmount.toLocaleString()}</span>
+                <span className="text-sm font-bold text-green-600">USDC</span>
             </div>
           </div>
           <button
@@ -1004,42 +1005,51 @@ export default function DareDetailPage() {
             <span className="text-xs font-mono font-bold">{safeUpvoteCount.toLocaleString()}</span>
           </button>
         </div>
+        ) : null}
 
         {communitySparkBrief ? (
-          <section className="overflow-hidden rounded-[26px] border border-fuchsia-300/18 bg-[linear-gradient(145deg,rgba(98,35,135,.18),rgba(8,199,157,.08))] p-5 shadow-[0_18px_54px_rgba(48,16,70,.2)] backdrop-blur-xl md:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="max-w-xl">
-                <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-200">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Free to play
-                </p>
-                <h2 className="mt-3 text-xl font-black leading-tight text-white md:text-2xl">
-                  {communitySparkBrief.hook}
-                </h2>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {communitySparkPlayRadiusLabel ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/16 bg-emerald-500/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/75">
-                    <MapPin className="h-3 w-3" />
-                    Play zone · {communitySparkPlayRadiusLabel}
-                  </span>
-                ) : null}
-                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/65">
-                  ~{communitySparkBrief.estimatedMinutes} min
+          <section className="overflow-hidden rounded-[26px] border border-fuchsia-300/18 bg-[radial-gradient(circle_at_85%_0%,rgba(16,185,129,.13),transparent_34%),linear-gradient(145deg,rgba(98,35,135,.2),rgba(4,15,18,.9))] p-5 shadow-[0_18px_54px_rgba(48,16,70,.2)] md:p-6">
+            <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-200">
+              <Sparkles className="h-3.5 w-3.5" />
+              Free Spark
+            </p>
+            <h2 className="mt-3 text-2xl font-black leading-[1.05] text-white md:text-3xl">
+              {communitySparkBrief.hook}
+            </h2>
+
+            <div className="mt-4 rounded-2xl border border-white/[0.08] bg-black/22 px-4 py-3">
+              <p className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-2 text-sm leading-5 text-white/82">
+                <span className="text-[9px] font-black uppercase tracking-[0.18em] text-fuchsia-200">Do</span>
+                <span className="font-bold">{communitySparkBrief.instructions}</span>
+              </p>
+              <p className="mt-2 grid grid-cols-[3.25rem_minmax(0,1fr)] gap-2 border-t border-white/[0.07] pt-2 text-sm leading-5 text-white/68">
+                <span className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-200">Film</span>
+                <span>{communitySparkBrief.capturePrompt}</span>
+              </p>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {communitySparkPlayRadiusLabel ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/16 bg-emerald-500/[0.07] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-100/75">
+                  <MapPin className="h-3 w-3" />
+                  {communitySparkPlayRadiusLabel} zone
                 </span>
-                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white/65">
-                  {communitySparkBrief.crew}
-                </span>
-              </div>
+              ) : null}
+              <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/58">
+                ~{communitySparkBrief.estimatedMinutes} min
+              </span>
+              <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/58">
+                {communitySparkBrief.crew}
+              </span>
             </div>
 
             {!isExpired ? (
-              <div className="mt-5 grid grid-cols-[minmax(0,1fr)_76px] gap-2">
+              <div className="mt-4 grid grid-cols-[minmax(0,1fr)_68px] gap-2">
                 <button
                   type="button"
                   onClick={() => { void handleCommunitySparkAction(); }}
                   disabled={communityPlayAccess.status === 'checking'}
-                  className="flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#f5c518]/35 bg-[linear-gradient(135deg,#f4d44d,#b87c0b)] px-4 text-sm font-black uppercase tracking-[0.16em] text-[#171108] shadow-[0_8px_26px_rgba(245,197,24,.18)] transition hover:brightness-110"
+                  className="flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#f5c518]/35 bg-[linear-gradient(135deg,#f4d44d,#b87c0b)] px-4 text-xs font-black uppercase tracking-[0.15em] text-[#171108] shadow-[0_8px_26px_rgba(245,197,24,.18)] transition hover:brightness-110"
                 >
                   {communityPlayAccess.status === 'checking'
                     ? <Loader2 className="h-5 w-5 animate-spin" />
@@ -1072,29 +1082,23 @@ export default function DareDetailPage() {
               </div>
             ) : null}
 
-            <div className="mt-5 grid gap-3 md:grid-cols-3">
-              {[
-                { icon: Play, label: 'Play', copy: communitySparkBrief.instructions },
-                { icon: Camera, label: 'Capture', copy: communitySparkBrief.capturePrompt },
-                { icon: Users, label: 'Pass it on', copy: communitySparkBrief.socialPrompt },
-              ].map(({ icon: Icon, label, copy }) => (
-                <div key={label} className="rounded-2xl border border-white/[0.08] bg-black/20 p-4">
-                  <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-fuchsia-200">
-                    <Icon className="h-3.5 w-3.5" />
-                    {label}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-white/70">{copy}</p>
-                </div>
-              ))}
-            </div>
-
-            <p className="mt-4 text-xs leading-5 text-white/48">
-              <span className="font-bold text-white/65">Keep it fun:</span> {communitySparkBrief.safety}
+            <p className="mt-3 flex items-center gap-2 text-xs font-bold leading-5 text-fuchsia-100/66">
+              <Users className="h-3.5 w-3.5 shrink-0" />
+              {communitySparkBrief.socialPrompt}
             </p>
+
+            <details className="group mt-3 rounded-xl border border-white/[0.07] bg-black/16 px-3 py-2.5 text-xs text-white/48">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-bold text-white/58">
+                <span>Play safe</span>
+                <ChevronDown className="h-3.5 w-3.5 transition group-open:rotate-180" />
+              </summary>
+              <p className="mt-2 leading-5">{communitySparkBrief.safety}</p>
+              <p className="mt-1.5 leading-5 text-white/34">Free to play · no cash prize · not an official venue competition.</p>
+            </details>
           </section>
         ) : null}
 
-        <DareStatusTimeline dare={{ ...dare, isCommunitySpark }} size="full" />
+        {!isCommunitySpark ? <DareStatusTimeline dare={{ ...dare, isCommunitySpark }} size="full" /> : null}
 
         {outcomeContract && !isCommunitySpark ? (
           <section className="rounded-2xl border border-cyan-300/16 bg-cyan-400/[0.055] p-4 backdrop-blur-md md:p-5">
@@ -1114,7 +1118,7 @@ export default function DareDetailPage() {
           </section>
         ) : null}
 
-        {trustPanel ? (
+        {showTrustPanel && trustPanel ? (
           <section className={`rounded-2xl border p-4 backdrop-blur-md md:p-5 md:backdrop-blur-xl ${trustPanel.tone}`}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
@@ -1257,7 +1261,7 @@ export default function DareDetailPage() {
             </h3>
             <p className="text-xs text-white/50 mb-3">
               {isCommunitySpark
-                ? 'Join this Spark, capture the fun part when it happens, and close with a community receipt. Free to play · no cash reward.'
+                ? 'You are close enough. Join, play, and save your best moment.'
                 : 'You can request to accept this dare and earn the full bounty.'}
             </p>
             {claimError && <p className="text-xs text-red-400 mb-2">{claimError}</p>}
@@ -1329,10 +1333,10 @@ export default function DareDetailPage() {
             <p className="text-xs text-white/55">
               {dare.claimRequestWallet?.toLowerCase() === address?.toLowerCase()
                 ? isCommunitySpark
-                  ? 'You are in the queue for this Spark. Once accepted, go make the moment yours.'
+                  ? 'You are in the queue. We will let you know when this Spark is ready.'
                   : 'Your claim request is in. A moderator will review it before this activation is assigned.'
                 : isCommunitySpark
-                  ? `${dare.claimRequestTag ?? 'Someone'} is getting ready to play this Spark. Cheer them on or find another one nearby.`
+                  ? `${dare.claimRequestTag ?? 'Someone'} is up next. Cheer them on or pick another Spark.`
                   : `${dare.claimRequestTag ?? 'Someone'} has already requested this activation. Check back soon or browse another live brief.`}
             </p>
           </div>
@@ -1496,7 +1500,7 @@ export default function DareDetailPage() {
         targetType="DARE"
         targetId={dare.id}
         targetHref={`/dare/${dare.shortId || dare.id}`}
-        title={dare.title}
+        title={communitySparkBrief?.title ?? dare.title}
       />
 
     </main>

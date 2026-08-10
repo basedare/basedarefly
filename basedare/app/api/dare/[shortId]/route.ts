@@ -32,23 +32,23 @@ export async function GET(
     const reconciledDare = await reconcileFundingDare(dare);
     const stakerAvatarMap = await getStakerAvatarMap([reconciledDare.stakerAddress]);
     const imageUrl = resolveDareImageUrl(reconciledDare, stakerAvatarMap);
-    const resolvedCommunitySparkPlay = getActionSportsCommunitySparkByStreamId(reconciledDare.streamId);
-    const communitySparkPlay = resolvedCommunitySparkPlay?.isCurrentVersion
-      ? resolvedCommunitySparkPlay
+    const isCommunitySpark = reconciledDare.bounty <= 0 && reconciledDare.tag === 'community';
+    const resolvedCommunitySparkPlay = isCommunitySpark
+      ? getActionSportsCommunitySparkByStreamId(reconciledDare.streamId)
       : null;
+    // Legacy live rows keep their immutable receipt version, but the public
+    // challenge should still use the current short, playable presentation.
+    const communitySparkPlay = resolvedCommunitySparkPlay ?? null;
 
     return NextResponse.json({
       id: reconciledDare.id,
       shortId: reconciledDare.shortId || reconciledDare.id.slice(0, 8),
-      title: reconciledDare.title,
+      title: communitySparkPlay?.title ?? reconciledDare.title,
       bounty: reconciledDare.bounty,
       missionTag: reconciledDare.tag,
-      isCommunitySpark: reconciledDare.bounty <= 0 && reconciledDare.tag === 'community',
+      isCommunitySpark,
       communitySparkPlay,
-      communitySparkPlayRadiusKm:
-        reconciledDare.bounty <= 0 && reconciledDare.tag === 'community'
-          ? reconciledDare.discoveryRadiusKm
-          : null,
+      communitySparkPlayRadiusKm: isCommunitySpark ? reconciledDare.discoveryRadiusKm : null,
       upvoteCount: reconciledDare.upvoteCount ?? 0,
       streamerHandle: reconciledDare.streamerHandle,
       status: reconciledDare.status,

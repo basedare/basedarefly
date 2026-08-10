@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
+import { getActionSportsCommunitySparkByStreamId } from '@/lib/action-sports-community-sparks';
 
 export async function generateMetadata(
   { params }: { params: Promise<{ shortId: string }> }
@@ -14,6 +15,8 @@ export async function generateMetadata(
       shortId: true,
       title: true,
       bounty: true,
+      tag: true,
+      streamId: true,
       streamerHandle: true,
       status: true,
       venue: {
@@ -33,10 +36,18 @@ export async function generateMetadata(
 
   const displayId = dare.shortId ?? shortId;
   const venueName = dare.venue?.name;
-  const title = `${dare.title} — ${dare.bounty} USDC | BaseDare`;
-  const description = venueName
-    ? `${dare.title} is live for ${dare.bounty} USDC at ${venueName}. Track proof, status, and funding on BaseDare.`
-    : `${dare.title} is live for ${dare.bounty} USDC on BaseDare. Track proof, status, and funding in real time.`;
+  const communitySpark = dare.bounty <= 0 && dare.tag === 'community'
+    ? getActionSportsCommunitySparkByStreamId(dare.streamId)
+    : null;
+  const displayTitle = communitySpark?.title ?? dare.title;
+  const title = communitySpark
+    ? `${displayTitle} · Free Spark | BaseDare`
+    : `${displayTitle} — ${dare.bounty} USDC | BaseDare`;
+  const description = communitySpark
+    ? `${communitySpark.hook}${venueName ? ` Play it at ${venueName}.` : ''} Free to play on BaseDare.`
+    : venueName
+      ? `${displayTitle} is live for ${dare.bounty} USDC at ${venueName}. Track proof, status, and funding on BaseDare.`
+      : `${displayTitle} is live for ${dare.bounty} USDC on BaseDare. Track proof, status, and funding in real time.`;
 
   return {
     title,

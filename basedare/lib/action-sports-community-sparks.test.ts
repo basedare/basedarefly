@@ -11,16 +11,17 @@ import {
   isActionSportsCommunitySparkKey,
 } from './action-sports-community-sparks.ts';
 
-test('Community Sparks are bounded, safety-led free play rather than payout promises', () => {
+test('Community Sparks are short, bounded challenges rather than manuals', () => {
   assert.match(COMMUNITY_SPARK_DISCLAIMER, /no cash reward/i);
   assert.match(COMMUNITY_SPARK_DISCLAIMER, /not an official competition/i);
 
   const titles = new Set<string>();
   for (const spark of ACTION_SPORTS_COMMUNITY_SPARKS) {
-    assert.ok(spark.instructions.length >= 40);
-    assert.ok(spark.hook.length >= 40);
-    assert.ok(spark.capturePrompt.length >= 40);
-    assert.ok(spark.socialPrompt.length >= 35);
+    assert.ok(spark.title.length <= 36);
+    assert.ok(spark.instructions.length <= 85);
+    assert.ok(spark.hook.length <= 90);
+    assert.ok(spark.capturePrompt.length <= 60);
+    assert.ok(spark.socialPrompt.length <= 60);
     assert.ok(spark.safety.length >= 40);
     assert.ok(spark.estimatedMinutes >= 5);
     assert.ok(spark.estimatedMinutes <= 30);
@@ -47,7 +48,7 @@ test('current Spark stream IDs resolve to their play-first brief', () => {
   const resolved = getActionSportsCommunitySparkByStreamId(streamId);
   assert.equal(resolved?.title, 'Board, boat or beach?');
   assert.equal(resolved?.isCurrentVersion, true);
-  assert.match(`${resolved?.instructions} ${resolved?.capturePrompt}`, /confirm/i);
+  assert.match(resolved?.instructions ?? '', /confirm/i);
   assert.match(`${resolved?.instructions} ${resolved?.safety}`, /boat|rental/i);
 });
 

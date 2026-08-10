@@ -12,6 +12,7 @@ import {
   resolveCommunitySparkPlayAccess,
   shouldShowDareInMapViewport,
 } from '@/lib/community-spark-map-policy';
+import { getActionSportsCommunitySparkByStreamId } from '@/lib/action-sports-community-sparks';
 
 // Query schema
 const requiredLatitude = z.preprocess(
@@ -198,6 +199,7 @@ export async function GET(request: NextRequest) {
         id: true,
         shortId: true,
         title: true,
+        streamId: true,
         bounty: true,
         tag: true,
         status: true,
@@ -235,6 +237,9 @@ export async function GET(request: NextRequest) {
           bounty: dare.bounty,
           missionTag: dare.tag,
         });
+        const communitySpark = isCommunitySpark
+          ? getActionSportsCommunitySparkByStreamId(dare.streamId)
+          : null;
 
         if (!shouldShowDareInMapViewport({
           isCommunitySpark,
@@ -263,7 +268,7 @@ export async function GET(request: NextRequest) {
         return {
           id: dare.id,
           shortId: dare.shortId,
-          title: dare.title,
+          title: communitySpark?.title ?? dare.title,
           bounty: dare.bounty,
           missionTag: dare.tag,
           isCommunitySpark,

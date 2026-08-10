@@ -4,6 +4,7 @@ import { isAddress } from 'viem';
 import { reconcileFundingDares } from '@/lib/bounty-reconciliation';
 import { getStakerAvatarMap, resolveDareImageUrl } from '@/lib/dare-images';
 import { isCommunitySparkRecord } from '@/lib/community-spark-map-policy';
+import { getActionSportsCommunitySparkByStreamId } from '@/lib/action-sports-community-sparks';
 
 const PUBLIC_DARE_QUERY_TIMEOUT_MS = 900;
 const PUBLIC_DARE_FALLBACK_COOLDOWN_MS = 30_000;
@@ -226,10 +227,14 @@ export async function GET(request: NextRequest) {
     const formattedDares = reconciledDares.map(dare => {
       const isExpiredByDate = dare.expiresAt && new Date(dare.expiresAt) < now;
       const effectiveStatus = isExpiredByDate ? 'EXPIRED' : dare.status;
+      const isCommunitySpark = isCommunitySparkRecord({ bounty: dare.bounty, missionTag: dare.tag });
+      const communitySpark = isCommunitySpark
+        ? getActionSportsCommunitySparkByStreamId(dare.streamId)
+        : null;
 
       return {
         id: dare.id,
-        description: dare.title,
+        description: communitySpark?.title ?? dare.title,
         stake_amount: dare.bounty,
         streamer_name: dare.streamerHandle,
         status: effectiveStatus,
@@ -238,7 +243,7 @@ export async function GET(request: NextRequest) {
         short_id: dare.shortId || dare.id.slice(0, 8),
         image_url: resolveDareImageUrl(dare, stakerAvatarMap) ?? "",
         mission_tag: dare.tag,
-        is_community_spark: isCommunitySparkRecord({ bounty: dare.bounty, missionTag: dare.tag }),
+        is_community_spark: isCommunitySpark,
         location_label: dare.locationLabel,
         venue_id: dare.venueId,
         require_sentinel: dare.requireSentinel,

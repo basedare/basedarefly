@@ -27,14 +27,16 @@ export function SafetyWaiver({ checked, onChange, context = 'claim' }: SafetyWai
         Safety check
       </p>
       <p className="mt-2 text-xs leading-5 text-white/62">
-        {context === 'claim'
+        {context === 'spark'
+          ? 'Stay within your ability, follow local rules, and get consent before filming.'
+          : context === 'claim'
           ? 'Missions are skill-based tasks — never chance, wagering, or anything dangerous.'
-          : context === 'spark'
-            ? 'Keep it within your ability, follow venue rules, and get consent before filming anyone.'
-            : 'Proof must show a skill-based task completed safely and legally.'}{' '}
-        By continuing you confirm you are 18+, you will act safely and legally, you will not
-        endanger yourself or others, and you accept full responsibility for your actions.
-        Unsafe or illegal submissions are rejected and can end your account.
+          : 'Proof must show a skill-based task completed safely and legally.'}
+        {context !== 'spark' ? (
+          <>{' '}By continuing you confirm you are 18+, you will act safely and legally, you will not
+          endanger yourself or others, and you accept full responsibility for your actions.
+          Unsafe or illegal submissions are rejected and can end your account.</>
+        ) : null}
       </p>
       <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-xs font-bold text-white/78">
         <input
@@ -44,7 +46,7 @@ export function SafetyWaiver({ checked, onChange, context = 'claim' }: SafetyWai
           className="mt-0.5 h-4 w-4 shrink-0 accent-yellow-400"
         />
         <span>
-          I understand and accept the safety terms and the{' '}
+          {context === 'spark' ? 'I am 18+, I will play safely, and I accept the ' : 'I understand and accept the safety terms and the '}
           <Link href="/terms" target="_blank" className="text-yellow-200/90 underline underline-offset-2 hover:text-yellow-100">
             Terms
           </Link>
