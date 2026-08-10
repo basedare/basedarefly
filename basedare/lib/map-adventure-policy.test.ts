@@ -2,10 +2,43 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import {
   getAdventurePlaceSprite,
+  getSurfMapSignalRole,
   shouldRenderAdventureActivityMarker,
   shouldRenderLocalSignalMarker,
   SURF_SIGNAL_PATTERN,
 } from './map-adventure-policy.ts';
+
+test('swell echoes distinguish real breaks from surf businesses', () => {
+  assert.equal(
+    getSurfMapSignalRole(['surf', 'boardwalk', 'iconic', 'beach']),
+    'break'
+  );
+  assert.equal(
+    getSurfMapSignalRole(['surf', 'reef-break', 'advanced', 'tuason']),
+    'break'
+  );
+  assert.equal(
+    getSurfMapSignalRole([
+      'surf-school',
+      'surf-rental',
+      'surf-spot',
+      'boat-launch',
+    ]),
+    'access'
+  );
+  assert.equal(
+    getSurfMapSignalRole(['surf-school', 'surf-rental', 'board-rental']),
+    null
+  );
+  assert.equal(
+    getSurfMapSignalRole(['surf', 'resort', 'restaurant', 'surf-lessons']),
+    null
+  );
+  assert.equal(
+    getSurfMapSignalRole(['restaurant', 'surf', 'reef-break', 'beach']),
+    null
+  );
+});
 
 test('bar identity wins over nearby boardwalk, dock, and beach categories', () => {
   assert.equal(

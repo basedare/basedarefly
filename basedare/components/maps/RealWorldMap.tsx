@@ -80,6 +80,7 @@ import { triggerHaptic } from '@/lib/mobile-haptics';
 import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
 import {
   getAdventurePlaceSprite,
+  getSurfMapSignalRole,
   shouldRenderAdventureActivityMarker,
   shouldRenderLocalSignalMarker,
   SURF_SIGNAL_PATTERN,
@@ -106,6 +107,7 @@ import {
   useTonightActivity,
   type TonightActivity,
 } from '@/components/maps/useTonightActivity';
+import { useSiargaoSurfSignal } from '@/components/maps/useSiargaoSurfSignal';
 import {
   createMeetupMarkerHtml,
   meetupPassesLayerFilter,
@@ -3196,6 +3198,7 @@ function createPeebearMarkerHtml({
     .join(',');
   const categoryKey = (categories ?? []).slice(0, 4).join(',');
   const adventureSprite = getAdventurePlaceSprite({ challengeLiveCount, categories });
+  const surfSignalRole = getSurfMapSignalRole(categories);
   const adventureModifier = hasChallengeLive
     ? hasCommunitySpark ? '✦' : liveLabel
     : approvedCount > 0
@@ -3208,7 +3211,7 @@ function createPeebearMarkerHtml({
   const safeLocalSignalLabel = localSignalLabel
     ? escapeMarkerAttribute(localSignalLabel.slice(0, 10).toUpperCase())
     : null;
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `${hasCommunitySpark ? 'community-spark' : 'challenge'}-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${categoryKey}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${safeLocalSignalLabel ?? 'no-local'}:${liveTonight ? 'tonight' : 'off-night'}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `${hasCommunitySpark ? 'community-spark' : 'challenge'}-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${categoryKey}:${surfSignalRole ?? 'no-surf-echo'}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${safeLocalSignalLabel ?? 'no-local'}:${liveTonight ? 'tonight' : 'off-night'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -3216,7 +3219,7 @@ function createPeebearMarkerHtml({
   }
 
   const html = `
-    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${hasCommunitySpark ? 'has-community-spark' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${liveTonight ? 'is-live-tonight' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
+    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${hasCommunitySpark ? 'has-community-spark' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${liveTonight ? 'is-live-tonight' : ''} ${safeVenueLabel ? 'has-venue-label' : ''} ${surfSignalRole ? `has-surf-swell-echo surf-swell-echo--${surfSignalRole}` : ''}">
       ${
         safeVenueLabel
           ? `<span class="peebear-venue-label ${activated ? 'peebear-venue-label--activated' : ''}" title="${safeVenueTitle ?? safeVenueLabel}"><span class="peebear-venue-label-name">${safeVenueLabel}</span></span>`
@@ -3228,6 +3231,15 @@ function createPeebearMarkerHtml({
       ${safeLocalSignalLabel && !showChallengeLiveChrome && !compact ? `<span class="peebear-local-pill">${safeLocalSignalLabel}</span>` : ''}
       ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
       ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
+      ${
+        surfSignalRole
+          ? `<span class="surf-swell-echo surf-swell-echo__${surfSignalRole}" aria-hidden="true">
+              <span class="surf-swell-wave surf-swell-wave--1"><svg viewBox="0 0 92 38" focusable="false"><path d="M5 29C16 21 24 34 35 27S54 20 66 27 81 30 88 24" /></svg></span>
+              <span class="surf-swell-wave surf-swell-wave--2"><svg viewBox="0 0 92 38" focusable="false"><path d="M9 21C20 13 29 27 41 19S61 12 72 19 84 21 88 16" /></svg></span>
+              <span class="surf-swell-wave surf-swell-wave--3"><svg viewBox="0 0 92 38" focusable="false"><path d="M18 13C28 6 37 19 49 11S68 5 79 12" /></svg></span>
+            </span>`
+          : ''
+      }
       <span class="adventure-place-object adventure-place-object--${visualState} ${hasChallengeLive ? 'has-live-dare' : ''}" aria-hidden="true">
         <span class="adventure-sprite adventure-sprite--${adventureSprite}"></span>
         ${adventureModifier ? `<span class="adventure-place-modifier">${adventureModifier}</span>` : ''}
@@ -3657,6 +3669,7 @@ export default function RealWorldMap() {
     [userLocation, viewportCenter]
   );
   const tonightActivity = useTonightActivity(adventureCenter, mapReady);
+  const surfSignal = useSiargaoSurfSignal(mapReady);
   const focalAdventureActivity = tonightActivity.snapshot?.activities[0] ?? null;
   const deepLinkedLocation = useMemo(() => {
     const latitude = Number(searchParams.get('lat'));
@@ -11116,6 +11129,7 @@ export default function RealWorldMap() {
             data-layer-filter={effectiveLayerFilter}
             data-adventure-mode={adventureMode ? 'true' : 'false'}
             data-attention-intent={mapAttentionIntent ?? 'unset'}
+            data-surf-signal-tier={surfSignal?.tier ?? 'unavailable'}
             data-attention-guide={
               mapAttentionGuideOpen && !selectedPlace && !selectedMeetup ? 'true' : 'false'
             }
@@ -11155,6 +11169,7 @@ export default function RealWorldMap() {
               onGuideOpenChange={setMapAttentionGuideOpen}
               fieldStationLabel={fieldStationLabel}
               fieldStationFallback={fieldStationFallback}
+              surfSignal={surfSignal}
             />
 
             {/* Free meetup layer (Stage 3) — layer filter + legend. Only mounts
@@ -16848,6 +16863,103 @@ export default function RealWorldMap() {
           display: none;
         }
 
+        .basedare-maplibre-map {
+          --surf-echo-rgb: 103, 232, 249;
+          --surf-echo-duration: 5.6s;
+          --surf-echo-strength: 0.5;
+          --surf-access-strength: 0.34;
+        }
+
+        .basedare-maplibre-map[data-surf-signal-tier='playful'] {
+          --surf-echo-rgb: 94, 234, 212;
+          --surf-echo-duration: 4.2s;
+          --surf-echo-strength: 0.78;
+          --surf-access-strength: 0.54;
+        }
+
+        .basedare-maplibre-map[data-surf-signal-tier='pumping'] {
+          --surf-echo-rgb: 125, 238, 255;
+          --surf-echo-duration: 3.3s;
+          --surf-echo-strength: 0.94;
+          --surf-access-strength: 0.66;
+        }
+
+        .basedare-maplibre-map :global(.surf-swell-echo) {
+          position: absolute;
+          left: 50%;
+          bottom: 17px;
+          z-index: 8;
+          display: block;
+          width: 96px;
+          height: 40px;
+          pointer-events: none;
+          color: rgb(var(--surf-echo-rgb));
+          opacity: var(--surf-echo-strength);
+          transform: translateX(-50%);
+          filter: drop-shadow(0 0 5px rgba(var(--surf-echo-rgb), 0.42));
+        }
+
+        .basedare-maplibre-map :global(.surf-swell-echo__access) {
+          bottom: 19px;
+          width: 76px;
+          opacity: var(--surf-access-strength);
+        }
+
+        .basedare-maplibre-map :global(.surf-swell-wave) {
+          position: absolute;
+          inset: 0;
+          display: block;
+          opacity: 0.32;
+          transform-origin: center;
+          animation: surfSwellEcho var(--surf-echo-duration) ease-in-out infinite;
+          will-change: transform, opacity;
+        }
+
+        .basedare-maplibre-map :global(.surf-swell-wave svg) {
+          width: 100%;
+          height: 100%;
+          overflow: visible;
+        }
+
+        .basedare-maplibre-map :global(.surf-swell-wave path) {
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 2;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          vector-effect: non-scaling-stroke;
+        }
+
+        .basedare-maplibre-map :global(.surf-swell-wave--2) {
+          animation-delay: -1.15s;
+        }
+
+        .basedare-maplibre-map :global(.surf-swell-wave--3) {
+          animation-delay: -2.3s;
+        }
+
+        .basedare-maplibre-map[data-surf-signal-tier='pumping']
+          :global(.surf-swell-wave--3 path) {
+          stroke: rgba(245, 197, 24, 0.96);
+        }
+
+        .basedare-maplibre-map[data-surf-signal-tier='unavailable']
+          :global(.surf-swell-echo) {
+          opacity: 0.24;
+        }
+
+        .basedare-maplibre-map[data-surf-signal-tier='unavailable']
+          :global(.surf-swell-wave) {
+          animation: none;
+          opacity: 0.42;
+          transform: scaleX(0.92);
+        }
+
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.surf-swell-echo),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.surf-swell-echo) {
+          display: none !important;
+        }
+
         .basedare-maplibre-map :global(.adventure-place-object) {
           --holo-rgb: 34, 211, 238;
           position: absolute;
@@ -17078,6 +17190,21 @@ export default function RealWorldMap() {
         @keyframes adventureObjectHover {
           0%, 100% { translate: 0 0; }
           50% { translate: 0 -4px; }
+        }
+
+        @keyframes surfSwellEcho {
+          0%, 100% {
+            opacity: 0.16;
+            transform: translate3d(0, 3px, 0) scaleX(0.82);
+          }
+          45% {
+            opacity: 0.92;
+            transform: translate3d(0, -1px, 0) scaleX(1);
+          }
+          72% {
+            opacity: 0.38;
+            transform: translate3d(0, 1px, 0) scaleX(0.92);
+          }
         }
 
         .basedare-maplibre-map[data-adventure-mode='true'] :global(.current-location-bear) {
@@ -17350,9 +17477,16 @@ export default function RealWorldMap() {
         @media (prefers-reduced-motion: reduce) {
           .basedare-maplibre-map :global(.adventure-place-object),
           .basedare-maplibre-map :global(.adventure-guide-head),
-          .basedare-maplibre-map :global(.adventure-focal-marker) {
+          .basedare-maplibre-map :global(.adventure-focal-marker),
+          .basedare-maplibre-map :global(.surf-swell-wave) {
             animation: none !important;
             transition: none !important;
+          }
+
+          .basedare-maplibre-map :global(.surf-swell-wave) {
+            opacity: 0.58;
+            transform: none !important;
+            will-change: auto;
           }
         }
 

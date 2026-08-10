@@ -16,6 +16,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex lightweight surf Swell Echo (2026-08-10 — SHIPPED)
+- The user explicitly assigned Codex a narrow presentation-only surf-map pass: verified breaks receive a lightweight SVG/CSS swell echo, Kanaway receives a smaller access echo, and the existing offshore signal controls visual intensity.
+- Files owned in this pass: `lib/map-adventure-policy.ts`, its focused test, `components/maps/AdventureMapOverlay.tsx`, and the smallest necessary marker/CSS additions in `components/maps/RealWorldMap.tsx`.
+- No MapLibre renderer, camera, canvas, tile, buffer, source, or layer behavior is changing. The echo disappears during map gestures and becomes static under reduced-motion preferences.
+
 ### Codex short, playable Community Spark briefs (2026-08-10 — SHIPPED)
 - Community Spark detail pages now put one short challenge above the fold: hook, **Do**, **Film**, Play, Cheer, and pass-it-on. The full lifecycle and open-receipt explainers are hidden for free Sparks; safety detail is collapsed and the Spark join waiver is concise.
 - All six action-sports presets are tightened and versioned as v3. Known live v1/v2 stream IDs keep their immutable receipt version but receive the current short public presentation across detail, list, nearby-map, and share metadata surfaces.

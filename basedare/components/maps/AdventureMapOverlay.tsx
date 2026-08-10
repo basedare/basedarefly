@@ -19,8 +19,8 @@ import type {
   TonightSnapshot,
 } from "@/components/maps/useTonightActivity";
 import type { AdventureSpriteKind } from "@/lib/map-adventure-policy";
+import type { SiargaoSurfSignal } from "@/lib/siargao-surf-signal";
 import { getSiargaoNightGuide } from "@/lib/siargao-nightlife";
-import { useSiargaoSurfSignal } from "@/components/maps/useSiargaoSurfSignal";
 
 type AdventureMapOverlayProps = {
   enabled: boolean;
@@ -43,6 +43,7 @@ type AdventureMapOverlayProps = {
   onGuideOpenChange: (open: boolean) => void;
   fieldStationLabel?: string | null;
   fieldStationFallback?: boolean;
+  surfSignal: SiargaoSurfSignal | null;
 };
 
 export type MapAttentionIntent = "meet" | "discover" | "now" | "tonight";
@@ -145,10 +146,10 @@ export default function AdventureMapOverlay({
   onGuideOpenChange,
   fieldStationLabel,
   fieldStationFallback = false,
+  surfSignal,
 }: AdventureMapOverlayProps) {
   const [guideLineIndex, setGuideLineIndex] = useState(0);
   const [guideSpeechOpen, setGuideSpeechOpen] = useState(false);
-  const surfSignal = useSiargaoSurfSignal(!obscured);
   const nightGuide = getSiargaoNightGuide();
   const confirmedTonightActivities = useMemo(
     () =>
