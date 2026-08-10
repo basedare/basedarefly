@@ -16864,24 +16864,24 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map {
-          --surf-echo-rgb: 103, 232, 249;
+          --surf-echo-rgb: 245, 197, 24;
           --surf-echo-duration: 5.6s;
-          --surf-echo-strength: 0.5;
-          --surf-access-strength: 0.34;
+          --surf-echo-strength: 0.78;
+          --surf-access-strength: 0.65;
         }
 
         .basedare-maplibre-map[data-surf-signal-tier='playful'] {
-          --surf-echo-rgb: 94, 234, 212;
+          --surf-echo-rgb: 255, 218, 58;
           --surf-echo-duration: 4.2s;
-          --surf-echo-strength: 0.78;
-          --surf-access-strength: 0.54;
+          --surf-echo-strength: 0.9;
+          --surf-access-strength: 0.78;
         }
 
         .basedare-maplibre-map[data-surf-signal-tier='pumping'] {
-          --surf-echo-rgb: 125, 238, 255;
+          --surf-echo-rgb: 255, 229, 104;
           --surf-echo-duration: 3.3s;
-          --surf-echo-strength: 0.94;
-          --surf-access-strength: 0.66;
+          --surf-echo-strength: 1;
+          --surf-access-strength: 0.88;
         }
 
         .basedare-maplibre-map :global(.surf-swell-echo) {
@@ -16896,7 +16896,9 @@ export default function RealWorldMap() {
           color: rgb(var(--surf-echo-rgb));
           opacity: var(--surf-echo-strength);
           transform: translateX(-50%);
-          filter: drop-shadow(0 0 5px rgba(var(--surf-echo-rgb), 0.42));
+          filter:
+            drop-shadow(0 0 4px rgba(8, 6, 1, 0.94))
+            drop-shadow(0 0 8px rgba(var(--surf-echo-rgb), 0.72));
         }
 
         .basedare-maplibre-map :global(.surf-swell-echo__access) {
@@ -16924,7 +16926,7 @@ export default function RealWorldMap() {
         .basedare-maplibre-map :global(.surf-swell-wave path) {
           fill: none;
           stroke: currentColor;
-          stroke-width: 2;
+          stroke-width: 2.4;
           stroke-linecap: round;
           stroke-linejoin: round;
           vector-effect: non-scaling-stroke;
@@ -16940,12 +16942,12 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map[data-surf-signal-tier='pumping']
           :global(.surf-swell-wave--3 path) {
-          stroke: rgba(245, 197, 24, 0.96);
+          stroke: rgba(255, 248, 205, 0.98);
         }
 
         .basedare-maplibre-map[data-surf-signal-tier='unavailable']
           :global(.surf-swell-echo) {
-          opacity: 0.24;
+          opacity: 0.58;
         }
 
         .basedare-maplibre-map[data-surf-signal-tier='unavailable']
@@ -16955,7 +16957,28 @@ export default function RealWorldMap() {
           transform: scaleX(0.92);
         }
 
-        .basedare-maplibre-map[data-zoom-band='far'] :global(.surf-swell-echo),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.surf-swell-echo) {
+          bottom: 12px;
+          width: 118px;
+          height: 48px;
+          opacity: 0.9;
+          filter:
+            drop-shadow(0 0 5px rgba(8, 6, 1, 0.98))
+            drop-shadow(0 0 11px rgba(var(--surf-echo-rgb), 0.86));
+        }
+
+        .basedare-maplibre-map[data-zoom-band='far']
+          :global(.surf-swell-echo__access) {
+          bottom: 14px;
+          width: 104px;
+          opacity: 0.8;
+        }
+
+        .basedare-maplibre-map[data-zoom-band='far']
+          :global(.surf-swell-wave path) {
+          stroke-width: 3.2;
+        }
+
         .basedare-maplibre-map[data-map-moving='true'] :global(.surf-swell-echo) {
           display: none !important;
         }
@@ -17194,15 +17217,15 @@ export default function RealWorldMap() {
 
         @keyframes surfSwellEcho {
           0%, 100% {
-            opacity: 0.16;
+            opacity: 0.42;
             transform: translate3d(0, 3px, 0) scaleX(0.82);
           }
           45% {
-            opacity: 0.92;
+            opacity: 1;
             transform: translate3d(0, -1px, 0) scaleX(1);
           }
           72% {
-            opacity: 0.38;
+            opacity: 0.62;
             transform: translate3d(0, 1px, 0) scaleX(0.92);
           }
         }
