@@ -3123,11 +3123,11 @@ function createSurfBreakMarkerHtml(label: string) {
     <div class="surf-break-map-marker" title="${safeLabel} surf break">
       <span class="surf-break-map-label">${safeLabel}</span>
       <span class="surf-swell-flow" aria-hidden="true">
-        <span class="surf-swell-particle surf-swell-particle--1"></span>
-        <span class="surf-swell-particle surf-swell-particle--2"></span>
-        <span class="surf-swell-particle surf-swell-particle--3"></span>
-        <span class="surf-swell-particle surf-swell-particle--4"></span>
-        <span class="surf-swell-particle surf-swell-particle--5"></span>
+        <svg viewBox="0 0 24 30" focusable="false">
+          <path class="surf-swell-crest surf-swell-crest--1" d="M2 7C5 3.5 8 3.5 11 7S17 10.5 22 5.5" />
+          <path class="surf-swell-crest surf-swell-crest--2" d="M1 16C4 12 7.5 12 10.5 16S17 19 23 13.5" />
+          <path class="surf-swell-crest surf-swell-crest--3" d="M3 25C6 21 9 21 12 25S18 28 22 22.5" />
+        </svg>
       </span>
     </div>
   `;
@@ -16985,8 +16985,8 @@ export default function RealWorldMap() {
           bottom: 2px;
           z-index: 1;
           display: block;
-          width: 19px;
-          height: 27px;
+          width: 22px;
+          height: 28px;
           pointer-events: none;
           color: rgb(var(--surf-echo-rgb));
           opacity: var(--surf-echo-strength);
@@ -16996,52 +16996,38 @@ export default function RealWorldMap() {
             drop-shadow(0 0 4px rgba(var(--surf-echo-rgb), 0.52));
         }
 
-        .basedare-maplibre-map :global(.surf-swell-particle) {
-          position: absolute;
+        .basedare-maplibre-map :global(.surf-swell-flow svg) {
           display: block;
-          width: 2.5px;
-          height: 8px;
-          border-radius: 999px;
-          background: currentColor;
-          opacity: 0.38;
-          transform: rotate(16deg);
+          width: 100%;
+          height: 100%;
+          overflow: visible;
+        }
+
+        .basedare-maplibre-map :global(.surf-swell-crest) {
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 1.75;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          opacity: 0.44;
+          transform-box: fill-box;
           transform-origin: 50% 50%;
-          animation: surfSwellFlow var(--surf-echo-duration) ease-in-out infinite;
+          animation: surfSwellCrest var(--surf-echo-duration) ease-in-out infinite;
+          vector-effect: non-scaling-stroke;
           will-change: transform, opacity;
         }
 
-        .basedare-maplibre-map :global(.surf-swell-particle--1) {
-          left: 4px;
-          top: 1px;
+        .basedare-maplibre-map :global(.surf-swell-crest--2) {
+          animation-delay: -1.25s;
         }
 
-        .basedare-maplibre-map :global(.surf-swell-particle--2) {
-          right: 3px;
-          top: 4px;
-          animation-delay: -0.8s;
-        }
-
-        .basedare-maplibre-map :global(.surf-swell-particle--3) {
-          left: 7px;
-          top: 9px;
-          animation-delay: -1.6s;
-        }
-
-        .basedare-maplibre-map :global(.surf-swell-particle--4) {
-          left: 2px;
-          top: 16px;
-          animation-delay: -2.4s;
-        }
-
-        .basedare-maplibre-map :global(.surf-swell-particle--5) {
-          right: 4px;
-          top: 18px;
-          animation-delay: -3.2s;
+        .basedare-maplibre-map :global(.surf-swell-crest--3) {
+          animation-delay: -2.5s;
         }
 
         .basedare-maplibre-map[data-surf-signal-tier='pumping']
-          :global(.surf-swell-particle--3) {
-          background: rgba(255, 248, 205, 0.98);
+          :global(.surf-swell-crest--2) {
+          stroke: rgba(255, 248, 205, 0.98);
         }
 
         .basedare-maplibre-map[data-surf-signal-tier='unavailable']
@@ -17050,10 +17036,10 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map[data-surf-signal-tier='unavailable']
-          :global(.surf-swell-particle) {
+          :global(.surf-swell-crest) {
           animation: none;
           opacity: 0.52;
-          transform: rotate(16deg);
+          transform: none;
         }
 
         .basedare-maplibre-map[data-zoom-band='far'] :global(.surf-break-map-marker) {
@@ -17070,8 +17056,8 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map[data-zoom-band='far'] :global(.surf-swell-flow) {
           bottom: 2px;
-          width: 16px;
-          height: 23px;
+          width: 20px;
+          height: 26px;
           opacity: var(--surf-echo-strength);
           filter:
             drop-shadow(0 1px 2px rgba(8, 6, 1, 0.96))
@@ -17094,8 +17080,8 @@ export default function RealWorldMap() {
 
           .basedare-maplibre-map :global(.surf-swell-flow) {
             bottom: 2px;
-            width: 16px;
-            height: 23px;
+            width: 20px;
+            height: 26px;
             opacity: var(--surf-echo-strength);
             transform: translateX(-50%) scale(0.9);
           }
@@ -17337,18 +17323,18 @@ export default function RealWorldMap() {
           50% { translate: 0 -4px; }
         }
 
-        @keyframes surfSwellFlow {
+        @keyframes surfSwellCrest {
           0%, 100% {
-            opacity: 0.28;
-            transform: translate3d(-1px, 3px, 0) rotate(16deg) scaleY(0.82);
+            opacity: 0.34;
+            transform: translate3d(-1px, 1px, 0);
           }
-          48% {
-            opacity: 0.92;
-            transform: translate3d(1px, -2px, 0) rotate(16deg) scaleY(1.06);
+          50% {
+            opacity: 0.94;
+            transform: translate3d(1px, -1px, 0);
           }
-          76% {
-            opacity: 0.5;
-            transform: translate3d(0, 0, 0) rotate(16deg) scaleY(0.94);
+          78% {
+            opacity: 0.58;
+            transform: translate3d(0, 0, 0);
           }
         }
 
@@ -17623,14 +17609,14 @@ export default function RealWorldMap() {
           .basedare-maplibre-map :global(.adventure-place-object),
           .basedare-maplibre-map :global(.adventure-guide-head),
           .basedare-maplibre-map :global(.adventure-focal-marker),
-          .basedare-maplibre-map :global(.surf-swell-particle) {
+          .basedare-maplibre-map :global(.surf-swell-crest) {
             animation: none !important;
             transition: none !important;
           }
 
-          .basedare-maplibre-map :global(.surf-swell-particle) {
+          .basedare-maplibre-map :global(.surf-swell-crest) {
             opacity: 0.58;
-            transform: rotate(16deg) !important;
+            transform: none !important;
             will-change: auto;
           }
         }
