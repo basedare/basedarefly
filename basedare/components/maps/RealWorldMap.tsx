@@ -80,7 +80,6 @@ import { triggerHaptic } from '@/lib/mobile-haptics';
 import { SIGNAL_ROOM_URL } from '@/lib/signal-room';
 import {
   getAdventurePlaceSprite,
-  getSurfMapSignalRole,
   shouldRenderAdventureActivityMarker,
   shouldRenderLocalSignalMarker,
   SURF_SIGNAL_PATTERN,
@@ -88,6 +87,10 @@ import {
 } from '@/lib/map-adventure-policy';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { isSiargaoVenueFeaturedTonight } from '@/lib/siargao-nightlife';
+import {
+  SIARGAO_CANONICAL_SURF_BREAK_VENUE_SLUGS,
+  SIARGAO_SURF_BREAK_POINTS,
+} from '@/lib/siargao-surf-breaks';
 import { VERIFIED_VENUE_CHECK_IN_POINTS } from '@/lib/creator-passport-constants';
 import {
   fieldStationAttentionToMapIntent,
@@ -3114,6 +3117,20 @@ function createAdventureRumorMarkerHtml(signal: LocalSignal) {
   `;
 }
 
+function createSurfBreakMarkerHtml(label: string) {
+  const safeLabel = escapeMarkerAttribute(label);
+  return `
+    <div class="surf-break-map-marker" title="${safeLabel} surf break">
+      <span class="surf-break-map-label">${safeLabel}</span>
+      <span class="surf-swell-echo" aria-hidden="true">
+        <span class="surf-swell-wave surf-swell-wave--1"><svg viewBox="0 0 92 38" focusable="false"><path d="M5 29C16 21 24 34 35 27S54 20 66 27 81 30 88 24" /></svg></span>
+        <span class="surf-swell-wave surf-swell-wave--2"><svg viewBox="0 0 92 38" focusable="false"><path d="M9 21C20 13 29 27 41 19S61 12 72 19 84 21 88 16" /></svg></span>
+        <span class="surf-swell-wave surf-swell-wave--3"><svg viewBox="0 0 92 38" focusable="false"><path d="M18 13C28 6 37 19 49 11S68 5 79 12" /></svg></span>
+      </span>
+    </div>
+  `;
+}
+
 function getMarkerVenueLabel(value?: string | null) {
   const normalized = value?.replace(/\s+/g, ' ').trim();
   if (!normalized) return null;
@@ -3198,7 +3215,6 @@ function createPeebearMarkerHtml({
     .join(',');
   const categoryKey = (categories ?? []).slice(0, 4).join(',');
   const adventureSprite = getAdventurePlaceSprite({ challengeLiveCount, categories });
-  const surfSignalRole = getSurfMapSignalRole(categories);
   const adventureModifier = hasChallengeLive
     ? hasCommunitySpark ? '✦' : liveLabel
     : approvedCount > 0
@@ -3211,7 +3227,7 @@ function createPeebearMarkerHtml({
   const safeLocalSignalLabel = localSignalLabel
     ? escapeMarkerAttribute(localSignalLabel.slice(0, 10).toUpperCase())
     : null;
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `${hasCommunitySpark ? 'community-spark' : 'challenge'}-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${categoryKey}:${surfSignalRole ?? 'no-surf-echo'}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${safeLocalSignalLabel ?? 'no-local'}:${liveTonight ? 'tonight' : 'off-night'}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `${hasCommunitySpark ? 'community-spark' : 'challenge'}-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${categoryKey}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${safeLocalSignalLabel ?? 'no-local'}:${liveTonight ? 'tonight' : 'off-night'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -3219,7 +3235,7 @@ function createPeebearMarkerHtml({
   }
 
   const html = `
-    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${hasCommunitySpark ? 'has-community-spark' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${liveTonight ? 'is-live-tonight' : ''} ${safeVenueLabel ? 'has-venue-label' : ''} ${surfSignalRole ? `has-surf-swell-echo surf-swell-echo--${surfSignalRole}` : ''}">
+    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${hasCommunitySpark ? 'has-community-spark' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${liveTonight ? 'is-live-tonight' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
       ${
         safeVenueLabel
           ? `<span class="peebear-venue-label ${activated ? 'peebear-venue-label--activated' : ''}" title="${safeVenueTitle ?? safeVenueLabel}"><span class="peebear-venue-label-name">${safeVenueLabel}</span></span>`
@@ -3231,15 +3247,6 @@ function createPeebearMarkerHtml({
       ${safeLocalSignalLabel && !showChallengeLiveChrome && !compact ? `<span class="peebear-local-pill">${safeLocalSignalLabel}</span>` : ''}
       ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
       ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
-      ${
-        surfSignalRole
-          ? `<span class="surf-swell-echo surf-swell-echo__${surfSignalRole}" aria-hidden="true">
-              <span class="surf-swell-wave surf-swell-wave--1"><svg viewBox="0 0 92 38" focusable="false"><path d="M5 29C16 21 24 34 35 27S54 20 66 27 81 30 88 24" /></svg></span>
-              <span class="surf-swell-wave surf-swell-wave--2"><svg viewBox="0 0 92 38" focusable="false"><path d="M9 21C20 13 29 27 41 19S61 12 72 19 84 21 88 16" /></svg></span>
-              <span class="surf-swell-wave surf-swell-wave--3"><svg viewBox="0 0 92 38" focusable="false"><path d="M18 13C28 6 37 19 49 11S68 5 79 12" /></svg></span>
-            </span>`
-          : ''
-      }
       <span class="adventure-place-object adventure-place-object--${visualState} ${hasChallengeLive ? 'has-live-dare' : ''}" aria-hidden="true">
         <span class="adventure-sprite adventure-sprite--${adventureSprite}"></span>
         ${adventureModifier ? `<span class="adventure-place-modifier">${adventureModifier}</span>` : ''}
@@ -7106,6 +7113,23 @@ export default function RealWorldMap() {
     });
     return index;
   }, [nearbyPlaces]);
+  const visibleSurfBreakPoints = useMemo(() => {
+    const center = viewportCenter ?? {
+      latitude: DEFAULT_CENTER[0],
+      longitude: DEFAULT_CENTER[1],
+    };
+    const visibleRadiusKm = (getRadiusMetersForZoom(mapZoom) / 1000) * 1.08;
+
+    return SIARGAO_SURF_BREAK_POINTS.filter(
+      (point) =>
+        calculateDistance(
+          center.latitude,
+          center.longitude,
+          point.latitude,
+          point.longitude
+        ) <= visibleRadiusKm
+    );
+  }, [mapZoom, viewportCenter]);
   const venuePresenceIndex = useMemo(() => {
     const byVenueId = new Map<string, VenuePresenceSummary>();
     const bySlug = new Map<string, VenuePresenceSummary>();
@@ -7575,6 +7599,7 @@ export default function RealWorldMap() {
     const preservedPlaces = filteredNearbyPlaces.filter((place) =>
       communitySparkVenueSlugSet.has(place.slug) ||
       localSignalVenueSlugSet.has(place.slug) ||
+      SIARGAO_CANONICAL_SURF_BREAK_VENUE_SLUGS.has(place.slug) ||
       (preserveActivatedMarkers && isVenueActivated(place.commandCenter))
     );
     const preservedPlaceIds = new Set(preservedPlaces.map((place) => place.id));
@@ -9152,6 +9177,9 @@ export default function RealWorldMap() {
       }
 
       const place = marker.place;
+      if (SIARGAO_CANONICAL_SURF_BREAK_VENUE_SLUGS.has(place.slug)) {
+        return;
+      }
       const pulse = getPulse(place.tagSummary.approvedCount, place.tagSummary.lastTaggedAt);
       const visualState = getPlaceVisualState({
         approvedCount: place.tagSummary.approvedCount,
@@ -9202,6 +9230,31 @@ export default function RealWorldMap() {
         }`,
         anchor: 'bottom',
         onClick: () => focusExistingPlace(place),
+      });
+    });
+
+    visibleSurfBreakPoints.forEach((point) => {
+      const place = nearbyPlaceBySlug.get(point.venueSlug);
+      addMarker({
+        key: `surf-break:${point.id}`,
+        latitude: point.latitude,
+        longitude: point.longitude,
+        html: createSurfBreakMarkerHtml(point.label),
+        className: 'basedare-maplibre-marker basedare-maplibre-marker--surf-break',
+        anchor: 'center',
+        onClick: () => {
+          setTargetCenter([point.latitude, point.longitude]);
+          setTargetZoom(Math.max(14, Math.round(mapZoom)));
+
+          if (place) {
+            focusExistingPlace(place);
+            setTargetCenter([point.latitude, point.longitude]);
+            return;
+          }
+
+          triggerHaptic('selection');
+          router.push(`/map?place=${encodeURIComponent(point.venueSlug)}`);
+        },
       });
     });
 
@@ -9393,6 +9446,7 @@ export default function RealWorldMap() {
     mapReady,
     mapZoom,
     matchedVenueIndex,
+    nearbyPlaceBySlug,
     privateMapSpots,
     focusPrivateSpot,
     handlePrivateSpotDragEnd,
@@ -9402,6 +9456,7 @@ export default function RealWorldMap() {
     mapAttentionSuggestedSlugSet,
     mapAttentionIntent,
     renderedVenueMarkerSlugSet,
+    router,
     saveSpotDraft,
     selectedPlace,
     selectedPlaceMarkerHtml,
@@ -9410,6 +9465,7 @@ export default function RealWorldMap() {
     showFootprintLayer,
     showMatchedLayer,
     userLocation,
+    visibleSurfBreakPoints,
   ]);
 
   const mapPanelShellClass =
@@ -16867,28 +16923,65 @@ export default function RealWorldMap() {
           --surf-echo-rgb: 245, 197, 24;
           --surf-echo-duration: 5.6s;
           --surf-echo-strength: 0.78;
-          --surf-access-strength: 0.65;
         }
 
         .basedare-maplibre-map[data-surf-signal-tier='playful'] {
           --surf-echo-rgb: 255, 218, 58;
           --surf-echo-duration: 4.2s;
           --surf-echo-strength: 0.9;
-          --surf-access-strength: 0.78;
         }
 
         .basedare-maplibre-map[data-surf-signal-tier='pumping'] {
           --surf-echo-rgb: 255, 229, 104;
           --surf-echo-duration: 3.3s;
           --surf-echo-strength: 1;
-          --surf-access-strength: 0.88;
+        }
+
+        .basedare-maplibre-map :global(.basedare-maplibre-marker--surf-break) {
+          z-index: 5;
+          transform-origin: 50% 50%;
+        }
+
+        .basedare-maplibre-map :global(.surf-break-map-marker) {
+          position: relative;
+          display: block;
+          width: 112px;
+          height: 62px;
+          cursor: pointer;
+          isolation: isolate;
+        }
+
+        .basedare-maplibre-map :global(.surf-break-map-label) {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          z-index: 2;
+          max-width: 132px;
+          overflow: hidden;
+          border: 1px solid rgba(var(--surf-echo-rgb), 0.5);
+          border-radius: 999px;
+          padding: 3px 8px;
+          background: rgba(5, 8, 15, 0.9);
+          color: rgb(var(--surf-echo-rgb));
+          box-shadow:
+            0 5px 14px rgba(0, 0, 0, 0.52),
+            0 0 12px rgba(var(--surf-echo-rgb), 0.16);
+          font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+          font-size: 8px;
+          font-weight: 900;
+          letter-spacing: 0.12em;
+          line-height: 1.1;
+          text-overflow: ellipsis;
+          text-transform: uppercase;
+          transform: translateX(-50%);
+          white-space: nowrap;
         }
 
         .basedare-maplibre-map :global(.surf-swell-echo) {
           position: absolute;
           left: 50%;
-          bottom: 17px;
-          z-index: 8;
+          bottom: 0;
+          z-index: 1;
           display: block;
           width: 96px;
           height: 40px;
@@ -16899,12 +16992,6 @@ export default function RealWorldMap() {
           filter:
             drop-shadow(0 0 4px rgba(8, 6, 1, 0.94))
             drop-shadow(0 0 8px rgba(var(--surf-echo-rgb), 0.72));
-        }
-
-        .basedare-maplibre-map :global(.surf-swell-echo__access) {
-          bottom: 19px;
-          width: 76px;
-          opacity: var(--surf-access-strength);
         }
 
         .basedare-maplibre-map :global(.surf-swell-wave) {
@@ -16958,20 +17045,13 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map[data-zoom-band='far'] :global(.surf-swell-echo) {
-          bottom: 12px;
-          width: 118px;
-          height: 48px;
+          bottom: 0;
+          width: 106px;
+          height: 44px;
           opacity: 0.9;
           filter:
             drop-shadow(0 0 5px rgba(8, 6, 1, 0.98))
             drop-shadow(0 0 11px rgba(var(--surf-echo-rgb), 0.86));
-        }
-
-        .basedare-maplibre-map[data-zoom-band='far']
-          :global(.surf-swell-echo__access) {
-          bottom: 14px;
-          width: 104px;
-          opacity: 0.8;
         }
 
         .basedare-maplibre-map[data-zoom-band='far']

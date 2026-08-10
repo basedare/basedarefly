@@ -17,9 +17,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
 ### Codex lightweight surf Swell Echo (2026-08-10 — SHIPPED)
-- The user explicitly assigned Codex a narrow presentation-only surf-map pass: verified breaks receive a lightweight SVG/CSS swell echo, Kanaway receives a smaller access echo, and the existing offshore signal controls visual intensity.
+- The user explicitly assigned Codex a narrow presentation-only surf-map pass: mapped breaks receive a lightweight SVG/CSS swell echo, Kanaway remains the land-side access pin, and the existing offshore signal controls visual intensity.
 - Follow-up visibility correction: far-zoom echoes stay visible in BaseDare yellow/gold with a larger, higher-contrast footprint; map gestures still hide them to protect renderer stability.
+- Offshore-location correction: echoes are no longer children of venue pins. Cloud 9 keeps its separate boardwalk pin while its wave sits on the mapped reef; Tuason, Bumee / Bomi, Rock Island, Stimpy’s, and Cemetery use one named swell echo at their explicit water coordinates. Kanaway remains the board/boat-launch access pin and carries no fake break animation.
+- Bumee / Bomi, Rock Island, Stimpy’s, and Cemetery are now curated non-partner surf places. Their public coordinates were cross-checked against Google Maps, OpenStreetMap, and local surf guides; they remain navigation context, not a live safety or breaking-wave report.
 - Files owned in this pass: `lib/map-adventure-policy.ts`, its focused test, `components/maps/AdventureMapOverlay.tsx`, and the smallest necessary marker/CSS additions in `components/maps/RealWorldMap.tsx`.
+- Follow-up files also include `lib/siargao-surf-breaks*`, `lib/curated-venues.ts`, and the matching seed records in `prisma/seed.ts`.
 - No MapLibre renderer, camera, canvas, tile, buffer, source, or layer behavior is changing. The echo disappears during map gestures and becomes static under reduced-motion preferences.
 
 ### Codex short, playable Community Spark briefs (2026-08-10 — SHIPPED)

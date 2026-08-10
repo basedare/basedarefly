@@ -10,20 +10,8 @@ export type AdventureSpriteKind =
   | 'gathering'
   | 'rumor';
 
-export type SurfMapSignalRole = 'break' | 'access';
-
 export const SURF_SIGNAL_PATTERN =
   /(?:^|\s)(?:cloud\s*9|surf|surfing|wave-check|surf-break|surf-spot|reef-break)(?:\s|$)/i;
-
-const SURF_BREAK_PRIMARY_CATEGORIES = new Set(['surf', 'surf-break', 'reef-break']);
-const SURF_BUSINESS_CATEGORIES = new Set([
-  'cafe',
-  'restaurant',
-  'resort',
-  'surf-rental',
-  'surf-school',
-  'surf-shop',
-]);
 
 const BAR_SIGNAL_PATTERN =
   /(?:nightlife|late-night|nightclub|beach-club|sports-bar|cocktail|pub|\bbar\b|music-club)/i;
@@ -48,37 +36,6 @@ function getSpriteForCategory(category: string): AdventureSpriteKind | null {
   if (SURF_SIGNAL_PATTERN.test(category)) return 'surf';
   if (PALM_SIGNAL_PATTERN.test(category)) return 'palm';
   if (GATHERING_SIGNAL_PATTERN.test(category)) return 'gathering';
-  return null;
-}
-
-export function getSurfMapSignalRole(
-  categories?: string[] | null
-): SurfMapSignalRole | null {
-  const normalizedCategories = (categories ?? [])
-    .map((category) => category.trim().toLowerCase())
-    .filter(Boolean);
-  const primaryCategory = normalizedCategories[0];
-  const categorySet = new Set(normalizedCategories);
-
-  // A moving swell echo implies a real break, not merely a business that
-  // serves surfers. Keep that promise narrow and driven by curated categories.
-  const isSurfBusiness = normalizedCategories.some((category) =>
-    SURF_BUSINESS_CATEGORIES.has(category)
-  );
-  if (
-    primaryCategory &&
-    SURF_BREAK_PRIMARY_CATEGORIES.has(primaryCategory) &&
-    !isSurfBusiness
-  ) {
-    return 'break';
-  }
-
-  // Kanaway is useful as the verified board/guide + beach-launch access point
-  // for outer reefs. Its smaller echo means "start here", not "waves break here".
-  if (categorySet.has('boat-launch') && categorySet.has('surf-spot')) {
-    return 'access';
-  }
-
   return null;
 }
 
