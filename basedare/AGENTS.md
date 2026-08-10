@@ -17,8 +17,8 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
 ### Codex lightweight surf Swell Echo (2026-08-10 — SHIPPED)
-- The user explicitly assigned Codex a narrow presentation-only surf-map pass: mapped breaks receive a lightweight SVG/CSS swell echo, Kanaway remains the land-side access pin, and the existing offshore signal controls visual intensity.
-- Follow-up visibility correction: far-zoom echoes stay visible in BaseDare yellow/gold with a larger, higher-contrast footprint; map gestures still hide them to protect renderer stability.
+- The user explicitly assigned Codex a narrow presentation-only surf-map pass: mapped breaks receive a lightweight CSS swell signal, Kanaway remains the land-side access pin, and the existing offshore signal controls visual intensity.
+- Mobile declutter correction: the original wide three-line glyph is replaced by a narrow Windy-style column of five micro-particles. Far zoom and mobile shrink the signal instead of enlarging it; compact labels remain visible and map gestures still hide the motion to protect renderer stability.
 - Offshore-location correction: echoes are no longer children of venue pins. Cloud 9 keeps its separate boardwalk pin while its wave sits on the mapped reef; Tuason, Bumee / Bomi, Rock Island, Stimpy’s, and Cemetery use one named swell echo at their explicit water coordinates. Kanaway remains the board/boat-launch access pin and carries no fake break animation.
 - Bumee / Bomi, Rock Island, Stimpy’s, and Cemetery are now curated non-partner surf places. Their public coordinates were cross-checked against Google Maps, OpenStreetMap, and local surf guides; they remain navigation context, not a live safety or breaking-wave report.
 - Files owned in this pass: `lib/map-adventure-policy.ts`, its focused test, `components/maps/AdventureMapOverlay.tsx`, and the smallest necessary marker/CSS additions in `components/maps/RealWorldMap.tsx`.
