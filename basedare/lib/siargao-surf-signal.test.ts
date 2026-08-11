@@ -3,9 +3,17 @@ import { test } from 'node:test';
 import {
   buildSiargaoSurfSignal,
   classifySiargaoSurfSignal,
+  isSiargaoSurfLocation,
 } from './siargao-surf-signal.ts';
 
 const receivedAt = new Date('2026-08-05T04:45:00.000Z');
+
+test('shows the Siargao model only on Siargao surf locations', () => {
+  assert.equal(isSiargaoSurfLocation(['surf', 'reef-break', 'siargao']), true);
+  assert.equal(isSiargaoSurfLocation(['surf-school', 'board-rental', 'Siargao']), true);
+  assert.equal(isSiargaoSurfLocation(['surf', 'sydney']), false);
+  assert.equal(isSiargaoSurfLocation(['beach', 'siargao']), false);
+});
 
 test('turns a strong period swell into a conservative pumping signal', () => {
   const signal = buildSiargaoSurfSignal(

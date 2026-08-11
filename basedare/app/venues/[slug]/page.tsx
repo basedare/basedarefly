@@ -21,9 +21,11 @@ import VenueMarkButton from '@/components/venues/VenueMarkButton';
 import VenueHostPanel from '@/components/venues/VenueHostPanel';
 import VenueCheckInButton from '@/components/venues/VenueCheckInButton';
 import WorthADetourCard from '@/components/venues/WorthADetourCard';
+import SurfLocationSignal from '@/components/venues/SurfLocationSignal';
 import MeetHereButton from '@/components/community/MeetHereButton';
 import SquircleLink from '@/components/ui/SquircleLink';
 import { formatVenueContactConfirmedAt, formatVenueContactSource, type VenueContactChannel } from '@/lib/venue-contact-routes';
+import { isSiargaoSurfLocation } from '@/lib/siargao-surf-signal';
 
 const raisedPanelClass =
   'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
@@ -240,6 +242,7 @@ export default async function VenueDetailPage(
   }
 
   const venueProfile = venue.profile;
+  const showSurfSignal = isSiargaoSurfLocation(venue.categories);
   const totalActiveChallengeFunding = venue.activeDares.reduce((sum, dare) => sum + dare.bounty, 0);
   const paidActivationCount = venue.activeDares.filter((dare) => Boolean(dare.brandName)).length;
   const pendingActivationCount = venue.activeDares.filter((dare) => dare.claimRequestStatus === 'PENDING').length;
@@ -459,6 +462,8 @@ export default async function VenueDetailPage(
                         : 'Venue pass not live'}
                     </span>
                   </div>
+
+                  {showSurfSignal ? <SurfLocationSignal /> : null}
 
                   {venue.officialContacts.length > 0 ? (
                     <div className="mt-5 rounded-[22px] border border-cyan-300/16 bg-[linear-gradient(145deg,rgba(34,211,238,0.08)_0%,rgba(8,8,16,0.76)_46%,rgba(16,185,129,0.05)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_16px_30px_rgba(0,0,0,0.18)]">

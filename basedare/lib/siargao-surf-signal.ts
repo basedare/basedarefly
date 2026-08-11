@@ -23,6 +23,19 @@ export const CLOUD_9_SURF_FORECAST_CROSS_CHECK = {
 
 export type SiargaoSurfSignalTier = 'quiet' | 'playful' | 'pumping';
 
+export function isSiargaoSurfLocation(categories: readonly string[]) {
+  const normalized = categories.map((category) => category.trim().toLowerCase());
+  const isSiargao = normalized.includes('siargao');
+  const isSurf = normalized.some(
+    (category) =>
+      category === 'surf' ||
+      category === 'surfing' ||
+      category.startsWith('surf-')
+  );
+
+  return isSiargao && isSurf;
+}
+
 export type SiargaoSurfSignal = {
   area: string;
   tier: SiargaoSurfSignalTier;

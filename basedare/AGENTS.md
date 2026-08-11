@@ -21,6 +21,7 @@ Two agents work this repo at once. Check this section before starting, and updat
 - Venue pages now offer **Meet me here**: choose a time, add one short note, optionally notify up to five existing BaseDare tags, then share one public RSVP link. Hosts count as going; RSVP writes are idempotent and rate-limited.
 - `/community` routes meetup cards to the dedicated invite, shows attendance, and gives each active venue a small **Meet here** entry alongside its bounded place room.
 - PeeBear’s existing surf card now derives today’s useful low/high times from Open-Meteo Marine `sea_level_height_msl` and shows one compact `Today · Low ~… · High ~…` line. The data remains explicitly modelled, hourly and unsuitable as a navigation or safety forecast.
+- Siargao surf venue pages reuse that cached signal in one compact hero strip: offshore model height/period/direction, today’s useful low/high times, source, and a short local-check caveat. Eligibility is category-gated to Siargao surf breaks, schools, shops, and access points; ordinary beaches and non-Siargao surf venues do not inherit the model.
 - The architectural hypothesis is recorded as DareOS: BaseDare stays the friendly surface while reusable Plan Links form the operating grammar underneath. This is not a public rebrand and does not add a generic feed or chat layer.
 - No Prisma schema, migration, payment custody, proof lifecycle, camera, MapLibre renderer, source, tile, canvas, or duplicate-marker behavior changed.
 
