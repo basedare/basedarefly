@@ -31,6 +31,32 @@ test('bar identity wins over nearby boardwalk, dock, and beach categories', () =
   );
 });
 
+test('named premium drink venues use the wine glass while ordinary bars keep beer', () => {
+  for (const venue of [
+    { venueSlug: 'greenroom-wine-bar-siargao', venueName: 'Greenroom Wine Bar & Bistro Siargao' },
+    { venueSlug: 'mr-turtle-siargao', venueName: 'Mr. Turtle Siargao' },
+    { venueSlug: 'last-chance-siargao', venueName: 'Last Chance' },
+  ]) {
+    assert.equal(
+      getAdventurePlaceSprite({
+        challengeLiveCount: 0,
+        categories: ['bar', 'cocktail', 'nightlife'],
+        ...venue,
+      }),
+      'wine',
+    );
+  }
+
+  assert.equal(
+    getAdventurePlaceSprite({
+      challengeLiveCount: 0,
+      categories: ['wine-bar', 'bar', 'nightlife'],
+      venueName: 'Another Wine Bar',
+    }),
+    'beer',
+  );
+});
+
 test('surfboards are reserved for actual surf signals', () => {
   assert.equal(
     getAdventurePlaceSprite({

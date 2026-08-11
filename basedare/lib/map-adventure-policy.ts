@@ -1,6 +1,7 @@
 export type AdventureSpriteKind =
   | 'flag'
   | 'beer'
+  | 'wine'
   | 'surf'
   | 'palm'
   | 'cafe'
@@ -27,6 +28,16 @@ const WELLNESS_SIGNAL_PATTERN =
 const GATHERING_SIGNAL_PATTERN =
   /(?:community|gather|hostel|hotel|stay|resort)/i;
 
+const PREMIUM_DRINK_VENUE_PATTERN = /\b(?:green\s*room|mr\s*turtle|last\s*chance)\b/i;
+
+function isPremiumDrinkVenue(venueName?: string | null, venueSlug?: string | null) {
+  const identity = `${venueName ?? ''} ${venueSlug ?? ''}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  return PREMIUM_DRINK_VENUE_PATTERN.test(identity);
+}
+
 function getSpriteForCategory(category: string): AdventureSpriteKind | null {
   if (BAR_SIGNAL_PATTERN.test(category)) return 'beer';
   if (FITNESS_SIGNAL_PATTERN.test(category)) return 'fitness';
@@ -42,11 +53,16 @@ function getSpriteForCategory(category: string): AdventureSpriteKind | null {
 export function getAdventurePlaceSprite({
   challengeLiveCount,
   categories,
+  venueName,
+  venueSlug,
 }: {
   challengeLiveCount: number;
   categories?: string[] | null;
+  venueName?: string | null;
+  venueSlug?: string | null;
 }): AdventureSpriteKind {
   if (challengeLiveCount > 0) return 'flag';
+  if (isPremiumDrinkVenue(venueName, venueSlug)) return 'wine';
 
   const normalizedCategories = (categories ?? []).map((category) => category.toLowerCase());
   const categoryText = normalizedCategories.join(' ');

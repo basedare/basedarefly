@@ -16,6 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex premium drink venue marker (2026-08-11 — SHIPPED)
+- Codex added one BaseDare-native `wine` hologram sprite and a narrow venue-identity rule for Greenroom, Mr. Turtle, and Last Chance.
+- Ordinary nightlife remains on the existing beer marker; live funded/community activity still overrides category art with the canonical live flag.
+- Last Chance was missing from the canonical Siargao set, so this pass also adds its externally checked public anchor and official public Instagram handle. No partnership is implied.
+- Scope is marker classification, one generated transparent asset, one curated place record, focused tests, and the matching sprite CSS only. No schema, map renderer, camera, canvas, tile, source, or MapLibre layer behavior changes.
+
 ### Codex live banca crews + exact tide source (2026-08-11 — SHIPPED)
 - Codex extended the shipped boat board without changing the schema: every active crew becomes its own clickable offshore banca activity marker; launch venues remain canonical place markers.
 - Kanaway crews serve Rock Island, Stimpy's, and Bumee/Bomi. Siargao Beach Club is the first Cemetery launch entry. Each launch validates its own destinations and operator confirmation.

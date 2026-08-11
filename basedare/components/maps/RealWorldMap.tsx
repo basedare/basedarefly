@@ -3179,6 +3179,7 @@ function createPeebearMarkerHtml({
   challengeLiveCount,
   communitySparkLive = false,
   venueName,
+  venueSlug,
   matched = false,
   compact = false,
   activated = false,
@@ -3197,6 +3198,7 @@ function createPeebearMarkerHtml({
   challengeLiveCount: number;
   communitySparkLive?: boolean;
   venueName?: string | null;
+  venueSlug?: string | null;
   matched?: boolean;
   compact?: boolean;
   activated?: boolean;
@@ -3243,7 +3245,12 @@ function createPeebearMarkerHtml({
     .map((legend) => legend.key)
     .join(',');
   const categoryKey = (categories ?? []).slice(0, 4).join(',');
-  const adventureSprite = getAdventurePlaceSprite({ challengeLiveCount, categories });
+  const adventureSprite = getAdventurePlaceSprite({
+    challengeLiveCount,
+    categories,
+    venueName,
+    venueSlug,
+  });
   const adventureModifier = hasChallengeLive
     ? hasCommunitySpark ? '✦' : liveLabel
     : approvedCount > 0
@@ -3256,7 +3263,7 @@ function createPeebearMarkerHtml({
   const safeLocalSignalLabel = localSignalLabel
     ? escapeMarkerAttribute(localSignalLabel.slice(0, 10).toUpperCase())
     : null;
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `${hasCommunitySpark ? 'community-spark' : 'challenge'}-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${categoryKey}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${safeLocalSignalLabel ?? 'no-local'}:${liveTonight ? 'tonight' : 'off-night'}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `${hasCommunitySpark ? 'community-spark' : 'challenge'}-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${categoryKey}:${adventureSprite}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${safeLocalSignalLabel ?? 'no-local'}:${liveTonight ? 'tonight' : 'off-night'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -7051,6 +7058,8 @@ export default function RealWorldMap() {
           sprite: getAdventurePlaceSprite({
             challengeLiveCount: place.activeDareCount,
             categories: place.categories,
+            venueName: place.name,
+            venueSlug: place.slug,
           }),
         };
       });
@@ -9311,6 +9320,7 @@ export default function RealWorldMap() {
           challengeLiveCount: place.activeDareCount,
           communitySparkLive: communitySparkMarkerVenueSlugSet.has(place.slug),
           venueName: place.name,
+          venueSlug: place.slug,
           matched: isMatchedVenue,
           compact,
           activated: activatedVenue,
@@ -17449,6 +17459,10 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.adventure-sprite--beer) {
           background-image: url('/assets/map/holograms/beer.webp');
+        }
+
+        .basedare-maplibre-map :global(.adventure-sprite--wine) {
+          background-image: url('/assets/map/holograms/wine.webp');
         }
 
         .basedare-maplibre-map :global(.adventure-sprite--surf) {

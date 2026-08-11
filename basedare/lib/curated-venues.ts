@@ -312,6 +312,30 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     ],
   },
   {
+    slug: 'last-chance-siargao',
+    name: 'Last Chance',
+    description:
+      'Art-deco cocktail bar in Purok V with locally influenced classics, bar food, and a polished late-night room.',
+    address: 'Q5V5+WV7, Purok V, General Luna, Surigao del Norte, Philippines',
+    city: 'General Luna',
+    country: 'Philippines',
+    latitude: 9.7951445,
+    longitude: 126.1599812,
+    timezone: 'Asia/Manila',
+    instagramHandle: '@lastchancesiargao',
+    categories: [
+      'cocktail-bar',
+      'bar',
+      'restaurant',
+      'nightlife',
+      'late-night',
+      'date-night',
+      'purok-5',
+      'general-luna',
+      'siargao',
+    ],
+  },
+  {
     slug: 'white-beard-coffee-siargao',
     name: 'White Beard Coffee Siargao',
     description:
@@ -1198,7 +1222,7 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v11',
+            curatedSet: 'siargao-v12',
             locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
             coordinatePolicy:
               'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
@@ -1224,7 +1248,7 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v11',
+            curatedSet: 'siargao-v12',
             locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
             coordinatePolicy:
               'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
