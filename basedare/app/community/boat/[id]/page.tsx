@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 
 import BoatCrewShareClient from '@/components/community/BoatCrewShareClient';
 import { getPublicBoatCrew } from '@/lib/surf-boat-board-server';
-import { BOAT_DESTINATIONS, getBoatCrewSharePath, getOptionLabel } from '@/lib/surf-boat-board';
+import { BOAT_DESTINATIONS, getBoatCrewSharePath, getBoatLaunch, getOptionLabel } from '@/lib/surf-boat-board';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,9 +12,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const crew = await getPublicBoatCrew(id).catch(() => null);
   if (!crew) return { title: 'Surf Boat Crew | BaseDare' };
   const destination = getOptionLabel(BOAT_DESTINATIONS, crew.destination);
+  const launch = getBoatLaunch(crew.venueSlug);
   return {
     title: `${destination} Surf Boat · ${crew.confirmedCount} Going | BaseDare`,
-    description: `Join a shared surf boat from Kanaway. ${crew.confirmedCount} going, about ₱${crew.projectedSharePhp} each.`,
+    description: `Join a shared surf boat from ${launch.label}. ${crew.confirmedCount} going, about ₱${crew.projectedSharePhp} each.`,
     alternates: { canonical: getBoatCrewSharePath(crew.id) },
   };
 }

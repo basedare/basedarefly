@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
@@ -10,15 +11,19 @@ import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import PlanShareButton from '@/components/community/PlanShareButton';
 import {
   BOAT_DESTINATIONS,
+  BOAT_LAUNCHES,
   BOAT_TIME_WINDOWS,
   KANAWAY_BOAT_VENUE_SLUG,
   SURF_ABILITY_LANES,
   getAllowedBoatDays,
   getBoatCrewStatusCopy,
   getBoatCrewCountLabel,
-  getBoatCrewSharePath,
+  getBoatCrewInvitePath,
   getBoatCrewShareText,
+  getBoatLaunch,
+  getBoatLaunchDestinations,
   getOptionLabel,
+  type BoatLaunchSlug,
   type BoatCommitment,
   type BoatCrewSummary,
   type BoatDestination,
@@ -51,6 +56,7 @@ function formatDeparture(value: string) {
 }
 
 export default function KanawayBoatBoardClient() {
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const { address } = useAccount();
   const { signMessageAsync } = useSignMessage();
@@ -62,6 +68,9 @@ export default function KanawayBoatBoardClient() {
   const [crews, setCrews] = useState<BoatCrewSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [launchSlug, setLaunchSlug] = useState<BoatLaunchSlug>(
+    searchParams.get('launch') === 'cemetery' ? 'siargao-beach-club' : KANAWAY_BOAT_VENUE_SLUG,
+  );
   const [departureDay, setDepartureDay] = useState(today);
   const [timeWindow, setTimeWindow] = useState<BoatTimeWindow>('early');
   const [destination, setDestination] = useState<BoatDestination>('best-today');
@@ -97,6 +106,13 @@ export default function KanawayBoatBoardClient() {
     [crews],
   );
   const createdCrew = createdCrewId ? crews.find((crew) => crew.id === createdCrewId) ?? null : null;
+  const launchDestinations = useMemo(() => getBoatLaunchDestinations(launchSlug), [launchSlug]);
+
+  const handleLaunchChange = (value: string) => {
+    const nextLaunch = value as BoatLaunchSlug;
+    setLaunchSlug(nextLaunch);
+    setDestination(getBoatLaunchDestinations(nextLaunch)[0]?.value ?? 'best-today');
+  };
 
   const authHeaders = async (action: string, resource: string) => {
     if (!actorWallet) throw new Error('Connect the wallet that owns your Baretag first.');
@@ -114,12 +130,13 @@ export default function KanawayBoatBoardClient() {
     setPendingAction('create');
     setSubmitState(null);
     try {
-      const headers = await authHeaders('boat-crew:create', `venue:${KANAWAY_BOAT_VENUE_SLUG}`);
+      const headers = await authHeaders('boat-crew:create', `venue:${launchSlug}`);
       const response = await fetch('/api/boat-crews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify({
           walletAddress: actorWallet,
+          venueSlug: launchSlug,
           departureDay,
           timeWindow,
           destination,
@@ -214,14 +231,14 @@ export default function KanawayBoatBoardClient() {
     <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-28 text-white sm:px-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_74%_0%,rgba(34,211,238,0.13),transparent_32%),radial-gradient(circle_at_18%_20%,rgba(245,197,24,0.12),transparent_30%)]" />
       <div className="relative mx-auto w-[calc(100vw-2rem)] min-w-0 max-w-5xl sm:w-full">
-        <Link href="/map?venue=kanaway-surf-school&source=boat-board" prefetch={false} className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/48 hover:text-white">
-          <ArrowLeft className="h-4 w-4" /> Kanaway map
+        <Link href="/map?source=boat-board" prefetch={false} className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/48 hover:text-white">
+          <ArrowLeft className="h-4 w-4" /> Surf map
         </Link>
 
         <section className="mt-5 w-full min-w-0 overflow-hidden rounded-[2rem] border border-cyan-200/16 bg-[linear-gradient(155deg,rgba(12,35,44,0.86),rgba(7,8,18,0.96))] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.45)] sm:p-8">
           <div className="flex items-start justify-between gap-5">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200/72">Kanaway Boat Board</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200/72">Siargao Boat Board</p>
               <h1 className="mt-3 max-w-2xl text-4xl font-black leading-[0.95] sm:text-6xl">Find a boat crew. Split the ride. Go surf.</h1>
             </div>
             <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#f5c518]/25 bg-[#f5c518]/10 text-[#f5c518]">
@@ -229,7 +246,7 @@ export default function KanawayBoatBoardClient() {
             </span>
           </div>
           <p className="mt-5 max-w-2xl text-sm leading-relaxed text-white/56">
-            Rock Island, Stimpy&apos;s or Bumee/Bomi. Four surfers turns the usual ₱1,200 boat into about ₱300 each.
+            Kanaway for the northern reefs. Siargao Beach Club for Cemetery. Four surfers turns the usual ₱1,200 boat into about ₱300 each.
           </p>
           <div className="mt-5 grid min-w-0 grid-cols-2 gap-2 text-center sm:grid-cols-4">
             {['Pick', '4 surfers', 'Boat confirms', 'Go surf'].map((step, index) => (
@@ -248,9 +265,10 @@ export default function KanawayBoatBoardClient() {
           <section className="mt-5 rounded-[1.75rem] border border-[#f5c518]/18 bg-black/40 p-5 sm:p-6">
             <h2 className="text-xl font-black">Your surf window</h2>
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <ChoiceGroup label="Launch" value={launchSlug} onChange={handleLaunchChange} options={BOAT_LAUNCHES} />
               <ChoiceGroup label="Day" value={departureDay} onChange={setDepartureDay} options={[{ value: today, label: 'Today' }, { value: tomorrow, label: 'Tomorrow' }]} />
               <ChoiceGroup label="Time" value={timeWindow} onChange={(value) => setTimeWindow(value as BoatTimeWindow)} options={BOAT_TIME_WINDOWS} />
-              <ChoiceGroup label="Break" value={destination} onChange={(value) => setDestination(value as BoatDestination)} options={BOAT_DESTINATIONS} />
+              <ChoiceGroup label="Break" value={destination} onChange={(value) => setDestination(value as BoatDestination)} options={launchDestinations} />
               <ChoiceGroup label="Ability lane" value={abilityLane} onChange={(value) => setAbilityLane(value as SurfAbilityLane)} options={SURF_ABILITY_LANES} />
             </div>
             <label className="mt-5 flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 text-sm font-bold text-white/70">
@@ -273,9 +291,9 @@ export default function KanawayBoatBoardClient() {
             ) : null}
             {createdCrew ? (
               <PlanShareButton
-                title="Join my Kanaway surf boat"
+                title={`Join my ${getBoatLaunch(createdCrew.venueSlug).label} surf boat`}
                 text={getBoatCrewShareText(createdCrew)}
-                href={getBoatCrewSharePath(createdCrew.id)}
+                href={getBoatCrewInvitePath(createdCrew.id)}
                 label="Share crew"
                 compact
                 className="ml-3"
@@ -298,6 +316,7 @@ export default function KanawayBoatBoardClient() {
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {sortedCrews.map((crew) => {
               const destinationLabel = getOptionLabel(BOAT_DESTINATIONS, crew.destination);
+              const crewLaunch = getBoatLaunch(crew.venueSlug);
               const timeLabel = getOptionLabel(BOAT_TIME_WINDOWS, crew.timeWindow);
               const laneLabel = getOptionLabel(SURF_ABILITY_LANES, crew.abilityLane);
               const isPending = pendingAction?.startsWith(`${crew.id}:`) ?? false;
@@ -305,7 +324,7 @@ export default function KanawayBoatBoardClient() {
                 <article key={crew.id} className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(160deg,rgba(17,23,35,0.92),rgba(4,7,13,0.96))] p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-200/62">{dayLabel(crew.departureDay)} · {timeLabel}</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-200/62">{crewLaunch.label} · {dayLabel(crew.departureDay)} · {timeLabel}</p>
                       <h3 className="mt-2 text-2xl font-black">{destinationLabel}</h3>
                       <p className="mt-1 text-xs font-bold text-white/42">{laneLabel}{crew.boardCount ? ` · ${crew.boardCount} board ${crew.boardCount === 1 ? 'rental' : 'rentals'}` : ''}</p>
                     </div>
@@ -348,7 +367,7 @@ export default function KanawayBoatBoardClient() {
                   <PlanShareButton
                     title={`Join the ${destinationLabel} surf boat`}
                     text={getBoatCrewShareText(crew)}
-                    href={getBoatCrewSharePath(crew.id)}
+                    href={getBoatCrewInvitePath(crew.id)}
                     label="Share crew"
                     className="mt-2 w-full"
                   />
@@ -364,7 +383,7 @@ export default function KanawayBoatBoardClient() {
                     </button>
                   ) : null}
                   {crew.status === 'DEPARTED' ? (
-                    <button type="button" onClick={() => { setDepartureDay(tomorrow); setTimeWindow(crew.timeWindow); setDestination(crew.destination); setAbilityLane(crew.abilityLane); setShowCreate(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="mt-2 min-h-11 w-full rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.07] text-[10px] font-black uppercase tracking-[0.12em] text-[#f8dd72]">
+                    <button type="button" onClick={() => { setLaunchSlug(crew.venueSlug as BoatLaunchSlug); setDepartureDay(tomorrow); setTimeWindow(crew.timeWindow); setDestination(crew.destination); setAbilityLane(crew.abilityLane); setShowCreate(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="mt-2 min-h-11 w-full rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.07] text-[10px] font-black uppercase tracking-[0.12em] text-[#f8dd72]">
                       Same crew tomorrow?
                     </button>
                   ) : null}

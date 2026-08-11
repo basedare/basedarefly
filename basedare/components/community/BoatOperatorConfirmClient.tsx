@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Anchor, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 import {
@@ -8,6 +8,7 @@ import {
   BOAT_TIME_WINDOWS,
   OPERATOR_DESTINATIONS,
   getOptionLabel,
+  isBoatDestinationAllowed,
   type BoatCrewSummary,
   type OperatorDestination,
 } from '@/lib/surf-boat-board';
@@ -23,6 +24,12 @@ export default function BoatOperatorConfirmClient({ crewId, token }: { crewId: s
   const [acknowledgment, setAcknowledgment] = useState(false);
   const [pending, setPending] = useState(false);
   const [state, setState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const operatorDestinations = useMemo(
+    () => crew
+      ? OPERATOR_DESTINATIONS.filter((option) => isBoatDestinationAllowed(crew.venueSlug, option.value))
+      : OPERATOR_DESTINATIONS,
+    [crew],
+  );
 
   useEffect(() => {
     void fetch(`/api/boat-crews?crewId=${encodeURIComponent(crewId)}`, { cache: 'no-store' })
@@ -32,7 +39,9 @@ export default function BoatOperatorConfirmClient({ crewId, token }: { crewId: s
         const nextCrew = payload.data.crews[0] as BoatCrewSummary;
         setCrew(nextCrew);
         setCapacity(Math.max(4, nextCrew.confirmedCount));
-        const initialDestination = OPERATOR_DESTINATIONS.find((option) => option.value === nextCrew.destination)?.value;
+        const initialDestination = OPERATOR_DESTINATIONS.find(
+          (option) => option.value === nextCrew.destination && isBoatDestinationAllowed(nextCrew.venueSlug, option.value),
+        )?.value ?? OPERATOR_DESTINATIONS.find((option) => isBoatDestinationAllowed(nextCrew.venueSlug, option.value))?.value;
         if (initialDestination) setDestination(initialDestination);
         setDepartureAt(`${nextCrew.departureDay}T07:00`);
       })
@@ -89,7 +98,7 @@ export default function BoatOperatorConfirmClient({ crewId, token }: { crewId: s
           ) : (
             <form onSubmit={(event) => { event.preventDefault(); void submit(); }} className="mt-6 space-y-4">
               <Field label="Operator or boat name"><input required minLength={2} maxLength={80} value={operatorName} onChange={(event) => setOperatorName(event.target.value)} className="boat-operator-input" placeholder="Your name or boat" /></Field>
-              <Field label="Confirmed destination"><select value={destination} onChange={(event) => setDestination(event.target.value as OperatorDestination)} className="boat-operator-input">{OPERATOR_DESTINATIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
+              <Field label="Confirmed destination"><select value={destination} onChange={(event) => setDestination(event.target.value as OperatorDestination)} className="boat-operator-input">{operatorDestinations.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Total price · PHP"><input required type="number" min={1} max={50000} value={totalPhp} onChange={(event) => setTotalPhp(Number(event.target.value))} className="boat-operator-input" /></Field>
                 <Field label="Capacity"><input required type="number" min={Math.max(4, crew?.confirmedCount ?? 4)} max={12} value={capacity} onChange={(event) => setCapacity(Number(event.target.value))} className="boat-operator-input" /></Field>

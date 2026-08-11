@@ -22,11 +22,13 @@ The primitive is a **Plan Link**:
 
 Boat crews and **Meet me here** are the first two tests. They use the same handoff shape while preserving domain-specific rules: boat capacity, operator confirmation, and ability lanes remain boat concepts; venue meetups remain short-lived public invitations.
 
+The reusable social primitive underneath is **Start a crew**. A place gives the crew its meaning and rules: a Kanaway or Cemetery boat crew needs a launch, ability lane, minimum group and operator handoff; a padel crew needs a court and four players; a trivia crew needs a venue, start time and team size. Generalize the grammar only after the surf pilot proves invite-to-show-up and repeat behavior.
+
 ## Product rules
 
 - BaseDare remains the approachable surface; DareOS can mature as the architecture and operator vocabulary.
 - Browse and share before requiring identity. Require verified identity only to create or join when trust matters.
-- The map is the feed. Plans should change visible place state without creating duplicate markers.
+- The map is the feed. Places stay canonical, while genuinely separate live activities may receive their own clearly differentiated activity object (for example, one offshore banca per departing crew).
 - Never expose precise live participant location. Share the public place and plan state.
 - Keep the interaction short: intent → details → share. Advanced controls belong behind progressive disclosure.
 - Haptics should confirm meaningful state changes—joined, crew ready, operator confirmed—not decorate every tap.

@@ -37,7 +37,8 @@ test('turns a strong period swell into a conservative pumping signal', () => {
   assert.equal(signal.model.swellDirectionLabel, 'NE');
   assert.match(signal.headline, /one offshore model shows a stronger swell/i);
   assert.match(signal.guidance, /Rock Island, Stimpy’s, Bumee, or Tuason/);
-  assert.match(signal.caveat, /modelled offshore swell and tide/i);
+  assert.match(signal.caveat, /modelled offshore swell/i);
+  assert.match(signal.caveat, /station-predicted tides/i);
   assert.match(signal.caveat, /not an observed break report or safety forecast/i);
   assert.equal(
     signal.crossCheck.href,
@@ -64,7 +65,24 @@ test('uses total-wave fields when the provider omits primary swell fields', () =
   assert.equal(signal.tide, null);
 });
 
-test('publishes the next useful low and high tide times for today', () => {
+test('keeps the exact station tide pair separate from the offshore swell model', () => {
+  const tide = {
+    date: '2026-08-11',
+    lowTime: '2026-08-11T02:51:00.000Z',
+    highTime: '2026-08-11T09:21:00.000Z',
+    lowHeightM: -0.08,
+    highHeightM: 1.69,
+    station: 'Barrio' as const,
+    distanceKm: 7 as const,
+    source: {
+      station: 'Barrio' as const,
+      distanceKm: 7 as const,
+      attribution: 'Barrio · Surf-Forecast' as const,
+      href: 'https://www.surf-forecast.com/breaks/Cloud-Nine/tides/latest' as const,
+      crossCheckLabel: 'Compare Port Pilar · Surfline' as const,
+      crossCheckHref: 'https://www.surfline.com/tide-charts/cloud-9/5842041f4e65fad6a7708d7a' as const,
+    },
+  };
   const signal = buildSiargaoSurfSignal(
     {
       utc_offset_seconds: 28_800,
@@ -77,30 +95,15 @@ test('publishes the next useful low and high tide times for today', () => {
         swell_wave_direction: 142,
         swell_wave_period: 5.25,
       },
-      hourly: {
-        time: [
-          '2026-08-11T01:00',
-          '2026-08-11T02:00',
-          '2026-08-11T03:00',
-          '2026-08-11T04:00',
-          '2026-08-11T09:00',
-          '2026-08-11T10:00',
-          '2026-08-11T11:00',
-          '2026-08-11T16:00',
-          '2026-08-11T17:00',
-          '2026-08-11T18:00',
-          '2026-08-12T00:00',
-        ],
-        sea_level_height_msl: [1.1, 1.35, 1.5, 1.42, -0.1, -0.21, -0.15, 1.3, 1.39, 1.28, 0.89],
-      },
     },
     new Date('2026-08-11T02:15:00.000Z'),
+    tide,
   );
 
   assert.ok(signal?.tide);
-  assert.equal(signal.tide.lowTime, '2026-08-11T02:00:00.000Z');
-  assert.equal(signal.tide.highTime, '2026-08-11T09:00:00.000Z');
-  assert.match(signal.caveat, /modelled offshore swell and tide/i);
+  assert.equal(signal.tide.lowTime, '2026-08-11T02:51:00.000Z');
+  assert.equal(signal.tide.highTime, '2026-08-11T09:21:00.000Z');
+  assert.match(signal.caveat, /station-predicted tides/i);
 });
 
 test('labels the current-style short-period SE model component conservatively', () => {

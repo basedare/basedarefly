@@ -16,11 +16,18 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex live banca crews + exact tide source (2026-08-11 — SHIPPED)
+- Codex extended the shipped boat board without changing the schema: every active crew becomes its own clickable offshore banca activity marker; launch venues remain canonical place markers.
+- Kanaway crews serve Rock Island, Stimpy's, and Bumee/Bomi. Siargao Beach Club is the first Cemetery launch entry. Each launch validates its own destinations and operator confirmation.
+- Public crew links are invitation/onboarding entries with inline sign-in, live crew state, and a direct return to the same boat. Multiple simultaneous crew records render multiple boats.
+- The Open-Meteo hourly tide approximation was removed. Swell remains Open-Meteo; tide times come from the closer Surf-Forecast Barrio station with minute display and a visible Surfline Port Pilar comparison. Failure hides the tide line instead of inventing precision.
+- The `RealWorldMap.tsx` edit is marker presentation/reconciliation only. No renderer, camera, canvas, tile, source, or MapLibre layer behavior changes.
+
 ### Codex Plan Links + Siargao tide glance (2026-08-11 — SHIPPED)
 - Boat crews now produce public, social-ready Plan Links with focused join pages, Open Graph cards, native sharing, `Maybe` / `I’m in`, board needs, live attendance, and `4+` minimum-not-capacity behavior. Operator-confirmed capacity and direct operator payment remain authoritative.
 - Venue pages now offer **Meet me here**: choose a time, add one short note, optionally notify up to five existing BaseDare tags, then share one public RSVP link. Hosts count as going; RSVP writes are idempotent and rate-limited.
 - `/community` routes meetup cards to the dedicated invite, shows attendance, and gives each active venue a small **Meet here** entry alongside its bounded place room.
-- PeeBear’s existing surf card now derives today’s useful low/high times from Open-Meteo Marine `sea_level_height_msl` and shows one compact `Today · Low ~… · High ~…` line. The data remains explicitly modelled, hourly and unsuitable as a navigation or safety forecast.
+- The initial tide glance derived rounded extrema from Open-Meteo Marine `sea_level_height_msl`; the later exact-tide pass above supersedes that approximation.
 - Siargao surf venue pages reuse that cached signal in one compact hero strip: offshore model height/period/direction, today’s useful low/high times, source, and a short local-check caveat. Eligibility is category-gated to Siargao surf breaks, schools, shops, and access points; ordinary beaches and non-Siargao surf venues do not inherit the model.
 - The architectural hypothesis is recorded as DareOS: BaseDare stays the friendly surface while reusable Plan Links form the operating grammar underneath. This is not a public rebrand and does not add a generic feed or chat layer.
 - No Prisma schema, migration, payment custody, proof lifecycle, camera, MapLibre renderer, source, tile, canvas, or duplicate-marker behavior changed.

@@ -101,6 +101,7 @@ function formatTideTime(value: string) {
   return new Intl.DateTimeFormat("en", {
     timeZone: "Asia/Manila",
     hour: "numeric",
+    minute: "2-digit",
   }).format(new Date(value));
 }
 
@@ -366,7 +367,7 @@ export default function AdventureMapOverlay({
                     </span>
                     {surfSignal.tide ? (
                       <span className="mt-1.5 block text-[10px] font-black text-[#f8dd72]/82">
-                        Today · Low ~{formatTideTime(surfSignal.tide.lowTime)} · High ~{formatTideTime(surfSignal.tide.highTime)}
+                        Low {formatTideTime(surfSignal.tide.lowTime)} · High {formatTideTime(surfSignal.tide.highTime)}
                       </span>
                     ) : null}
                     <span className="mt-1.5 block text-[10px] font-semibold leading-4 text-white/52">
@@ -396,6 +397,26 @@ export default function AdventureMapOverlay({
                       >
                         {surfSignal.crossCheck.label}
                       </a>
+                      {surfSignal.tide ? (
+                        <>
+                          <a
+                            href={surfSignal.tide.source.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[8px] font-semibold text-[#f8dd72]/48 underline decoration-[#f8dd72]/18 underline-offset-2 transition hover:text-[#fff0a8]/72"
+                          >
+                            {surfSignal.tide.station} tides
+                          </a>
+                          <a
+                            href={surfSignal.tide.source.crossCheckHref}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[8px] font-semibold text-cyan-100/48 underline decoration-cyan-100/18 underline-offset-2 transition hover:text-cyan-100/72"
+                          >
+                            Surfline tide check
+                          </a>
+                        </>
+                      ) : null}
                     </span>
                     <span className="mt-1.5 block border-t border-white/8 pt-1.5 text-[8px] font-medium leading-3 text-white/34">
                       {surfSignal.caveat}

@@ -5,6 +5,7 @@ import { isAddress } from 'viem';
 import { resolveHostBaretag } from '@/lib/meetups-server';
 import { prisma } from '@/lib/prisma';
 import { createWalletNotification } from '@/lib/notifications';
+import { getBoatCrewSharePath } from '@/lib/surf-boat-board';
 
 const AcceptSchema = z.object({
   walletAddress: z.string().refine((value) => isAddress(value), 'Valid wallet required').optional(),
@@ -67,8 +68,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
             wallet,
             type: 'BOAT_CREW_READY',
             title: 'Boat crew ready',
-            message: 'Everyone accepted the final boat details. See you at Kanaway.',
-            link: '/community/boat/kanaway',
+            message: 'Everyone accepted the final boat details. Check the crew page for the launch.',
+            link: getBoatCrewSharePath(id),
           }),
         ),
       );

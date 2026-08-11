@@ -2,11 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  CEMETERY_BOAT_VENUE_SLUG,
   addCalendarDays,
   deriveBoatCrewStatus,
   getBoatCrewCountLabel,
+  getBoatCrewDepartureLabel,
+  getBoatCrewInvitePath,
+  getBoatCrewLoadingLabel,
+  getBoatCrewMarkerPosition,
   getAllowedBoatDays,
-  getBoatCrewMapLabel,
+  getBoatLaunchDestinations,
   getBoatCrewSharePath,
   getProjectedSharePhp,
 } from './surf-boat-board.ts';
@@ -49,17 +54,40 @@ test('departure is derived without rewriting the crew record', () => {
   );
 });
 
-test('the canonical venue marker gets one compact boat label', () => {
-  assert.equal(getBoatCrewMapLabel({ confirmedCount: 3, minimumCrew: 4, status: 'FORMING' }), 'BOAT 3/4');
-  assert.equal(getBoatCrewMapLabel({ confirmedCount: 5, minimumCrew: 4, status: 'AWAITING_OPERATOR' }), 'BOAT 5+');
-  assert.equal(getBoatCrewMapLabel({ confirmedCount: 4, minimumCrew: 4, status: 'READY' }), 'BOAT READY');
-  assert.equal(getBoatCrewMapLabel({ confirmedCount: 4, minimumCrew: 4, status: 'DEPARTED' }), null);
-});
-
 test('boat sharing keeps four as a minimum rather than a hard capacity', () => {
   assert.equal(
     getBoatCrewCountLabel({ confirmedCount: 5, minimumCrew: 4, operatorConfirmation: null }),
     '5+',
   );
   assert.equal(getBoatCrewSharePath('crew one'), '/community/boat/crew%20one');
+  assert.equal(getBoatCrewInvitePath('crew one'), '/community/boat/crew%20one?invite=crew');
+});
+
+test('each launch exposes only the breaks it can actually serve', () => {
+  assert.deepEqual(getBoatLaunchDestinations(CEMETERY_BOAT_VENUE_SLUG).map((item) => item.value), ['cemetery']);
+  assert.equal(getBoatLaunchDestinations('kanaway-surf-school').some((item) => item.value === 'cemetery'), false);
+});
+
+test('multiple crews occupy independent offshore boat slots', () => {
+  const first = getBoatCrewMarkerPosition('kanaway-surf-school', 0);
+  const second = getBoatCrewMarkerPosition('kanaway-surf-school', 1);
+  const cemetery = getBoatCrewMarkerPosition(CEMETERY_BOAT_VENUE_SLUG, 0);
+  assert.notDeepEqual(first, second);
+  assert.notDeepEqual(first, cemetery);
+});
+
+test('map boats say whether they are loading and when they leave', () => {
+  const forming = {
+    confirmedCount: 3,
+    minimumCrew: 4,
+    status: 'FORMING' as const,
+  };
+  assert.equal(getBoatCrewLoadingLabel(forming), 'LOADING · 3/4');
+  assert.equal(
+    getBoatCrewDepartureLabel(
+      { departureDay: '2026-08-11', timeWindow: 'early', operatorConfirmation: null },
+      new Date('2026-08-11T00:00:00.000Z'),
+    ),
+    'TODAY · Early 7–9',
+  );
 });

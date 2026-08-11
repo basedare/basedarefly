@@ -3,6 +3,7 @@ import {
   BOAT_DESTINATIONS,
   BOAT_TIME_WINDOWS,
   getBoatCrewCountLabel,
+  getBoatLaunch,
   getOptionLabel,
 } from '@/lib/surf-boat-board';
 import { OG_ALT, OG_CONTENT_TYPE, OG_SIZE, renderProofCard } from '@/lib/og-proof-card';
@@ -29,7 +30,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
     });
   }
   return renderProofCard({
-    eyebrow: 'SURF BOAT · KANAWAY',
+    eyebrow: `SURF BOAT · ${getBoatLaunch(crew.venueSlug).label.toUpperCase()}`,
     title: getOptionLabel(BOAT_DESTINATIONS, crew.destination),
     location: getOptionLabel(BOAT_TIME_WINDOWS, crew.timeWindow),
     stats: [

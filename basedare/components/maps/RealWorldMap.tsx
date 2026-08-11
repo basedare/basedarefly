@@ -88,8 +88,13 @@ import {
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { isSiargaoVenueFeaturedTonight } from '@/lib/siargao-nightlife';
 import {
+  BOAT_LAUNCHES,
   KANAWAY_BOAT_VENUE_SLUG,
-  getBoatCrewMapLabel,
+  getBoatCrewDepartureLabel,
+  getBoatCrewInvitePath,
+  getBoatCrewLoadingLabel,
+  getBoatCrewMarkerPosition,
+  getBoatLaunch,
   type BoatCrewSummary,
 } from '@/lib/surf-boat-board';
 import {
@@ -3138,6 +3143,23 @@ function createSurfBreakMarkerHtml(label: string) {
   `;
 }
 
+function createBoatCrewMarkerHtml(crew: BoatCrewSummary) {
+  const launch = getBoatLaunch(crew.venueSlug);
+  const loadingLabel = escapeMarkerAttribute(getBoatCrewLoadingLabel(crew));
+  const departureLabel = escapeMarkerAttribute(getBoatCrewDepartureLabel(crew));
+  const title = escapeMarkerAttribute(`${launch.label} boat · ${loadingLabel} · ${departureLabel}`);
+  return `
+    <div class="boat-crew-map-marker" title="${title}">
+      <span class="boat-crew-map-status">${loadingLabel}</span>
+      <span class="boat-crew-map-object" aria-hidden="true">
+        <span class="boat-crew-map-beam"></span>
+        <img src="/assets/map/holograms/banca-boat.webp" alt="" draggable="false" />
+      </span>
+      <span class="boat-crew-map-departure">${departureLabel}</span>
+    </div>
+  `;
+}
+
 function getMarkerVenueLabel(value?: string | null) {
   const normalized = value?.replace(/\s+/g, ' ').trim();
   if (!normalized) return null;
@@ -4743,7 +4765,7 @@ export default function RealWorldMap() {
     };
   }, [mapReady, meetupsRefreshNonce]);
 
-  // ── Kanaway Boat Board: one canonical venue signal, never a second pin. ──
+  // ── Surf Boat Board: live crews become independent offshore activity pins. ──
   useEffect(() => {
     if (!mapReady) return;
     let cancelled = false;
@@ -6864,23 +6886,24 @@ export default function RealWorldMap() {
     ),
     [communitySparkVenueSlugSet, fundedDareVenueSlugSet],
   );
-  const activeBoatCrew = useMemo(
+  const activeBoatCrews = useMemo(
     () =>
       [...boatCrews]
         .filter((crew) => crew.status !== 'DEPARTED' && crew.status !== 'CANCELLED')
-        .sort((a, b) => b.confirmedCount - a.confirmedCount)[0] ?? null,
+        .sort((a, b) =>
+          a.venueSlug.localeCompare(b.venueSlug) ||
+          a.departureDay.localeCompare(b.departureDay) ||
+          a.id.localeCompare(b.id),
+        ),
     [boatCrews],
   );
-  const boatCrewLabelByVenueSlug = useMemo(() => {
-    const labels = new Map<string, string>();
-    if (!activeBoatCrew) return labels;
-    const label = getBoatCrewMapLabel(activeBoatCrew);
-    if (label) labels.set(KANAWAY_BOAT_VENUE_SLUG, label);
-    return labels;
-  }, [activeBoatCrew]);
+  const selectedBoatLaunch = BOAT_LAUNCHES.find((launch) => launch.value === selectedPlace?.slug) ?? null;
+  const selectedBoatCrew = selectedBoatLaunch
+    ? activeBoatCrews.find((crew) => crew.venueSlug === selectedBoatLaunch.value) ?? null
+    : null;
   const boatCrewVenueSlugSet = useMemo(
-    () => new Set(boatCrewLabelByVenueSlug.keys()),
-    [boatCrewLabelByVenueSlug],
+    () => new Set(activeBoatCrews.map((crew) => crew.venueSlug)),
+    [activeBoatCrews],
   );
   const localSignalLabelByVenueSlug = useMemo(() => {
     const labels = new Map<string, string>();
@@ -8430,10 +8453,12 @@ export default function RealWorldMap() {
     return reasons.slice(0, 3);
   }, [selectedCommandCenter, selectedPlace, selectedPlaceMatch, showMatchedLayer]);
   const selectedVenueNextMove = useMemo(() => {
-    if (selectedPlace?.slug === KANAWAY_BOAT_VENUE_SLUG) {
-      return activeBoatCrew
-        ? `${activeBoatCrew.confirmedCount}/${activeBoatCrew.minimumCrew} surfers confirmed. Join the boat call or start a compatible crew.`
-        : "Start today's first boat call for Rock Island, Stimpy's, or Bumee/Bomi.";
+    if (selectedBoatLaunch) {
+      return selectedBoatCrew
+        ? `${selectedBoatCrew.confirmedCount}/${selectedBoatCrew.minimumCrew} surfers confirmed. Join the boat call or start a compatible crew.`
+        : selectedBoatLaunch.value === KANAWAY_BOAT_VENUE_SLUG
+          ? "Start today's first boat call for Rock Island, Stimpy's, or Bumee/Bomi."
+          : "Start today's first Cemetery boat call.";
     }
     if (selectedPlaceActionPolicy.primary === 'directions') {
       return selectedPlaceClaimedMission
@@ -8468,19 +8493,19 @@ export default function RealWorldMap() {
     selectedPlaceActionPolicy.secondary,
     selectedPlaceClaimedMission,
     selectedPlaceMatch,
-    selectedPlace?.slug,
     showMatchedLayer,
-    activeBoatCrew,
+    selectedBoatCrew,
+    selectedBoatLaunch,
   ]);
   const selectedPrimaryAction = useMemo(() => {
-    if (selectedPlace?.slug === KANAWAY_BOAT_VENUE_SLUG) {
+    if (selectedBoatLaunch) {
       return {
         label: 'Find a boat crew',
-        detail: activeBoatCrew
-          ? `${activeBoatCrew.confirmedCount}/${activeBoatCrew.minimumCrew} confirmed · about ₱${activeBoatCrew.projectedSharePhp} each`
+        detail: selectedBoatCrew
+          ? `${selectedBoatCrew.confirmedCount}/${selectedBoatCrew.minimumCrew} confirmed · about ₱${selectedBoatCrew.projectedSharePhp} each`
           : 'Start the first shared surf boat for today or tomorrow.',
         tone: 'gold' as const,
-        href: '/community/boat/kanaway',
+        href: selectedBoatLaunch.boardPath,
         actionLabel: 'Open Boat Board',
         resolveAction: null as SelectedCommandAction | null,
       };
@@ -8556,8 +8581,8 @@ export default function RealWorldMap() {
     selectedPlaceActionPolicy.verifyLabel,
     selectedPlaceActiveDares,
     selectedVenueHref,
-    selectedPlace?.slug,
-    activeBoatCrew,
+    selectedBoatCrew,
+    selectedBoatLaunch,
   ]);
   const selectedVenueCommandCards = useMemo(() => {
     const rewardTotal = selectedPlaceActiveDares.reduce((total, dare) => total + dare.bounty, 0);
@@ -9297,8 +9322,7 @@ export default function RealWorldMap() {
             isVenueNightTonight(place.name, place.slug),
           mayorTag: place.mayor?.tag ?? null,
           localSignalLabel:
-            boatCrewLabelByVenueSlug.get(place.slug) ??
-            (place.activeDareCount > 0 ? null : localSignalLabelByVenueSlug.get(place.slug) ?? null),
+            place.activeDareCount > 0 ? null : localSignalLabelByVenueSlug.get(place.slug) ?? null,
         }),
         className: `basedare-maplibre-marker basedare-maplibre-marker--venue${
           isAttentionPick ? ' basedare-maplibre-marker--attention-pick' : ''
@@ -9329,6 +9353,25 @@ export default function RealWorldMap() {
 
           triggerHaptic('selection');
           router.push(`/map?place=${encodeURIComponent(point.venueSlug)}`);
+        },
+      });
+    });
+
+    const launchSlotIndex = new Map<string, number>();
+    activeBoatCrews.forEach((crew) => {
+      const slotIndex = launchSlotIndex.get(crew.venueSlug) ?? 0;
+      launchSlotIndex.set(crew.venueSlug, slotIndex + 1);
+      const position = getBoatCrewMarkerPosition(crew.venueSlug, slotIndex);
+      addMarker({
+        key: `boat-crew:${crew.id}`,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        html: createBoatCrewMarkerHtml(crew),
+        className: 'basedare-maplibre-marker basedare-maplibre-marker--boat-crew',
+        anchor: 'center',
+        onClick: () => {
+          triggerHaptic('selection');
+          router.push(getBoatCrewInvitePath(crew.id));
         },
       });
     });
@@ -9528,7 +9571,7 @@ export default function RealWorldMap() {
     handleAdventureActivitySelect,
     localSignals,
     localSignalLabelByVenueSlug,
-    boatCrewLabelByVenueSlug,
+    activeBoatCrews,
     mapAttentionSuggestedSlugSet,
     mapAttentionIntent,
     renderedVenueMarkerSlugSet,
@@ -9922,11 +9965,11 @@ export default function RealWorldMap() {
     ) : null;
 
   const selectedPlaceBoatCrewButton =
-    selectedPlace?.slug === KANAWAY_BOAT_VENUE_SLUG ? (
+    selectedBoatLaunch ? (
       <Link
-        href="/community/boat/kanaway"
+        href={selectedBoatLaunch.boardPath}
         className="map-primary-action-button map-primary-action-button--proof"
-        aria-label="Find a surf boat crew at Kanaway"
+        aria-label={`Find a surf boat crew at ${selectedBoatLaunch.label}`}
       >
         <span>Find a boat crew</span>
       </Link>
@@ -17181,6 +17224,126 @@ export default function RealWorldMap() {
           display: none !important;
         }
 
+        .basedare-maplibre-map :global(.basedare-maplibre-marker--boat-crew) {
+          z-index: 7;
+        }
+
+        .basedare-maplibre-map :global(.boat-crew-map-marker) {
+          position: relative;
+          display: grid;
+          width: 92px;
+          height: 88px;
+          cursor: pointer;
+          place-items: center;
+          isolation: isolate;
+        }
+
+        .basedare-maplibre-map :global(.boat-crew-map-object) {
+          position: relative;
+          z-index: 2;
+          display: grid;
+          width: 66px;
+          height: 66px;
+          place-items: center;
+          filter:
+            drop-shadow(0 11px 9px rgba(0, 0, 0, 0.62))
+            drop-shadow(0 0 9px rgba(34, 211, 238, 0.42));
+          animation: boatCrewFloat 3.6s ease-in-out infinite;
+          transform-origin: 50% 70%;
+        }
+
+        .basedare-maplibre-map :global(.boat-crew-map-object img) {
+          position: relative;
+          z-index: 2;
+          display: block;
+          width: 64px;
+          height: 64px;
+          object-fit: contain;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+
+        .basedare-maplibre-map :global(.boat-crew-map-beam) {
+          position: absolute;
+          left: 50%;
+          bottom: 4px;
+          z-index: 1;
+          width: 48px;
+          height: 12px;
+          border: 1px solid rgba(34, 211, 238, 0.68);
+          border-radius: 999px;
+          background: radial-gradient(ellipse, rgba(34, 211, 238, 0.38), rgba(2, 7, 14, 0.62) 58%, transparent 74%);
+          box-shadow: 0 0 8px rgba(34, 211, 238, 0.62), 0 0 18px rgba(168, 85, 247, 0.3);
+          transform: translateX(-50%) perspective(42px) rotateX(62deg);
+        }
+
+        .basedare-maplibre-map :global(.boat-crew-map-status),
+        .basedare-maplibre-map :global(.boat-crew-map-departure) {
+          position: absolute;
+          left: 50%;
+          z-index: 4;
+          max-width: 112px;
+          transform: translateX(-50%);
+          border-radius: 999px;
+          background: rgba(5, 8, 15, 0.9);
+          font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+          font-weight: 950;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .basedare-maplibre-map :global(.boat-crew-map-status) {
+          top: -1px;
+          border: 1px solid rgba(248, 221, 114, 0.48);
+          padding: 3px 7px;
+          color: #fff0a8;
+          font-size: 7px;
+          letter-spacing: 0.08em;
+          box-shadow: 0 5px 10px rgba(0, 0, 0, 0.46), 0 0 8px rgba(245, 197, 24, 0.15);
+        }
+
+        .basedare-maplibre-map :global(.boat-crew-map-departure) {
+          bottom: -1px;
+          border: 1px solid rgba(34, 211, 238, 0.3);
+          padding: 3px 6px;
+          color: rgba(207, 250, 254, 0.84);
+          font-size: 6px;
+          letter-spacing: 0.07em;
+          box-shadow: 0 5px 10px rgba(0, 0, 0, 0.46);
+        }
+
+        @keyframes boatCrewFloat {
+          0%, 100% { transform: translateY(1px) rotate(-1deg); }
+          50% { transform: translateY(-3px) rotate(1deg); }
+        }
+
+        @media (max-width: 767px) {
+          .basedare-maplibre-map :global(.boat-crew-map-marker) {
+            width: 78px;
+            height: 74px;
+          }
+
+          .basedare-maplibre-map :global(.boat-crew-map-object),
+          .basedare-maplibre-map :global(.boat-crew-map-object img) {
+            width: 52px;
+            height: 52px;
+          }
+
+          .basedare-maplibre-map :global(.boat-crew-map-status) {
+            padding: 3px 6px;
+            font-size: 6px;
+          }
+
+          .basedare-maplibre-map :global(.boat-crew-map-departure) {
+            font-size: 5.5px;
+          }
+        }
+
+        .basedare-maplibre-map[data-map-moving='true'] :global(.boat-crew-map-object) {
+          animation-play-state: paused;
+          filter: none;
+        }
+
         .basedare-maplibre-map :global(.adventure-place-object) {
           --holo-rgb: 34, 211, 238;
           position: absolute;
@@ -17699,6 +17862,7 @@ export default function RealWorldMap() {
           .basedare-maplibre-map :global(.adventure-place-object),
           .basedare-maplibre-map :global(.adventure-guide-head),
           .basedare-maplibre-map :global(.adventure-focal-marker),
+          .basedare-maplibre-map :global(.boat-crew-map-object),
           .basedare-maplibre-map :global(.surf-swell-crest) {
             animation: none !important;
             transition: none !important;

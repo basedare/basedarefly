@@ -8,16 +8,20 @@ import { prisma } from '@/lib/prisma';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 import {
   BOAT_DESTINATIONS,
+  BOAT_LAUNCHES,
   BOAT_TIME_WINDOWS,
   KANAWAY_BOAT_VENUE_SLUG,
   SURF_ABILITY_LANES,
   getBoatCrewExpiry,
+  getBoatLaunch,
+  isBoatDestinationAllowed,
   isAllowedBoatDay,
 } from '@/lib/surf-boat-board';
 import { serializeBoatCrew } from '@/lib/surf-boat-board-server';
 
 const CreateBoatCrewSchema = z.object({
   walletAddress: z.string().refine((value) => isAddress(value), 'Valid wallet required').optional(),
+  venueSlug: z.enum(BOAT_LAUNCHES.map((launch) => launch.value) as [string, ...string[]]).default(KANAWAY_BOAT_VENUE_SLUG),
   departureDay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   timeWindow: z.enum(BOAT_TIME_WINDOWS.map((option) => option.value) as [string, ...string[]]),
   destination: z.enum(BOAT_DESTINATIONS.map((option) => option.value) as [string, ...string[]]),
@@ -34,10 +38,14 @@ export async function GET(request: NextRequest) {
         ? await findPrimaryCreatorTagForWallet(requestedWallet)
         : null);
     const crewId = request.nextUrl.searchParams.get('crewId')?.trim() || null;
+    const requestedVenueSlug = request.nextUrl.searchParams.get('venueSlug')?.trim() || null;
+    const venueSlug = BOAT_LAUNCHES.some((launch) => launch.value === requestedVenueSlug)
+      ? requestedVenueSlug
+      : null;
     const now = new Date();
     const crews = await prisma.surfBoatCrew.findMany({
       where: {
-        ...(crewId ? { id: crewId } : { venue: { slug: KANAWAY_BOAT_VENUE_SLUG } }),
+        ...(crewId ? { id: crewId } : venueSlug ? { venue: { slug: venueSlug } } : {}),
         status: { not: 'CANCELLED' },
         expiresAt: { gt: now },
       },
@@ -97,9 +105,15 @@ export async function POST(request: NextRequest) {
     if (!isAllowedBoatDay(input.departureDay)) {
       return NextResponse.json({ success: false, error: 'Choose today or tomorrow.' }, { status: 400 });
     }
+    if (!isBoatDestinationAllowed(input.venueSlug, input.destination)) {
+      return NextResponse.json(
+        { success: false, error: `Choose a break served by ${getBoatLaunch(input.venueSlug).label}.` },
+        { status: 400 },
+      );
+    }
     const baretag = await resolveHostBaretag(request, input.walletAddress ?? null, {
       action: 'boat-crew:create',
-      resource: `venue:${KANAWAY_BOAT_VENUE_SLUG}`,
+      resource: `venue:${input.venueSlug}`,
     });
     if (!baretag) {
       return NextResponse.json(
@@ -108,11 +122,14 @@ export async function POST(request: NextRequest) {
       );
     }
     const venue = await prisma.venue.findUnique({
-      where: { slug: KANAWAY_BOAT_VENUE_SLUG },
+      where: { slug: input.venueSlug },
       select: { id: true },
     });
     if (!venue) {
-      return NextResponse.json({ success: false, error: 'Kanaway is not available on the map yet.' }, { status: 503 });
+      return NextResponse.json(
+        { success: false, error: `${getBoatLaunch(input.venueSlug).name} is not available on the map yet.` },
+        { status: 503 },
+      );
     }
     const existingSeat = await prisma.surfBoatCrewMember.findFirst({
       where: {

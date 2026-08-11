@@ -43,9 +43,15 @@ export default function SurfLocationSignal() {
           {signal.model.swellDirectionLabel}
         </p>
         {signal.tide ? (
-          <p className="text-sm font-bold text-[#f8dd72]">
-            Today · Low ~{formatSignalTime(signal.tide.lowTime)} · High ~{formatSignalTime(signal.tide.highTime)}
-          </p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-bold text-[#f8dd72]">
+            <span>Low {formatSignalTime(signal.tide.lowTime, true)} · High {formatSignalTime(signal.tide.highTime, true)}</span>
+            <a href={signal.tide.source.href} target="_blank" rel="noopener noreferrer" className="text-[9px] uppercase tracking-[0.1em] text-white/38 underline decoration-white/15 underline-offset-2 hover:text-white/60">
+              {signal.tide.station} station
+            </a>
+            <a href={signal.tide.source.crossCheckHref} target="_blank" rel="noopener noreferrer" className="text-[9px] text-cyan-100/42 underline decoration-cyan-100/15 underline-offset-2 hover:text-cyan-100/65">
+              Surfline check
+            </a>
+          </div>
         ) : null}
       </div>
 

@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
-import { OPERATOR_DESTINATIONS, getManilaDay } from '@/lib/surf-boat-board';
+import { OPERATOR_DESTINATIONS, getBoatCrewSharePath, getManilaDay, isBoatDestinationAllowed } from '@/lib/surf-boat-board';
 import { hashOperatorToken, operatorTokenMatches } from '@/lib/surf-boat-board-server';
 import { createWalletNotification } from '@/lib/notifications';
 
@@ -45,7 +45,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const departureAt = new Date(input.departureAt);
     const crew = await prisma.surfBoatCrew.findUnique({
       where: { id },
-      include: { members: { where: { commitment: 'CONFIRMED' }, select: { id: true } } },
+      include: {
+        members: { where: { commitment: 'CONFIRMED' }, select: { id: true } },
+        venue: { select: { slug: true } },
+      },
     });
     if (
       !crew ||
@@ -57,6 +60,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     }
     if (crew.members.length < crew.minimumCrew) {
       return NextResponse.json({ success: false, error: 'The crew is no longer large enough.' }, { status: 409 });
+    }
+    if (!isBoatDestinationAllowed(crew.venue.slug, input.destination)) {
+      return NextResponse.json({ success: false, error: 'Choose a destination served by this launch.' }, { status: 400 });
     }
     if (
       departureAt <= now ||
@@ -119,7 +125,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
           type: 'BOAT_DETAILS_CONFIRMED',
           title: 'Your surf boat is confirmed',
           message: `${input.operatorName} confirmed ${input.destination}, ₱${input.totalPhp} total. Accept the final details before departure.`,
-          link: '/community/boat/kanaway',
+          link: getBoatCrewSharePath(id),
         }),
       ),
     );

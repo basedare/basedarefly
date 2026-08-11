@@ -5,7 +5,7 @@ import { isAddress } from 'viem';
 import { resolveHostBaretag } from '@/lib/meetups-server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
-import { BOAT_COMMITMENTS, SURF_ABILITY_LANES } from '@/lib/surf-boat-board';
+import { BOAT_COMMITMENTS, SURF_ABILITY_LANES, getBoatCrewSharePath } from '@/lib/surf-boat-board';
 import { createWalletNotification } from '@/lib/notifications';
 
 const MembershipSchema = z.object({
@@ -153,8 +153,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         wallet: organizer?.walletAddress,
         type: 'BOAT_CREW_READY_FOR_OPERATOR',
         title: 'Your surf crew reached 4/4',
-        message: 'Open the Kanaway Boat Board and send the private confirmation link to the real boat operator.',
-        link: '/community/boat/kanaway',
+        message: 'Open the crew and send the private confirmation link to the real boat operator.',
+        link: getBoatCrewSharePath(id),
       }).catch((error) => console.error('[BOAT_CREW_MEMBERSHIP] threshold notification failed:', error));
     }
 

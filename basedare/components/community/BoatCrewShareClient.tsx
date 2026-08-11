@@ -7,14 +7,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
+import { IdentityButton } from '@/components/IdentityButton';
 import {
   BOAT_DESTINATIONS,
   BOAT_TIME_WINDOWS,
   SURF_ABILITY_LANES,
   getBoatCrewCountLabel,
-  getBoatCrewSharePath,
+  getBoatCrewInvitePath,
   getBoatCrewShareText,
   getBoatCrewStatusCopy,
+  getBoatLaunch,
   getOptionLabel,
   type BoatCommitment,
   type BoatCrewSummary,
@@ -110,6 +112,7 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
   };
 
   const destination = getOptionLabel(BOAT_DESTINATIONS, crew.destination);
+  const launch = getBoatLaunch(crew.venueSlug);
   const time = getOptionLabel(BOAT_TIME_WINDOWS, crew.timeWindow);
   const lane = getOptionLabel(SURF_ABILITY_LANES, crew.abilityLane);
   const closed = crew.status === 'DEPARTED' || crew.status === 'CANCELLED';
@@ -118,14 +121,14 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
     <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-28 text-white sm:px-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_0%,rgba(34,211,238,0.15),transparent_34%),radial-gradient(circle_at_12%_28%,rgba(245,197,24,0.12),transparent_30%)]" />
       <div className="relative mx-auto max-w-2xl">
-        <Link href="/community/boat/kanaway" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/48 hover:text-white">
-          <ArrowLeft className="h-4 w-4" /> Kanaway Boat Board
+        <Link href={launch.boardPath} className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/48 hover:text-white">
+          <ArrowLeft className="h-4 w-4" /> Siargao Boat Board
         </Link>
 
         <section className="mt-5 overflow-hidden rounded-[2rem] border border-cyan-200/18 bg-[linear-gradient(155deg,rgba(12,35,44,0.94),rgba(6,7,15,0.99))] p-5 shadow-[0_28px_90px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.08)] sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-cyan-200/68">Surf boat · Kanaway</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-cyan-200/68">Surf boat · {launch.mapLabel}</p>
               <h1 className="mt-3 text-4xl font-black leading-[0.95] sm:text-5xl">{destination}</h1>
             </div>
             <span className="rounded-2xl border border-[#f5c518]/22 bg-[#f5c518]/[0.09] px-3 py-2 text-center">
@@ -151,7 +154,13 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
             <p className="mt-4 text-xs leading-5 text-white/42">The final destination, time, capacity and price are confirmed by the real boat operator after the crew reaches four.</p>
           )}
 
-          {!closed && !crew.viewerMembership ? (
+          {!closed && !crew.viewerMembership && !actorWallet ? (
+            <div className="mt-5 rounded-2xl border border-[#f5c518]/22 bg-[#f5c518]/[0.07] p-4">
+              <p className="text-sm font-black text-white">Invited by a friend?</p>
+              <p className="mt-1 text-xs leading-5 text-white/48">Join BaseDare here, then take a seat without losing this boat.</p>
+              <div className="mt-3 max-w-48"><IdentityButton /></div>
+            </div>
+          ) : !closed && !crew.viewerMembership ? (
             <div className="mt-5">
               <label className="flex min-h-11 items-center gap-3 rounded-2xl border border-white/10 bg-black/24 px-4 text-sm font-bold text-white/64">
                 <input type="checkbox" checked={needsBoard} onChange={(event) => setNeedsBoard(event.target.checked)} className="h-4 w-4 accent-[#f5c518]" /> I need a rental board
@@ -167,8 +176,8 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
 
           {state ? <p role="status" className={`mt-4 rounded-2xl border p-3 text-xs font-bold ${state.type === 'success' ? 'border-emerald-200/20 bg-emerald-300/[0.08] text-emerald-100' : 'border-rose-200/20 bg-rose-300/[0.08] text-rose-100'}`}>{state.message}</p> : null}
 
-          <PlanShareButton title={`Join the ${destination} surf boat`} text={getBoatCrewShareText(crew)} href={getBoatCrewSharePath(crew.id)} label="Share crew" className="mt-4 w-full" />
-          <Link href="/map?place=kanaway-surf-school&source=boat-share" className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/42 hover:text-white/72"><MapPin className="h-4 w-4" /> Open Kanaway on map</Link>
+          <PlanShareButton title={`Join the ${destination} surf boat`} text={getBoatCrewShareText(crew)} href={getBoatCrewInvitePath(crew.id)} label="Invite friends" className="mt-4 w-full" />
+          <Link href={launch.mapPath} className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/42 hover:text-white/72"><MapPin className="h-4 w-4" /> Open {launch.mapLabel} on map</Link>
         </section>
 
         <p className="mt-4 flex items-start gap-2 px-2 text-[10px] leading-4 text-white/34"><LifeBuoy className="mt-0.5 h-4 w-4 shrink-0" /> BaseDare coordinates the crew only. Pay the operator directly and check conditions, ability, equipment and safety locally.</p>

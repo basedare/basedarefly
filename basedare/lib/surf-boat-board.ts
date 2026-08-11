@@ -1,5 +1,7 @@
 export const KANAWAY_BOAT_VENUE_SLUG = 'kanaway-surf-school';
 export const KANAWAY_BOAT_VENUE_NAME = 'Kanaway Surf School';
+export const CEMETERY_BOAT_VENUE_SLUG = 'siargao-beach-club';
+export const CEMETERY_BOAT_VENUE_NAME = 'Siargao Beach Club';
 export const BOAT_CREW_MINIMUM = 4;
 export const INDICATIVE_BOAT_TOTAL_PHP = 1200;
 
@@ -7,11 +9,47 @@ export const BOAT_DESTINATIONS = [
   { value: 'rock-island', label: 'Rock Island' },
   { value: 'stimpys', label: "Stimpy's" },
   { value: 'bumee-bomi', label: 'Bumee / Bomi' },
+  { value: 'cemetery', label: 'Cemetery' },
   { value: 'best-today', label: 'Best today' },
   { value: 'flexible', label: 'Flexible' },
 ] as const;
 
-export const OPERATOR_DESTINATIONS = BOAT_DESTINATIONS.slice(0, 3);
+export const OPERATOR_DESTINATIONS = BOAT_DESTINATIONS.slice(0, 4);
+
+export const BOAT_LAUNCHES = [
+  {
+    value: KANAWAY_BOAT_VENUE_SLUG,
+    label: 'Kanaway',
+    name: KANAWAY_BOAT_VENUE_NAME,
+    boardPath: '/community/boat/kanaway',
+    mapPath: '/map?place=kanaway-surf-school&source=boat-share',
+    mapLabel: 'Kanaway launch',
+    destinationValues: ['rock-island', 'stimpys', 'bumee-bomi', 'best-today', 'flexible'],
+    markerSlots: [
+      { latitude: 9.81095, longitude: 126.16135 },
+      { latitude: 9.81155, longitude: 126.16185 },
+      { latitude: 9.81025, longitude: 126.16195 },
+      { latitude: 9.81205, longitude: 126.1624 },
+      { latitude: 9.80965, longitude: 126.16245 },
+    ],
+  },
+  {
+    value: CEMETERY_BOAT_VENUE_SLUG,
+    label: 'Cemetery',
+    name: CEMETERY_BOAT_VENUE_NAME,
+    boardPath: '/community/boat/kanaway?launch=cemetery',
+    mapPath: '/map?place=siargao-beach-club&source=boat-share',
+    mapLabel: 'Cemetery launch',
+    destinationValues: ['cemetery'],
+    markerSlots: [
+      { latitude: 9.78515, longitude: 126.16415 },
+      { latitude: 9.78575, longitude: 126.16475 },
+      { latitude: 9.78445, longitude: 126.16485 },
+      { latitude: 9.7863, longitude: 126.1653 },
+      { latitude: 9.78385, longitude: 126.1654 },
+    ],
+  },
+] as const;
 
 export const BOAT_TIME_WINDOWS = [
   { value: 'dawn', label: 'Dawn · 5–7' },
@@ -37,6 +75,7 @@ export const BOAT_CREW_STATUSES = [
 
 export type BoatDestination = (typeof BOAT_DESTINATIONS)[number]['value'];
 export type OperatorDestination = (typeof OPERATOR_DESTINATIONS)[number]['value'];
+export type BoatLaunchSlug = (typeof BOAT_LAUNCHES)[number]['value'];
 export type BoatTimeWindow = (typeof BOAT_TIME_WINDOWS)[number]['value'];
 export type SurfAbilityLane = (typeof SURF_ABILITY_LANES)[number]['value'];
 export type BoatCommitment = (typeof BOAT_COMMITMENTS)[number];
@@ -141,11 +180,64 @@ export function deriveBoatCrewStatus(input: {
   return 'OPERATOR_CONFIRMED';
 }
 
-export function getBoatCrewMapLabel(crew: Pick<BoatCrewSummary, 'confirmedCount' | 'minimumCrew' | 'status'>) {
-  if (crew.status === 'READY') return 'BOAT READY';
-  if (crew.status === 'DEPARTED' || crew.status === 'CANCELLED') return null;
-  if (crew.confirmedCount >= crew.minimumCrew) return `BOAT ${crew.confirmedCount}+`;
-  return `BOAT ${crew.confirmedCount}/${crew.minimumCrew}`;
+export function getBoatLaunch(venueSlug: string) {
+  return BOAT_LAUNCHES.find((launch) => launch.value === venueSlug) ?? BOAT_LAUNCHES[0];
+}
+
+export function getBoatLaunchDestinations(venueSlug: string) {
+  const allowed = new Set<string>(getBoatLaunch(venueSlug).destinationValues);
+  return BOAT_DESTINATIONS.filter((destination) => allowed.has(destination.value));
+}
+
+export function isBoatDestinationAllowed(venueSlug: string, destination: string) {
+  return getBoatLaunch(venueSlug).destinationValues.some((value) => value === destination);
+}
+
+export function getBoatCrewMarkerPosition(venueSlug: string, index: number) {
+  const slots = getBoatLaunch(venueSlug).markerSlots;
+  if (index < slots.length) return slots[index];
+  const anchor = slots[0];
+  const overflowIndex = index - slots.length;
+  const ring = Math.floor(overflowIndex / 8) + 1;
+  const angle = (overflowIndex % 8) * (Math.PI / 4);
+  const radius = ring * 0.00042;
+  return {
+    latitude: anchor.latitude + Math.sin(angle) * radius,
+    longitude: anchor.longitude + Math.cos(angle) * radius,
+  };
+}
+
+function formatManilaTime(value: string) {
+  return new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'Asia/Manila',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+export function getBoatCrewDepartureLabel(
+  crew: Pick<BoatCrewSummary, 'departureDay' | 'timeWindow' | 'operatorConfirmation'>,
+  now = new Date(),
+) {
+  const departureAt = crew.operatorConfirmation?.departureAt;
+  if (departureAt) {
+    const departureMs = Date.parse(departureAt);
+    const minutesAway = (departureMs - now.getTime()) / 60_000;
+    const time = formatManilaTime(departureAt);
+    return minutesAway >= 0 && minutesAway <= 90 ? `SOON · ${time}` : `LEAVES ${time}`;
+  }
+
+  const day = crew.departureDay === getManilaDay(now) ? 'TODAY' : 'TOMORROW';
+  const window = getOptionLabel(BOAT_TIME_WINDOWS, crew.timeWindow).replace(' · ', ' ');
+  return `${day} · ${window}`;
+}
+
+export function getBoatCrewLoadingLabel(
+  crew: Pick<BoatCrewSummary, 'confirmedCount' | 'minimumCrew' | 'status'>,
+) {
+  if (crew.status === 'READY') return `READY · ${crew.confirmedCount}+`;
+  if (crew.confirmedCount >= crew.minimumCrew) return `CREW · ${crew.confirmedCount}+`;
+  return `LOADING · ${crew.confirmedCount}/${crew.minimumCrew}`;
 }
 
 export function getBoatCrewCountLabel(
@@ -162,7 +254,12 @@ export function getBoatCrewSharePath(id: string) {
   return `/community/boat/${encodeURIComponent(id)}`;
 }
 
+export function getBoatCrewInvitePath(id: string) {
+  return `${getBoatCrewSharePath(id)}?invite=crew`;
+}
+
 export function getBoatCrewShareText(crew: BoatCrewSummary) {
+  const launch = getBoatLaunch(crew.venueSlug);
   const destination = getOptionLabel(BOAT_DESTINATIONS, crew.destination);
   const time = getOptionLabel(BOAT_TIME_WINDOWS, crew.timeWindow);
   const lane = getOptionLabel(SURF_ABILITY_LANES, crew.abilityLane);
@@ -171,7 +268,7 @@ export function getBoatCrewShareText(crew: BoatCrewSummary) {
     ? `₱${crew.operatorConfirmation.sharePhp} each confirmed by the operator`
     : `about ₱${crew.projectedSharePhp} each if the current crew goes`;
 
-  return `${destination} surf boat · ${time}\n${count} going · ${lane}\n${price}`;
+  return `${destination} surf boat from ${launch.label} · ${time}\n${count} going · ${lane}\n${price}`;
 }
 
 export function getBoatCrewStatusCopy(status: DisplayBoatCrewStatus) {
