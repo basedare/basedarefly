@@ -1,13 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { isMeetupExpired } from '@/lib/meetups';
-import { resolveSessionBaretag } from '@/lib/meetups-server';
+import { resolveHostBaretag } from '@/lib/meetups-server';
+import { createWalletNotification } from '@/lib/notifications';
+import { getMeetupSharePath } from '@/lib/meetup-plan';
+import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
+
+const RsvpSchema = z.object({
+  walletAddress: z.string().refine((value) => isAddress(value), 'Valid wallet required').optional(),
+});
 
 // POST /api/meetups/[id]/rsvp — Baretag-gated, idempotent RSVP. No value released.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const rateLimit = checkRateLimit(getClientIp(request), {
+    limit: 30,
+    windowMs: 60 * 60 * 1000,
+    keyPrefix: 'meetup-rsvp',
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { success: false, error: 'Too many RSVP attempts. Try again later.' },
+      { status: 429, headers: createRateLimitHeaders(rateLimit) }
+    );
+  }
 
-  const baretag = await resolveSessionBaretag(request);
+  const parsed = RsvpSchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: 'Valid wallet required.' }, { status: 400 });
+  }
+  const baretag = await resolveHostBaretag(request, parsed.data.walletAddress ?? null, {
+    action: 'meetup:rsvp',
+    resource: `meetup:${id}`,
+  });
   if (!baretag) {
     return NextResponse.json(
       { success: false, error: 'Claim and verify a Baretag to RSVP.' },
@@ -16,29 +43,57 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   try {
-    const meetup = await prisma.meetup.findUnique({
-      where: { id },
-      select: { id: true, status: true, startTime: true },
+    const result = await prisma.$transaction(async (tx) => {
+      const meetup = await tx.meetup.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          title: true,
+          placeLabel: true,
+          creatorBaretagId: true,
+          status: true,
+          startTime: true,
+        },
+      });
+      if (!meetup) throw new Error('MEETUP_NOT_FOUND');
+      if (meetup.status !== 'active') throw new Error('MEETUP_INACTIVE');
+      if (isMeetupExpired(meetup.startTime)) throw new Error('MEETUP_ENDED');
+
+      const created = await tx.meetupRsvp.createMany({
+        data: [{ meetupId: id, baretagId: baretag.id }],
+        skipDuplicates: true,
+      });
+      const count = await tx.meetupRsvp.count({ where: { meetupId: id } });
+      return { meetup, count, joinedNow: created.count > 0 };
     });
-    if (!meetup) {
-      return NextResponse.json({ success: false, error: 'Meetup not found' }, { status: 404 });
-    }
-    if (meetup.status !== 'active') {
-      return NextResponse.json({ success: false, error: 'Meetup is not active' }, { status: 400 });
-    }
-    if (isMeetupExpired(meetup.startTime)) {
-      return NextResponse.json({ success: false, error: 'This meetup has ended.' }, { status: 400 });
+
+    if (result.joinedNow && result.meetup.creatorBaretagId !== baretag.id) {
+      const creator = await prisma.streamerTag.findUnique({
+        where: { id: result.meetup.creatorBaretagId },
+        select: { walletAddress: true },
+      });
+      await createWalletNotification({
+        wallet: creator?.walletAddress,
+        type: 'MEETUP_RSVP',
+        title: `${baretag.tag} is in`,
+        message: `${result.meetup.placeLabel} now has ${result.count} going.`,
+        link: getMeetupSharePath(id),
+      }).catch((error) => console.error('[MEETUPS] RSVP notification failed:', error));
     }
 
-    await prisma.meetupRsvp.upsert({
-      where: { meetupId_baretagId: { meetupId: id, baretagId: baretag.id } },
-      create: { meetupId: id, baretagId: baretag.id },
-      update: {},
-    });
-
-    const count = await prisma.meetupRsvp.count({ where: { meetupId: id } });
+    const count = result.count;
     return NextResponse.json({ success: true, data: { rsvped: true, count } });
   } catch (error) {
+    const code = error instanceof Error ? error.message : '';
+    if (code === 'MEETUP_NOT_FOUND') {
+      return NextResponse.json({ success: false, error: 'Meetup not found' }, { status: 404 });
+    }
+    if (code === 'MEETUP_INACTIVE') {
+      return NextResponse.json({ success: false, error: 'Meetup is not active' }, { status: 400 });
+    }
+    if (code === 'MEETUP_ENDED') {
+      return NextResponse.json({ success: false, error: 'This meetup has ended.' }, { status: 400 });
+    }
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[MEETUPS] RSVP failed:', message);
     return NextResponse.json({ success: false, error: 'Failed to RSVP' }, { status: 500 });

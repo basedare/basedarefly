@@ -29,6 +29,7 @@ type MeetupActivity = {
   placeLabel: string;
   startTime: string;
   note: string | null;
+  rsvpCount: number;
   creator: { tag: string; pfpUrl: string | null } | null;
 };
 
@@ -225,7 +226,8 @@ export default function CommunityHubClient() {
                 startsAt={meetup.startTime}
                 note={meetup.note}
                 author={meetup.creator?.tag ? `@${meetup.creator.tag.replace(/^@/, '')}` : null}
-                href={`/map?meetupId=${encodeURIComponent(meetup.id)}&source=community-hub`}
+                peopleCount={meetup.rsvpCount}
+                href={`/community/meet/${encodeURIComponent(meetup.id)}`}
               />
             ))}
             {visibleLocalActivities.slice(0, 6).map((activity) => (
@@ -257,18 +259,18 @@ export default function CommunityHubClient() {
             </p>
             <div className="mt-5 space-y-2">
               {venues.map((venue) => (
-                <Link
-                  key={venue.slug}
-                  href={`${venue.primaryHref}&room=1`}
-                  prefetch={false}
-                  className="flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-white/9 bg-white/[0.035] px-4 transition hover:bg-white/[0.07]"
-                >
-                  <span>
-                    <strong className="block text-sm text-white/88">{venue.name}</strong>
-                    <span className="mt-0.5 block text-[10px] text-white/38">{venue.area}</span>
+                <div key={venue.slug} className="flex min-h-16 items-center gap-3 rounded-2xl border border-white/9 bg-white/[0.035] px-4 py-2.5">
+                  <span className="min-w-0 flex-1">
+                    <strong className="block truncate text-sm text-white/88">{venue.name}</strong>
+                    <span className="mt-0.5 block truncate text-[10px] text-white/38">{venue.area}</span>
                   </span>
-                  <MessageCircle className="h-4 w-4 text-cyan-200/72" aria-hidden="true" />
-                </Link>
+                  <Link href={`${venue.primaryHref}&room=1`} prefetch={false} aria-label={`Open ${venue.name} place room`} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cyan-200/14 bg-cyan-300/[0.06] text-cyan-200/72">
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                  <Link href={`/venues/${encodeURIComponent(venue.slug)}#meet-here`} prefetch={false} className="inline-flex min-h-10 shrink-0 items-center rounded-full border border-violet-200/18 bg-violet-300/[0.08] px-3 text-[9px] font-black uppercase tracking-[0.11em] text-violet-100/78">
+                    Meet here
+                  </Link>
+                </div>
               ))}
             </div>
           </div>

@@ -67,6 +67,7 @@ export type MeetupPin = {
   startTime: string;
   note: string | null;
   happeningNow: boolean;
+  rsvpCount?: number;
   creator: { tag: string; pfpUrl: string | null } | null;
 };
 

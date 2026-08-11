@@ -97,6 +97,13 @@ function formatSurfModelTime(modelTime: string) {
   }).format(new Date(modelTime));
 }
 
+function formatTideTime(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    timeZone: "Asia/Manila",
+    hour: "numeric",
+  }).format(new Date(value));
+}
+
 function formatActivityTiming(activity: TonightActivity) {
   if (!activity.startsAt) {
     if (!activity.endsAt) return "Open now";
@@ -357,6 +364,11 @@ export default function AdventureMapOverlay({
                     <span className="mt-1 block text-xs font-black leading-4 text-white">
                       {surfSignal.headline}
                     </span>
+                    {surfSignal.tide ? (
+                      <span className="mt-1.5 block text-[10px] font-black text-[#f8dd72]/82">
+                        Today · Low ~{formatTideTime(surfSignal.tide.lowTime)} · High ~{formatTideTime(surfSignal.tide.highTime)}
+                      </span>
+                    ) : null}
                     <span className="mt-1.5 block text-[10px] font-semibold leading-4 text-white/52">
                       {surfSignal.guidance}
                     </span>

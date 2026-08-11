@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarDays, MapPin, MessageCircle, Sparkles } from 'lucide-react';
+import { CalendarDays, MapPin, MessageCircle, Sparkles, Users } from 'lucide-react';
 
 type ActivityKind = 'meetup' | 'ask' | 'offer' | 'hang';
 
@@ -31,6 +31,7 @@ export default function CommunityActivityCard({
   note,
   href,
   author,
+  peopleCount,
 }: {
   kind: ActivityKind;
   title: string;
@@ -39,6 +40,7 @@ export default function CommunityActivityCard({
   note?: string | null;
   href: string;
   author?: string | null;
+  peopleCount?: number | null;
 }) {
   const copy = ACTIVITY_COPY[kind];
   const external = /^https?:\/\//.test(href);
@@ -69,8 +71,9 @@ export default function CommunityActivityCard({
         <p className="flex items-center gap-2">
           <CalendarDays className="h-3.5 w-3.5 text-violet-200/70" aria-hidden="true" />
           <span>{formatWhen(startsAt)}</span>
-          {author ? <span className="ml-auto truncate text-white/30">{author}</span> : null}
+          {peopleCount ? <span className="ml-auto inline-flex items-center gap-1 text-violet-100/58"><Users className="h-3.5 w-3.5" /> {peopleCount}</span> : author ? <span className="ml-auto truncate text-white/30">{author}</span> : null}
         </p>
+        {peopleCount && author ? <p className="truncate text-right text-white/30">{author}</p> : null}
       </div>
 
       <span className="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-4 text-[10px] font-black uppercase tracking-[0.14em] text-white/76 transition group-hover:bg-white/[0.09] group-hover:text-white">

@@ -21,6 +21,7 @@ import VenueMarkButton from '@/components/venues/VenueMarkButton';
 import VenueHostPanel from '@/components/venues/VenueHostPanel';
 import VenueCheckInButton from '@/components/venues/VenueCheckInButton';
 import WorthADetourCard from '@/components/venues/WorthADetourCard';
+import MeetHereButton from '@/components/community/MeetHereButton';
 import SquircleLink from '@/components/ui/SquircleLink';
 import { formatVenueContactConfirmedAt, formatVenueContactSource, type VenueContactChannel } from '@/lib/venue-contact-routes';
 
@@ -681,12 +682,13 @@ export default async function VenueDetailPage(
                       </SquircleLink>
                       {/* Same feature set as the map pin popup — the venue page is the
                           ergonomic, full-screen version of that bottom sheet. */}
-                      <Link
-                        href={`${mapHref}&meetup=1`}
-                        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 transition hover:border-white/22 hover:text-white/85"
-                      >
-                        🤙 Start a free meetup here
-                      </Link>
+                      <MeetHereButton
+                        venueId={venue.id}
+                        venueSlug={venue.slug}
+                        venueName={venue.name}
+                        latitude={venue.latitude}
+                        longitude={venue.longitude}
+                      />
                       <Link
                         href={mapHref}
                         className="inline-flex min-h-9 w-full items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/40 transition hover:text-white/70"

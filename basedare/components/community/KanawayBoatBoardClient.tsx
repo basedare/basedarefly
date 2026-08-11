@@ -7,6 +7,7 @@ import { useAccount, useSignMessage } from 'wagmi';
 import { Anchor, ArrowLeft, Check, Copy, LifeBuoy, RefreshCw, ShipWheel, Waves } from 'lucide-react';
 
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import PlanShareButton from '@/components/community/PlanShareButton';
 import {
   BOAT_DESTINATIONS,
   BOAT_TIME_WINDOWS,
@@ -14,6 +15,9 @@ import {
   SURF_ABILITY_LANES,
   getAllowedBoatDays,
   getBoatCrewStatusCopy,
+  getBoatCrewCountLabel,
+  getBoatCrewSharePath,
+  getBoatCrewShareText,
   getOptionLabel,
   type BoatCommitment,
   type BoatCrewSummary,
@@ -66,6 +70,7 @@ export default function KanawayBoatBoardClient() {
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>(null);
   const [operatorUrl, setOperatorUrl] = useState<string | null>(null);
+  const [createdCrewId, setCreatedCrewId] = useState<string | null>(null);
 
   const loadCrews = useCallback(async () => {
     try {
@@ -91,6 +96,7 @@ export default function KanawayBoatBoardClient() {
     () => [...crews].sort((a, b) => b.confirmedCount - a.confirmedCount),
     [crews],
   );
+  const createdCrew = createdCrewId ? crews.find((crew) => crew.id === createdCrewId) ?? null : null;
 
   const authHeaders = async (action: string, resource: string) => {
     if (!actorWallet) throw new Error('Connect the wallet that owns your Baretag first.');
@@ -123,6 +129,7 @@ export default function KanawayBoatBoardClient() {
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Could not start this crew.');
+      setCreatedCrewId(payload.data.id);
       setShowCreate(false);
       setSubmitState({ type: 'success', message: 'Boat call is live. Share it or wait for the map to fill.' });
       await loadCrews();
@@ -264,6 +271,16 @@ export default function KanawayBoatBoardClient() {
                 <Copy className="h-3.5 w-3.5" /> Copy again
               </button>
             ) : null}
+            {createdCrew ? (
+              <PlanShareButton
+                title="Join my Kanaway surf boat"
+                text={getBoatCrewShareText(createdCrew)}
+                href={getBoatCrewSharePath(createdCrew.id)}
+                label="Share crew"
+                compact
+                className="ml-3"
+              />
+            ) : null}
           </div>
         ) : null}
 
@@ -293,8 +310,8 @@ export default function KanawayBoatBoardClient() {
                       <p className="mt-1 text-xs font-bold text-white/42">{laneLabel}{crew.boardCount ? ` · ${crew.boardCount} board ${crew.boardCount === 1 ? 'rental' : 'rentals'}` : ''}</p>
                     </div>
                     <div className="rounded-2xl border border-[#f5c518]/22 bg-[#f5c518]/8 px-3 py-2 text-center">
-                      <span className="block text-xl font-black text-[#f8dd72]">{crew.confirmedCount}/{crew.minimumCrew}</span>
-                      <span className="block text-[8px] font-black uppercase tracking-[0.14em] text-white/40">confirmed</span>
+                      <span className="block text-xl font-black text-[#f8dd72]">{getBoatCrewCountLabel(crew)}</span>
+                      <span className="block text-[8px] font-black uppercase tracking-[0.14em] text-white/40">going</span>
                     </div>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -327,6 +344,14 @@ export default function KanawayBoatBoardClient() {
                       </>
                     )}
                   </div>
+
+                  <PlanShareButton
+                    title={`Join the ${destinationLabel} surf boat`}
+                    text={getBoatCrewShareText(crew)}
+                    href={getBoatCrewSharePath(crew.id)}
+                    label="Share crew"
+                    className="mt-2 w-full"
+                  />
 
                   {crew.isCreator && crew.status === 'AWAITING_OPERATOR' ? (
                     <button type="button" disabled={isPending} onClick={() => void requestOperator(crew)} className="mt-2 min-h-11 w-full rounded-full border border-cyan-200/24 bg-cyan-300/[0.09] text-[10px] font-black uppercase tracking-[0.12em] text-cyan-100 disabled:opacity-40">

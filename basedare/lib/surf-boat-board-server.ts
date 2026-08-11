@@ -3,6 +3,8 @@ import 'server-only';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
 
+import { prisma } from '@/lib/prisma';
+
 import {
   deriveBoatCrewStatus,
   getProjectedSharePhp,
@@ -108,4 +110,26 @@ export function serializeBoatCrew(
         }
       : null,
   };
+}
+
+export async function getPublicBoatCrew(crewId: string, now = new Date()) {
+  const crew = await prisma.surfBoatCrew.findFirst({
+    where: {
+      id: crewId,
+      status: { not: 'CANCELLED' },
+      expiresAt: { gt: now },
+    },
+    include: { members: true, venue: { select: { slug: true } } },
+  });
+  if (!crew) return null;
+
+  const creator = await prisma.streamerTag.findUnique({
+    where: { id: crew.creatorBaretagId },
+    select: { tag: true },
+  });
+
+  return serializeBoatCrew(crew, {
+    creatorTag: creator?.tag ?? null,
+    now,
+  });
 }

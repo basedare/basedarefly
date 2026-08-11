@@ -22,7 +22,9 @@ function buildMarineUrl() {
       'swell_wave_period',
     ].join(',')
   );
-  url.searchParams.set('timezone', 'UTC');
+  url.searchParams.set('hourly', 'sea_level_height_msl');
+  url.searchParams.set('forecast_days', '2');
+  url.searchParams.set('timezone', 'Asia/Manila');
   return url;
 }
 
@@ -31,7 +33,7 @@ export async function GET() {
     const response = await fetch(buildMarineUrl(), {
       headers: { Accept: 'application/json' },
       next: { revalidate: 900 },
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.timeout(7_000),
     });
 
     if (!response.ok) {

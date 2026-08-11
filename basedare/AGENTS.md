@@ -16,6 +16,14 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Plan Links + Siargao tide glance (2026-08-11 — SHIPPED)
+- Boat crews now produce public, social-ready Plan Links with focused join pages, Open Graph cards, native sharing, `Maybe` / `I’m in`, board needs, live attendance, and `4+` minimum-not-capacity behavior. Operator-confirmed capacity and direct operator payment remain authoritative.
+- Venue pages now offer **Meet me here**: choose a time, add one short note, optionally notify up to five existing BaseDare tags, then share one public RSVP link. Hosts count as going; RSVP writes are idempotent and rate-limited.
+- `/community` routes meetup cards to the dedicated invite, shows attendance, and gives each active venue a small **Meet here** entry alongside its bounded place room.
+- PeeBear’s existing surf card now derives today’s useful low/high times from Open-Meteo Marine `sea_level_height_msl` and shows one compact `Today · Low ~… · High ~…` line. The data remains explicitly modelled, hourly and unsuitable as a navigation or safety forecast.
+- The architectural hypothesis is recorded as DareOS: BaseDare stays the friendly surface while reusable Plan Links form the operating grammar underneath. This is not a public rebrand and does not add a generic feed or chat layer.
+- No Prisma schema, migration, payment custody, proof lifecycle, camera, MapLibre renderer, source, tile, canvas, or duplicate-marker behavior changed.
+
 ### Codex lightweight surf Swell Echo (2026-08-10 — SHIPPED)
 - The user explicitly assigned Codex a narrow presentation-only surf-map pass: mapped breaks receive a lightweight CSS swell signal, Kanaway remains the land-side access pin, and the existing offshore signal controls visual intensity.
 - Mobile declutter correction: the original wide glyph is replaced by a narrow column of three recognizable mini wave crests. Far zoom and mobile shrink the signal instead of enlarging it; compact labels remain visible and map gestures still hide the motion to protect renderer stability.

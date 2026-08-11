@@ -5,6 +5,8 @@ import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-
 import { MEETUP_TYPES, MEETUP_LIVE_WINDOW_MS, isHappeningNow, isStartTimeInBounds, roundCoord } from '@/lib/meetups';
 import { isAddress } from 'viem';
 import { resolveHostBaretag, resolveViewerBaretag, getBlockedBaretagIds } from '@/lib/meetups-server';
+import { getMeetupSharePath, normalizeMeetupInviteTags } from '@/lib/meetup-plan';
+import { createWalletNotification } from '@/lib/notifications';
 
 // ============================================================================
 // FREE MEETUP LAYER — read + create. No settlement, payouts, or value, ever.
@@ -28,6 +30,7 @@ export async function GET() {
         startTime: { gte: cutoff },
         ...(blocked.length ? { creatorBaretagId: { notIn: blocked } } : {}),
       },
+      include: { _count: { select: { rsvps: true } } },
       orderBy: { startTime: 'asc' },
       take: 200,
     });
@@ -55,6 +58,7 @@ export async function GET() {
         startTime: m.startTime.toISOString(),
         note: m.note,
         happeningNow: isHappeningNow(m.startTime, now),
+        rsvpCount: m._count.rsvps,
         creator: creator ? { tag: creator.tag, pfpUrl: creator.pfpUrl } : null,
       };
     });
@@ -82,6 +86,7 @@ const CreateMeetupSchema = z.object({
   approxLng: z.number().min(-180).max(180),
   startTime: z.string().datetime(),
   note: z.string().max(500).optional(),
+  inviteTags: z.array(z.string().max(40)).max(5).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -147,23 +152,65 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const meetup = await prisma.meetup.create({
-      data: {
-        creatorBaretagId: baretag.id, // SERVER-DERIVED
-        title: input.title.trim(),
-        type: input.type,
-        venueId,
-        placeLabel,
-        approxLat,
-        approxLng,
-        startTime,
-        note: input.note?.trim() || null,
-        status: 'active',
-      },
-      select: { id: true },
+    const meetup = await prisma.$transaction(async (tx) => {
+      const created = await tx.meetup.create({
+        data: {
+          creatorBaretagId: baretag.id, // SERVER-DERIVED
+          title: input.title.trim(),
+          type: input.type,
+          venueId,
+          placeLabel,
+          approxLat,
+          approxLng,
+          startTime,
+          note: input.note?.trim() || null,
+          status: 'active',
+        },
+        select: { id: true },
+      });
+      await tx.meetupRsvp.create({
+        data: { meetupId: created.id, baretagId: baretag.id },
+      });
+      return created;
     });
 
-    return NextResponse.json({ success: true, data: { id: meetup.id } });
+    const inviteTags = normalizeMeetupInviteTags(input.inviteTags ?? []);
+    const invitedCreators = inviteTags.length
+      ? await prisma.streamerTag.findMany({
+          where: {
+            tag: { in: inviteTags.map((tag) => `@${tag}`), mode: 'insensitive' },
+            status: { in: ['ACTIVE', 'VERIFIED'] },
+            id: { not: baretag.id },
+          },
+          select: { walletAddress: true },
+          take: 5,
+        })
+      : [];
+    const invitedWallets = [...new Set(
+      invitedCreators.map((creator) => creator.walletAddress.toLowerCase()),
+    )];
+    const shareHref = getMeetupSharePath(meetup.id);
+    await Promise.allSettled(
+      invitedWallets.map((wallet) =>
+        createWalletNotification({
+          wallet,
+          type: 'MEETUP_INVITE',
+          title: `${baretag.tag} invited you to meet`,
+          message: `${placeLabel} · ${startTime.toLocaleString('en-PH', {
+            timeZone: 'Asia/Manila',
+            weekday: 'short',
+            hour: 'numeric',
+            minute: '2-digit',
+          })}`,
+          link: shareHref,
+        }),
+      ),
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: { id: meetup.id, shareHref, invitedCount: invitedWallets.length },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[MEETUPS] POST failed:', message);

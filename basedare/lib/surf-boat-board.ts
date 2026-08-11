@@ -144,7 +144,34 @@ export function deriveBoatCrewStatus(input: {
 export function getBoatCrewMapLabel(crew: Pick<BoatCrewSummary, 'confirmedCount' | 'minimumCrew' | 'status'>) {
   if (crew.status === 'READY') return 'BOAT READY';
   if (crew.status === 'DEPARTED' || crew.status === 'CANCELLED') return null;
-  return `BOAT ${Math.min(crew.confirmedCount, crew.minimumCrew)}/${crew.minimumCrew}`;
+  if (crew.confirmedCount >= crew.minimumCrew) return `BOAT ${crew.confirmedCount}+`;
+  return `BOAT ${crew.confirmedCount}/${crew.minimumCrew}`;
+}
+
+export function getBoatCrewCountLabel(
+  crew: Pick<BoatCrewSummary, 'confirmedCount' | 'minimumCrew' | 'operatorConfirmation'>,
+) {
+  if (crew.operatorConfirmation) {
+    return `${crew.confirmedCount}/${crew.operatorConfirmation.capacity}`;
+  }
+  if (crew.confirmedCount >= crew.minimumCrew) return `${crew.confirmedCount}+`;
+  return `${crew.confirmedCount}/${crew.minimumCrew}`;
+}
+
+export function getBoatCrewSharePath(id: string) {
+  return `/community/boat/${encodeURIComponent(id)}`;
+}
+
+export function getBoatCrewShareText(crew: BoatCrewSummary) {
+  const destination = getOptionLabel(BOAT_DESTINATIONS, crew.destination);
+  const time = getOptionLabel(BOAT_TIME_WINDOWS, crew.timeWindow);
+  const lane = getOptionLabel(SURF_ABILITY_LANES, crew.abilityLane);
+  const count = getBoatCrewCountLabel(crew);
+  const price = crew.operatorConfirmation
+    ? `₱${crew.operatorConfirmation.sharePhp} each confirmed by the operator`
+    : `about ₱${crew.projectedSharePhp} each if the current crew goes`;
+
+  return `${destination} surf boat · ${time}\n${count} going · ${lane}\n${price}`;
 }
 
 export function getBoatCrewStatusCopy(status: DisplayBoatCrewStatus) {
