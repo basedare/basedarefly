@@ -3153,6 +3153,12 @@ function createBoatCrewMarkerHtml(crew: BoatCrewSummary) {
       <span class="boat-crew-map-status">${loadingLabel}</span>
       <span class="boat-crew-map-object" aria-hidden="true">
         <span class="boat-crew-map-beam"></span>
+        <span class="boat-crew-map-wake">
+          <svg viewBox="0 0 64 18" focusable="false">
+            <path class="boat-crew-map-wave boat-crew-map-wave--back" d="M2 6C10 1 17 1 24 6S39 11 47 6 58 2 63 5" />
+            <path class="boat-crew-map-wave boat-crew-map-wave--front" d="M5 13C12 9 20 9 27 13s15 4 22 0 10-4 14-1" />
+          </svg>
+        </span>
         <img src="/assets/map/holograms/banca-boat.webp" alt="" draggable="false" />
       </span>
       <span class="boat-crew-map-departure">${departureLabel}</span>
@@ -17287,6 +17293,41 @@ export default function RealWorldMap() {
           transform: translateX(-50%) perspective(42px) rotateX(62deg);
         }
 
+        .basedare-maplibre-map :global(.boat-crew-map-wake) {
+          position: absolute;
+          left: 50%;
+          bottom: 1px;
+          z-index: 1;
+          width: 66px;
+          height: 19px;
+          opacity: 0.78;
+          transform: translateX(-50%);
+          pointer-events: none;
+        }
+
+        .basedare-maplibre-map :global(.boat-crew-map-wake svg) {
+          display: block;
+          width: 100%;
+          height: 100%;
+          overflow: visible;
+        }
+
+        .basedare-maplibre-map :global(.boat-crew-map-wave) {
+          fill: none;
+          stroke: rgba(103, 232, 249, 0.82);
+          stroke-width: 1.15;
+          stroke-linecap: round;
+          filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.72));
+          transform-box: fill-box;
+          transform-origin: center;
+          animation: boatCrewWake 2.8s ease-in-out infinite;
+        }
+
+        .basedare-maplibre-map :global(.boat-crew-map-wave--back) {
+          opacity: 0.46;
+          animation-delay: -1.4s;
+        }
+
         .basedare-maplibre-map :global(.boat-crew-map-status),
         .basedare-maplibre-map :global(.boat-crew-map-departure) {
           position: absolute;
@@ -17323,8 +17364,13 @@ export default function RealWorldMap() {
         }
 
         @keyframes boatCrewFloat {
-          0%, 100% { transform: translateY(1px) rotate(-1deg); }
-          50% { transform: translateY(-3px) rotate(1deg); }
+          0%, 100% { transform: translateY(1px) rotate(-1.2deg); }
+          50% { transform: translateY(-3px) rotate(1.2deg); }
+        }
+
+        @keyframes boatCrewWake {
+          0%, 100% { opacity: 0.42; transform: translateX(-2px) scaleX(0.88); }
+          50% { opacity: 0.94; transform: translateX(2px) scaleX(1.04); }
         }
 
         @media (max-width: 767px) {
@@ -17350,6 +17396,11 @@ export default function RealWorldMap() {
         }
 
         .basedare-maplibre-map[data-map-moving='true'] :global(.boat-crew-map-object) {
+          animation-play-state: paused;
+          filter: none;
+        }
+
+        .basedare-maplibre-map[data-map-moving='true'] :global(.boat-crew-map-wave) {
           animation-play-state: paused;
           filter: none;
         }
@@ -17877,6 +17928,7 @@ export default function RealWorldMap() {
           .basedare-maplibre-map :global(.adventure-guide-head),
           .basedare-maplibre-map :global(.adventure-focal-marker),
           .basedare-maplibre-map :global(.boat-crew-map-object),
+          .basedare-maplibre-map :global(.boat-crew-map-wave),
           .basedare-maplibre-map :global(.surf-swell-crest) {
             animation: none !important;
             transition: none !important;

@@ -26,11 +26,11 @@ export const BOAT_LAUNCHES = [
     mapLabel: 'Kanaway launch',
     destinationValues: ['rock-island', 'stimpys', 'bumee-bomi', 'best-today', 'flexible'],
     markerSlots: [
-      { latitude: 9.81095, longitude: 126.16135 },
-      { latitude: 9.81155, longitude: 126.16185 },
-      { latitude: 9.81025, longitude: 126.16195 },
-      { latitude: 9.81205, longitude: 126.1624 },
-      { latitude: 9.80965, longitude: 126.16245 },
+      { latitude: 9.81135, longitude: 126.16535 },
+      { latitude: 9.81205, longitude: 126.16575 },
+      { latitude: 9.8106, longitude: 126.16585 },
+      { latitude: 9.8127, longitude: 126.16625 },
+      { latitude: 9.8099, longitude: 126.16635 },
     ],
   },
   {
@@ -42,11 +42,11 @@ export const BOAT_LAUNCHES = [
     mapLabel: 'Cemetery launch',
     destinationValues: ['cemetery'],
     markerSlots: [
-      { latitude: 9.78515, longitude: 126.16415 },
-      { latitude: 9.78575, longitude: 126.16475 },
-      { latitude: 9.78445, longitude: 126.16485 },
-      { latitude: 9.7863, longitude: 126.1653 },
-      { latitude: 9.78385, longitude: 126.1654 },
+      { latitude: 9.78515, longitude: 126.16815 },
+      { latitude: 9.78585, longitude: 126.16855 },
+      { latitude: 9.7844, longitude: 126.16865 },
+      { latitude: 9.7865, longitude: 126.16905 },
+      { latitude: 9.7837, longitude: 126.16915 },
     ],
   },
 ] as const;

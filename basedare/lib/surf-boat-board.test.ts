@@ -94,6 +94,9 @@ test('multiple crews occupy independent offshore boat slots', () => {
   const cemetery = getBoatCrewMarkerPosition(CEMETERY_BOAT_VENUE_SLUG, 0);
   assert.notDeepEqual(first, second);
   assert.notDeepEqual(first, cemetery);
+  assert.ok(first.longitude >= 126.1653, 'Kanaway boats stay east of the Catangnan shoreline');
+  assert.ok(second.longitude >= 126.1653, 'every Kanaway slot stays in the water');
+  assert.ok(cemetery.longitude >= 126.168, 'Cemetery boats stay east of the General Luna shoreline');
 });
 
 test('map boats say whether they are loading and when they leave', () => {
