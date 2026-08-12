@@ -24,6 +24,7 @@ Two agents work this repo at once. Check this section before starting, and updat
 
 ### Codex live banca crews + exact tide source (2026-08-11 — SHIPPED)
 - Codex extended the shipped boat board without changing the schema: every active crew becomes its own clickable offshore banca activity marker; launch venues remain canonical place markers.
+- Follow-up fix: the board no longer accepts a same-day departure window after that window has closed. The UI removes expired choices, the API independently rejects them, and valid creations get an immediate **Open boat on map** handoff. This closes the state where a call returned success but was already excluded from the public map feed.
 - Kanaway crews serve Rock Island, Stimpy's, and Bumee/Bomi. Siargao Beach Club is the first Cemetery launch entry. Each launch validates its own destinations and operator confirmation.
 - Public crew links are invitation/onboarding entries with inline sign-in, live crew state, and a direct return to the same boat. Multiple simultaneous crew records render multiple boats.
 - The Open-Meteo hourly tide approximation was removed. Swell remains Open-Meteo; tide times come from the closer Surf-Forecast Barrio station with minute display and a visible Surfline Port Pilar comparison. Failure hides the tide line instead of inventing precision.

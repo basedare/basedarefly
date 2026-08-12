@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
-import { Anchor, ArrowLeft, Check, Copy, LifeBuoy, RefreshCw, ShipWheel, Waves } from 'lucide-react';
+import { Anchor, ArrowLeft, Check, Copy, LifeBuoy, MapPin, RefreshCw, ShipWheel, Waves } from 'lucide-react';
 
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import PlanShareButton from '@/components/community/PlanShareButton';
@@ -16,6 +16,8 @@ import {
   KANAWAY_BOAT_VENUE_SLUG,
   SURF_ABILITY_LANES,
   getAllowedBoatDays,
+  getAvailableBoatDays,
+  getAvailableBoatTimeWindows,
   getBoatCrewStatusCopy,
   getBoatCrewCountLabel,
   getBoatCrewInvitePath,
@@ -80,6 +82,34 @@ export default function KanawayBoatBoardClient() {
   const [submitState, setSubmitState] = useState<SubmitState>(null);
   const [operatorUrl, setOperatorUrl] = useState<string | null>(null);
   const [createdCrewId, setCreatedCrewId] = useState<string | null>(null);
+  const [clockMs, setClockMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    const updateClock = () => setClockMs(Date.now());
+    updateClock();
+    const interval = window.setInterval(updateClock, 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const availableDays = useMemo(
+    () => (clockMs === null ? [today, tomorrow] : getAvailableBoatDays(new Date(clockMs))),
+    [clockMs, today, tomorrow],
+  );
+  const availableTimeWindows = useMemo(
+    () => (clockMs === null ? BOAT_TIME_WINDOWS : getAvailableBoatTimeWindows(departureDay, new Date(clockMs))),
+    [clockMs, departureDay],
+  );
+
+  useEffect(() => {
+    if (clockMs === null) return;
+    if (!availableDays.includes(departureDay)) {
+      setDepartureDay(availableDays[0] ?? tomorrow);
+      return;
+    }
+    if (!availableTimeWindows.some((window) => window.value === timeWindow)) {
+      setTimeWindow(availableTimeWindows[0]?.value ?? 'early');
+    }
+  }, [availableDays, availableTimeWindows, clockMs, departureDay, timeWindow, tomorrow]);
 
   const loadCrews = useCallback(async () => {
     try {
@@ -148,7 +178,7 @@ export default function KanawayBoatBoardClient() {
       if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Could not start this crew.');
       setCreatedCrewId(payload.data.id);
       setShowCreate(false);
-      setSubmitState({ type: 'success', message: 'Boat call is live. Share it or wait for the map to fill.' });
+      setSubmitState({ type: 'success', message: 'Boat call is live on the map.' });
       await loadCrews();
     } catch (error) {
       setSubmitState({ type: 'error', message: error instanceof Error ? error.message : 'Could not start this crew.' });
@@ -266,8 +296,8 @@ export default function KanawayBoatBoardClient() {
             <h2 className="text-xl font-black">Your surf window</h2>
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
               <ChoiceGroup label="Launch" value={launchSlug} onChange={handleLaunchChange} options={BOAT_LAUNCHES} />
-              <ChoiceGroup label="Day" value={departureDay} onChange={setDepartureDay} options={[{ value: today, label: 'Today' }, { value: tomorrow, label: 'Tomorrow' }]} />
-              <ChoiceGroup label="Time" value={timeWindow} onChange={(value) => setTimeWindow(value as BoatTimeWindow)} options={BOAT_TIME_WINDOWS} />
+              <ChoiceGroup label="Day" value={departureDay} onChange={setDepartureDay} options={availableDays.map((day) => ({ value: day, label: day === today ? 'Today' : 'Tomorrow' }))} />
+              <ChoiceGroup label="Time" value={timeWindow} onChange={(value) => setTimeWindow(value as BoatTimeWindow)} options={availableTimeWindows} />
               <ChoiceGroup label="Break" value={destination} onChange={(value) => setDestination(value as BoatDestination)} options={launchDestinations} />
               <ChoiceGroup label="Ability lane" value={abilityLane} onChange={(value) => setAbilityLane(value as SurfAbilityLane)} options={SURF_ABILITY_LANES} />
             </div>
@@ -290,14 +320,22 @@ export default function KanawayBoatBoardClient() {
               </button>
             ) : null}
             {createdCrew ? (
-              <PlanShareButton
-                title={`Join my ${getBoatLaunch(createdCrew.venueSlug).label} surf boat`}
-                text={getBoatCrewShareText(createdCrew)}
-                href={getBoatCrewInvitePath(createdCrew.id)}
-                label="Share crew"
-                compact
-                className="ml-3"
-              />
+              <span className="mt-3 flex flex-wrap items-center gap-2 sm:ml-3 sm:mt-0 sm:inline-flex">
+                <Link
+                  href={getBoatLaunch(createdCrew.venueSlug).mapPath}
+                  prefetch={false}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-cyan-200/24 bg-cyan-300/[0.09] px-3 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100"
+                >
+                  <MapPin className="h-3.5 w-3.5" /> Open boat on map
+                </Link>
+                <PlanShareButton
+                  title={`Join my ${getBoatLaunch(createdCrew.venueSlug).label} surf boat`}
+                  text={getBoatCrewShareText(createdCrew)}
+                  href={getBoatCrewInvitePath(createdCrew.id)}
+                  label="Share crew"
+                  compact
+                />
+              </span>
             ) : null}
           </div>
         ) : null}

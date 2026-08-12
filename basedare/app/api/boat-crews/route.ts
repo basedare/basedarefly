@@ -16,6 +16,8 @@ import {
   getBoatLaunch,
   isBoatDestinationAllowed,
   isAllowedBoatDay,
+  isBoatWindowOpen,
+  type BoatTimeWindow,
 } from '@/lib/surf-boat-board';
 import { serializeBoatCrew } from '@/lib/surf-boat-board-server';
 
@@ -102,8 +104,16 @@ export async function POST(request: NextRequest) {
       );
     }
     const input = parsed.data;
-    if (!isAllowedBoatDay(input.departureDay)) {
+    const timeWindow = input.timeWindow as BoatTimeWindow;
+    const now = new Date();
+    if (!isAllowedBoatDay(input.departureDay, now)) {
       return NextResponse.json({ success: false, error: 'Choose today or tomorrow.' }, { status: 400 });
+    }
+    if (!isBoatWindowOpen(input.departureDay, timeWindow, now)) {
+      return NextResponse.json(
+        { success: false, error: 'That departure window has passed. Choose a later time or tomorrow.' },
+        { status: 400 },
+      );
     }
     if (!isBoatDestinationAllowed(input.venueSlug, input.destination)) {
       return NextResponse.json(
@@ -138,7 +148,7 @@ export async function POST(request: NextRequest) {
         crew: {
           departureDay: input.departureDay,
           status: { not: 'CANCELLED' },
-          expiresAt: { gt: new Date() },
+          expiresAt: { gt: now },
         },
       },
       select: { id: true },
@@ -155,10 +165,10 @@ export async function POST(request: NextRequest) {
         venueId: venue.id,
         creatorBaretagId: baretag.id,
         departureDay: input.departureDay,
-        timeWindow: input.timeWindow,
+        timeWindow,
         destination: input.destination,
         abilityLane: input.abilityLane,
-        expiresAt: getBoatCrewExpiry(input.departureDay),
+        expiresAt: getBoatCrewExpiry(input.departureDay, timeWindow),
         members: {
           create: {
             baretagId: baretag.id,

@@ -5,6 +5,8 @@ import {
   CEMETERY_BOAT_VENUE_SLUG,
   addCalendarDays,
   deriveBoatCrewStatus,
+  getAvailableBoatDays,
+  getAvailableBoatTimeWindows,
   getBoatCrewCountLabel,
   getBoatCrewDepartureLabel,
   getBoatCrewInvitePath,
@@ -14,6 +16,7 @@ import {
   getBoatLaunchDestinations,
   getBoatCrewSharePath,
   getProjectedSharePhp,
+  isBoatWindowOpen,
 } from './surf-boat-board.ts';
 
 test('four surfers turns the indicative 1200 PHP boat into 300 PHP each', () => {
@@ -26,6 +29,23 @@ test('the board only accepts today and tomorrow in Manila', () => {
   const now = new Date('2026-08-11T01:00:00.000Z');
   assert.deepEqual(getAllowedBoatDays(now), ['2026-08-11', '2026-08-12']);
   assert.equal(addCalendarDays('2026-12-31', 1), '2027-01-01');
+});
+
+test('expired same-day windows cannot create invisible boat calls', () => {
+  const beforeEarlyClose = new Date('2026-08-11T00:30:00.000Z'); // 08:30 Manila
+  assert.equal(isBoatWindowOpen('2026-08-11', 'early', beforeEarlyClose), true);
+  assert.deepEqual(
+    getAvailableBoatTimeWindows('2026-08-11', beforeEarlyClose).map((window) => window.value),
+    ['early', 'later', 'flexible'],
+  );
+
+  const afterFinalClose = new Date('2026-08-11T15:46:00.000Z'); // 23:46 Manila
+  assert.equal(isBoatWindowOpen('2026-08-11', 'flexible', afterFinalClose), false);
+  assert.deepEqual(getAvailableBoatDays(afterFinalClose), ['2026-08-12']);
+  assert.deepEqual(
+    getAvailableBoatTimeWindows('2026-08-12', afterFinalClose).map((window) => window.value),
+    ['dawn', 'early', 'later', 'flexible'],
+  );
 });
 
 test('crew state moves from formation through operator and crew acceptance', () => {

@@ -1,11 +1,11 @@
-# Graph Report - .  (2026-08-11)
+# Graph Report - .  (2026-08-12)
 
 ## Corpus Check
-- 951 files · ~1,486,034 words
+- 951 files · ~1,486,388 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3538 nodes · 4467 edges · 733 communities detected
+- 3542 nodes · 4474 edges · 733 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -757,22 +757,22 @@
 10. `escapeHtml()` - 17 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `GET()` --calls--> `statusFilter()`  [EXTRACTED]
-  app/api/p/[pack]/board/route.ts → app/api/admin/local-signals/route.ts
 - `GET()` --calls--> `buildActionResults()`  [EXTRACTED]
   app/api/p/[pack]/board/route.ts → app/api/search/route.ts
-- `PUT()` --calls--> `buildCaptainProofMissionPacket()`  [EXTRACTED]
-  app/api/live-pot/route.ts → app/api/admin/creator-captains/route.ts
 - `GET()` --calls--> `fetchThreadsForWallet()`  [EXTRACTED]
   app/api/p/[pack]/board/route.ts → app/api/inbox/route.ts
 - `GET()` --calls--> `fetchActiveMessages()`  [EXTRACTED]
   app/api/p/[pack]/board/route.ts → app/api/inbox/route.ts
+- `GET()` --calls--> `searchKnownPlaces()`  [EXTRACTED]
+  app/api/p/[pack]/board/route.ts → app/api/places/search/route.ts
+- `GET()` --calls--> `searchNominatim()`  [EXTRACTED]
+  app/api/p/[pack]/board/route.ts → app/api/places/search/route.ts
 
 ## Communities
 
 ### Community 0 - "Community 0"
 Cohesion: 0.01
-Nodes (175): applyReviewRateLimit(), applyReviewReportRateLimit(), appUrl(), asJsonRecord(), asMetadataRecord(), assertTargetExists(), authorize(), authorizeInboxRequest() (+167 more)
+Nodes (212): applyReviewRateLimit(), applyReviewReportRateLimit(), appUrl(), asJsonRecord(), asMetadataRecord(), asRecord(), assertTargetExists(), authorize() (+204 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.02
@@ -783,40 +783,40 @@ Cohesion: 0.03
 Nodes (23): buildLaunchHandoffMemo(), buildMissionRouteMemoLines(), buildPatch(), count(), draftNumber(), exportCsv(), formatDate(), formatDateTime() (+15 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.07
-Nodes (46): asRecord(), buildActionResults(), buildActivationReceipt(), buildCaptainProofMissionPacket(), buildCreateHref(), buildCreatorRecommendations(), buildInviteDraft(), buildInvoiceMemo() (+38 more)
-
-### Community 4 - "Community 4"
 Cohesion: 0.05
 Nodes (17): fetchAppeals(), fetchDares(), formatAddress(), formatStatusTimestamp(), formatTimeLeft(), formatTimelineMoment(), getClaimLoopState(), getDareResponseAuthHeaders() (+9 more)
 
-### Community 5 - "Community 5"
+### Community 4 - "Community 4"
 Cohesion: 0.13
 Nodes (44): alertActivationIntake(), alertActivationIntakeFollowUpQueue(), alertActivationIntakeStatusUpdate(), alertBaseCashCreditPending(), alertBigPledge(), alertCaptainMissionProofSubmitted(), alertClaimRequestSubmission(), alertCreatorCaptainApplication() (+36 more)
 
-### Community 6 - "Community 6"
+### Community 5 - "Community 5"
 Cohesion: 0.08
 Nodes (40): buildCuratedVenueDetailFallback(), buildEmptyReviewSignal(), buildEmptyVenueReportPipeline(), buildReviewSignalFromRows(), buildVenueActivationInsight(), buildVenueCommandCenterSummary(), buildVenueExperienceModes(), buildVenueHandshakeValue() (+32 more)
 
-### Community 7 - "Community 7"
+### Community 6 - "Community 6"
 Cohesion: 0.12
 Nodes (42): answerCallbackQuery(), buildCallbackData(), callTelegramApi(), clearState(), escapeTelegramHtml(), fetchDareByShortId(), fetchLeaderboard(), fetchNearbyDares() (+34 more)
 
-### Community 8 - "Community 8"
+### Community 7 - "Community 7"
 Cohesion: 0.11
 Nodes (24): addCreatorSignal(), asRecord(), buildCreatorReliability(), buildFirstSparkMissionControlReport(), buildGuestPerks(), buildMissionRows(), buildPilotTargets(), buildRecapPreview() (+16 more)
 
-### Community 9 - "Community 9"
+### Community 8 - "Community 8"
 Cohesion: 0.08
 Nodes (9): buildBidHref(), buildCreateHref(), checkCommunitySparkPlayAccess(), clamp(), displayCreatorTag(), getAvatarStyle(), handleCommunitySparkAction(), load() (+1 more)
 
-### Community 10 - "Community 10"
+### Community 9 - "Community 9"
 Cohesion: 0.15
 Nodes (28): addEnvCheck(), addressesMatch(), addRuntimeQueuesCheck(), buildActivationCheck(), buildFieldSprintLaunchReadinessSnapshot(), buildMoneyRailsSettlementSnapshot(), buildPaidActivationSmokeSnapshot(), buildProductionSafetyReport() (+20 more)
 
-### Community 11 - "Community 11"
+### Community 10 - "Community 10"
 Cohesion: 0.19
 Nodes (27): appBaseUrl(), asRecord(), buildActivationCloseRoomAbsoluteHref(), buildActivationCloseRoomAdminState(), buildActivationCloseRoomFromEvent(), buildActivationCloseRoomHref(), buildActivationCloseRoomToken(), buildMailtoHref() (+19 more)
+
+### Community 11 - "Community 11"
+Cohesion: 0.14
+Nodes (18): addCalendarDays(), formatManilaTime(), getAllowedBoatDays(), getAvailableBoatDays(), getBoatCrewCountLabel(), getBoatCrewDepartureLabel(), getBoatCrewExpiry(), getBoatCrewInvitePath() (+10 more)
 
 ### Community 12 - "Community 12"
 Cohesion: 0.18
@@ -839,52 +839,52 @@ Cohesion: 0.13
 Nodes (12): asRecord(), beginVerifiedFieldSprintCollection(), cleanCode(), cleanOptional(), cleanText(), completeVerifiedFieldSprint(), confirmVerifiedFieldSprintFunding(), getVerifiedFieldSprint() (+4 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.16
-Nodes (15): addCalendarDays(), formatManilaTime(), getAllowedBoatDays(), getBoatCrewCountLabel(), getBoatCrewDepartureLabel(), getBoatCrewInvitePath(), getBoatCrewMarkerPosition(), getBoatCrewSharePath() (+7 more)
-
-### Community 18 - "Community 18"
 Cohesion: 0.21
 Nodes (20): buildActivationHandoff(), buildCurrentCommand(), buildLeadPriority(), buildNextAction(), buildOpportunity(), buildPipeline(), buildPitch(), buildRouteClusters() (+12 more)
 
-### Community 19 - "Community 19"
+### Community 18 - "Community 18"
 Cohesion: 0.17
 Nodes (16): applyJourneyCookie(), applyParticipantCookie(), assertEmailDeliveryAllowed(), bindDareIntentToWallet(), clearAttributionCookies(), cookieOptions(), ensureAttributionJourney(), forgetSavedMissions() (+8 more)
 
-### Community 20 - "Community 20"
+### Community 19 - "Community 19"
 Cohesion: 0.21
 Nodes (15): buildProofSubmitStorageKey(), getProofAuthHeaders(), getUnknownErrorMessage(), handleAppeal(), handleCameraCapture(), handleDrop(), handleFileInputChange(), handleFileSelect() (+7 more)
 
-### Community 21 - "Community 21"
+### Community 20 - "Community 20"
 Cohesion: 0.18
 Nodes (12): asRecord(), buildActivationFunnelSummary(), checkAndSendActivationIntakeFollowUpAlert(), cleanString(), countBy(), eventTitle(), findStuckActivationIntakes(), markActivationIntakeLaunchedFromCampaign() (+4 more)
 
-### Community 22 - "Community 22"
+### Community 21 - "Community 21"
 Cohesion: 0.13
 Nodes (4): DropInvitePage(), EMPTY_ROSTER(), generateMetadata(), getCreatorDropLink()
 
-### Community 23 - "Community 23"
+### Community 22 - "Community 22"
 Cohesion: 0.19
 Nodes (15): adminHref(), asRecord(), buildActivationIntakePriority(), buildDailyCommandLoopReport(), buildMetric(), buildPlaceTagReviewPressure(), buildVenueLeadPriority(), command() (+7 more)
 
-### Community 24 - "Community 24"
+### Community 23 - "Community 23"
 Cohesion: 0.13
 Nodes (4): buildVenueCreatorChatHref(), formatVenueRadarLocation(), getActivationPackage(), getActivationPackageForTier()
 
-### Community 25 - "Community 25"
+### Community 24 - "Community 24"
 Cohesion: 0.26
 Nodes (10): buildCaptainInvitePath(), buildCaptainMissionActivationHref(), buildCaptainMissionPacket(), buildScoutReferralCode(), buildVenuePitchPacket(), normalizeLeadUrl(), normalizeScoutCode(), normalizeScoutHandle() (+2 more)
 
-### Community 26 - "Community 26"
+### Community 25 - "Community 25"
 Cohesion: 0.13
 Nodes (2): formatCompactVenueMetric(), formatMetricDelta()
 
-### Community 27 - "Community 27"
+### Community 26 - "Community 26"
 Cohesion: 0.22
 Nodes (12): approveDareWithPayout(), calculatePayouts(), enforceRefereeBalanceCap(), ensureApprovedPlaceTagForVerifiedDare(), ensureCampaignWritebackForVerifiedDare(), finalizeVerifiedDare(), getCompletionWalletAddress(), getDareReceiptActor() (+4 more)
 
-### Community 28 - "Community 28"
+### Community 27 - "Community 27"
 Cohesion: 0.23
 Nodes (10): boundingBox(), buildInventory(), communitySparkCandidates(), evaluateStationInventory(), localSignalCandidates(), meetupCandidates(), nightGuideCandidates(), rewardCandidates() (+2 more)
+
+### Community 28 - "Community 28"
+Cohesion: 0.2
+Nodes (9): buildActionResults(), getCategorySearchTokens(), getCategoryTokens(), getIntentLabelsForCategories(), getPlaceName(), getSearchIntents(), normalizeResult(), searchKnownPlaces() (+1 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.19
@@ -987,52 +987,52 @@ Cohesion: 0.27
 Nodes (5): clamp(), handleReveal(), loadNearbyVenues(), mapNearbyVenuesToPoints(), requestLocationLock()
 
 ### Community 54 - "Community 54"
+Cohesion: 0.29
+Nodes (5): acceptDetails(), authHeaders(), createCrew(), requestOperator(), updateMembership()
+
+### Community 55 - "Community 55"
 Cohesion: 0.22
 Nodes (2): getCameraErrorMessage(), startCamera()
 
-### Community 55 - "Community 55"
+### Community 56 - "Community 56"
 Cohesion: 0.2
 Nodes (0):
 
-### Community 56 - "Community 56"
+### Community 57 - "Community 57"
 Cohesion: 0.42
 Nodes (9): buildComposed(), composePassport(), computeStreakDays(), detectDataSignals(), normalizeWallet(), recordExplicitMission(), resolveMissionCompletion(), sumLedgerPoints() (+1 more)
 
-### Community 57 - "Community 57"
+### Community 58 - "Community 58"
 Cohesion: 0.33
 Nodes (6): buildCreatorDropOutreachCopy(), normalizeCreatorAssignmentCode(), normalizeCreatorDropAssignmentInput(), normalizeCreatorDropAssignmentStatus(), normalizeCreatorDropContactChannel(), optionalText()
 
-### Community 58 - "Community 58"
+### Community 59 - "Community 59"
 Cohesion: 0.47
 Nodes (9): getCurrentStepKey(), getDareLifecycleModel(), getDareLifecycleType(), getNextActionCopy(), getStatusTone(), getStepSequence(), getTerminalLabel(), isOpenHandle() (+1 more)
 
-### Community 59 - "Community 59"
+### Community 60 - "Community 60"
 Cohesion: 0.36
 Nodes (8): asRecord(), formatLocalSignalDistance(), isRecord(), normalizePostType(), normalizeStatus(), numberValue(), serializeLocalSignal(), stringValue()
 
-### Community 60 - "Community 60"
+### Community 61 - "Community 61"
 Cohesion: 0.61
 Nodes (6): addToRemoveQueue(), dispatch(), genId(), reducer(), toast(), useToast()
 
-### Community 61 - "Community 61"
+### Community 62 - "Community 62"
 Cohesion: 0.28
 Nodes (3): trackFormStart(), updateBrandMemory(), updateField()
 
-### Community 62 - "Community 62"
+### Community 63 - "Community 63"
 Cohesion: 0.22
 Nodes (0):
 
-### Community 63 - "Community 63"
+### Community 64 - "Community 64"
 Cohesion: 0.31
 Nodes (5): handleOpenFullBuilder(), handleSubmit(), openComposer(), resetComposer(), resolvePlaceAnchor()
 
-### Community 64 - "Community 64"
-Cohesion: 0.33
-Nodes (4): clearFileInputs(), handleCameraCapture(), handleProofFileSelected(), handleSubmit()
-
 ### Community 65 - "Community 65"
 Cohesion: 0.33
-Nodes (5): acceptDetails(), authHeaders(), createCrew(), requestOperator(), updateMembership()
+Nodes (4): clearFileInputs(), handleCameraCapture(), handleProofFileSelected(), handleSubmit()
 
 ### Community 66 - "Community 66"
 Cohesion: 0.28
@@ -4519,9 +4519,7 @@ Nodes (0):
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `GET()` connect `Community 0` to `Community 3`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `POST()` connect `Community 0` to `Community 3`?**
+- **Why does `GET()` connect `Community 0` to `Community 28`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.01 - nodes in this community are weakly interconnected._
@@ -4530,6 +4528,8 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.03 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
-- **Should `Community 4` be split into smaller, more focused modules?**
   _Cohesion score 0.05 - nodes in this community are weakly interconnected._
+- **Should `Community 4` be split into smaller, more focused modules?**
+  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
+- **Should `Community 5` be split into smaller, more focused modules?**
+  _Cohesion score 0.08 - nodes in this community are weakly interconnected._

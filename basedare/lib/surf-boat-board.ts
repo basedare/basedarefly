@@ -149,9 +149,28 @@ export function isAllowedBoatDay(day: string, now = new Date()) {
   return getAllowedBoatDays(now).includes(day as never);
 }
 
-export function getBoatCrewExpiry(day: string) {
-  // 15:00 in the Philippines: enough time for a later morning departure to close.
-  return new Date(`${day}T07:00:00.000Z`);
+const BOAT_WINDOW_CLOSE_HOUR_MANILA: Record<BoatTimeWindow, number> = {
+  dawn: 7,
+  early: 9,
+  later: 11,
+  flexible: 15,
+};
+
+export function getBoatCrewExpiry(day: string, timeWindow: BoatTimeWindow = 'flexible') {
+  const closeHour = BOAT_WINDOW_CLOSE_HOUR_MANILA[timeWindow];
+  return new Date(`${day}T${String(closeHour).padStart(2, '0')}:00:00+08:00`);
+}
+
+export function isBoatWindowOpen(day: string, timeWindow: BoatTimeWindow, now = new Date()) {
+  return isAllowedBoatDay(day, now) && getBoatCrewExpiry(day, timeWindow).getTime() > now.getTime();
+}
+
+export function getAvailableBoatTimeWindows(day: string, now = new Date()) {
+  return BOAT_TIME_WINDOWS.filter((window) => isBoatWindowOpen(day, window.value, now));
+}
+
+export function getAvailableBoatDays(now = new Date()) {
+  return getAllowedBoatDays(now).filter((day) => getAvailableBoatTimeWindows(day, now).length > 0);
 }
 
 export function getProjectedSharePhp(totalPhp: number, confirmedCount: number, minimumCrew = BOAT_CREW_MINIMUM) {
