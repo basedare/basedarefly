@@ -135,6 +135,7 @@ function getCuratedFallbackVenues(query: NearbyVenueQuery | null): NearbyVenueIt
         fresh: false,
         state: 'none',
       },
+      eventPulse: null,
       activePerk: null,
       firstSparkWindow: null,
       liveSession: null,

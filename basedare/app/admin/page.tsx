@@ -2072,6 +2072,7 @@ export default function AdminPage() {
                   label: 'Inboxes & signals',
                   items: [
                     { kind: 'link', href: '/admin/inbox', icon: Mail, label: 'Support Inbox' },
+                    { kind: 'link', href: '/admin/island-pulse', icon: Clock, label: 'Island Pulse' },
                     { kind: 'link', href: '/admin/local-signals', icon: MapPin, label: 'Local Signals' },
                     { kind: 'tab', tab: 'places', icon: MapPin, label: 'Places' },
                   ],

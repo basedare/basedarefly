@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { ArrowRight, CalendarDays, Clock3, CreditCard, ExternalLink, Flame, Globe2, Instagram, Mail, MapPin, MessageCircle, Phone, ShieldCheck, Sparkles, Waves, Zap } from 'lucide-react';
 import { authOptions } from '@/lib/auth-options';
 import { getVenueRitualsBySlug } from '@/lib/local-rituals-server';
+import { getUpcomingVenueEvents } from '@/lib/venue-events-server';
 import { getVenueDetailBySlug } from '@/lib/venues';
 import {
   buildActivationReplayComposerHref,
@@ -23,6 +24,7 @@ import VenueCheckInButton from '@/components/venues/VenueCheckInButton';
 import WorthADetourCard from '@/components/venues/WorthADetourCard';
 import SurfLocationSignal from '@/components/venues/SurfLocationSignal';
 import MeetHereButton from '@/components/community/MeetHereButton';
+import VenueEventRail from '@/components/events/VenueEventRail';
 import SquircleLink from '@/components/ui/SquircleLink';
 import { formatVenueContactConfirmedAt, formatVenueContactSource, type VenueContactChannel } from '@/lib/venue-contact-routes';
 import { isSiargaoSurfLocation } from '@/lib/siargao-surf-signal';
@@ -232,9 +234,10 @@ export default async function VenueDetailPage(
     session?.walletAddress?.trim().toLowerCase() ??
     session?.user?.walletAddress?.trim().toLowerCase() ??
     null;
-  const [venue, venueRituals] = await Promise.all([
+  const [venue, venueRituals, venueEvents] = await Promise.all([
     getVenueDetailBySlug(slug, creatorWalletAddress),
     getVenueRitualsBySlug(slug).catch(() => []),
+    getUpcomingVenueEvents({ venueSlug: slug, window: 'month', limit: 4, viewerBaretagId: null }).catch(() => []),
   ]);
 
   if (!venue) {
@@ -464,6 +467,8 @@ export default async function VenueDetailPage(
                   </div>
 
                   {showSurfSignal ? <SurfLocationSignal /> : null}
+
+                  <VenueEventRail events={venueEvents} venueSlug={venue.slug} />
 
                   {venue.officialContacts.length > 0 ? (
                     <div className="mt-5 rounded-[22px] border border-cyan-300/16 bg-[linear-gradient(145deg,rgba(34,211,238,0.08)_0%,rgba(8,8,16,0.76)_46%,rgba(16,185,129,0.05)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_16px_30px_rgba(0,0,0,0.18)]">

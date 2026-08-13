@@ -244,6 +244,8 @@ model Venue {
   reportEvents         VenueReportEvent[]
   reportLeads          VenueReportLead[]
   rituals              VenueRitual[]
+  eventSignals         VenueEventSignal[]
+  events               VenueEvent[]
   surfBoatCrews        SurfBoatCrew[]
   founderEvents        FounderEvent[]
   baseCashCredits      BaseCashVenueCredit[]
@@ -292,6 +294,75 @@ model VenueRitual {
   @@index([venueId, status, freshnessExpiresAt])
   @@index([weekday, status, freshnessExpiresAt])
   @@index([rewardDareId])
+}
+
+model VenueEventSignal {
+  id                String      @id @default(cuid())
+  venueId           String?
+  sourceKind        String
+  sourceUrl         String?
+  sourceAccount     String?
+  sourcePublishedAt DateTime?
+  rawText           String
+  fingerprint       String      @unique
+  extractionJson    Json?
+  confidence        Float       @default(0)
+  status            String      @default("NEW")
+  submittedBy       String?
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  venue             Venue?      @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  event             VenueEvent?
+
+  @@index([status, createdAt])
+  @@index([venueId, status])
+  @@index([sourceKind, sourcePublishedAt])
+}
+
+model VenueEvent {
+  id              String            @id @default(cuid())
+  slug            String            @unique
+  venueId         String
+  signalId        String?           @unique
+  title           String
+  summary         String?
+  category        String
+  startsAt        DateTime
+  endsAt          DateTime?
+  timezone        String
+  priceLabel      String?
+  sourceLabel     String
+  sourceUrl       String?
+  trustLevel      String            @default("SOURCE_CHECKED")
+  status          String            @default("PUBLISHED")
+  publishedAt     DateTime?
+  lastConfirmedAt DateTime
+  expiresAt       DateTime
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  venue           Venue             @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  signal          VenueEventSignal? @relation(fields: [signalId], references: [id], onDelete: SetNull)
+  rsvps           VenueEventRsvp[]
+
+  @@index([status, startsAt])
+  @@index([venueId, status, startsAt])
+  @@index([expiresAt, status])
+}
+
+model VenueEventRsvp {
+  id        String     @id @default(cuid())
+  eventId   String
+  baretagId String
+  status    String     @default("INTERESTED")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  event     VenueEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, baretagId])
+  @@index([baretagId, updatedAt])
+  @@index([eventId, status])
 }
 
 model VenueContactRoute {

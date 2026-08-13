@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
-import { HandHeart, Map, MessageCircle, ShieldCheck, ShipWheel, Store, Users } from 'lucide-react';
+import { HandHeart, Map, MessageCircle, Radio, ShieldCheck, ShipWheel, Store, Users } from 'lucide-react';
 
 import CommunityActivityCard from '@/components/community/CommunityActivityCard';
+import VenueEventCard from '@/components/events/VenueEventCard';
 import { getLocalPostMapHref, type LocalPostType } from '@/lib/community-around-policy';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import type { PublicVenueEvent } from '@/lib/venue-events-server';
 
 type CommunitySession = {
   token?: string;
@@ -60,6 +62,7 @@ export default function CommunityHubClient() {
   const actorWallet = address ?? sessionWallet;
 
   const [meetups, setMeetups] = useState<MeetupActivity[]>([]);
+  const [events, setEvents] = useState<PublicVenueEvent[]>([]);
   const [localActivities, setLocalActivities] = useState<LocalActivity[]>([]);
   const [venues, setVenues] = useState<VenueChoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,12 +79,14 @@ export default function CommunityHubClient() {
       fetch('/api/meetups', { cache: 'no-store', signal: controller.signal }),
       fetch('/api/local-signals?limit=20', { signal: controller.signal }),
       fetch('/api/venues/active', { signal: controller.signal }),
+      fetch('/api/events?window=week&limit=12', { cache: 'no-store', signal: controller.signal }),
     ])
-      .then(async ([meetupResponse, localResponse, venueResponse]) => {
-        const [meetupPayload, localPayload, venuePayload] = await Promise.all([
+      .then(async ([meetupResponse, localResponse, venueResponse, eventResponse]) => {
+        const [meetupPayload, localPayload, venuePayload, eventPayload] = await Promise.all([
           meetupResponse.json(),
           localResponse.json(),
           venueResponse.json(),
+          eventResponse.json(),
         ]);
         if (meetupResponse.ok && meetupPayload?.success && Array.isArray(meetupPayload.data)) {
           setMeetups(meetupPayload.data);
@@ -91,6 +96,9 @@ export default function CommunityHubClient() {
         }
         if (venueResponse.ok && venuePayload?.success && Array.isArray(venuePayload.data?.venues)) {
           setVenues(venuePayload.data.venues);
+        }
+        if (eventResponse.ok && eventPayload?.success && Array.isArray(eventPayload.data?.events)) {
+          setEvents(eventPayload.data.events);
         }
       })
       .catch((error) => {
@@ -204,6 +212,17 @@ export default function CommunityHubClient() {
           </span>
           <span className="shrink-0 rounded-full border border-[#f5c518]/20 px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#f8dd72]">Open</span>
         </Link>
+
+        <section className="mt-8">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-[#f8dd72]"><Radio className="h-3.5 w-3.5" /> Island Pulse</p>
+              <h2 className="mt-1 text-2xl font-black">What&apos;s actually on</h2>
+            </div>
+            <Link href="/events" className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.07] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.13em] text-[#f8dd72]">All events</Link>
+          </div>
+          {events.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{events.slice(0, 6).map((event) => <VenueEventCard key={event.id} event={event} compact />)}</div> : !loading ? <div className="mt-4 rounded-2xl border border-dashed border-white/14 bg-black/20 p-5 text-sm text-white/42">No source-checked events live yet.</div> : null}
+        </section>
 
         <section className="mt-8">
           <div className="flex items-end justify-between gap-4">

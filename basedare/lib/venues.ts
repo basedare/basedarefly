@@ -1772,6 +1772,7 @@ export async function getNearbyVenues(input: {
   limit: number;
 }) {
   const { lat, lng, radiusMeters, limit } = input;
+  const now = new Date();
 
   if (!isValidCoordinates(lat, lng)) {
     throw new Error('Invalid coordinates');
@@ -1846,6 +1847,20 @@ export async function getNearbyVenues(input: {
           bounty: true,
         },
       },
+      events: {
+        where: {
+          status: 'PUBLISHED',
+          expiresAt: { gt: now },
+          startsAt: { lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
+          OR: [
+            { endsAt: { gte: now } },
+            { endsAt: null, startsAt: { gte: new Date(now.getTime() - 4 * 60 * 60 * 1000) } },
+          ],
+        },
+        select: { id: true, slug: true, title: true, startsAt: true, endsAt: true },
+        orderBy: { startsAt: 'asc' },
+        take: 3,
+      },
       _count: {
         select: {
           checkIns: true,
@@ -1876,6 +1891,9 @@ export async function getNearbyVenues(input: {
       const tagSummary = getVenueTagSummary(tagSummaryMap, venue.id);
       const mayor = mayorMap.get(venue.id) ?? null;
       const activePerk = getActiveVenuePerk(venue.metadataJson);
+      const nextEvent = venue.events[0] ?? null;
+      const eventEndsAt = nextEvent?.endsAt?.getTime() ?? (nextEvent ? nextEvent.startsAt.getTime() + 4 * 60 * 60 * 1000 : 0);
+      const eventLiveNow = Boolean(nextEvent && nextEvent.startsAt <= now && eventEndsAt >= now.getTime());
       const liveSession = mapSessionSummary(venue.qrSessions[0] ?? null);
       const commandCenter = buildVenueCommandCenterSummary({
         slug: venue.slug,
@@ -1935,6 +1953,15 @@ export async function getNearbyVenues(input: {
         tagSummary,
         mayor,
         reviewSignal: reviewSignalMap.get(venue.id) ?? buildEmptyReviewSignal(venue._count.checkIns),
+        eventPulse: nextEvent ? {
+          count: venue.events.length,
+          eventId: nextEvent.id,
+          title: nextEvent.title,
+          startsAt: nextEvent.startsAt.toISOString(),
+          liveNow: eventLiveNow,
+          label: eventLiveNow ? 'LIVE NOW' : venue.events.length > 1 ? `${venue.events.length}${venue.events.length === 3 ? '+' : ''} EVENTS` : 'COMING UP',
+          href: `/events/${encodeURIComponent(nextEvent.slug)}`,
+        } : null,
         activePerk,
         firstSparkWindow: getFirstSparkWindow(venue.metadataJson, {
           activePerk,

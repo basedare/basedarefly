@@ -16,6 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Island Pulse venue events (2026-08-13 — COMPLETE LOCALLY)
+- Codex owns the first sourced venue-event slice: new event signal/event/RSVP models and migration, `lib/venue-events*`, public/admin event APIs and pages, compact community + venue-page integrations, and canonical nearby-venue `eventPulse` data.
+- Imported venue events remain distinct from user-created meetups. Public publication requires a reviewed source, exact venue, exact time, freshness, and an honest source/trust label; BaseDare does not imply partnership or sell tickets in this pass.
+- This pass does **not** edit `components/maps/RealWorldMap.tsx` or `app/map/*`. The canonical venue payload exposes marker-ready pulse data so the map owner can render one badge on the existing venue pin without creating duplicate event markers.
+- Release requires `prisma migrate deploy` for `20260813120000_add_island_pulse_events` before the app deployment. The branch is verified and committed but not pushed or migrated.
+
 ### Codex premium drink venue marker (2026-08-11 — SHIPPED)
 - Codex added one BaseDare-native `wine` hologram sprite and a narrow venue-identity rule for Greenroom, Mr. Turtle, and Last Chance.
 - Ordinary nightlife remains on the existing beer marker; live funded/community activity still overrides category art with the canonical live flag.

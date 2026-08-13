@@ -34,6 +34,16 @@ export type VenueReviewSignalSummary = {
   state: VenueReviewSignalState;
 };
 
+export type VenueEventPulseSummary = {
+  count: number;
+  eventId: string;
+  title: string;
+  startsAt: string;
+  liveNow: boolean;
+  label: string;
+  href: string;
+};
+
 export type VenueRecentTag = {
   id: string;
   creatorTag: string | null;
@@ -322,6 +332,7 @@ export type NearbyVenueItem = {
   /** Mayor 👑 — top verified prover in the rolling 30-day window (tag-holders only). */
   mayor: VenueMayorSummary | null;
   reviewSignal: VenueReviewSignalSummary;
+  eventPulse: VenueEventPulseSummary | null;
   activePerk: VenuePerkLite | null;
   firstSparkWindow: FirstSparkWindowSummary | null;
   liveSession: VenueSessionSummary | null;
