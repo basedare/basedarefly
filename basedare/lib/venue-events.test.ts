@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  fingerprintVenueEventSignal,
   getVenueEventTrustLabel,
   inferVenueEventDraft,
   isVenueEventLiveNow,
+  isLikelyVenueEventPost,
   normalizeVenueEventSourceUrl,
   parseVenueLocalDateTime,
   resolveVenueEventExpiry,
@@ -29,6 +31,37 @@ test("does not mistake a calendar year for an event time", () => {
     "Sunday Market\nAugust 16, 2026\nLocal makers and food"
   );
   assert.equal(draft.timeMention, null);
+});
+
+test("automatic feeds queue event-like posts and ignore ordinary venue content", () => {
+  assert.equal(
+    isLikelyVenueEventPost({
+      caption: "SUNSET VINYL NIGHT\nFriday · 7:30 PM\nFree entry",
+    }),
+    true
+  );
+  assert.equal(
+    isLikelyVenueEventPost({ caption: "Fresh coconuts and blue skies today." }),
+    false
+  );
+});
+
+test("feed fingerprints prefer stable platform media identity", () => {
+  const first = fingerprintVenueEventSignal({
+    sourceKind: "SOCIAL_POST",
+    sourceUrl: "https://instagram.com/p/example/",
+    venueSlug: "hideaway",
+    rawText: "Original caption",
+    externalId: "ig-123",
+  });
+  const edited = fingerprintVenueEventSignal({
+    sourceKind: "SOCIAL_POST",
+    sourceUrl: "https://instagram.com/reel/example-edited/",
+    venueSlug: "hideaway-edited",
+    rawText: "Edited caption",
+    externalId: "ig-123",
+  });
+  assert.equal(first, edited);
 });
 
 test("source urls accept only public http protocols and remove fragments", () => {

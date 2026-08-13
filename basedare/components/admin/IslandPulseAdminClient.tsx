@@ -28,6 +28,7 @@ type Draft = {
   dateMention?: string | null;
   timeMention?: string | null;
   confidence?: number;
+  suggestedTrustLevel?: string;
 };
 type Signal = {
   id: string;
@@ -52,6 +53,18 @@ type PublishedEvent = {
   _count: { rsvps: number };
 };
 type Payload = { venues: Venue[]; signals: Signal[]; events: PublishedEvent[] };
+type Feed = {
+  id: string;
+  platform: string;
+  externalAccountId: string;
+  accountHandle: string | null;
+  status: string;
+  lastCheckedAt: string | null;
+  lastSuccessfulAt: string | null;
+  lastError: string | null;
+  consecutiveFailures: number;
+  venue: { slug: string; name: string };
+};
 type PublishDraft = {
   venueSlug: string;
   title: string;
@@ -80,11 +93,16 @@ export default function IslandPulseAdminClient() {
   const { adminSecret, setAdminSecret, ensureAdminSession, hasAdminSession } =
     useSessionAdminSecret();
   const [payload, setPayload] = useState<Payload | null>(null);
+  const [feeds, setFeeds] = useState<Feed[]>([]);
   const [sourceKind, setSourceKind] = useState("SOCIAL_POST");
   const [sourceUrl, setSourceUrl] = useState("");
   const [sourceAccount, setSourceAccount] = useState("");
   const [sourceVenue, setSourceVenue] = useState("");
   const [rawText, setRawText] = useState("");
+  const [feedVenue, setFeedVenue] = useState("");
+  const [feedAccountId, setFeedAccountId] = useState("");
+  const [feedHandle, setFeedHandle] = useState("");
+  const [feedAccessToken, setFeedAccessToken] = useState("");
   const [drafts, setDrafts] = useState<Record<string, PublishDraft>>({});
   const [loading, setLoading] = useState(false);
   const [working, setWorking] = useState<string | null>(null);
@@ -106,15 +124,21 @@ export default function IslandPulseAdminClient() {
     if (!(await ensureAuth())) return;
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/venue-events", {
-        cache: "no-store",
-        headers,
-      });
-      const body = await response.json();
+      const [response, feedResponse] = await Promise.all([
+        fetch("/api/admin/venue-events", { cache: "no-store", headers }),
+        fetch("/api/admin/venue-event-feeds", { cache: "no-store", headers }),
+      ]);
+      const [body, feedBody] = await Promise.all([
+        response.json(),
+        feedResponse.json(),
+      ]);
       if (!response.ok || !body.success)
         throw new Error(body.error || "Could not load Island Pulse.");
+      if (!feedResponse.ok || !feedBody.success)
+        throw new Error(feedBody.error || "Could not load venue feeds.");
       const next = body.data as Payload;
       setPayload(next);
+      setFeeds(feedBody.data.feeds as Feed[]);
       setDrafts((current) => {
         const merged = { ...current };
         next.signals.forEach((signal) => {
@@ -128,7 +152,7 @@ export default function IslandPulseAdminClient() {
             endsAt: "",
             priceLabel: extracted.priceLabel ?? "",
             summary: "",
-            trustLevel: "SOURCE_CHECKED",
+            trustLevel: extracted.suggestedTrustLevel ?? "SOURCE_CHECKED",
           };
         });
         return merged;
@@ -179,6 +203,73 @@ export default function IslandPulseAdminClient() {
       setMessage(
         error instanceof Error ? error.message : "Could not build draft."
       );
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  const connectFeed = async () => {
+    if (!feedVenue || !feedAccountId.trim() || !feedAccessToken.trim()) return;
+    if (!(await ensureAuth())) return;
+    setWorking("connect-feed");
+    setMessage(null);
+    try {
+      const response = await fetch("/api/admin/venue-event-feeds", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          venueSlug: feedVenue,
+          externalAccountId: feedAccountId,
+          accountHandle: feedHandle || null,
+          accessToken: feedAccessToken,
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok || !body.success)
+        throw new Error(body.error || "Could not connect Instagram.");
+      setFeedAccountId("");
+      setFeedHandle("");
+      setFeedAccessToken("");
+      setMessage("Instagram connected. New event-like posts will enter this review queue.");
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not connect Instagram.");
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  const feedAction = async (
+    action: "sync" | "pause" | "resume" | "disconnect",
+    feedId: string
+  ) => {
+    if (
+      action === "disconnect" &&
+      !window.confirm("Disconnect this feed and delete its stored token?")
+    )
+      return;
+    if (!(await ensureAuth())) return;
+    setWorking(`feed:${feedId}`);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/admin/venue-event-feeds", {
+        method: "PATCH",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ action, feedId }),
+      });
+      const body = await response.json();
+      if (!response.ok || !body.success)
+        throw new Error(body.error || "Could not update feed.");
+      if (action === "sync") {
+        setMessage(
+          `${body.data.queued} new event candidate${body.data.queued === 1 ? "" : "s"} queued from ${body.data.scanned} recent posts.`
+        );
+      } else if (action === "disconnect") {
+        setMessage("Instagram feed disconnected and its stored token deleted.");
+      }
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not update feed.");
     } finally {
       setWorking(null);
     }
@@ -262,7 +353,101 @@ export default function IslandPulseAdminClient() {
           </div>
         ) : null}
 
-        <section className="mt-7 grid gap-5 rounded-[1.8rem] border border-white/10 bg-black/28 p-5 lg:grid-cols-[0.75fr_1.25fr]">
+        <section className="mt-7 rounded-[1.8rem] border border-cyan-200/12 bg-cyan-300/[0.035] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100/68">
+                <Radio className="h-4 w-4" /> Automatic venue feeds
+              </p>
+              <p className="mt-2 max-w-2xl text-sm text-white/48">
+                Connect an opted-in Instagram professional account. Event-like posts become drafts here; nothing publishes without a human time and place check.
+              </p>
+            </div>
+            <span className="rounded-full border border-white/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.13em] text-white/44">
+              Hourly scan · review required
+            </span>
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            <select
+              value={feedVenue}
+              onChange={(event) => setFeedVenue(event.target.value)}
+              className="min-h-11 rounded-xl border border-white/10 bg-[#090b14] px-3 text-sm"
+            >
+              <option value="">Canonical venue</option>
+              {payload?.venues.map((venue) => (
+                <option key={venue.id} value={venue.slug}>{venue.name}</option>
+              ))}
+            </select>
+            <input
+              value={feedHandle}
+              onChange={(event) => setFeedHandle(event.target.value)}
+              placeholder="@venuehandle"
+              className="min-h-11 rounded-xl border border-white/10 bg-black/30 px-3 text-sm"
+            />
+            <input
+              value={feedAccountId}
+              onChange={(event) => setFeedAccountId(event.target.value)}
+              placeholder="Instagram account ID"
+              className="min-h-11 rounded-xl border border-white/10 bg-black/30 px-3 text-sm"
+            />
+            <input
+              type="password"
+              value={feedAccessToken}
+              onChange={(event) => setFeedAccessToken(event.target.value)}
+              placeholder="Account access token"
+              className="min-h-11 rounded-xl border border-white/10 bg-black/30 px-3 text-sm"
+            />
+            <button
+              disabled={!feedVenue || !feedAccountId.trim() || feedAccessToken.trim().length < 20 || working === "connect-feed"}
+              onClick={() => void connectFeed()}
+              className="min-h-11 rounded-xl bg-cyan-100 px-4 text-[10px] font-black uppercase tracking-[0.12em] text-[#05202a] disabled:opacity-40"
+            >
+              {working === "connect-feed" ? "Connecting…" : "Connect feed"}
+            </button>
+          </div>
+          {feeds.length ? (
+            <div className="mt-4 grid gap-2 lg:grid-cols-2">
+              {feeds.map((feed) => (
+                <div key={feed.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/8 bg-black/25 p-3">
+                  <div>
+                    <p className="text-sm font-black">{feed.venue.name} · {feed.accountHandle || feed.externalAccountId}</p>
+                    <p className="mt-1 text-[10px] text-white/40">
+                      {feed.status} · {feed.lastSuccessfulAt ? `synced ${new Date(feed.lastSuccessfulAt).toLocaleString()}` : "not synced yet"}
+                    </p>
+                    {feed.lastError ? <p className="mt-1 text-[10px] font-bold text-rose-200/72">{feed.lastError}</p> : null}
+                  </div>
+                  <div className="flex gap-2">
+                    {feed.status === "ACTIVE" ? (
+                      <button
+                        disabled={working === `feed:${feed.id}`}
+                        onClick={() => void feedAction("sync", feed.id)}
+                        className="rounded-full border border-cyan-100/18 px-3 py-2 text-[9px] font-black uppercase text-cyan-100/70 disabled:opacity-40"
+                      >Sync now</button>
+                    ) : null}
+                    {feed.status === "ACTIVE" || feed.status === "PAUSED" ? (
+                      <button
+                        disabled={working === `feed:${feed.id}`}
+                        onClick={() => void feedAction(feed.status === "ACTIVE" ? "pause" : "resume", feed.id)}
+                        className="rounded-full border border-white/10 px-3 py-2 text-[9px] font-black uppercase text-white/50 disabled:opacity-40"
+                      >{feed.status === "ACTIVE" ? "Pause" : "Resume"}</button>
+                    ) : (
+                      <span className="self-center text-[9px] font-black uppercase text-rose-200/60">
+                        Reconnect above
+                      </span>
+                    )}
+                    <button
+                      disabled={working === `feed:${feed.id}`}
+                      onClick={() => void feedAction("disconnect", feed.id)}
+                      className="rounded-full border border-rose-200/10 px-3 py-2 text-[9px] font-black uppercase text-rose-100/44 disabled:opacity-40"
+                    >Disconnect</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </section>
+
+        <section className="mt-5 grid gap-5 rounded-[1.8rem] border border-white/10 bg-black/28 p-5 lg:grid-cols-[0.75fr_1.25fr]">
           <div>
             <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100/68">
               <CalendarPlus className="h-4 w-4" /> Add public source

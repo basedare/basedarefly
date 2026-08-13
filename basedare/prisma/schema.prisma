@@ -245,6 +245,7 @@ model Venue {
   reportLeads          VenueReportLead[]
   rituals              VenueRitual[]
   eventSignals         VenueEventSignal[]
+  eventFeeds           VenueEventFeed[]
   events               VenueEvent[]
   surfBoatCrews        SurfBoatCrew[]
   founderEvents        FounderEvent[]
@@ -319,6 +320,32 @@ model VenueEventSignal {
   @@index([status, createdAt])
   @@index([venueId, status])
   @@index([sourceKind, sourcePublishedAt])
+}
+
+// Opt-in source connections that turn venue-owned feeds into reviewable event
+// signals. Access tokens remain server-only and are never returned publicly.
+model VenueEventFeed {
+  id                    String    @id @default(cuid())
+  venueId               String
+  platform              String    @default("INSTAGRAM")
+  externalAccountId     String
+  accountHandle         String?
+  accessTokenCiphertext String
+  tokenExpiresAt        DateTime?
+  status                String    @default("ACTIVE")
+  lastCursor            String?
+  lastCheckedAt         DateTime?
+  lastSuccessfulAt      DateTime?
+  lastError             String?
+  consecutiveFailures   Int       @default(0)
+  connectedBy           String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  venue                 Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([platform, externalAccountId])
+  @@index([status, lastCheckedAt])
+  @@index([venueId, status])
 }
 
 model VenueEvent {

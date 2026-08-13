@@ -38,6 +38,13 @@ export type VenueEventDraft = {
   confidence: number;
 };
 
+export type VenueEventSocialPost = {
+  externalId: string;
+  caption: string;
+  permalink: string;
+  publishedAt: string;
+};
+
 const CATEGORY_TERMS: Array<[VenueEventCategory, RegExp]> = [
   ["surf", /\b(surf|longboard|shortboard|wave|board swap)\b/i],
   ["music", /\b(djs?|vinyl|live music|band|acoustic|open mic|jam session)\b/i],
@@ -97,6 +104,40 @@ export function inferVenueEventDraft(rawText: string): VenueEventDraft {
     timeMention,
     confidence: Math.round(confidence * 100) / 100,
   };
+}
+
+export function isLikelyVenueEventPost(
+  post: Pick<VenueEventSocialPost, "caption">
+) {
+  const caption = post.caption.trim();
+  if (caption.length < 5) return false;
+  const draft = inferVenueEventDraft(caption);
+  const hasEventLanguage =
+    CATEGORY_TERMS.some(([, pattern]) => pattern.test(caption)) ||
+    /\b(tonight|tomorrow|this (?:friday|saturday|sunday|weekend)|doors open|entry|tickets?|rsvp|join us|every (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/i.test(
+      caption
+    );
+  return Boolean(
+    hasEventLanguage &&
+      draft.title &&
+      (draft.dateMention || draft.timeMention) &&
+      draft.confidence >= 0.65
+  );
+}
+
+export function fingerprintVenueEventSignal(input: {
+  sourceKind: VenueEventSourceKind;
+  sourceUrl?: string | null;
+  venueSlug?: string | null;
+  rawText: string;
+  externalId?: string | null;
+}) {
+  const externalId = input.externalId?.trim();
+  if (externalId) return `${input.sourceKind}|external:${externalId}`;
+  const normalizedText = input.rawText.toLowerCase().replace(/\s+/g, " ").trim();
+  return `${input.sourceKind}|${input.sourceUrl ?? ""}|${
+    input.venueSlug ?? ""
+  }|text:${normalizedText}`;
 }
 
 export function normalizeVenueEventSourceUrl(value: string | null | undefined) {

@@ -12,6 +12,12 @@ Use this file for durable project lessons that prevent repeated mistakes.
 
 ## Active Lessons
 
+### 2026-08-13
+- Context: Turning venue social feeds into live map-event data.
+- What went wrong: A source URL and a plausible caption can look authoritative while still carrying a wrong venue, ambiguous date, edited time, or stale event.
+- Rule going forward: Automated social ingestion may research, extract, dedupe, and queue; publishing remains a reviewed transition with exact place/time and source provenance. Stable platform media ids dedupe observations, and connected account tokens must be encrypted with a dedicated secret.
+- Files or systems affected: `VenueEventSignal`, `VenueEventFeed`, Island Pulse admin, CRON/social adapters, public event trust labels.
+
 ### 2026-07-13
 - Context: Separating V2 bounty settlement from the Verified Field Sprint service invoice.
 - What went wrong: Stale pricing code allowed a managed-service amount to become an automatic scout-commission base, while a campaign could be registered from a database-only reward fallback.

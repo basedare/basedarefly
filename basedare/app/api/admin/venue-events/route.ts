@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import {
+  fingerprintVenueEventSignal,
   getVenueEventSourceLabel,
   inferVenueEventDraft,
   normalizeVenueEventSourceUrl,
@@ -54,11 +55,12 @@ function fingerprintSignal(
   sourceUrl: string | null
 ) {
   return createHash("sha256")
-    .update(
-      `${input.sourceKind}|${sourceUrl ?? ""}|${
-        input.venueSlug ?? ""
-      }|${input.rawText.toLowerCase().replace(/\s+/g, " ").trim()}`
-    )
+    .update(fingerprintVenueEventSignal({
+      sourceKind: input.sourceKind,
+      sourceUrl,
+      venueSlug: input.venueSlug,
+      rawText: input.rawText,
+    }))
     .digest("hex");
 }
 

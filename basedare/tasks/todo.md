@@ -1,5 +1,27 @@
 # BaseDare Todo
 
+### Task — Island Pulse automatic venue feeds (2026-08-13)
+- Owner: Codex
+- Goal: Turn opted-in venue social posts into deduplicated, reviewable map-event candidates without blind auto-publishing or scraping.
+
+### Plan
+- [x] Add separate event signal/event/RSVP persistence and public/admin surfaces.
+- [x] Add encrypted Instagram professional-account connections tied to canonical venues.
+- [x] Add hourly signed sync, event-likelihood filtering, stable media dedupe, and a review queue.
+- [x] Add signed generic adapter intake for future calendar/social connectors.
+- [x] Verify schema/migration, focused tests, app/test typechecks, lint, safety, build, browser layout, and Graphify.
+
+### Release gates
+- [ ] Run `prisma migrate deploy` before deploying application code.
+- [ ] Set `VENUE_EVENT_FEED_SECRET` and retain `CRON_SECRET` in production.
+- [ ] Complete Meta app review/account authorization before connecting venue accounts.
+- [ ] Keep every detected event behind operator review; no silent public publishing.
+
+### Review
+- Outcome: Opted-in Instagram professional feeds now scan hourly, dedupe by stable media ID, filter event-like posts, and queue source-backed drafts for an exact venue/time review. Credentials are encrypted, omitted from API reads, and deleted on disconnect.
+- Verification: All 56 migrations applied to a fresh disposable Postgres database; four Island Pulse tables had RLS enabled. Focused tests, app/test typechecks, lint, static safety, production build, desktop/mobile browser checks, and Graphify passed.
+- Deployment remains intentionally gated on the production migration, secrets, and Meta account authorization.
+
 ### Task — Verified Field Sprint Runner (2026-07-20)
 - Owner: Codex
 - Goal: Turn one paid buyer question into four independently funded Field Truth missions and one conservative, auditable buyer receipt.
