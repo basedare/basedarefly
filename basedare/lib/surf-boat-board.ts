@@ -26,11 +26,11 @@ export const BOAT_LAUNCHES = [
     mapLabel: 'Kanaway launch',
     destinationValues: ['rock-island', 'stimpys', 'bumee-bomi', 'best-today', 'flexible'],
     markerSlots: [
-      { latitude: 9.81135, longitude: 126.16535 },
-      { latitude: 9.81205, longitude: 126.16575 },
-      { latitude: 9.8106, longitude: 126.16585 },
-      { latitude: 9.8127, longitude: 126.16625 },
-      { latitude: 9.8099, longitude: 126.16635 },
+      { latitude: 9.813, longitude: 126.1596 },
+      { latitude: 9.81355, longitude: 126.15985 },
+      { latitude: 9.8132, longitude: 126.1602 },
+      { latitude: 9.81385, longitude: 126.16035 },
+      { latitude: 9.81345, longitude: 126.1606 },
     ],
   },
   {

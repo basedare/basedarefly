@@ -89,13 +89,18 @@ test('each launch exposes only the breaks it can actually serve', () => {
 });
 
 test('multiple crews occupy independent offshore boat slots', () => {
-  const first = getBoatCrewMarkerPosition('kanaway-surf-school', 0);
-  const second = getBoatCrewMarkerPosition('kanaway-surf-school', 1);
+  const kanawaySlots = Array.from({ length: 5 }, (_, index) =>
+    getBoatCrewMarkerPosition('kanaway-surf-school', index),
+  );
+  const [first, second] = kanawaySlots;
   const cemetery = getBoatCrewMarkerPosition(CEMETERY_BOAT_VENUE_SLUG, 0);
   assert.notDeepEqual(first, second);
   assert.notDeepEqual(first, cemetery);
-  assert.ok(first.longitude >= 126.1653, 'Kanaway boats stay east of the Catangnan shoreline');
-  assert.ok(second.longitude >= 126.1653, 'every Kanaway slot stays in the water');
+  kanawaySlots.forEach((slot) => {
+    assert.ok(slot.latitude >= 9.813, 'Kanaway boats stay north of the public-launch shoreline');
+    assert.ok(slot.longitude >= 126.1596, 'Kanaway boats stay seaward of the launch');
+    assert.ok(slot.longitude <= 126.1606, 'Kanaway boats stay west of the Cloud 9 land polygon');
+  });
   assert.ok(cemetery.longitude >= 126.168, 'Cemetery boats stay east of the General Luna shoreline');
 });
 
