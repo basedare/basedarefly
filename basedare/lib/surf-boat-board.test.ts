@@ -97,9 +97,10 @@ test('multiple crews occupy independent offshore boat slots', () => {
   assert.notDeepEqual(first, second);
   assert.notDeepEqual(first, cemetery);
   kanawaySlots.forEach((slot) => {
-    assert.ok(slot.latitude >= 9.813, 'Kanaway boats stay north of the public-launch shoreline');
-    assert.ok(slot.longitude >= 126.1596, 'Kanaway boats stay seaward of the launch');
-    assert.ok(slot.longitude <= 126.1606, 'Kanaway boats stay west of the Cloud 9 land polygon');
+    assert.ok(slot.latitude >= 9.81375, 'Kanaway boats stay north of the public-launch shoreline');
+    assert.ok(slot.latitude <= 9.8145, 'Kanaway boats remain grouped in the launch bay');
+    assert.ok(slot.longitude >= 126.156, 'Kanaway boats remain east of the bay boundary');
+    assert.ok(slot.longitude <= 126.157, 'Kanaway boats stay in the vetted offshore water pocket');
   });
   assert.ok(cemetery.longitude >= 126.168, 'Cemetery boats stay east of the General Luna shoreline');
 });

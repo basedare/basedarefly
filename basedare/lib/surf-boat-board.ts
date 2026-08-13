@@ -5,6 +5,16 @@ export const CEMETERY_BOAT_VENUE_NAME = 'Siargao Beach Club';
 export const BOAT_CREW_MINIMUM = 4;
 export const INDICATIVE_BOAT_TOTAL_PHP = 1200;
 
+export const KANAWAY_BOAT_MARKER_SLOTS = [
+  // Vetted against the OpenFreeMap Liberty water layer. Keep the large
+  // banca marker in the deeper bay—not merely a few metres past shore.
+  { latitude: 9.81425, longitude: 126.1565 },
+  { latitude: 9.814, longitude: 126.15625 },
+  { latitude: 9.8145, longitude: 126.15675 },
+  { latitude: 9.81375, longitude: 126.156 },
+  { latitude: 9.81425, longitude: 126.157 },
+] as const;
+
 export const BOAT_DESTINATIONS = [
   { value: 'rock-island', label: 'Rock Island' },
   { value: 'stimpys', label: "Stimpy's" },
@@ -25,13 +35,7 @@ export const BOAT_LAUNCHES = [
     mapPath: '/map?place=kanaway-surf-school&source=boat-share',
     mapLabel: 'Kanaway launch',
     destinationValues: ['rock-island', 'stimpys', 'bumee-bomi', 'best-today', 'flexible'],
-    markerSlots: [
-      { latitude: 9.813, longitude: 126.1596 },
-      { latitude: 9.81355, longitude: 126.15985 },
-      { latitude: 9.8132, longitude: 126.1602 },
-      { latitude: 9.81385, longitude: 126.16035 },
-      { latitude: 9.81345, longitude: 126.1606 },
-    ],
+    markerSlots: KANAWAY_BOAT_MARKER_SLOTS,
   },
   {
     value: CEMETERY_BOAT_VENUE_SLUG,
