@@ -16,13 +16,13 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
-### Codex Island Pulse venue events (2026-08-13 — COMPLETE LOCALLY)
+### Codex Island Pulse venue events (2026-08-13 — SHIPPED)
 - Codex owns the first sourced venue-event slice: new event signal/event/RSVP models and migration, `lib/venue-events*`, public/admin event APIs and pages, compact community + venue-page integrations, and canonical nearby-venue `eventPulse` data.
 - Opted-in Instagram professional accounts can now attach to canonical venues through an encrypted server-only feed registry. An hourly CRON fetches recent media through Meta's API, filters event-like captions, deduplicates by platform media id, and queues drafts for review; it never auto-publishes.
 - A signed internal signal adapter lets future calendar/TikTok/community connectors enter the same provenance + review rail without creating parallel event models. Production requires `VENUE_EVENT_FEED_SECRET`, `CRON_SECRET`, and authorized Meta account access.
 - Imported venue events remain distinct from user-created meetups. Public publication requires a reviewed source, exact venue, exact time, freshness, and an honest source/trust label; BaseDare does not imply partnership or sell tickets in this pass.
 - This pass does **not** edit `components/maps/RealWorldMap.tsx` or `app/map/*`. The canonical venue payload exposes marker-ready pulse data so the map owner can render one badge on the existing venue pin without creating duplicate event markers.
-- Release requires `prisma migrate deploy` for `20260813120000_add_island_pulse_events` before the app deployment. The branch is verified and committed but not pushed or migrated.
+- Production received `VENUE_EVENT_FEED_SECRET`; `CRON_SECRET` remains configured; migration `20260813120000_add_island_pulse_events` was applied before the code was pushed to `main`. Meta app review/account authorization remains the external gate before connecting real venue feeds.
 
 ### Codex premium drink venue marker (2026-08-11 — SHIPPED)
 - Codex added one BaseDare-native `wine` hologram sprite and a narrow venue-identity rule for Greenroom, Mr. Turtle, and Last Chance.

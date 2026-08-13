@@ -12,15 +12,15 @@
 - [x] Verify schema/migration, focused tests, app/test typechecks, lint, safety, build, browser layout, and Graphify.
 
 ### Release gates
-- [ ] Run `prisma migrate deploy` before deploying application code.
-- [ ] Set `VENUE_EVENT_FEED_SECRET` and retain `CRON_SECRET` in production.
+- [x] Run `prisma migrate deploy` before deploying application code.
+- [x] Set `VENUE_EVENT_FEED_SECRET` and retain `CRON_SECRET` in production.
 - [ ] Complete Meta app review/account authorization before connecting venue accounts.
 - [ ] Keep every detected event behind operator review; no silent public publishing.
 
 ### Review
 - Outcome: Opted-in Instagram professional feeds now scan hourly, dedupe by stable media ID, filter event-like posts, and queue source-backed drafts for an exact venue/time review. Credentials are encrypted, omitted from API reads, and deleted on disconnect.
 - Verification: All 56 migrations applied to a fresh disposable Postgres database; four Island Pulse tables had RLS enabled. Focused tests, app/test typechecks, lint, static safety, production build, desktop/mobile browser checks, and Graphify passed.
-- Deployment remains intentionally gated on the production migration, secrets, and Meta account authorization.
+- Deployment prerequisites are complete and the code is on `main`. Real feed connections remain gated on Meta app review/account authorization and venue opt-in.
 
 ### Task — Verified Field Sprint Runner (2026-07-20)
 - Owner: Codex
