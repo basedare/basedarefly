@@ -16,10 +16,13 @@ type HostSessionShape = {
 
 const TYPE_EMOJI: Record<MeetupType, string> = {
   surf: '🏄',
+  padel: '🎾',
   skate: '🛹',
   sunset: '🌅',
   jam: '🎸',
   dwmb: '🚲',
+  trivia: '🧠',
+  drinks: '🍸',
   custom: '✨',
 };
 

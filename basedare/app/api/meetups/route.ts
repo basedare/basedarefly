@@ -57,6 +57,7 @@ export async function GET() {
         approxLng: m.approxLng,
         startTime: m.startTime.toISOString(),
         note: m.note,
+        minimumPeople: m.minimumPeople,
         happeningNow: isHappeningNow(m.startTime, now),
         rsvpCount: m._count.rsvps,
         creator: creator ? { tag: creator.tag, pfpUrl: creator.pfpUrl } : null,
@@ -86,6 +87,7 @@ const CreateMeetupSchema = z.object({
   approxLng: z.number().min(-180).max(180),
   startTime: z.string().datetime(),
   note: z.string().max(500).optional(),
+  minimumPeople: z.number().int().min(2).max(50).optional(),
   inviteTags: z.array(z.string().max(40)).max(5).optional(),
 });
 
@@ -140,10 +142,13 @@ export async function POST(request: NextRequest) {
     if (input.venueId || input.venueSlug) {
       // Clients may know the venue by slug only (the map panel does) — both
       // resolve to the same public binding.
-      const venue = await prisma.venue.findUnique({
-        where: input.venueId ? { id: input.venueId } : { slug: input.venueSlug as string },
-        select: { id: true, name: true, latitude: true, longitude: true },
-      });
+      const select = { id: true, name: true, latitude: true, longitude: true } as const;
+      let venue = input.venueId
+        ? await prisma.venue.findUnique({ where: { id: input.venueId }, select })
+        : null;
+      if (!venue && input.venueSlug) {
+        venue = await prisma.venue.findUnique({ where: { slug: input.venueSlug }, select });
+      }
       if (venue) {
         venueId = venue.id;
         approxLat = roundCoord(venue.latitude);
@@ -164,6 +169,7 @@ export async function POST(request: NextRequest) {
           approxLng,
           startTime,
           note: input.note?.trim() || null,
+          minimumPeople: input.minimumPeople ?? null,
           status: 'active',
         },
         select: { id: true },

@@ -99,3 +99,63 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ success: false, error: 'Failed to RSVP' }, { status: 500 });
   }
 }
+
+// DELETE /api/meetups/[id]/rsvp — signed, idempotent withdrawal. Hosts keep
+// their own RSVP while the plan is live; cancelling the plan is a separate act.
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const rateLimit = checkRateLimit(getClientIp(request), {
+    limit: 30,
+    windowMs: 60 * 60 * 1000,
+    keyPrefix: 'meetup-rsvp-withdraw',
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { success: false, error: 'Too many RSVP changes. Try again later.' },
+      { status: 429, headers: createRateLimitHeaders(rateLimit) },
+    );
+  }
+
+  const parsed = RsvpSchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: 'Valid wallet required.' }, { status: 400 });
+  }
+  const baretag = await resolveHostBaretag(request, parsed.data.walletAddress ?? null, {
+    action: 'meetup:rsvp:withdraw',
+    resource: `meetup:${id}`,
+  });
+  if (!baretag) {
+    return NextResponse.json(
+      { success: false, error: 'Sign in with the identity that joined this plan.' },
+      { status: 401 },
+    );
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const meetup = await tx.meetup.findUnique({
+        where: { id },
+        select: { creatorBaretagId: true },
+      });
+      if (!meetup) throw new Error('MEETUP_NOT_FOUND');
+      if (meetup.creatorBaretagId === baretag.id) throw new Error('MEETUP_HOST');
+      await tx.meetupRsvp.deleteMany({ where: { meetupId: id, baretagId: baretag.id } });
+      const count = await tx.meetupRsvp.count({ where: { meetupId: id } });
+      return { count };
+    });
+    return NextResponse.json({ success: true, data: { rsvped: false, count: result.count } });
+  } catch (error) {
+    const code = error instanceof Error ? error.message : '';
+    if (code === 'MEETUP_NOT_FOUND') {
+      return NextResponse.json({ success: false, error: 'Meetup not found' }, { status: 404 });
+    }
+    if (code === 'MEETUP_HOST') {
+      return NextResponse.json(
+        { success: false, error: 'The Rally host stays in until the plan is cancelled.' },
+        { status: 400 },
+      );
+    }
+    console.error('[MEETUPS] RSVP withdrawal failed:', error);
+    return NextResponse.json({ success: false, error: 'Failed to leave this plan' }, { status: 500 });
+  }
+}

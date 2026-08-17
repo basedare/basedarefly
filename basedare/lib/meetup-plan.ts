@@ -13,6 +13,7 @@ export type MeetupPlanSummary = {
   approxLng: number;
   startTime: string;
   note: string | null;
+  minimumPeople: number | null;
   status: MeetupPlanStatus;
   creatorTag: string | null;
   rsvpCount: number;
@@ -23,7 +24,10 @@ export function getMeetupSharePath(id: string) {
   return `/community/meet/${encodeURIComponent(id)}`;
 }
 
-export function getMeetupShareText(plan: Pick<MeetupPlanSummary, 'placeLabel' | 'startTime' | 'note' | 'rsvpCount'>) {
+export function getMeetupShareText(
+  plan: Pick<MeetupPlanSummary, 'placeLabel' | 'startTime' | 'note' | 'rsvpCount'>
+    & Partial<Pick<MeetupPlanSummary, 'title' | 'minimumPeople'>>,
+) {
   const start = new Date(plan.startTime);
   const when = Number.isFinite(start.getTime())
     ? new Intl.DateTimeFormat('en-PH', {
@@ -34,7 +38,12 @@ export function getMeetupShareText(plan: Pick<MeetupPlanSummary, 'placeLabel' | 
       }).format(start)
     : 'Soon';
   const people = `${Math.max(1, plan.rsvpCount)} going`;
-  return [`Meet me at ${plan.placeLabel}`, `${when} · ${people}`, plan.note].filter(Boolean).join('\n');
+  const threshold = plan.minimumPeople
+    ? `${Math.max(0, plan.minimumPeople - plan.rsvpCount)} more needed`
+    : null;
+  return [plan.title ?? `Meet at ${plan.placeLabel}`, plan.placeLabel, `${when} · ${people}${threshold ? ` · ${threshold}` : ''}`, plan.note]
+    .filter(Boolean)
+    .join('\n');
 }
 
 export function normalizeMeetupInviteTags(values: string[]) {
@@ -49,4 +58,15 @@ export function getDefaultMeetHereStart(now = new Date()) {
   const next = new Date(now.getTime() + 30 * 60 * 1000);
   next.setMinutes(Math.ceil(next.getMinutes() / 15) * 15, 0, 0);
   return next;
+}
+
+export function getRepeatRallyHref(plan: Pick<MeetupPlanSummary, 'title' | 'type' | 'venueId' | 'minimumPeople'>) {
+  const template = ['padel', 'trivia', 'drinks', 'surf'].includes(plan.type) ? plan.type : 'meet';
+  const query = new URLSearchParams({
+    template,
+    title: plan.title,
+    minimum: String(plan.minimumPeople ?? 2),
+  });
+  if (plan.venueId) query.set('venueId', plan.venueId);
+  return `/community/rally/new?${query.toString()}`;
 }

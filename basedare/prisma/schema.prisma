@@ -1343,13 +1343,14 @@ model Meetup {
   id               String         @id @default(cuid())
   creatorBaretagId String // StreamerTag.id — server-derived from the session, never client-trusted
   title            String
-  type             String // surf | skate | sunset | jam | dwmb | custom
+  type             String // surf | skate | sunset | jam | dwmb | padel | trivia | drinks | custom
   venueId          String? // optional Venue.id (public place binding)
   placeLabel       String // required public-place text (e.g. "Cloud 9 boardwalk")
   approxLat        Float // ROUNDED (~3dp) or the venue's public coord — never raw device GPS
   approxLng        Float
   startTime        DateTime
   note             String?
+  minimumPeople    Int? // Optional Rally threshold; null keeps a normal open meetup
   status           String         @default("active") // active | cancelled (expired derived at READ time from startTime)
   createdAt        DateTime       @default(now())
   rsvps            MeetupRsvp[]

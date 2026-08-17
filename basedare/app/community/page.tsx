@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import CommunityHubClient from '@/components/community/CommunityHubClient';
 
 export const metadata: Metadata = {
-  title: 'Community Around You | BaseDare',
-  description: 'Source-checked venue events, meetups, place rooms, and short-lived local asks and offers on the BaseDare map.',
+  title: 'Live Plans & Community | BaseDare',
+  description: 'Join boats, meetups, venue events, Sparks and Dares—or start a place-bound Rally and fill the crew.',
 };
 
 export default function CommunityPage() {

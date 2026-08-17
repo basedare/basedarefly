@@ -12,8 +12,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const plan = await getMeetupPlan(id).catch(() => null);
   if (!plan) return { title: 'Meetup | BaseDare' };
   return {
-    title: `Meet at ${plan.placeLabel} | BaseDare`,
-    description: `${Math.max(1, plan.rsvpCount)} going. Open the plan, join and invite a mate.`,
+    title: `${plan.title} | BaseDare Rally`,
+    description: `${plan.placeLabel} · ${Math.max(1, plan.rsvpCount)} going${plan.minimumPeople ? ` · ${Math.max(0, plan.minimumPeople - plan.rsvpCount)} more needed` : ''}.`,
     alternates: { canonical: getMeetupSharePath(plan.id) },
   };
 }

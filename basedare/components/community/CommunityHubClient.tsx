@@ -4,13 +4,13 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
-import { HandHeart, Map, MessageCircle, Radio, ShieldCheck, ShipWheel, Store, Users } from 'lucide-react';
+import { HandHeart, Map, MessageCircle, Plus, ShieldCheck, ShipWheel, Sparkles, Store } from 'lucide-react';
 
 import CommunityActivityCard from '@/components/community/CommunityActivityCard';
-import VenueEventCard from '@/components/events/VenueEventCard';
+import LivePlanCard from '@/components/live-plans/LivePlanCard';
 import { getLocalPostMapHref, type LocalPostType } from '@/lib/community-around-policy';
+import type { LivePlan } from '@/lib/live-plans';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
-import type { PublicVenueEvent } from '@/lib/venue-events-server';
 
 type CommunitySession = {
   token?: string;
@@ -23,16 +23,6 @@ type VenueChoice = {
   name: string;
   area: string;
   primaryHref: string;
-};
-
-type MeetupActivity = {
-  id: string;
-  title: string;
-  placeLabel: string;
-  startTime: string;
-  note: string | null;
-  rsvpCount: number;
-  creator: { tag: string; pfpUrl: string | null } | null;
 };
 
 type LocalActivity = {
@@ -61,8 +51,7 @@ export default function CommunityHubClient() {
   const sessionWallet = sessionShape?.walletAddress ?? sessionShape?.user?.walletAddress ?? null;
   const actorWallet = address ?? sessionWallet;
 
-  const [meetups, setMeetups] = useState<MeetupActivity[]>([]);
-  const [events, setEvents] = useState<PublicVenueEvent[]>([]);
+  const [livePlans, setLivePlans] = useState<LivePlan[]>([]);
   const [localActivities, setLocalActivities] = useState<LocalActivity[]>([]);
   const [venues, setVenues] = useState<VenueChoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,29 +65,24 @@ export default function CommunityHubClient() {
   useEffect(() => {
     const controller = new AbortController();
     void Promise.all([
-      fetch('/api/meetups', { cache: 'no-store', signal: controller.signal }),
+      fetch('/api/live-plans?lat=9.803&lng=126.159&radiusKm=12&horizonHours=72&limit=18', { cache: 'no-store', signal: controller.signal }),
       fetch('/api/local-signals?limit=20', { signal: controller.signal }),
       fetch('/api/venues/active', { signal: controller.signal }),
-      fetch('/api/events?window=week&limit=12', { cache: 'no-store', signal: controller.signal }),
     ])
-      .then(async ([meetupResponse, localResponse, venueResponse, eventResponse]) => {
-        const [meetupPayload, localPayload, venuePayload, eventPayload] = await Promise.all([
-          meetupResponse.json(),
+      .then(async ([livePlanResponse, localResponse, venueResponse]) => {
+        const [livePlanPayload, localPayload, venuePayload] = await Promise.all([
+          livePlanResponse.json(),
           localResponse.json(),
           venueResponse.json(),
-          eventResponse.json(),
         ]);
-        if (meetupResponse.ok && meetupPayload?.success && Array.isArray(meetupPayload.data)) {
-          setMeetups(meetupPayload.data);
+        if (livePlanResponse.ok && livePlanPayload?.success && Array.isArray(livePlanPayload.data?.plans)) {
+          setLivePlans(livePlanPayload.data.plans);
         }
         if (localResponse.ok && localPayload?.success && Array.isArray(localPayload.data?.signals)) {
           setLocalActivities(localPayload.data.signals);
         }
         if (venueResponse.ok && venuePayload?.success && Array.isArray(venuePayload.data?.venues)) {
           setVenues(venuePayload.data.venues);
-        }
-        if (eventResponse.ok && eventPayload?.success && Array.isArray(eventPayload.data?.events)) {
-          setEvents(eventPayload.data.events);
         }
       })
       .catch((error) => {
@@ -177,14 +161,14 @@ export default function CommunityHubClient() {
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-200/72">BaseDare community</p>
           <div className="mt-3 grid gap-7 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>
-              <h1 className="max-w-3xl text-4xl font-black leading-[0.98] sm:text-6xl">Find a reason to go outside—and people to meet there.</h1>
+              <h1 className="max-w-3xl text-4xl font-black leading-[0.98] sm:text-6xl">See what&apos;s happening. Join in. Go together.</h1>
               <p className="mt-5 max-w-2xl text-sm leading-relaxed text-white/56 sm:text-base">
-                Free meetups, live place rooms, and short-lived local asks and offers. Everything stays attached to a real place instead of becoming another endless feed.
+                Live plans, bounded crews and useful local posts—attached to a real place and time instead of another endless feed.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
               {[
-                { icon: Users, label: 'Meetups' },
+                { icon: Sparkles, label: 'Live Plans' },
                 { icon: MessageCircle, label: 'Place rooms' },
                 { icon: HandHeart, label: 'Ask / Offer' },
               ].map(({ icon: Icon, label }) => (
@@ -197,38 +181,33 @@ export default function CommunityHubClient() {
           </div>
         </section>
 
-        <Link
-          href="/community/boat/kanaway"
-          className="mt-5 flex items-center justify-between gap-4 rounded-[1.5rem] border border-[#f5c518]/20 bg-[linear-gradient(135deg,rgba(245,197,24,0.11),rgba(34,211,238,0.07),rgba(0,0,0,0.35))] p-4 transition hover:-translate-y-px hover:border-[#f8dd72]/35 sm:p-5"
-        >
-          <span className="flex min-w-0 items-center gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#f5c518]/20 bg-[#f5c518]/10 text-[#f8dd72]">
-              <ShipWheel className="h-6 w-6" aria-hidden="true" />
-            </span>
-            <span className="min-w-0">
-              <strong className="block text-lg font-black text-white">Find a Kanaway boat crew</strong>
-              <span className="mt-1 block text-xs text-white/46">Get four compatible surfers, then let the real operator confirm the ride.</span>
-            </span>
-          </span>
-          <span className="shrink-0 rounded-full border border-[#f5c518]/20 px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#f8dd72]">Open</span>
-        </Link>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <Link href="/community/rally/new" className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-[#f5c518]/20 bg-[linear-gradient(135deg,rgba(245,197,24,0.11),rgba(139,92,246,0.08),rgba(0,0,0,0.35))] p-4 transition hover:-translate-y-px hover:border-[#f8dd72]/35 sm:p-5">
+            <span className="flex min-w-0 items-center gap-4"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#f5c518]/20 bg-[#f5c518]/10 text-[#f8dd72]"><Plus className="h-6 w-6" /></span><span className="min-w-0"><strong className="block text-lg font-black text-white">Start a Rally</strong><span className="mt-1 block text-xs text-white/46">Choose a place, time and people needed.</span></span></span>
+            <span className="shrink-0 rounded-full border border-[#f5c518]/20 px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#f8dd72]">Start</span>
+          </Link>
+          <Link href="/community/boat/kanaway" className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(34,211,238,0.09),rgba(0,0,0,0.35))] p-4 transition hover:-translate-y-px hover:border-cyan-100/32 sm:p-5">
+            <span className="flex min-w-0 items-center gap-4"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-200/18 bg-cyan-300/[0.08] text-cyan-100"><ShipWheel className="h-6 w-6" /></span><span className="min-w-0"><strong className="block text-lg font-black text-white">Find a surf boat</strong><span className="mt-1 block text-xs text-white/46">Fill four seats, then confirm with the operator.</span></span></span>
+            <span className="shrink-0 rounded-full border border-cyan-200/18 px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100">Open</span>
+          </Link>
+        </div>
 
         <section className="mt-8">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-[#f8dd72]"><Radio className="h-3.5 w-3.5" /> Island Pulse</p>
-              <h2 className="mt-1 text-2xl font-black">What&apos;s actually on</h2>
+              <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-[#f8dd72]"><Sparkles className="h-3.5 w-3.5" /> Live Plans</p>
+              <h2 className="mt-1 text-2xl font-black">What can you join?</h2>
             </div>
-            <Link href="/events" className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.07] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.13em] text-[#f8dd72]">All events</Link>
+            <Link href="/now" className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.07] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.13em] text-[#f8dd72]">Open NOW</Link>
           </div>
-          {events.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{events.slice(0, 6).map((event) => <VenueEventCard key={event.id} event={event} compact />)}</div> : !loading ? <div className="mt-4 rounded-2xl border border-dashed border-white/14 bg-black/20 p-5 text-sm text-white/42">No source-checked events live yet.</div> : null}
+          {livePlans.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{livePlans.slice(0, 6).map((plan) => <LivePlanCard key={plan.id} plan={plan} compact />)}</div> : !loading ? <div className="mt-4 rounded-2xl border border-dashed border-white/14 bg-black/20 p-5 text-sm text-white/42">Nothing is forming yet. Start the first Rally.</div> : null}
         </section>
 
         <section className="mt-8">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-violet-200/64">Happening around you</p>
-              <h2 className="mt-1 text-2xl font-black">Meet, hang, help</h2>
+              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-violet-200/64">Place-native community</p>
+              <h2 className="mt-1 text-2xl font-black">Ask, offer, help</h2>
             </div>
             <Link href="/map?source=community-hub" prefetch={false} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-cyan-200/20 bg-cyan-300/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-100">
               <Map className="h-4 w-4" aria-hidden="true" /> Map
@@ -236,19 +215,6 @@ export default function CommunityHubClient() {
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {meetups.slice(0, 6).map((meetup) => (
-              <CommunityActivityCard
-                key={meetup.id}
-                kind="meetup"
-                title={meetup.title}
-                place={meetup.placeLabel}
-                startsAt={meetup.startTime}
-                note={meetup.note}
-                author={meetup.creator?.tag ? `@${meetup.creator.tag.replace(/^@/, '')}` : null}
-                peopleCount={meetup.rsvpCount}
-                href={`/community/meet/${encodeURIComponent(meetup.id)}`}
-              />
-            ))}
             {visibleLocalActivities.slice(0, 6).map((activity) => (
               <CommunityActivityCard
                 key={activity.id}
@@ -262,9 +228,9 @@ export default function CommunityHubClient() {
               />
             ))}
           </div>
-          {!loading && meetups.length === 0 && visibleLocalActivities.length === 0 ? (
+          {!loading && visibleLocalActivities.length === 0 ? (
             <div className="mt-4 rounded-2xl border border-dashed border-white/14 bg-black/20 p-6 text-center text-sm text-white/48">
-              No local posts yet. Open a place on the map to start its first meetup.
+              No local asks or offers yet. Open a place room to post something useful.
             </div>
           ) : null}
         </section>

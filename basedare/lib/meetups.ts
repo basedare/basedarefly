@@ -4,7 +4,7 @@
  * (rounded, public-place granularity — never raw device GPS).
  */
 
-export const MEETUP_TYPES = ['surf', 'skate', 'sunset', 'jam', 'dwmb', 'custom'] as const;
+export const MEETUP_TYPES = ['surf', 'skate', 'sunset', 'jam', 'dwmb', 'padel', 'trivia', 'drinks', 'custom'] as const;
 export type MeetupType = (typeof MEETUP_TYPES)[number];
 
 export const MEETUP_TYPE_LABELS: Record<MeetupType, string> = {
@@ -13,6 +13,9 @@ export const MEETUP_TYPE_LABELS: Record<MeetupType, string> = {
   sunset: 'Sunset',
   jam: 'Jam',
   dwmb: "Dude where's my bike",
+  padel: 'Padel',
+  trivia: 'Trivia',
+  drinks: 'Drinks',
   custom: 'Custom',
 };
 
@@ -66,6 +69,7 @@ export type MeetupPin = {
   approxLng: number;
   startTime: string;
   note: string | null;
+  minimumPeople?: number | null;
   happeningNow: boolean;
   rsvpCount?: number;
   creator: { tag: string; pfpUrl: string | null } | null;
@@ -111,6 +115,9 @@ const MEETUP_TYPE_GLYPH: Record<MeetupType, string> = {
   sunset: '🌅',
   jam: '🎸',
   dwmb: '🚲',
+  padel: '🎾',
+  trivia: '🧠',
+  drinks: '🍸',
   custom: '📍',
 };
 

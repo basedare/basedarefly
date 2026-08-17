@@ -48,6 +48,7 @@ export async function getMeetupPlan(
     approxLng: meetup.approxLng,
     startTime: meetup.startTime.toISOString(),
     note: meetup.note,
+    minimumPeople: meetup.minimumPeople,
     status: deriveStatus(meetup, now),
     creatorTag: creator?.tag ?? null,
     rsvpCount: meetup.rsvps.length,
