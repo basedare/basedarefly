@@ -16,9 +16,9 @@ import BackgroundToneToggle from './BackgroundToneToggle';
 // Primary nav uses ordinary consumer language. Product vocabulary can appear
 // inside the experience after the user understands the action it represents.
 const NAV_LINKS = [
-  { name: "HOME", href: "/" },
-  { name: "EXPLORE", href: "/map" },
-  { name: "CREATE", href: "/create" },
+  { name: "NOW", href: "/now" },
+  { name: "MAP", href: "/map" },
+  { name: "START", href: "/start" },
   { name: "PROFILE", href: "/dashboard" },
   { name: "PEOPLE", href: "/creators" },
 ];
@@ -34,7 +34,7 @@ export default function Navbar() {
   const desktopNavItems = (
     <div className="flex min-w-0 items-center gap-1 p-1.5">
       {NAV_LINKS.map((link) => {
-        const isActive = pathname === link.href;
+        const isActive = pathname === link.href || pathname?.startsWith(`${link.href}/`);
         return (
           <Link
             key={link.name}
@@ -218,7 +218,7 @@ export default function Navbar() {
             {/* Mobile Links - Liquid Metal Chrome */}
             <div className="flex flex-col gap-4">
               {NAV_LINKS.map((link, i) => {
-                const isActive = pathname === link.href;
+                const isActive = pathname === link.href || pathname?.startsWith(`${link.href}/`);
                 return (
                   <motion.div
                     key={link.name}

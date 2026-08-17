@@ -1,10 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { Crosshair, Loader2, Map, Plus, RefreshCw, Sparkles } from 'lucide-react';
+import { CircleHelp, Crosshair, Loader2, Map, Plus, RefreshCw, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
+import {
+  LIVE_PLANS_INTRO_KEY,
+  LivePlansFirstChoice,
+  LivePlansGuideCue,
+  type LivePlansGuideStep,
+} from '@/components/onboarding/LivePlansGuide';
 import type { LivePlan, LivePlanSnapshot } from '@/lib/live-plans';
 
 const SIARGAO_CENTER = { latitude: 9.803, longitude: 126.159 };
@@ -30,6 +36,19 @@ export default function LivePlansClient() {
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('NOW');
+  const [firstChoiceOpen, setFirstChoiceOpen] = useState(false);
+  const [guideStep, setGuideStep] = useState<LivePlansGuideStep | null>(null);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        if (!window.localStorage.getItem(LIVE_PLANS_INTRO_KEY)) setFirstChoiceOpen(true);
+      } catch {
+        setFirstChoiceOpen(true);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -101,8 +120,49 @@ export default function LivePlansClient() {
   }, [filter, snapshot?.plans]);
   const nextMoves = snapshot?.myNextMoves ?? [];
 
+  const rememberIntro = useCallback(() => {
+    try {
+      window.localStorage.setItem(LIVE_PLANS_INTRO_KEY, 'seen');
+    } catch {
+      // The guide remains dismissible even when private browsing blocks storage.
+    }
+  }, []);
+
+  const scrollToGuideTarget = useCallback((step: LivePlansGuideStep) => {
+    const targetIds = ['live-plan-filters', 'live-plan-list', 'live-plan-next-move'];
+    window.requestAnimationFrame(() => {
+      document.getElementById(targetIds[step])?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, []);
+
+  const closeIntro = useCallback(() => {
+    rememberIntro();
+    setFirstChoiceOpen(false);
+    setGuideStep(null);
+  }, [rememberIntro]);
+
+  const startGuide = useCallback(() => {
+    rememberIntro();
+    setFilter('NOW');
+    setFirstChoiceOpen(false);
+    setGuideStep(0);
+    scrollToGuideTarget(0);
+  }, [rememberIntro, scrollToGuideTarget]);
+
+  const moveGuide = useCallback((direction: 'back' | 'next') => {
+    if (guideStep == null) return;
+    if (direction === 'next' && guideStep === 2) {
+      rememberIntro();
+      setGuideStep(null);
+      return;
+    }
+    const nextStep = Math.max(0, Math.min(2, guideStep + (direction === 'next' ? 1 : -1))) as LivePlansGuideStep;
+    setGuideStep(nextStep);
+    scrollToGuideTarget(nextStep);
+  }, [guideStep, rememberIntro, scrollToGuideTarget]);
+
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 pb-36 pt-28 text-white sm:px-6 lg:px-10">
+    <main className="relative min-h-screen overflow-hidden px-4 pb-36 pt-8 text-white sm:px-6 md:pt-12 lg:px-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_8%,rgba(34,211,238,0.13),transparent_31%),radial-gradient(circle_at_84%_18%,rgba(139,92,246,0.15),transparent_34%)]" />
       <div className="relative mx-auto max-w-7xl">
         <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(150deg,rgba(18,30,47,0.9),rgba(6,7,14,0.97))] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.09)] sm:p-8">
@@ -113,6 +173,9 @@ export default function LivePlansClient() {
               <p className="mt-4 max-w-2xl text-sm leading-6 text-white/52">Boats, meetups, venue events, free Sparks and paid Dares—one clear next move at a time.</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={startGuide} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/12 bg-white/[0.045] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-white/62 hover:text-white">
+                <CircleHelp className="h-4 w-4" /> Show me around
+              </button>
               <button type="button" onClick={useMyLocation} disabled={locating} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-cyan-200/22 bg-cyan-300/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-cyan-100 disabled:opacity-50">
                 {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
                 {usingDeviceLocation ? 'Near me' : 'Use my area'}
@@ -124,7 +187,9 @@ export default function LivePlansClient() {
           </div>
         </section>
 
-        <div className="mt-5 flex items-center gap-2 overflow-x-auto pb-1" role="group" aria-label="Filter live plans">
+        {firstChoiceOpen ? <LivePlansFirstChoice onDoSomethingNow={startGuide} onLeave={closeIntro} /> : null}
+
+        <div id="live-plan-filters" className={`scroll-mt-32 mt-5 flex items-center gap-2 overflow-x-auto rounded-2xl pb-1 transition ${guideStep === 0 ? 'ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70' : ''}`} role="group" aria-label="Filter live plans">
           {FILTERS.map((item) => (
             <button key={item.id} type="button" onClick={() => setFilter(item.id)} aria-pressed={filter === item.id} className={`min-h-10 shrink-0 rounded-full border px-4 text-[9px] font-black uppercase tracking-[0.13em] ${filter === item.id ? 'border-[#f5c518]/36 bg-[#f5c518]/[0.11] text-[#fff0a8]' : 'border-white/10 bg-white/[0.035] text-white/44'}`}>
               {item.label}
@@ -134,6 +199,7 @@ export default function LivePlansClient() {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
+        {guideStep === 0 ? <LivePlansGuideCue step={0} onBack={() => undefined} onNext={() => moveGuide('next')} onClose={closeIntro} /> : null}
 
         {snapshot ? (
           <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-[0.12em] text-white/42">
@@ -145,22 +211,33 @@ export default function LivePlansClient() {
 
         {error ? <p role="status" className="mt-5 rounded-2xl border border-rose-200/18 bg-rose-300/[0.07] p-4 text-sm font-bold text-rose-100">{error}</p> : null}
 
-        {loading && !snapshot ? (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-72 animate-pulse rounded-[1.55rem] border border-white/8 bg-white/[0.035]" />)}
+        <div id="live-plan-list" className={`scroll-mt-32 rounded-[1.75rem] transition ${guideStep === 1 ? 'ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70' : ''}`}>
+          {loading && !snapshot ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-72 animate-pulse rounded-[1.55rem] border border-white/8 bg-white/[0.035]" />)}
+            </div>
+          ) : plans.length ? (
+            <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Live plans">
+              {plans.map((plan) => <LivePlanCard key={plan.id} plan={plan} />)}
+            </section>
+          ) : (
+            <section className="mt-6 rounded-[1.75rem] border border-dashed border-white/14 bg-black/24 p-10 text-center">
+              <UsersIcon />
+              <h2 className="mt-4 text-2xl font-black">Nothing is forming here yet.</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-white/44">Start something people already want to do, then share the link to fill it.</p>
+              <Link href="/community/rally/new" className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006]">Start the first Rally</Link>
+            </section>
+          )}
+        </div>
+        {guideStep === 1 ? <LivePlansGuideCue step={1} onBack={() => moveGuide('back')} onNext={() => moveGuide('next')} onClose={closeIntro} /> : null}
+
+        {guideStep === 2 ? (
+          <div id="live-plan-next-move" className="scroll-mt-32 mt-6 rounded-[1.4rem] border border-emerald-200/22 bg-emerald-300/[0.07] p-4 ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70">
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/60">My Next Move</p>
+            <p className="mt-2 text-sm font-bold text-white">After you join, your plan stays within reach here.</p>
           </div>
-        ) : plans.length ? (
-          <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Live plans">
-            {plans.map((plan) => <LivePlanCard key={plan.id} plan={plan} />)}
-          </section>
-        ) : (
-          <section className="mt-6 rounded-[1.75rem] border border-dashed border-white/14 bg-black/24 p-10 text-center">
-            <UsersIcon />
-            <h2 className="mt-4 text-2xl font-black">Nothing is forming here yet.</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm text-white/44">Start something people already want to do, then share the link to fill it.</p>
-            <Link href="/community/rally/new" className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006]">Start the first Rally</Link>
-          </section>
-        )}
+        ) : null}
+        {guideStep === 2 ? <LivePlansGuideCue step={2} onBack={() => moveGuide('back')} onNext={() => moveGuide('next')} onClose={closeIntro} /> : null}
 
         <div className="mt-8 flex justify-center">
           <Link href="/map?source=live-plans" prefetch={false} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/11 bg-white/[0.045] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-white/64">
@@ -170,7 +247,7 @@ export default function LivePlansClient() {
       </div>
 
       {nextMoves.length ? (
-        <aside className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-2xl rounded-[1.35rem] border border-emerald-200/20 bg-[linear-gradient(150deg,rgba(10,35,30,0.96),rgba(5,8,14,0.98))] p-3 shadow-[0_20px_70px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl" aria-label="My next move">
+        <aside id="my-next-move" className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-2xl rounded-[1.35rem] border border-emerald-200/20 bg-[linear-gradient(150deg,rgba(10,35,30,0.96),rgba(5,8,14,0.98))] p-3 shadow-[0_20px_70px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl" aria-label="My next move">
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-emerald-200/18 bg-emerald-300/[0.08] text-emerald-100"><Sparkles className="h-4 w-4" /></span>
             <span className="min-w-0 flex-1">

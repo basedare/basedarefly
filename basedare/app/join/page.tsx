@@ -1,16 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import {
-  ArrowRight,
-  BadgeCheck,
-  Coins,
-  Fingerprint,
-  MapPin,
-  Plus,
-  Sparkles,
-  UserRound,
-  Users,
-} from 'lucide-react';
+import { ArrowRight, Coins, Map, Radio, Sparkles, Users } from 'lucide-react';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
@@ -24,181 +14,114 @@ import {
 } from '@/components/control/tokens';
 
 export const metadata: Metadata = {
-  title: 'Join BaseDare — Explore, Play, Meet & Earn',
-  description:
-    'Open the map, discover real places, join local challenges, meet people and sometimes earn rewards.',
+  title: 'Start Here | BaseDare',
+  description: 'See what is happening, explore the map, or start something with people nearby.',
   alternates: { canonical: '/join' },
 };
 
 const START_PATHS = [
   {
-    title: 'Explore nearby',
-    description: 'See interesting places, live activity and challenges around you.',
-    href: '/map',
-    intent: 'explore',
+    title: 'Do something now',
+    description: 'See boats, meetups, events, free Sparks and paid Dares in one place.',
+    href: '/now',
+    intent: 'join' as const,
+    cta: 'See live plans',
+    icon: Radio,
+    accent: 'border-cyan-300/24 bg-cyan-400/[0.08] text-cyan-100',
+  },
+  {
+    title: 'Explore places',
+    description: 'Free-roam the map and open anything that looks interesting.',
+    href: '/map?source=join',
+    intent: 'explore' as const,
     cta: 'Open the map',
-    icon: MapPin,
-    accent: 'border-cyan-300/25 bg-cyan-400/[0.08] text-cyan-100',
+    icon: Map,
+    accent: 'border-violet-300/24 bg-violet-400/[0.08] text-violet-100',
   },
   {
-    title: 'Join the fun',
-    description: 'Pick a free Spark, a social activity, a route or a rewarded Dare.',
-    href: '/map',
-    intent: 'join',
-    cta: 'Find something to do',
-    icon: Users,
-    accent: 'border-fuchsia-300/25 bg-fuchsia-400/[0.08] text-fuchsia-100',
-  },
-  {
-    title: 'Create a challenge',
-    description: 'Start a free community activity or fund a reward for someone nearby.',
-    href: '/create',
-    intent: 'create',
-    cta: 'Create something',
-    icon: Plus,
-    accent: 'border-yellow-300/25 bg-yellow-400/[0.09] text-yellow-100',
-  },
-  {
-    title: 'Build your profile',
-    description: 'Keep your points, receipts, completed challenges and local reputation together.',
-    href: '/dashboard',
-    intent: 'profile',
-    cta: 'See my profile',
-    icon: UserRound,
-    accent: 'border-emerald-300/25 bg-emerald-400/[0.08] text-emerald-100',
+    title: 'Start something',
+    description: 'Create a Rally, free Spark or paid Dare without learning every tool first.',
+    href: '/start',
+    intent: 'create' as const,
+    cta: 'Choose what to start',
+    icon: Sparkles,
+    accent: 'border-yellow-300/24 bg-yellow-400/[0.09] text-yellow-100',
   },
 ] as const;
 
-const WORDS = [
-  {
-    word: 'Spark',
-    meaning: 'A free community challenge or verified mark left at a real place.',
-    icon: Sparkles,
-  },
-  {
-    word: 'Dare',
-    meaning: 'A challenge that may include points, reputation or a money reward.',
-    icon: Coins,
-  },
-  {
-    word: 'Pulse',
-    meaning: 'A quick read on how active and recently verified a place feels.',
-    icon: BadgeCheck,
-  },
-  {
-    word: 'BareTag',
-    meaning: 'An optional public handle that carries your reputation and receipts. You don’t need one to explore or complete open paid missions; some identity-based social features may ask for one.',
-    icon: Fingerprint,
-  },
+const STEPS = [
+  { title: 'See', detail: 'Find one real thing happening.' },
+  { title: 'Join', detail: 'Tap the single main action.' },
+  { title: 'Go', detail: 'Reopen it from My Next Move.' },
 ] as const;
 
 export default function JoinBaseDarePage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-transparent px-4 pb-24 pt-28 sm:px-6 md:pt-32">
+    <main className="relative min-h-screen overflow-hidden bg-transparent px-4 pb-24 pt-8 sm:px-6 md:pt-12">
       <LiquidBackground />
-      <div className="pointer-events-none fixed inset-0 z-10 hidden md:block">
-        <GradualBlurOverlay />
-      </div>
-      <div className="pointer-events-none absolute inset-0 z-[1]">
-        <div className="absolute left-[-8rem] top-20 h-80 w-80 rounded-full bg-purple-500/16 blur-[120px]" />
-        <div className="absolute right-[-8rem] top-52 h-80 w-80 rounded-full bg-cyan-400/10 blur-[120px]" />
-        <div className="absolute bottom-0 left-1/2 h-80 w-[34rem] -translate-x-1/2 rounded-full bg-yellow-400/[0.08] blur-[140px]" />
-      </div>
+      <div className="pointer-events-none fixed inset-0 z-10 hidden md:block"><GradualBlurOverlay /></div>
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_18%_8%,rgba(34,211,238,0.12),transparent_31%),radial-gradient(circle_at_82%_15%,rgba(168,85,247,0.14),transparent_34%)]" />
 
       <div className="relative z-20 mx-auto max-w-6xl">
         <section className={`${controlPanel} px-6 py-10 text-center sm:px-10 md:py-14`}>
           <div className={controlHairline} />
-          <p className="text-[10px] font-black uppercase tracking-[0.26em] text-yellow-200/72">
-            Start here
-          </p>
-          <h1 className="mx-auto mt-4 max-w-4xl text-4xl font-black italic tracking-[-0.045em] text-white sm:text-5xl md:text-7xl">
-            THE MAP IS MORE FUN
-            <span className="block text-[#f5c518]">WHEN YOU JOIN IN.</span>
+          <p className={controlMicroLabel}>Start here</p>
+          <h1 className="mx-auto mt-4 max-w-4xl text-4xl font-black leading-[0.96] text-white sm:text-6xl md:text-7xl">
+            What do you want to do?
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-base font-semibold leading-7 text-white/68 md:text-lg">
-            Discover real places, find things to do, join local challenges, meet people and sometimes earn rewards.
+          <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/60 md:text-lg">
+            You do not need to understand BaseDare first. Pick one next move.
           </p>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/42">
-            You can explore without a wallet. Sign in only when you want to join, create, save progress or get paid.
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/40">
+            Browse freely. Sign in only when joining, creating, saving progress or getting paid requires it.
           </p>
-
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <OnboardingLink
-              href="/map"
-              intent="explore"
-              placement="hero"
-              cosmic={{ variant: 'gold', size: 'lg' }}
-            >
-              <MapPin className="h-5 w-5" />
-              Open the map
-            </OnboardingLink>
-            <OnboardingLink
-              href="/how-it-works"
-              intent="learn"
-              placement="hero"
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-white/12 bg-white/[0.05] px-6 text-sm font-black text-white/78 transition hover:border-white/22 hover:text-white sm:w-auto"
-            >
-              How it works
-            </OnboardingLink>
-          </div>
         </section>
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2">
+        <section className="mt-5 grid gap-4 md:grid-cols-3" aria-label="Choose your next move">
           {START_PATHS.map((path) => (
             <OnboardingLink
               key={path.title}
               href={path.href}
               intent={path.intent}
               placement="path-card"
-              className={`${controlSoftCard} group flex min-h-[220px] flex-col p-6 transition hover:-translate-y-0.5 hover:border-white/16`}
+              className={`${controlSoftCard} group flex min-h-64 flex-col p-6 transition hover:-translate-y-0.5 hover:border-white/16`}
             >
               <div className={controlHairline} />
-              <span className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl border ${path.accent}`}>
-                <path.icon className="h-5 w-5" />
+              <span className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl border ${path.accent}`}>
+                <path.icon className="h-5 w-5" aria-hidden="true" />
               </span>
-              <h2 className="mt-5 text-2xl font-black italic tracking-[-0.025em] text-white">
-                {path.title}
-              </h2>
-              <p className="mt-2 max-w-md text-sm font-semibold leading-6 text-white/56">
-                {path.description}
-              </p>
-              <span className="mt-auto inline-flex items-center gap-2 pt-6 text-[11px] font-black uppercase tracking-[0.16em] text-yellow-200/88">
-                {path.cta}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              <h2 className="mt-5 text-2xl font-black text-white">{path.title}</h2>
+              <p className="mt-3 text-sm font-semibold leading-6 text-white/52">{path.description}</p>
+              <span className="mt-auto inline-flex items-center gap-2 pt-7 text-[10px] font-black uppercase tracking-[0.15em] text-yellow-100">
+                {path.cta}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
               </span>
             </OnboardingLink>
           ))}
         </section>
 
-        <section className={`${controlPanel} mt-6 p-6 sm:p-8`}>
+        <section className={`${controlPanel} mt-5 p-6 sm:p-8`} aria-labelledby="three-moves">
           <div className={controlHairline} />
-          <p className={controlMicroLabel}>A few useful words</p>
-          <h2 className="mt-3 text-2xl font-black italic text-white sm:text-3xl">
-            BaseDare without the jargon
-          </h2>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {WORDS.map((item) => (
-              <div key={item.word} className={`${controlInset} p-5`}>
-                <div className="flex items-center gap-3">
-                  <item.icon className="h-5 w-5 text-yellow-300" />
-                  <h3 className="text-base font-black text-white">{item.word}</h3>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-white/52">{item.meaning}</p>
+          <h2 id="three-moves" className="text-xl font-black text-white sm:text-2xl">Three moves. That is the whole loop.</h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {STEPS.map((step, index) => (
+              <div key={step.title} className={`${controlInset} flex items-start gap-3 p-4`}>
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-yellow-300 text-xs font-black text-black">{index + 1}</span>
+                <span><strong className="block text-sm text-white">{step.title}</strong><span className="mt-1 block text-xs leading-5 text-white/42">{step.detail}</span></span>
               </div>
             ))}
           </div>
 
-          <div className="mt-5 flex flex-col items-start justify-between gap-3 rounded-2xl border border-yellow-200/18 bg-yellow-400/[0.06] px-5 py-4 sm:flex-row sm:items-center">
-            <p className="max-w-xl text-sm font-semibold leading-6 text-white/64">
-              Optional: claim a <span className="text-white">BareTag</span> when you want a public identity that carries your reputation and receipts. You don’t need one to explore or complete open paid missions; some identity-based social features may ask for one.
-            </p>
-            <Link
-              href="/claim-tag"
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-yellow-200/35 bg-yellow-400/[0.1] px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-yellow-100 transition hover:border-yellow-200/55 hover:text-white"
-            >
-              Secure your BareTag
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+          <details className="mt-4 rounded-2xl border border-white/9 bg-black/24 px-5 py-4 text-sm text-white/52">
+            <summary className="cursor-pointer list-none font-black text-white/72">What are Sparks and Dares?</summary>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <p className="flex gap-3"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" /><span><strong className="text-white">Spark:</strong> a free community challenge.</span></p>
+              <p className="flex gap-3"><Coins className="mt-0.5 h-4 w-4 shrink-0 text-yellow-200" /><span><strong className="text-white">Dare:</strong> a task that can carry a reward.</span></p>
+              <p className="flex gap-3 sm:col-span-2"><Users className="mt-0.5 h-4 w-4 shrink-0 text-cyan-200" /><span><strong className="text-white">Rally:</strong> a time-bound social plan that needs people.</span></p>
+            </div>
+          </details>
+
+          <div className="mt-5 text-center">
+            <Link href="/how-it-works" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-white/48 hover:text-white">More about BaseDare <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
           </div>
         </section>
       </div>

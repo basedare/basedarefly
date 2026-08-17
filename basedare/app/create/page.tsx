@@ -451,6 +451,13 @@ function CreateDareContent() {
     const venueLabel = venueName || searchParams.get('venue') || '';
     const mode = searchParams.get('mode');
     const source = searchParams.get('source');
+    const sparkType = searchParams.get('sparkType');
+    if (sparkType === 'community') {
+      setValue('sparkType', 'COMMUNITY');
+      syncCommunitySparkPreset(false);
+    } else if (sparkType === 'paid') {
+      setValue('sparkType', 'PAID');
+    }
     if (streamer) setValue('streamerTag', streamer);
     if (title) setValue('title', title);
     if (amount) {
@@ -484,7 +491,7 @@ function CreateDareContent() {
       setValue('isNearbyDare', true);
       setValue('discoveryRadiusKm', 0.5);
     }
-  }, [isSprintMission, searchParams, setValue]);
+  }, [isSprintMission, searchParams, setValue, syncCommunitySparkPreset]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
