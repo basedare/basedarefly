@@ -21,7 +21,7 @@
     },
     {
       "path": "/api/cron/venue-event-feeds",
-      "schedule": "17 * * * *"
+      "schedule": "17 22 * * *"
     }
   ]
 }
