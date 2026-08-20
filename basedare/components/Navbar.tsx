@@ -16,11 +16,15 @@ import BackgroundToneToggle from './BackgroundToneToggle';
 // Primary nav uses ordinary consumer language. Product vocabulary can appear
 // inside the experience after the user understands the action it represents.
 const NAV_LINKS = [
-  { name: "NOW", href: "/now" },
-  { name: "MAP", href: "/map" },
-  { name: "START", href: "/start" },
-  { name: "PROFILE", href: "/dashboard" },
-  { name: "PEOPLE", href: "/creators" },
+  { name: "NOW", href: "/now", activePrefixes: ["/now"] },
+  { name: "MAP", href: "/map", activePrefixes: ["/map"] },
+  {
+    name: "CREATE",
+    href: "/start",
+    activePrefixes: ["/start", "/create", "/community/rally/new"],
+  },
+  { name: "PROFILE", href: "/dashboard", activePrefixes: ["/dashboard"] },
+  { name: "PEOPLE", href: "/creators", activePrefixes: ["/creators"] },
 ];
 
 const NAV_LINK_PREFETCH = false;
@@ -34,7 +38,9 @@ export default function Navbar() {
   const desktopNavItems = (
     <div className="flex min-w-0 items-center gap-1 p-1.5">
       {NAV_LINKS.map((link) => {
-        const isActive = pathname === link.href || pathname?.startsWith(`${link.href}/`);
+        const isActive = link.activePrefixes.some(
+          (prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`),
+        );
         return (
           <Link
             key={link.name}
@@ -218,7 +224,9 @@ export default function Navbar() {
             {/* Mobile Links - Liquid Metal Chrome */}
             <div className="flex flex-col gap-4">
               {NAV_LINKS.map((link, i) => {
-                const isActive = pathname === link.href || pathname?.startsWith(`${link.href}/`);
+                const isActive = link.activePrefixes.some(
+                  (prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`),
+                );
                 return (
                   <motion.div
                     key={link.name}
