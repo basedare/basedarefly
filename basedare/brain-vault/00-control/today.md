@@ -1,11 +1,11 @@
 ---
 type: daily_control
-date: 2026-07-21
+date: 2026-08-24
 status: ACTIVE
 owner: codex
 primary_objective: "Turn BaseDare into a remote, bounty-funded discovery network that can seed and learn from markets without founder presence."
 created_at: 2026-05-13
-updated_at: 2026-07-21
+updated_at: 2026-08-24
 ---
 
 # Today
@@ -23,6 +23,7 @@ Operationalize BaseDare as a remote-first playable social map:
 7. use short-form stories to turn attention into attributable map participation
 8. preserve creator attribution with an explicit passwordless Mission Pass while keeping social webviews wallet-free
 9. make Wakepark and other activity venues playable through fresh rituals and safety-bounded free Community Sparks
+10. make the first creator visit mission-first: exact work, deadline, submission, rights and payout before profile setup
 
 ## Active Context
 
@@ -48,18 +49,19 @@ Operationalize BaseDare as a remote-first playable social map:
 | --- | --- | --- | --- | --- |
 | 1 | Reconcile `PHILOSOPHY.md` and Brain vision | codex | DONE | One remote-first canon now governs both agent entrypoints |
 | 2 | Universal consumer onboarding language | codex | DEPLOYED | Measure `/join` and map-to-action behavior with ordinary tourists and locals |
-| 3 | Preview-test claim + proximity rail | product/release | READY | Apply migrations to preview and run claim → proof → review/reject → payout/retry smoke |
-| 4 | Capture sponsor-usable media/data rights | product/legal | PARTIAL | Add explicit campaign commercial-use consent; existing Terms cover only BaseDare display/promotion |
-| 5 | Seed one playable-map alpha | growth/product | NEXT | Prepare 10–12 free Sparks, 3–4 social activities, 3–4 paid Dares and 2 Routes in one micro-area |
-| 6 | Reuse Local Signals + Sentinel for Sprint #1 | codex | READY | Route structured tips through existing discovery and uncertain-proof review surfaces |
-| 7 | Secure design partner and first contributor cell | human + growth | NEXT | Execute `05-playbooks/first-customer-and-contributor-launch.md`: qualify one buyer question, screen six contributors, fund the full $500 reward pool, and keep launch conditional on the production release gate |
-| 8 | Clean public traction and demo signals | codex | NEXT | Separate real treasury/proof data from samples before public participant acquisition |
-| 9 | TikTok / Instagram participation loop | growth | READY | Run four variants of each locked short-form series and measure qualified map actions per 1,000 views |
-| 10 | Creator Journey attribution rail | product/growth | ALPHA_LIVE | Verify Resend domain before enabling email, then run real Instagram/TikTok → Safari/Chrome handoff tests on iOS and Android; keep performance bonuses disabled |
-| 11 | Field Station-backed Verified Field Sprint | growth/product + human | RELEASE_BLOCKED | Reconcile legacy migration/schema drift, then name the real design partner/question, select two permissioned station links, confirm the $2,000 + $500 funding lines, create and fund four real $125 escrows, and run the closure pilot in `04-experiments/verified-field-sprint-closure-pilot.md` |
-| 12 | First-node buyer conversion loop | product/growth | SOFTWARE_READY | Use one truthful venue brief to run the integrated response → scope approval → funding confirmation → Sprint → four escrows → receipt path; record repeat, adjust, or stop |
-| 13 | Wakepark ritual + Community Spark pilot | product/growth + human | SOFTWARE_READY | Apply the production migration, record placement permission, reconfirm ritual conditions, activate healthy ACTION inventory, and test one real QR handoff |
-| 14 | Manual Creator Drop | product/growth + human | READY_FOR_HUMAN_PILOT | Run one existing Dare through claim → proof → review/reject → settlement → receipt and record operator cost before building orchestration |
+| 3 | Creator mission-first onboarding | product/growth + human | SOFTWARE_READY_FOR_PILOT | Send five creators an exact funded `/earn/<mission>` link and record unaided understanding, accept conversion and every clarification question |
+| 4 | Preview-test claim + proximity rail | product/release | READY | Apply migrations to preview and run claim → proof → review/reject → payout/retry smoke |
+| 5 | Capture sponsor-usable media/data rights | product/legal | PARTIAL | Add explicit campaign commercial-use consent; existing Terms cover only BaseDare display/promotion |
+| 6 | Seed one playable-map alpha | growth/product | NEXT | Prepare 10–12 free Sparks, 3–4 social activities, 3–4 paid Dares and 2 Routes in one micro-area |
+| 7 | Reuse Local Signals + Sentinel for Sprint #1 | codex | READY | Route structured tips through existing discovery and uncertain-proof review surfaces |
+| 8 | Secure design partner and first contributor cell | human + growth | NEXT | Execute `05-playbooks/first-customer-and-contributor-launch.md`: qualify one buyer question, screen six contributors, fund the full $500 reward pool, and keep launch conditional on the production release gate |
+| 9 | Clean public traction and demo signals | codex | NEXT | Separate real treasury/proof data from samples before public participant acquisition |
+| 10 | TikTok / Instagram participation loop | growth | READY | Run four variants of each locked short-form series and measure qualified map actions per 1,000 views |
+| 11 | Creator Journey attribution rail | product/growth | ALPHA_LIVE | Verify Resend domain before enabling email, then run real Instagram/TikTok → Safari/Chrome handoff tests on iOS and Android; keep performance bonuses disabled |
+| 12 | Field Station-backed Verified Field Sprint | growth/product + human | RELEASE_BLOCKED | Reconcile legacy migration/schema drift, then name the real design partner/question, select two permissioned station links, confirm the $2,000 + $500 funding lines, create and fund four real $125 escrows, and run the closure pilot in `04-experiments/verified-field-sprint-closure-pilot.md` |
+| 13 | First-node buyer conversion loop | product/growth | SOFTWARE_READY | Use one truthful venue brief to run the integrated response → scope approval → funding confirmation → Sprint → four escrows → receipt path; record repeat, adjust, or stop |
+| 14 | Wakepark ritual + Community Spark pilot | product/growth + human | SOFTWARE_READY | Apply the production migration, record placement permission, reconfirm ritual conditions, activate healthy ACTION inventory, and test one real QR handoff |
+| 15 | Manual Creator Drop | product/growth + human | READY_FOR_HUMAN_PILOT | Run one existing Dare through claim → proof → review/reject → settlement → receipt and record operator cost before building orchestration |
 
 ## Safe Automatic Work
 

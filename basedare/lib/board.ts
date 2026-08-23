@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { isPublicFacingDareTitle } from '@/lib/creator-mission-policy';
 
 /**
  * The Board — flyer projection (scout/IRL operating layer).
@@ -45,27 +46,6 @@ export type BoardSections = {
 const OPEN_DARE_EXCLUDE = ['EXPIRED', 'FAILED', 'VERIFIED', 'PAID', 'COMPLETED', 'REFUNDED', 'DECLINED'];
 const COMPLETED_DARE_STATUSES = ['VERIFIED', 'PAID', 'COMPLETED'];
 const TONES: FlyerTone[] = ['gold', 'cyan', 'emerald', 'violet'];
-
-// The Board is a public discovery surface. QA/smoke dares get created during
-// testing and would otherwise leak onto it (e.g. "Brand Smoke Test Autocreate",
-// "Acceptance Flow PLACE 177...", "Phase5 test dare"). Hide anything whose title
-// reads as a test fixture rather than a real dare. Denylist, not data deletion —
-// reversible and never touches prod rows.
-const TEST_DARE_PATTERNS: RegExp[] = [
-  /smoke/i,
-  /autocreate/i,
-  /acceptance\s+(flow|place)/i,
-  /\bplace\s+\d{5,}\b/i,
-  /\bmap test\b/i,
-  /\bphase\s?\d/i,
-  /\btest dare\b/i,
-  /\bqa\b/i,
-];
-
-function isTestDare(title: string | null | undefined): boolean {
-  if (!title) return false;
-  return TEST_DARE_PATTERNS.some((re) => re.test(title));
-}
 
 function startOfTodayUtc(): Date {
   const now = new Date();
@@ -153,7 +133,7 @@ export async function getBoardSections(opts: { city?: string } = {}): Promise<Bo
     });
 
     const rewards: Flyer[] = openDares
-      .filter((dare) => dare.venue && !isTestDare(dare.title))
+      .filter((dare) => dare.venue && isPublicFacingDareTitle(dare.title))
       .map((dare) => ({
         id: `dare:${dare.id}`,
         kind: 'MISSION' as const,
@@ -173,7 +153,7 @@ export async function getBoardSections(opts: { city?: string } = {}): Promise<Bo
       }));
 
     const receipts: Flyer[] = completedDares
-      .filter((dare) => dare.venue && !isTestDare(dare.title))
+      .filter((dare) => dare.venue && isPublicFacingDareTitle(dare.title))
       .map((dare, index) => ({
         id: `receipt:${dare.id}`,
         kind: 'RECEIPT' as const,

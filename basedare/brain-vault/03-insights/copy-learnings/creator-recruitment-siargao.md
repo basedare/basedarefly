@@ -1,5 +1,7 @@
 # Creator recruitment copy — Siargao (founding cohort)
 
+> **2026-08-24 update:** this remains useful historical outreach copy, but the cold product funnel below is superseded by [[creator-mission-first-onboarding]]. Send creators to one exact funded mission when possible, or `/earn` when several genuine missions are open. Do not ask for profile, styles or availability before showing the work and payout.
+
 Approved, founder-voice copy for recruiting the **first creators in Siargao**. This is the single source for the creator-recruitment voice — build messaging *from* this, don't reinvent it. (Captured 2026-06-29.)
 
 ## Positioning principle (read first)

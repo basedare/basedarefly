@@ -14,9 +14,34 @@ type SafetyWaiverProps = {
   onChange: (checked: boolean) => void;
   /** Copy matches the paid claim, free Spark, or proof-submission moment. */
   context?: 'claim' | 'spark' | 'proof';
+  /** Keeps mission-first screens short while preserving the same explicit acknowledgement. */
+  compact?: boolean;
 };
 
-export function SafetyWaiver({ checked, onChange, context = 'claim' }: SafetyWaiverProps) {
+export function SafetyWaiver({ checked, onChange, context = 'claim', compact = false }: SafetyWaiverProps) {
+  if (compact) {
+    return (
+      <label
+        className="flex cursor-pointer items-start gap-3 rounded-2xl border border-yellow-300/14 bg-yellow-300/[0.04] px-4 py-3 text-left text-xs font-bold leading-5 text-white/72"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => onChange(event.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-yellow-400"
+        />
+        <span>
+          I am 18+, I will work safely and legally, and I accept the{' '}
+          <Link href="/terms" target="_blank" className="text-yellow-200 underline underline-offset-2 hover:text-yellow-100">
+            Terms
+          </Link>
+          .
+        </span>
+      </label>
+    );
+  }
+
   return (
     <div
       className="rounded-2xl border border-yellow-300/14 bg-yellow-300/[0.04] px-4 py-3 text-left"

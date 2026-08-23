@@ -70,11 +70,6 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
-        source: '/earn',
-        destination: '/creators',
-        permanent: true,
-      },
-      {
         source: '/passport',
         destination: '/dashboard',
         permanent: true,

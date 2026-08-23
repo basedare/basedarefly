@@ -75,7 +75,11 @@ function getWalletConnectErrorMessage(error: unknown, connector: ConnectorLike) 
   return message || `${meta.label} did not respond. Try another wallet or reopen the extension.`;
 }
 
-export function IdentityButton() {
+type IdentityButtonProps = {
+  disconnectedLabel?: string;
+};
+
+export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButtonProps = {}) {
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
   const { connect, connectors, isPending } = useConnect();
@@ -339,7 +343,7 @@ export function IdentityButton() {
                 <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px rgba(74,222,128,0.8)' }} />
                 <span className="truncate">{truncatedAddress}</span>
               </>
-            ) : webviewChecked && isSocialWebview ? 'Mission Pass' : 'Sign in'}
+            ) : webviewChecked && isSocialWebview ? 'Mission Pass' : disconnectedLabel}
           </span>
           <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none rounded-[12px] md:rounded-[15px]" />
         </button>

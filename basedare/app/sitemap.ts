@@ -41,6 +41,12 @@ const staticRoutes: MetadataRoute.Sitemap = [
     priority: 0.8,
   },
   {
+    url: 'https://www.basedare.xyz/earn',
+    lastModified: new Date(),
+    changeFrequency: 'hourly',
+    priority: 0.9,
+  },
+  {
     url: 'https://www.basedare.xyz/verify',
     lastModified: new Date(),
     changeFrequency: 'daily',

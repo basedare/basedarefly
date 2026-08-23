@@ -3,7 +3,7 @@ type: open_loops
 status: ACTIVE
 owner: codex
 created_at: 2026-05-13
-updated_at: 2026-07-23
+updated_at: 2026-08-24
 ---
 
 # Open Loops
@@ -13,6 +13,7 @@ updated_at: 2026-07-23
 | Item | Type | Status | Owner | Link |
 | --- | --- | --- | --- | --- |
 | Universal consumer onboarding language | product_growth | DEPLOYED | codex | [[05-playbooks/playable-map-launch]] |
+| Creator mission-first onboarding | product_growth | SOFTWARE_READY_FOR_PILOT | product/growth + human | [[05-playbooks/creator-mission-first-onboarding]] |
 | Money-first cold-wallet claim | product_gate | READY_PREVIEW | product/release | [[00-control/vision]] |
 | Venue-less proximity verification | verification_gate | READY_PREVIEW | product/release | [[00-control/vision]] |
 | Sponsor-usable media/data rights | legal_product_gate | PARTIAL | product/legal | [[00-control/vision]] |
@@ -52,6 +53,7 @@ updated_at: 2026-07-23
 | Autonomous treasury | NEXT | Define spend caps, multisig thresholds, fraud tripwires, pause rules, and audit logs |
 | Remote verification | READY_PREVIEW | Apply migrations and smoke-test submission proximity, then measure automated versus Sentinel review cost |
 | Consumer first action | DEPLOYED | Measure `/join` and plain-language navigation → map → action-open conversion |
+| Creator first value | SOFTWARE_READY_FOR_PILOT | Send five creators exact `/earn/<mission>` links; measure unaided understanding, accept requests and clarification questions before expanding profile onboarding |
 | Short-form participation | READY | Run 12 artifact-led TikTok/Instagram episodes across three locked series; optimize for qualified map actions, not followers |
 | Cross-browser creator attribution | ALPHA_LIVE | Portable share/copy continuation passed a production database-backed smoke. Verify the Resend domain before enabling email, then test real Instagram/TikTok → Safari/Chrome continuation on iOS and Android; keep performance bonuses disabled |
 | Earned venue access | PILOT_GATED | Official verified contact routes are live. Recruit three claimed venues, authorize one Ambassador and fund one attributable perk each, then measure response, arrival, redemption, repeat and complaint rates before building tiers or subscriptions |
