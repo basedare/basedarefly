@@ -133,6 +133,7 @@ test('venue event keeps source trust and real RSVP states', () => {
 test('dare adapters preserve Play versus Claim and never emit a zero reward', () => {
   const common = {
     shortId: null,
+    streamId: null,
     expiresAt: null,
     venueId: null,
     venueSlug: null,
@@ -161,6 +162,34 @@ test('dare adapters preserve Play versus Claim and never emit a zero reward', ()
   assert.equal(shouldIncludeLiveDare({ tag: 'fitness', bounty: 0 }), false);
   assert.equal(shouldIncludeLiveDare({ tag: 'community', bounty: 0 }), true);
   assert.equal(shouldIncludeLiveDare({ tag: 'fitness', bounty: 8 }), true);
+});
+
+test('legacy Community Sparks use the current friendly title and visible play hook', () => {
+  const spark = shapeLiveDarePlan({
+    id: 'spark-legacy',
+    shortId: 'spark-legacy',
+    streamId: 'community-spark:surf_prep_signal_marco:v1',
+    title: 'Surf-ready check',
+    tag: 'community',
+    bounty: 0,
+    expiresAt: null,
+    venueId: 'venue-marco',
+    venueSlug: 'marco-surf-school-siargao',
+    locationLabel: 'Marco Surf School Siargao',
+    latitude: 9.81,
+    longitude: 126.16,
+    claimedBy: null,
+    claimRequestWallet: null,
+  }, {
+    viewerIdentified: false,
+    viewerWallet: null,
+    distanceKm: 0.4,
+  });
+
+  assert.equal(spark.title, 'Three things before you surf');
+  assert.equal(spark.summary, 'Show the three things you never skip before a session.');
+  assert.equal(spark.share.title, spark.title);
+  assert.match(spark.share.text, /three things you never skip/i);
 });
 
 function stub(id: string, type: LivePlan['type'], overrides: Partial<LivePlan> = {}): LivePlan {

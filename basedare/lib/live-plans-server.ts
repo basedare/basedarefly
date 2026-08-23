@@ -152,6 +152,7 @@ export async function getLivePlanSnapshot(input: LivePlanQuery): Promise<LivePla
         id: true,
         shortId: true,
         title: true,
+        streamId: true,
         tag: true,
         bounty: true,
         expiresAt: true,

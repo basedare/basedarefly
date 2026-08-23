@@ -89,6 +89,7 @@ export default function LivePlanCard({
   const Icon = style.icon;
   const peopleLabel = getPeopleLabel(plan);
   const participant = plan.viewer.isNextMove;
+  const showSparkHook = plan.type === 'community_spark' && Boolean(plan.summary);
 
   return (
     <article
@@ -107,6 +108,12 @@ export default function LivePlanCard({
       <h3 className={`${compact ? 'mt-4 text-lg' : 'mt-5 text-2xl'} line-clamp-2 font-black leading-[1.02] text-white`}>
         {plan.title}
       </h3>
+
+      {showSparkHook ? (
+        <p className={`${compact ? 'mt-2 text-xs' : 'mt-3 text-sm'} line-clamp-2 font-bold leading-5 text-emerald-50/66`}>
+          {plan.summary}
+        </p>
+      ) : null}
 
       <div className="mt-4 space-y-2 text-xs font-bold text-white/54">
         <p className="flex items-center gap-2">
@@ -132,7 +139,7 @@ export default function LivePlanCard({
         <p className="mt-3 text-sm font-black text-yellow-100">{plan.value.rewardUsdc} USDC reward</p>
       ) : null}
 
-      {!compact && (plan.summary || plan.trust.label) ? (
+      {!compact && plan.type !== 'community_spark' && (plan.summary || plan.trust.label) ? (
         <details className="mt-4 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-xs text-white/46">
           <summary className="cursor-pointer list-none font-black uppercase tracking-[0.12em] text-white/56">Details</summary>
           {plan.summary ? <p className="mt-2 leading-5">{plan.summary}</p> : null}

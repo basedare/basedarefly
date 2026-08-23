@@ -1,4 +1,4 @@
-export const ACTION_SPORTS_COMMUNITY_SPARK_VERSION = 3 as const;
+export const ACTION_SPORTS_COMMUNITY_SPARK_VERSION = 4 as const;
 
 export const ACTION_SPORTS_COMMUNITY_SPARK_KEYS = [
   'WAKEPARK_PROGRESSION_LAP',
@@ -86,9 +86,9 @@ export const ACTION_SPORTS_COMMUNITY_SPARKS = [
   {
     key: 'SURFIT_MOBILITY_RESET',
     venueSlug: 'surfit-gym-siargao',
-    title: 'Build a three-move flow',
-    hook: 'Three easy moves. One smooth flow. Can your friend copy it?',
-    instructions: 'Pick three gentle moves and name the combo.',
+    title: 'Make a three-move combo',
+    hook: 'Pick three easy moves. Can your friend copy the combo?',
+    instructions: 'Pick three gentle moves and give the combo a name.',
     capturePrompt: 'Film one clean round.',
     socialPrompt: 'Challenge a friend to copy it or swap one move.',
     safety:
@@ -100,9 +100,9 @@ export const ACTION_SPORTS_COMMUNITY_SPARKS = [
   {
     key: 'PRIMEFIT_MOBILITY_RESET',
     venueSlug: 'primefit-gym-general-luna',
-    title: 'Finish the reset',
-    hook: 'You pick two moves. Your friend picks the last.',
-    instructions: 'Build one gentle three-move reset together.',
+    title: 'You pick two. They pick one.',
+    hook: 'Build a three-move reset together. Then swap the last move.',
+    instructions: 'Choose two gentle moves. Let a friend add the third.',
     capturePrompt: 'Film one round. Show all three move names.',
     socialPrompt: 'Pass it on: change only the final move.',
     safety:

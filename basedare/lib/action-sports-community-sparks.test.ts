@@ -41,6 +41,17 @@ test('Wakepark has a dedicated self-directed action-sports Spark', () => {
   assert.match(`${wakepark.instructions} ${wakepark.safety}`, /operator/i);
 });
 
+test('fitness Sparks sound like invitations, not training-program labels', () => {
+  assert.equal(
+    getActionSportsCommunitySpark('SURFIT_MOBILITY_RESET').title,
+    'Make a three-move combo',
+  );
+  assert.equal(
+    getActionSportsCommunitySpark('PRIMEFIT_MOBILITY_RESET').title,
+    'You pick two. They pick one.',
+  );
+});
+
 test('current Spark stream IDs resolve to their play-first brief', () => {
   const streamId = getActionSportsCommunitySparkStreamId('SURF_PREP_SIGNAL_KANAWAY');
   assert.equal(streamId, `community-spark:surf_prep_signal_kanaway:v${ACTION_SPORTS_COMMUNITY_SPARK_VERSION}`);

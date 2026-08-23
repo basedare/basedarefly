@@ -1,4 +1,5 @@
 import type { BoatCrewSummary } from './surf-boat-board';
+import { getActionSportsCommunitySparkByStreamId } from './action-sports-community-sparks';
 
 export const LIVE_PLAN_HORIZON_HOURS = 72;
 
@@ -336,6 +337,7 @@ export function shapeLiveDarePlan(
     id: string;
     shortId: string | null;
     title: string;
+    streamId?: string | null;
     tag: string | null;
     bounty: number;
     expiresAt: Date | null;
@@ -354,6 +356,10 @@ export function shapeLiveDarePlan(
   },
 ): LivePlan {
   const community = dare.bounty <= 0 && dare.tag === 'community';
+  const communitySpark = community
+    ? getActionSportsCommunitySparkByStreamId(dare.streamId)
+    : null;
+  const title = communitySpark?.title ?? dare.title;
   const type: LivePlanType = community ? 'community_spark' : 'paid_dare';
   const href = `/dare/${encodeURIComponent(dare.shortId ?? dare.id)}`;
   const viewerWallet = input.viewerWallet?.toLowerCase() ?? null;
@@ -369,8 +375,8 @@ export function shapeLiveDarePlan(
     id: livePlanId(type, dare.id),
     sourceId: dare.id,
     type,
-    title: dare.title,
-    summary: community ? 'Free to play' : `${dare.bounty} USDC reward`,
+    title,
+    summary: community ? communitySpark?.hook ?? 'Free to play' : `${dare.bounty} USDC reward`,
     startsAt: null,
     endsAt: dare.expiresAt?.toISOString() ?? null,
     place: planPlace({
@@ -395,8 +401,10 @@ export function shapeLiveDarePlan(
       : { kind: 'CLAIM', label: 'Claim', href },
     share: {
       href,
-      title: dare.title,
-      text: community ? `${dare.title}\nFree to play on BaseDare.` : `${dare.title}\n${dare.bounty} USDC reward on BaseDare.`,
+      title,
+      text: community
+        ? `${title}${communitySpark?.hook ? `\n${communitySpark.hook}` : ''}\nFree to play on BaseDare.`
+        : `${title}\n${dare.bounty} USDC reward on BaseDare.`,
     },
     trust: {
       label: community ? 'Community Spark' : 'Proof-reviewed reward',
