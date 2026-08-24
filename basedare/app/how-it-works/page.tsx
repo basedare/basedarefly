@@ -160,7 +160,7 @@ export default function HowItWorksPage() {
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-cyan-100" aria-hidden="true" />
             <div><h2 className="text-sm font-black text-white">Browse first. Trust increases only when needed.</h2><p className="mt-1 max-w-2xl text-xs leading-5 text-white/43">Free plans stay lightweight. Paid or proof-backed actions can ask for identity, location, media or a venue handshake because a real receipt depends on it.</p></div>
           </div>
-          <Link href="/join" className="inline-flex shrink-0 items-center gap-2 rounded-full border border-cyan-200/20 bg-cyan-300/[0.08] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100">Start here <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+          <Link href="/now?source=how-it-works-start" className="inline-flex shrink-0 items-center gap-2 rounded-full border border-cyan-200/20 bg-cyan-300/[0.08] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100">See live plans <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
         </section>
       </div>
     </main>

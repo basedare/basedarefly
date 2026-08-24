@@ -24,7 +24,6 @@ import {
 import { isAddress } from 'viem';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
-import ParticleNetwork from '@/components/ParticleNetwork';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
@@ -388,19 +387,10 @@ function ChatInbox() {
     : null;
 
   return (
-    <main className="relative min-h-[calc(100dvh-6rem)] overflow-visible bg-[#020204] px-3 py-5 text-white sm:px-6 sm:py-8 lg:px-10">
-      <div className="pointer-events-none fixed inset-0 z-0">
-        <ParticleNetwork
-          particleCount={84}
-          minDist={124}
-          particleColor="rgba(194, 133, 255, 0.46)"
-          lineColor="rgba(255, 211, 86, 0.18)"
-          speed={0.22}
-        />
-      </div>
+    <main className="relative min-h-[calc(100dvh-6rem)] overflow-visible bg-transparent px-3 py-5 text-white sm:px-6 sm:py-8 lg:px-10">
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(circle_at_50%_10%,rgba(168,85,247,0.14),transparent_38%),radial-gradient(circle_at_14%_16%,rgba(245,197,24,0.05),transparent_26%),linear-gradient(180deg,rgba(2,2,4,0.32)_0%,rgba(2,2,4,0.14)_36%,rgba(2,2,4,0.46)_100%)]"
+        className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(circle_at_50%_10%,rgba(168,85,247,0.12),transparent_38%),radial-gradient(circle_at_14%_16%,rgba(245,197,24,0.045),transparent_26%),linear-gradient(180deg,rgba(2,2,4,0.12)_0%,rgba(2,2,4,0.05)_36%,rgba(2,2,4,0.28)_100%)]"
       />
       <GradualBlurOverlay />
 
@@ -725,7 +715,7 @@ function ChatInbox() {
 
 export default function ChatPage() {
   return (
-    <Suspense fallback={<main className="min-h-screen bg-[#03040a]" />}>
+    <Suspense fallback={<main className="min-h-screen bg-transparent" />}>
       <ChatInbox />
     </Suspense>
   );
