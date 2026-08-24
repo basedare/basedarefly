@@ -1202,24 +1202,6 @@ export default function Dashboard() {
 
   if (isConnected) {
     pushQuickAction({
-      id: 'map',
-      label: 'Explore map',
-      detail: 'Find venues, directions, and live proof work.',
-      cta: 'Map',
-      tone: 'cyan',
-      icon: Compass,
-      onSelect: () => router.push('/map'),
-    });
-    pushQuickAction({
-      id: 'action-center',
-      label: 'Action center',
-      detail: visibleActionInbox.length > 0 ? `${visibleActionInbox.length} open actions to review.` : 'Your detailed proof and payout queue.',
-      cta: 'Inbox',
-      tone: visibleActionInbox.length > 0 ? 'yellow' : 'neutral',
-      icon: Radio,
-      onSelect: () => router.push('/action-center'),
-    });
-    pushQuickAction({
       id: 'create',
       label: 'Create dare',
       detail: 'Fund a useful mission for the grid.',
@@ -1414,9 +1396,9 @@ export default function Dashboard() {
           <div className="order-2 mb-6">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-base font-black uppercase tracking-[0.14em] text-white">Command cockpit</h2>
+                <h2 className="text-base font-black uppercase tracking-[0.14em] text-white">Next move</h2>
                 <p className="mt-1 text-sm text-white/50">
-                  One highest-signal move first. Utility controls stay secondary.
+                  Do the most useful thing first. Everything else stays out of the way.
                 </p>
               </div>
               {isConnected ? (
@@ -1471,8 +1453,10 @@ export default function Dashboard() {
                 <div className={`${softCardClass} p-4`}>
                   <div className="relative flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/45">Secondary controls</p>
-                      <p className="mt-1 text-sm text-white/58">Map, profile, creation, and full inbox.</p>
+                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white/45">Quick tools</p>
+                      <p className="mt-1 text-sm text-white/58">
+                        {isConnected ? 'Create something or update your profile.' : 'Explore the map or launch a dare.'}
+                      </p>
                     </div>
                     <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">
                       {dashboardQuickActions.length} tools
@@ -1503,59 +1487,6 @@ export default function Dashboard() {
                   </div>
                 </div>
               ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        {isConnected && primaryActivation && primaryActivationState ? (
-          <div className={`${raisedTileClass} order-2 mb-6 overflow-hidden border-fuchsia-400/18 bg-[linear-gradient(145deg,rgba(38,20,68,0.96),rgba(14,14,24,0.98))] shadow-[0_20px_42px_rgba(0,0,0,0.34),0_0_24px_rgba(168,85,247,0.14),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-12px_18px_rgba(0,0,0,0.22)] md:order-2`}>
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_15%,rgba(250,204,21,0.16),transparent_26%),radial-gradient(circle_at_88%_0%,rgba(168,85,247,0.18),transparent_32%)]" />
-            <div className="relative flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <div className="min-w-0">
-                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-300/20 bg-yellow-400/[0.08] px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100 shadow-[0_0_18px_rgba(250,204,21,0.12)]">
-                  <Zap className="h-3.5 w-3.5 text-yellow-300" />
-                  Activation detail
-                </div>
-                <p className="mt-3 text-lg font-black text-white sm:text-xl">
-                  {primaryActivation.title}
-                </p>
-                <p className="mt-1 text-sm text-white/62">
-                  {primaryActivationState.label === 'Ready for Proof'
-                    ? 'You have been picked for this activation. Open it and submit proof.'
-                    : primaryActivationState.label === 'Respond Now'
-                      ? 'You have been directly dared. Accept or decline so the state is crystal clear.'
-                    : primaryActivationState.detail}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                <span className="rounded-full border border-fuchsia-300/18 bg-fuchsia-500/[0.08] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-fuchsia-100">
-                  {creatorClaims.length} live {creatorClaims.length === 1 ? 'activation' : 'activations'}
-                </span>
-                {primaryActivationState.label === 'Ready for Proof' ? (
-                  <SquircleButton
-                    tone="yellow"
-                    label="Submit proof"
-                    height={46}
-                    onClick={() => jumpToActivation(primaryActivation.id)}
-                    className="min-w-[178px]"
-                  >
-                    <span className={dashboardSquircleLabelClass}>
-                      <Zap className="h-4 w-4" />
-                      Submit proof
-                    </span>
-                  </SquircleButton>
-                ) : (
-                  <CosmicButton
-                    onClick={() => jumpToActivation(primaryActivation.id)}
-                    variant="purple"
-                    size="md"
-                    className="min-w-[178px]"
-                  >
-                    <Zap className="h-4 w-4" />
-                    {primaryActivationState.label === 'Respond Now' ? 'Review Dare' : 'Open Activation'}
-                  </CosmicButton>
-                )}
-              </div>
             </div>
           </div>
         ) : null}
@@ -1889,16 +1820,16 @@ export default function Dashboard() {
         <div className={`${softCardClass} order-5 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Your trace</h2>
+              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Your trail</h2>
               <p className="mt-1 text-sm text-white/52">
-                Proofs, first marks, and venue history.
+                Verified proofs and places you&apos;ve marked.
               </p>
             </div>
             <button
-              onClick={() => router.push('/map')}
+              onClick={() => router.push('/map?trace=1&source=dashboard-trail')}
               className={`${volumetricButtonPurple} px-3 py-2 text-[11px]`}
             >
-              View your trace
+              Show on map
             </button>
           </div>
 
@@ -1939,7 +1870,7 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <button
-                      onClick={() => router.push(`/map?place=${encodeURIComponent(footprintStats.topVenue?.slug ?? '')}&trace=1`)}
+                      onClick={() => router.push(`/map?place=${encodeURIComponent(footprintStats.topVenue?.slug ?? '')}&trace=1&source=dashboard-trail`)}
                       className={`${volumetricButtonNeutral} px-3 py-2 text-[11px]`}
                     >
                       Open on map
@@ -1951,10 +1882,10 @@ export default function Dashboard() {
                       No verified place memory yet. Tag a place or finish a venue activation and your footprint starts drawing itself.
                     </p>
                     <button
-                      onClick={() => router.push('/map')}
+                      onClick={() => router.push('/map?trace=1&source=dashboard-trail-empty')}
                       className={`${volumetricButtonNeutral} px-3 py-2 text-[11px]`}
                     >
-                      Open map
+                      Start my trail
                     </button>
                   </div>
                 )}
@@ -1966,12 +1897,6 @@ export default function Dashboard() {
         <div ref={opportunitiesRef} className={`${softCardClass} order-6 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Opportunities</h2>
-            <button
-              onClick={() => router.push('/map')}
-              className={`${volumetricButtonNeutral} px-3 py-2 text-[11px]`}
-            >
-              Open map
-            </button>
           </div>
 
           {!isConnected ? (

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Loader2, MapPin, Search, Sparkles, Trophy, UserRound, X } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import './GlobalSearch.css';
 
 interface SearchResult {
@@ -27,6 +28,7 @@ interface GlobalSearchProps {
 
 export function GlobalSearch({ defaultOpen = false, isDesktopApp = false }: GlobalSearchProps) {
     void isDesktopApp;
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(defaultOpen);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResponse>({ places: [], streamers: [], dares: [], actions: [] });
@@ -155,7 +157,7 @@ export function GlobalSearch({ defaultOpen = false, isDesktopApp = false }: Glob
                         No exact results for &quot;{query}&quot;
                     </p>
                     <Link
-                        href={`/map?q=${encodeURIComponent(trimmedQuery)}`}
+                        href={`/map?q=${encodeURIComponent(trimmedQuery)}&source=global-search`}
                         onClick={() => setIsOpen(false)}
                         className="flex items-center gap-3 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.06] px-3 py-3 text-cyan-50 transition hover:bg-cyan-300/[0.1]"
                     >
@@ -221,6 +223,12 @@ export function GlobalSearch({ defaultOpen = false, isDesktopApp = false }: Glob
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key !== 'Enter' || !trimmedQuery) return;
+                            event.preventDefault();
+                            setIsOpen(false);
+                            router.push(`/map?q=${encodeURIComponent(trimmedQuery)}&source=global-search`);
+                        }}
                         placeholder="Search places, creators, dares..."
                         className="w-full bg-transparent border-none py-2 px-3 text-sm text-white focus:outline-none placeholder-gray-500"
                     />
@@ -233,6 +241,9 @@ export function GlobalSearch({ defaultOpen = false, isDesktopApp = false }: Glob
 
                 {/* Search Icon Button (Always visible on the right, turns into Close if open) */}
                 <button
+                    type="button"
+                    aria-label={isOpen ? 'Close search' : 'Search BaseDare'}
+                    title={isOpen ? 'Close search' : 'Search BaseDare'}
                     onClick={() => {
                         if (isOpen) {
                             setIsOpen(false);

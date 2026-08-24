@@ -98,16 +98,6 @@ export default function PortalVortex() {
             />
           </div>
 
-          {/* 5. VERTICAL BEAM */}
-          <div
-            className="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-[80%] h-[400px] bg-gradient-to-t from-purple-500/20 to-transparent blur-2xl"
-            style={{
-              transform: 'rotateX(-75deg) translateY(-50%)',
-              transformOrigin: 'bottom center',
-              pointerEvents: 'none'
-            }}
-          />
-
         </div>
       </div>
 
@@ -129,6 +119,8 @@ export default function PortalVortex() {
             key={stream.id}
             className="accretion-stream"
             style={{
+              '--angle': `${stream.angle}deg`,
+              '--start': `${stream.startRadius}px`,
               position: 'absolute',
               left: '50%',
               top: '50%',
@@ -141,7 +133,7 @@ export default function PortalVortex() {
               animation: `suckInward ${stream.duration}s ${stream.delay}s linear infinite`,
               opacity: 0,
               filter: 'blur(0.5px)',
-            }}
+            } as React.CSSProperties}
           />
         ))}
 
@@ -181,10 +173,6 @@ export default function PortalVortex() {
             opacity: 0;
             transform: rotate(var(--angle, 0deg)) translateX(80px) scaleX(0.2);
           }
-        }
-        .accretion-stream {
-          --angle: 0deg;
-          --start: 400px;
         }
       `}</style>
     </div>

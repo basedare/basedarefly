@@ -312,6 +312,12 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
   const sections = fieldStation ? FIELD_STATION_EMPTY_SECTIONS : await getBoardSections();
   const total =
     sections.tonight.length + sections.rewards.length + sections.receipts.length + sections.placesLitUp.length;
+  const backToMapParams = copyParams(params, {
+    source: 'board',
+    field: null,
+    fallback: null,
+    requestedAttention: null,
+  });
 
   return (
     <div className="relative min-h-screen">
@@ -322,11 +328,11 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
         {fieldStation ? <FieldStationEntryBeacon attentionMode={attentionMode} /> : null}
         <div className="mb-6">
           <Link
-            href="/"
+            href={`/map?${backToMapParams.toString()}`}
             className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/68 transition hover:border-[#f5c518]/30 hover:text-[#f8dd72]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back
+            Back to map
           </Link>
         </div>
         <div className="mx-auto max-w-3xl text-center">
@@ -337,14 +343,14 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full border border-cyan-100/70 bg-cyan-300" />
               </span>
             ) : <Radio className="h-3.5 w-3.5" />}
-            {stationLabel ? `Node active · ${stationLabel} connected` : 'The Board'}
+            {stationLabel ? `Node active · ${stationLabel} connected` : 'Map · list view'}
           </div>
           <h1 className="mt-4 text-4xl font-black uppercase italic tracking-tight text-white md:text-6xl">
             What&apos;s on<br />
             <span className="text-[#f5c518]">the Board</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm font-bold leading-6 text-white/55">
-            Live dares, venue nights, and verified presence. If BaseDare can drive attendance or produce a receipt, it&apos;s on The Board.
+            The map in list form: live plans, paid dares, venue nights, and verified activity. Open a card to act, or jump back to see where it is.
           </p>
         </div>
 

@@ -2,16 +2,27 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import ElectricCard from "./ElectricCard";
 import PortalVortex from "./PortalVortex";
 
-const SPEED = 0.005;
+const ORBIT_DURATION_MS = 60_000;
 
 // Featured dares — on-thesis IRL missions (venue/experience proof, never
 // streamer stunts) with believable bounties. Fictional handles only:
 // never put real people's names on fake funded bounties.
 // EXACT MATCH with PeeBearConveyor SAMPLE_DARES.
-const FEATURED_DARES = [
+interface HeroDare {
+  id: string;
+  short_id?: string;
+  description?: string;
+  title?: string;
+  stake_amount: number;
+  streamer_name?: string | null;
+  expiry_timer?: string;
+}
+
+const FEATURED_DARES: HeroDare[] = [
   { id: '1', description: "FIRST PROOF THE ROOFTOP", stake_amount: 50, streamer_name: "@peebear", expiry_timer: "⚡ FIRST" },
   { id: '2', description: "BRING 5 VERIFIED MATES", stake_amount: 100, streamer_name: "@gridghost", expiry_timer: "🌅 LIVE" },
   { id: '3', description: "VENUE WALKTHROUGH REEL", stake_amount: 25, streamer_name: "@permabear", expiry_timer: "🎥 OPEN" },
@@ -21,12 +32,13 @@ const FEATURED_DARES = [
 ];
 
 interface HeroProps {
-  dares?: any[];
-  onCardClick?: (dare: any) => void;
+  dares?: HeroDare[];
+  onCardClick?: (dare: HeroDare) => void;
 }
 
 export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroProps) {
   const items = (dares.length > 0 ? dares : FEATURED_DARES).slice(0, 6);
+  const itemCount = items.length;
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const timeRef = useRef(0);
   const requestRef = useRef<number>(0);
@@ -55,36 +67,46 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const animate = () => {
-    timeRef.current += SPEED;
-
-    items.forEach((_, index) => {
-      const el = cardRefs.current[index];
-      if (!el) return;
-
-      const offset = (index / items.length) * (Math.PI * 2);
-      const angle = timeRef.current + offset;
-
-      const { x: rx, y: ry, z: rz } = radiiRef.current;
-
-      const x = Math.cos(angle) * rx;
-      const y = Math.sin(angle) * ry;
-      const z = Math.sin(angle) * rz;
-
-      const scale = Math.max(0.7, (z + 1000) / 1000);
-      const zIndex = Math.round(z) + 50;
-
-      el.style.transform = `translate3d(${x}px, ${y}px, ${z}px) scale(${scale})`;
-      el.style.zIndex = zIndex.toString();
-    });
-
-    requestRef.current = requestAnimationFrame(animate);
-  };
-
   useEffect(() => {
+    let lastFrameAt: number | null = null;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const positionCards = () => {
+      for (let index = 0; index < itemCount; index += 1) {
+        const el = cardRefs.current[index];
+        if (!el) continue;
+
+        const offset = (index / itemCount) * (Math.PI * 2);
+        const angle = timeRef.current + offset;
+        const { x: rx, y: ry, z: rz } = radiiRef.current;
+        const x = Math.cos(angle) * rx;
+        const y = Math.sin(angle) * ry;
+        const z = Math.sin(angle) * rz;
+        const scale = Math.max(0.7, (z + 1000) / 1000);
+
+        el.style.transform = `translate3d(${x}px, ${y}px, ${z}px) scale(${scale})`;
+        el.style.zIndex = (Math.round(z) + 50).toString();
+      }
+    };
+
+    if (reduceMotion) {
+      positionCards();
+      return undefined;
+    }
+
+    const animate = (frameAt: number) => {
+      if (lastFrameAt !== null) {
+        const elapsed = Math.min(frameAt - lastFrameAt, 64);
+        timeRef.current += (elapsed / ORBIT_DURATION_MS) * Math.PI * 2;
+      }
+      lastFrameAt = frameAt;
+      positionCards();
+      requestRef.current = requestAnimationFrame(animate);
+    };
+
     requestRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(requestRef.current);
-  }, [items]);
+  }, [itemCount]);
 
   return (
     <div className="relative w-full h-[500px] sm:h-[600px] md:h-[800px] flex items-center justify-center perspective-[1200px] overflow-hidden">
@@ -105,16 +127,20 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
               backfaceVisibility: 'hidden',
             }}
           >
-            <div
+            <Link
+              href={dares.length > 0 && dare.short_id
+                ? `/dare/${encodeURIComponent(dare.short_id)}`
+                : '/map?source=home-orbit'}
               className="-translate-x-1/2 -translate-y-1/2 cursor-pointer"
               onClick={() => onCardClick && onCardClick(dare)}
+              aria-label={dares.length > 0 ? `Open ${dare.description || dare.title}` : 'Open the live map'}
             >
               <ElectricCard
                 badge={dare.expiry_timer || "24H"}
-                title={dare.description || dare.title}
+                title={dare.description || dare.title || "OPEN MISSION"}
                 description={`${dare.stake_amount} USDC | ${dare.streamer_name || "@Anon"}`}
               />
-            </div>
+            </Link>
           </div>
         ))}
       </div>

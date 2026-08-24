@@ -45,6 +45,7 @@ const RealityShift = dynamic(() => import("@/components/RealityShift"));
 const MatrixRain = dynamic(() => import("@/components/MatrixRain"));
 interface Dare {
   id: string;
+  short_id?: string;
   description: string;
   stake_amount: number;
   streamer_name?: string;
@@ -237,7 +238,7 @@ function HomeContent() {
               <div className="w-full relative">
                 {/* Desktop: Full 3D Hero with orbiting cards */}
                 <div className="hidden lg:block">
-                  <HeroEllipticalStream />
+                  <HeroEllipticalStream dares={dares} />
                 </div>
 
                 {/* Mobile/tablet: simplified hero avoids iPad WebKit overload */}
@@ -295,14 +296,14 @@ function HomeContent() {
                 </div>
                 <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] font-black uppercase tracking-[0.14em]">
                   <Link
-                    href="/map"
+                    href="/map?source=home-grid"
                     prefetch={false}
                     className="inline-flex items-center gap-1.5 text-cyan-100/76 transition hover:text-white"
                   >
                     Explore the grid →
                   </Link>
                   <Link
-                    href="/board"
+                    href="/board?source=home"
                     prefetch={false}
                     className="inline-flex items-center gap-1.5 text-[#f8dd72] transition hover:text-white"
                   >
@@ -334,11 +335,11 @@ function HomeContent() {
                 </div>
                 <div className="mt-6 flex justify-center">
                   <Link
-                    href="/map"
+                    href="/map?source=home-nearby"
                     prefetch={false}
                     className="inline-flex min-h-10 items-center justify-center rounded-full px-3 font-mono text-xs tracking-[0.08em] text-[#F5C518] transition-colors hover:text-white md:text-sm"
                   >
-                    Start with nearby proof →
+                    Open the live map →
                   </Link>
                 </div>
                 <HomeGridRadar compact className="mt-4 flex justify-center md:hidden" />
