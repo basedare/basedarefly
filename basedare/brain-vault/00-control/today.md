@@ -24,6 +24,7 @@ Operationalize BaseDare as a remote-first playable social map:
 8. preserve creator attribution with an explicit passwordless Mission Pass while keeping social webviews wallet-free
 9. make Wakepark and other activity venues playable through fresh rituals and safety-bounded free Community Sparks
 10. make the first creator visit mission-first: exact work, deadline, submission, rights and payout before profile setup
+11. make joined Live Plans concrete and repeatable through one honest commitment tray—not screen-time gamification
 
 ## Active Context
 
@@ -42,6 +43,7 @@ Operationalize BaseDare as a remote-first playable social map:
 - Publicly pseudonymous branding is compatible with the vision; concealed employment, ownership, payment activity, or local commercial control is not.
 - Growth is judged by useful proof density, contributor repeat behavior, organic actions per paid action, and sponsor pull—not raw bounty volume.
 - Wakepark Sunday Funday now has a freshness-expiring ritual record, and action-sports Community Sparks are free-play supply with no payout promise. A Wakepark Field Station remains blocked until placement permission and healthy ACTION inventory are recorded.
+- Live Plans already have real needs-people states, exact invite links, joined-state recovery, and repeat links. The current retention pass closes the commitment seam with map/calendar/invite tools, real threshold-crossing feedback, and a post-plan repeat prompt; RSVP remains intent rather than verified attendance.
 
 ## Top Priorities
 
@@ -62,6 +64,7 @@ Operationalize BaseDare as a remote-first playable social map:
 | 13 | First-node buyer conversion loop | product/growth | SOFTWARE_READY | Use one truthful venue brief to run the integrated response → scope approval → funding confirmation → Sprint → four escrows → receipt path; record repeat, adjust, or stop |
 | 14 | Wakepark ritual + Community Spark pilot | product/growth + human | SOFTWARE_READY | Apply the production migration, record placement permission, reconfirm ritual conditions, activate healthy ACTION inventory, and test one real QR handoff |
 | 15 | Manual Creator Drop | product/growth + human | READY_FOR_HUMAN_PILOT | Run one existing Dare through claim → proof → review/reject → settlement → receipt and record operator cost before building orchestration |
+| 16 | Live Plan commitment loop | product/growth | SOFTWARE_READY | Measure RSVP → calendar/share and ended-plan → repeat behavior; do not add streaks or heavier social mechanics until real plan formation improves |
 
 ## Safe Automatic Work
 

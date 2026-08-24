@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  didMeetupJustUnlock,
   getDefaultMeetHereStart,
   getMeetupShareText,
   getMeetupSharePath,
@@ -50,4 +51,11 @@ test('repeat links preserve the activity, place and unlock threshold', () => {
   assert.equal(url.searchParams.get('template'), 'trivia');
   assert.equal(url.searchParams.get('venueId'), 'venue-1');
   assert.equal(url.searchParams.get('minimum'), '5');
+});
+
+test('crew unlocks only when a real RSVP crosses the stated minimum', () => {
+  assert.equal(didMeetupJustUnlock({ previousCount: 3, nextCount: 4, minimumPeople: 4 }), true);
+  assert.equal(didMeetupJustUnlock({ previousCount: 4, nextCount: 4, minimumPeople: 4 }), false);
+  assert.equal(didMeetupJustUnlock({ previousCount: 2, nextCount: 3, minimumPeople: 4 }), false);
+  assert.equal(didMeetupJustUnlock({ previousCount: 1, nextCount: 2, minimumPeople: null }), false);
 });

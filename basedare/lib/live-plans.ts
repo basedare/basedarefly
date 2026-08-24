@@ -111,6 +111,19 @@ export function getSpotsNeeded(going: number, minimum: number | null) {
   return Math.max(0, minimum - going);
 }
 
+export function getLivePlanMapHref(plan: Pick<LivePlan, 'type' | 'sourceId' | 'place'>) {
+  const query = new URLSearchParams({ source: 'my-next-move' });
+  if (plan.place.venueSlug) query.set('place', plan.place.venueSlug);
+  if (plan.type === 'meetup') query.set('meetupId', plan.sourceId);
+  return `/map?${query.toString()}`;
+}
+
+export function isLivePlanCalendarReady(plan: Pick<LivePlan, 'type' | 'startsAt' | 'status'>) {
+  if (!plan.startsAt || !Number.isFinite(new Date(plan.startsAt).getTime())) return false;
+  if (plan.type !== 'boat') return true;
+  return plan.status.key === 'OPERATOR_CONFIRMED' || plan.status.key === 'READY';
+}
+
 function planPlace(input: {
   venueId?: string | null;
   venueSlug?: string | null;

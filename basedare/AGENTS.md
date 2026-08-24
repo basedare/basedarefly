@@ -16,6 +16,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Live Plan commitment loop (2026-08-24)
+- Codex is tightening the existing Rally/Live Plans seam around ethical real-world retention: honest crew progress, a useful **My Next Move** tray, calendar/map/share tools after joining, one crew-unlocked notification, and an ended-plan repeat prompt.
+- Files owned in this pass: `components/live-plans/*`, `components/community/MeetupPlanClient.tsx`, `app/api/meetups/[id]/rsvp/route.ts`, the pure `lib/live-plans*` / `lib/meetup-plan*` helpers and tests, plus the matching Brain/task records.
+- This pass does **not** change `components/maps/RealWorldMap.tsx`, `app/map/*`, Prisma schema/migrations, proof, payout, contracts, or paid-mission lifecycle behavior. RSVP remains intent, never verified attendance.
+
 ### Codex paid-mission contributor funnel (2026-08-24)
 - Codex is shipping `/earn` as the plain-language paid contributor entry: mission and net payout before sign-in, moderated **Request mission**, then the unchanged claim → proof → review → payout → receipt lifecycle.
 - Eligible Board rewards and homepage paid-work CTAs enter `/earn`; eligible legacy `/dare/<short-id>` links redirect there so map links converge without editing the Claude-owned map renderer.

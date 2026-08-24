@@ -70,3 +70,12 @@ export function getRepeatRallyHref(plan: Pick<MeetupPlanSummary, 'title' | 'type
   if (plan.venueId) query.set('venueId', plan.venueId);
   return `/community/rally/new?${query.toString()}`;
 }
+
+export function didMeetupJustUnlock(input: {
+  previousCount: number;
+  nextCount: number;
+  minimumPeople: number | null;
+}) {
+  if (!input.minimumPeople || input.minimumPeople < 2) return false;
+  return input.previousCount < input.minimumPeople && input.nextCount >= input.minimumPeople;
+}

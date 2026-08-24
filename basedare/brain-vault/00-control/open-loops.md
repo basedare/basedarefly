@@ -35,6 +35,7 @@ updated_at: 2026-08-24
 | Dare Director orchestration | automation | PARKED_UNTIL_CONTRACT_DATA | product | [[05-playbooks/outcome-contract-engine]] |
 | Wakepark ritual + Community Sparks | consumer_supply | SOFTWARE_READY | product/growth + human | [[05-playbooks/local-rituals-community-sparks]] |
 | Kanaway daily surf boat board | community_retention_experiment | SOFTWARE_READY_NOT_LIVE | product + local operator | [[04-experiments/kanaway-daily-surf-boat-board]] |
+| Live Plan commitment loop | community_retention_experiment | SOFTWARE_READY | product/growth | [[05-playbooks/live-plan-commitment-loop]] |
 | Manual Creator Drop pilot | operating_test | READY_FOR_HUMAN_PILOT | product/growth + human | [[05-playbooks/manual-creator-drop-pilot]] |
 | Siargao venue Spark Audit invite | outreach_draft | PARKED | human | [[02-outreach/drafts/siargao-venue-spark-audit-invite]] |
 | Siargao Beach Club Spark Audit | spark_audit | PARKED | human | [[02-outreach/drafts/siargao-beach-club-spark-audit]] |
@@ -53,6 +54,7 @@ updated_at: 2026-08-24
 | Autonomous treasury | NEXT | Define spend caps, multisig thresholds, fraud tripwires, pause rules, and audit logs |
 | Remote verification | READY_PREVIEW | Apply migrations and smoke-test submission proximity, then measure automated versus Sentinel review cost |
 | Consumer first action | DEPLOYED | Measure `/join` and plain-language navigation → map → action-open conversion |
+| Live Plan commitment | SOFTWARE_READY | Measure RSVP → calendar/share, real threshold crossings, and ended-plan → repeat; never report RSVP as attendance |
 | Creator first value | SOFTWARE_READY_FOR_PILOT | Send five contributors exact `/earn/<mission>` links; measure unaided understanding, mission requests and clarification questions before expanding profile onboarding |
 | Short-form participation | READY | Run 12 artifact-led TikTok/Instagram episodes across three locked series; optimize for qualified map actions, not followers |
 | Cross-browser creator attribution | ALPHA_LIVE | Portable share/copy continuation passed a production database-backed smoke. Verify the Resend domain before enabling email, then test real Instagram/TikTok → Safari/Chrome continuation on iOS and Android; keep performance bonuses disabled |

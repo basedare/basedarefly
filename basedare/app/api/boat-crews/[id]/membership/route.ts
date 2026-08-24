@@ -158,7 +158,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }).catch((error) => console.error('[BOAT_CREW_MEMBERSHIP] threshold notification failed:', error));
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: { reachedMinimum: transition.reachedMinimum } });
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
     const known: Record<string, [string, number]> = {

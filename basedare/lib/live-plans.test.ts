@@ -4,7 +4,9 @@ import { test } from 'node:test';
 import {
   computeLivePlanTotals,
   dedupeLivePlans,
+  getLivePlanMapHref,
   getSpotsNeeded,
+  isLivePlanCalendarReady,
   shapeLiveBoatPlan,
   shapeLiveDarePlan,
   shapeLiveMeetupPlan,
@@ -19,6 +21,37 @@ test('spots needed never falls below zero and stays null without a threshold', (
   assert.equal(getSpotsNeeded(1, 4), 3);
   assert.equal(getSpotsNeeded(5, 4), 0);
   assert.equal(getSpotsNeeded(2, null), null);
+});
+
+test('My Next Move map links preserve the canonical place and exact meetup', () => {
+  const meetup = stub('meet-1', 'meetup');
+  const meetupUrl = new URL(getLivePlanMapHref(meetup), 'https://basedare.xyz');
+  assert.equal(meetupUrl.pathname, '/map');
+  assert.equal(meetupUrl.searchParams.get('place'), 'hideaway');
+  assert.equal(meetupUrl.searchParams.get('meetupId'), 'meet-1');
+  assert.equal(meetupUrl.searchParams.get('source'), 'my-next-move');
+
+  const unbound = stub('spark-1', 'community_spark', {
+    place: { venueId: null, venueSlug: null, label: 'Public area', lat: 9.8, lng: 126.16, approx: true },
+  });
+  const unboundUrl = new URL(getLivePlanMapHref(unbound), 'https://basedare.xyz');
+  assert.equal(unboundUrl.pathname, '/map');
+  assert.equal(unboundUrl.searchParams.get('place'), null);
+});
+
+test('boat calendars wait for exact operator-confirmed departure details', () => {
+  const formingBoat = stub('boat-1', 'boat', {
+    startsAt: '2026-08-25T23:00:00.000Z',
+    status: { key: 'FORMING', label: 'Loading', forming: true },
+  });
+  assert.equal(isLivePlanCalendarReady(formingBoat), false);
+  assert.equal(isLivePlanCalendarReady({
+    ...formingBoat,
+    status: { key: 'OPERATOR_CONFIRMED', label: 'Boat confirmed', forming: false },
+  }), true);
+  assert.equal(isLivePlanCalendarReady(stub('meet-2', 'meetup', {
+    startsAt: '2026-08-25T11:00:00.000Z',
+  })), true);
 });
 
 test('boat plan exposes the real Rally threshold, price, viewer state and share path', () => {

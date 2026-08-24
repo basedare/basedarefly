@@ -22,6 +22,7 @@ import {
   type BoatCrewSummary,
 } from '@/lib/surf-boat-board';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import { triggerHaptic } from '@/lib/mobile-haptics';
 
 type CommunitySession = {
   token?: string;
@@ -96,7 +97,16 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Could not join this crew.');
-      setState({ type: 'success', message: commitment === 'CONFIRMED' ? 'You’re in. Share the crew to fill the boat.' : 'Marked maybe. Come back when you know.' });
+      const reachedMinimum = payload.data?.reachedMinimum === true;
+      triggerHaptic(reachedMinimum ? 'success' : 'selection');
+      setState({
+        type: 'success',
+        message: reachedMinimum
+          ? 'Crew unlocked. The organizer can now confirm the real boat.'
+          : commitment === 'CONFIRMED'
+            ? 'You’re in. Share the crew to fill the boat.'
+            : 'Marked maybe. Come back when you know.',
+      });
       setCrew((current) => ({
         ...current,
         confirmedCount: current.confirmedCount + (commitment === 'CONFIRMED' ? 1 : 0),

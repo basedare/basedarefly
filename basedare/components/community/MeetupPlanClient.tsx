@@ -7,7 +7,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
+import PlanCalendarButton from '@/components/live-plans/PlanCalendarButton';
 import { getMeetupSharePath, getMeetupShareText, getRepeatRallyHref, type MeetupPlanSummary } from '@/lib/meetup-plan';
+import { triggerHaptic } from '@/lib/mobile-haptics';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 type CommunitySession = {
@@ -75,8 +77,19 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Could not join this plan.');
-      setPlan((current) => ({ ...current, viewerRsvped: true, rsvpCount: Number(payload.data?.count) || current.rsvpCount + 1 }));
-      setState({ type: 'success', message: 'You’re going. Send the link to one more mate.' });
+      const nextCount = Number(payload.data?.count) || plan.rsvpCount + 1;
+      const unlockedNow = payload.data?.unlockedNow === true;
+      const remaining = plan.minimumPeople ? Math.max(0, plan.minimumPeople - nextCount) : null;
+      setPlan((current) => ({ ...current, viewerRsvped: true, rsvpCount: nextCount }));
+      triggerHaptic(unlockedNow ? 'success' : 'selection');
+      setState({
+        type: 'success',
+        message: unlockedNow
+          ? 'Crew unlocked. This Rally has enough people.'
+          : remaining
+            ? `You’re in. ${remaining} more ${remaining === 1 ? 'makes it' : 'needed'}.`
+            : 'You’re in. Add it to your calendar or invite a mate.',
+      });
     } catch (error) {
       setState({ type: 'error', message: error instanceof Error ? error.message : 'Could not join this plan.' });
     } finally {
@@ -149,9 +162,14 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
           {!active ? (
             <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm font-bold text-white/48">This plan has ended.</p>
           ) : plan.viewerRsvped ? (
-            <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-200/18 bg-emerald-300/[0.07] p-3 text-sm font-black text-emerald-100">
-              <Check className="h-5 w-5" />
-              <span className="flex-1">You’re in.</span>
+            <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-200/18 bg-emerald-300/[0.07] p-3 text-emerald-100">
+              <Check className="h-5 w-5 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <strong className="block text-sm">You’re in.</strong>
+                <span className="mt-0.5 block text-[10px] font-bold text-emerald-100/55">
+                  {spotsNeeded ? `${spotsNeeded} more ${spotsNeeded === 1 ? 'makes it' : 'needed'}.` : unlocked ? 'Crew unlocked.' : 'Time and place locked.'}
+                </span>
+              </span>
               <button type="button" disabled={pending} onClick={() => void leave()} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-white/10 bg-black/18 px-3 text-[9px] font-black uppercase tracking-[0.11em] text-white/48 disabled:opacity-45"><X className="h-3.5 w-3.5" /> Leave</button>
             </div>
           ) : (
@@ -160,9 +178,30 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
 
           {state ? <p role="status" className={`mt-3 rounded-2xl border p-3 text-xs font-bold ${state.type === 'success' ? 'border-emerald-200/20 bg-emerald-300/[0.08] text-emerald-100' : 'border-rose-200/20 bg-rose-300/[0.08] text-rose-100'}`}>{state.message}</p> : null}
 
-          <PlanShareButton title={plan.title} text={getMeetupShareText(plan)} href={getMeetupSharePath(plan.id)} label="Invite mates" className="mt-3 w-full" />
+          {active && plan.viewerRsvped ? (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <PlanShareButton title={plan.title} text={getMeetupShareText(plan)} href={getMeetupSharePath(plan.id)} label={spotsNeeded === 1 ? 'Invite one more' : 'Invite mates'} />
+              <PlanCalendarButton plan={{
+                id: `meetup:${plan.id}`,
+                title: plan.title,
+                placeLabel: plan.placeLabel,
+                startsAt: plan.startTime,
+                href: getMeetupSharePath(plan.id),
+                description: spotsNeeded ? `${plan.rsvpCount}/${plan.minimumPeople} going · ${spotsNeeded} more needed` : `${plan.rsvpCount} going`,
+              }} label="Add to calendar" />
+            </div>
+          ) : active ? (
+            <PlanShareButton title={plan.title} text={getMeetupShareText(plan)} href={getMeetupSharePath(plan.id)} label="Invite mates" className="mt-3 w-full" />
+          ) : null}
           <Link href={mapHref} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-[10px] font-black uppercase tracking-[0.14em] text-white/62"><MapPin className="h-4 w-4 text-cyan-200" /> Open on map</Link>
-          <Link href={getRepeatRallyHref(plan)} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-violet-200/14 bg-violet-300/[0.055] px-4 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100/72"><Repeat2 className="h-4 w-4" /> Run it again</Link>
+          {!active && plan.viewerRsvped ? (
+            <div className="mt-3 rounded-2xl border border-violet-200/14 bg-violet-300/[0.055] p-4">
+              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/48">Plan ended</p>
+              <p className="mt-1 text-lg font-black text-white">Go again?</p>
+              <p className="mt-1 text-xs leading-5 text-white/42">Start the same activity at this place with a fresh time and a fresh crew count.</p>
+              <Link href={getRepeatRallyHref(plan)} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-violet-200/16 bg-black/18 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100/78"><Repeat2 className="h-4 w-4" /> Run it again</Link>
+            </div>
+          ) : null}
         </section>
         <p className="mt-4 flex items-start gap-2 px-2 text-[10px] leading-4 text-white/34"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /> Public-place meetup. BaseDare does not host, supervise or guarantee this plan. Keep it safe, legal and mutually agreed.</p>
       </div>

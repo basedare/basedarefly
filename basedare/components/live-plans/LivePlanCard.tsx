@@ -90,6 +90,9 @@ export default function LivePlanCard({
   const peopleLabel = getPeopleLabel(plan);
   const participant = plan.viewer.isNextMove;
   const showSparkHook = plan.type === 'community_spark' && Boolean(plan.summary);
+  const crewProgress = plan.people?.minimum
+    ? Math.min(100, Math.round((plan.people.going / plan.people.minimum) * 100))
+    : null;
 
   return (
     <article
@@ -132,6 +135,23 @@ export default function LivePlanCard({
           </p>
         ) : null}
       </div>
+
+      {crewProgress != null ? (
+        <div className="mt-3" aria-label={`${plan.people?.going ?? 0} of ${plan.people?.minimum ?? 0} people confirmed`}>
+          <div
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={plan.people?.minimum ?? 0}
+            aria-valuenow={Math.min(plan.people?.going ?? 0, plan.people?.minimum ?? 0)}
+            className="h-1.5 overflow-hidden rounded-full border border-white/7 bg-black/34"
+          >
+            <span
+              className={`block h-full rounded-full transition-[width] duration-500 ${plan.people?.unlocked ? 'bg-emerald-300' : 'bg-[#f5c518]'}`}
+              style={{ width: `${crewProgress}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
 
       {plan.value?.indicativePerPersonPhp ? (
         <p className="mt-3 text-sm font-black text-cyan-100">~₱{plan.value.indicativePerPersonPhp} each</p>

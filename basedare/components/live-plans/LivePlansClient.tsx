@@ -5,6 +5,7 @@ import { CircleHelp, Crosshair, Loader2, Map, Plus, RefreshCw, Sparkles } from '
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
+import MyNextMoveTray from '@/components/live-plans/MyNextMoveTray';
 import {
   LIVE_PLANS_INTRO_KEY,
   LivePlansFirstChoice,
@@ -246,18 +247,7 @@ export default function LivePlansClient() {
         </div>
       </div>
 
-      {nextMoves.length ? (
-        <aside id="my-next-move" className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-2xl rounded-[1.35rem] border border-emerald-200/20 bg-[linear-gradient(150deg,rgba(10,35,30,0.96),rgba(5,8,14,0.98))] p-3 shadow-[0_20px_70px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl" aria-label="My next move">
-          <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-emerald-200/18 bg-emerald-300/[0.08] text-emerald-100"><Sparkles className="h-4 w-4" /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-emerald-100/58">My next move</span>
-              <strong className="mt-1 block truncate text-sm text-white">{nextMoves[0].title} · {nextMoves[0].place.label}</strong>
-            </span>
-            <Link href={nextMoves[0].action.href} className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-emerald-300 px-4 text-[9px] font-black uppercase tracking-[0.12em] text-[#032018]">Open</Link>
-          </div>
-        </aside>
-      ) : null}
+      <MyNextMoveTray plans={nextMoves} />
     </main>
   );
 }

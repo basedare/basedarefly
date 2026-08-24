@@ -1,5 +1,26 @@
 # BaseDare Todo
 
+### Task — Live Plan commitment loop (2026-08-24)
+- Owner: Codex
+- Goal: Turn a real RSVP into a useful when/where commitment and repeat-crew loop without fake attendance, artificial scarcity, or streak pressure.
+
+### Plan
+- [x] Audit existing needs-people, invite-link, My Next Move, and repeat behavior.
+- [x] Add honest crew progress plus calendar, map, share, and open-plan tools.
+- [x] Notify the existing crew once when a real RSVP crosses the stated minimum.
+- [x] Show repeat only after an RSVP'd plan ends; never call an RSVP verified attendance.
+- [x] Verify focused policy tests, typechecks, lint, safety, build, responsive UI, and Graphify.
+
+### Guardrails
+- No new persistence, payout, proof, map-renderer, or financial behavior.
+- Participant counts and thresholds must come from real RSVP rows.
+- A closed plan may prompt a repeat but may not claim that participants showed up.
+
+### Review
+- Outcome: Existing Live Plans now close the post-join gap with truthful crew progress, meaningful threshold haptics, a persistent My Next Move utility tray, exact calendar export, canonical map/share actions, crew-unlocked notifications, and a repeat prompt only after an RSVP'd plan ends.
+- Verification: 19/19 focused tests, app/test typechecks, touched-source lint, static production safety, production build, Graphify rebuild, live API smoke, and 390px/1440px browser checks passed. No schema, migration, map-renderer, proof, payout, or contract changes were introduced.
+- Follow-up: Instrument RSVP → calendar/share and ended plan → repeat before adding any broader retention mechanic. Verified attendance remains a separate secure check-in/proof problem.
+
 ### Task — Island Pulse automatic venue feeds (2026-08-13)
 - Owner: Codex
 - Goal: Turn opted-in venue social posts into deduplicated, reviewable map-event candidates without blind auto-publishing or scraping.

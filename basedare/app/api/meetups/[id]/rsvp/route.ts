@@ -1,16 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { isMeetupExpired } from '@/lib/meetups';
 import { resolveHostBaretag } from '@/lib/meetups-server';
 import { createWalletNotification } from '@/lib/notifications';
-import { getMeetupSharePath } from '@/lib/meetup-plan';
+import { didMeetupJustUnlock, getMeetupSharePath } from '@/lib/meetup-plan';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 
 const RsvpSchema = z.object({
   walletAddress: z.string().refine((value) => isAddress(value), 'Valid wallet required').optional(),
 });
+
+async function withSerializableRetry<T>(
+  work: (tx: Prisma.TransactionClient) => Promise<T>,
+) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await prisma.$transaction(work, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
+    } catch (error) {
+      const retryable = error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034';
+      if (!retryable || attempt === 2) throw error;
+    }
+  }
+  throw new Error('MEETUP_RSVP_RETRY_EXHAUSTED');
+}
 
 // POST /api/meetups/[id]/rsvp — Baretag-gated, idempotent RSVP. No value released.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -43,7 +60,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await withSerializableRetry(async (tx) => {
       const meetup = await tx.meetup.findUnique({
         where: { id },
         select: {
@@ -51,6 +68,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           title: true,
           placeLabel: true,
           creatorBaretagId: true,
+          minimumPeople: true,
           status: true,
           startTime: true,
         },
@@ -64,10 +82,36 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         skipDuplicates: true,
       });
       const count = await tx.meetupRsvp.count({ where: { meetupId: id } });
-      return { meetup, count, joinedNow: created.count > 0 };
+      const joinedNow = created.count > 0;
+      const unlockedNow = joinedNow && didMeetupJustUnlock({
+        previousCount: count - created.count,
+        nextCount: count,
+        minimumPeople: meetup.minimumPeople,
+      });
+      const participantBaretagIds = unlockedNow
+        ? (await tx.meetupRsvp.findMany({
+            where: { meetupId: id },
+            select: { baretagId: true },
+          })).map((rsvp) => rsvp.baretagId)
+        : [];
+      return { meetup, count, joinedNow, unlockedNow, participantBaretagIds };
     });
 
-    if (result.joinedNow && result.meetup.creatorBaretagId !== baretag.id) {
+    if (result.unlockedNow) {
+      const crew = await prisma.streamerTag.findMany({
+        where: {
+          id: { in: result.participantBaretagIds, not: baretag.id },
+        },
+        select: { walletAddress: true },
+      });
+      await Promise.allSettled(crew.map((member) => createWalletNotification({
+        wallet: member.walletAddress,
+        type: 'MEETUP_CREW_UNLOCKED',
+        title: 'Crew unlocked',
+        message: `${result.meetup.title} has ${result.count} confirmed.`,
+        link: getMeetupSharePath(id),
+      })));
+    } else if (result.joinedNow && result.meetup.creatorBaretagId !== baretag.id) {
       const creator = await prisma.streamerTag.findUnique({
         where: { id: result.meetup.creatorBaretagId },
         select: { walletAddress: true },
@@ -82,7 +126,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const count = result.count;
-    return NextResponse.json({ success: true, data: { rsvped: true, count } });
+    return NextResponse.json({
+      success: true,
+      data: { rsvped: true, count, unlockedNow: result.unlockedNow },
+    });
   } catch (error) {
     const code = error instanceof Error ? error.message : '';
     if (code === 'MEETUP_NOT_FOUND') {
