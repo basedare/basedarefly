@@ -44,10 +44,6 @@ const PeeBearOrb = dynamic(() => import("@/components/PeeBearOrb"));
 const Lightning = dynamic(() => import("@/components/Lightning"));
 const RealityShift = dynamic(() => import("@/components/RealityShift"));
 const MatrixRain = dynamic(() => import("@/components/MatrixRain"));
-const HomeMarketSignal = dynamic(() => import("@/components/home/HomeMarketSignal"), {
-  loading: () => null,
-});
-
 interface Dare {
   id: string;
   description: string;
@@ -285,29 +281,23 @@ function HomeContent() {
                 </div>
               </div>
 
-              <div className="flex flex-col items-center justify-center -space-y-2 md:-space-y-4 z-10 mb-8 relative z-30 w-full max-w-[100vw] px-4 overflow-hidden">
-                <GlitchText glowColor="#FFD700" className="text-yellow-400 text-[12vw] leading-none md:text-9xl font-black italic tracking-tighter z-20">CONTROL</GlitchText>
-                <h2 className="text-white text-[11vw] md:text-7xl lg:text-8xl font-black italic tracking-tighter uppercase">
-                  THE GRID
+              <div className="relative z-30 mb-8 flex w-full max-w-[100vw] flex-col items-center justify-center overflow-hidden px-4 text-center">
+                <GlitchText glowColor="#FFD700" className="z-20 text-[9.5vw] font-black italic leading-[0.92] tracking-tighter text-white md:text-7xl lg:text-8xl">
+                  PICK A MISSION.
+                </GlitchText>
+                <h2 className="mt-1 text-[10vw] font-black italic uppercase leading-none tracking-tighter text-white md:text-7xl lg:text-8xl">
+                  MAKE IT REAL.
                 </h2>
+                <p className="mt-2 text-[9vw] font-black italic uppercase leading-none tracking-tighter text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.26)] md:text-6xl lg:text-7xl">
+                  GET PAID.
+                </p>
               </div>
 
-              {/* First-touch clarity: working headline + the 5 beats + role entry points */}
+              {/* First-touch clarity: one honest promise, then the two useful entry paths. */}
               <div className="relative z-30 mb-12 w-full max-w-3xl px-6 text-center">
-                <p className="text-2xl font-black italic tracking-[-0.03em] text-white sm:text-3xl">
-                  Show up. Prove it. <span className="text-[#f5c518]">Get paid.</span>
+                <p className="mx-auto max-w-2xl text-sm font-bold leading-6 text-white/64 sm:text-base">
+                  Check a place, capture a moment, or create something for a venue or brand. Once your work is approved, you get paid.
                 </p>
-                <p className="mt-2 text-sm font-bold leading-6 text-white/60 sm:text-base">
-                  Real-world dares, verified by being there — paid out instantly.
-                </p>
-                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/38">
-                  {['Fund a dare', 'Someone shows up', 'QR + GPS proves it', 'They get paid', 'Venue gets the receipt'].map((beat, index) => (
-                    <span key={beat} className="inline-flex items-center gap-2">
-                      {index > 0 ? <span className="text-[#f5c518]/55">→</span> : null}
-                      {beat}
-                    </span>
-                  ))}
-                </div>
                 <div className="mt-7">
                   <RoleChoiceCards />
                 </div>
@@ -387,7 +377,6 @@ function HomeContent() {
 
                   <div className="relative z-10">
                     <PremiumBentoGrid dares={dares} />
-                    {showBelowFoldSections ? <HomeMarketSignal variant="embedded" /> : null}
                   </div>
 
           </div>
