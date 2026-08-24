@@ -1,10 +1,13 @@
 import 'server-only';
 
+import { cache } from 'react';
+
 import { prisma } from '@/lib/prisma';
 import {
   buildCreatorMissionCopy,
   calculateCreatorPayout,
   isCreatorMissionAvailable,
+  isCreatorMissionFunnelCandidate,
   isPublicFacingDareTitle,
 } from '@/lib/creator-mission-policy';
 
@@ -28,6 +31,7 @@ export type CreatorMission = {
   baseDareCanDisplay: boolean;
   sponsorReuseNeedsOptIn: boolean;
   isAvailable: boolean;
+  isFunnelCandidate: boolean;
   status: string;
   claimRequestWallet: string | null;
   claimRequestStatus: string | null;
@@ -70,9 +74,9 @@ async function fetchMissionRows() {
       isSimulated: false,
       claimedBy: null,
       targetWalletAddress: null,
-      claimRequestStatus: null,
       AND: [
         { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
+        { OR: [{ claimRequestStatus: null }, { claimRequestStatus: 'REJECTED' }] },
         {
           OR: [
             { streamerHandle: null },
@@ -120,6 +124,7 @@ function shapeCreatorMission(row: CreatorMissionRow, now = new Date()): CreatorM
     baseDareCanDisplay: copy.baseDareCanDisplay,
     sponsorReuseNeedsOptIn: copy.sponsorReuseNeedsOptIn,
     isAvailable: isCreatorMissionAvailable(row, now),
+    isFunnelCandidate: isCreatorMissionFunnelCandidate(row, now),
     status: row.status,
     claimRequestWallet: row.claimRequestWallet,
     claimRequestStatus: row.claimRequestStatus,
@@ -139,7 +144,7 @@ export async function getCreatorMissions(): Promise<CreatorMission[]> {
   }
 }
 
-export async function getCreatorMissionByShortId(shortId: string): Promise<CreatorMission | null> {
+export const getCreatorMissionByShortId = cache(async (shortId: string): Promise<CreatorMission | null> => {
   try {
     const row = await prisma.dare.findFirst({
       where: {
@@ -155,4 +160,4 @@ export async function getCreatorMissionByShortId(shortId: string): Promise<Creat
     console.error('[CREATOR MISSIONS] Unable to load mission:', error);
     return null;
   }
-}
+});

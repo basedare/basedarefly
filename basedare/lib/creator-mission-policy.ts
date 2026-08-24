@@ -52,6 +52,10 @@ function readSnapshot(value: unknown): CreatorMissionSnapshot | null {
   return value as CreatorMissionSnapshot;
 }
 
+export function requiresSponsorCommercialReuseConsent(snapshotValue: unknown): boolean {
+  return readSnapshot(snapshotValue)?.rights?.sponsorCommercialReuseRequired === true;
+}
+
 export function isPublicFacingDareTitle(title: string | null | undefined): boolean {
   if (!title?.trim()) return false;
   return !TEST_DARE_PATTERNS.some((pattern) => pattern.test(title));
@@ -62,7 +66,11 @@ export function isOpenCreatorHandle(handle: string | null | undefined): boolean 
   return OPEN_HANDLES.has(handle.trim().toLowerCase());
 }
 
-export function isCreatorMissionAvailable(
+function isVacantCreatorMissionRequest(status: string | null | undefined): boolean {
+  return status == null || status === 'REJECTED';
+}
+
+export function isCreatorMissionFunnelCandidate(
   mission: CreatorMissionRecord,
   now: Date = new Date(),
 ): boolean {
@@ -75,8 +83,19 @@ export function isCreatorMissionAvailable(
     isOpenCreatorHandle(mission.streamerHandle) &&
     !mission.claimedBy &&
     !mission.targetWalletAddress &&
-    !mission.claimRequestStatus &&
+    [null, 'PENDING', 'REJECTED'].includes(mission.claimRequestStatus) &&
     (!mission.expiresAt || mission.expiresAt.getTime() >= now.getTime())
+  );
+}
+
+export function isCreatorMissionAvailable(
+  mission: CreatorMissionRecord,
+  now: Date = new Date(),
+): boolean {
+  return (
+    isCreatorMissionFunnelCandidate(mission, now) &&
+    isVacantCreatorMissionRequest(mission.claimRequestStatus) &&
+    !requiresSponsorCommercialReuseConsent(mission.outcomeContractSnapshot)
   );
 }
 
@@ -144,7 +163,7 @@ export function buildCreatorMissionCopy(input: {
     safety: (snapshot?.safetyRestrictions ?? []).filter(Boolean).slice(0, 3),
     prohibited: (snapshot?.prohibitedManipulation ?? []).filter(Boolean).slice(0, 2),
     baseDareCanDisplay: snapshot?.rights?.baseDareDisplay !== false,
-    sponsorReuseNeedsOptIn: snapshot?.rights?.sponsorCommercialReuseRequired === true,
+    sponsorReuseNeedsOptIn: requiresSponsorCommercialReuseConsent(input.outcomeContractSnapshot),
   };
 }
 

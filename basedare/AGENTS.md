@@ -16,6 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex paid-mission contributor funnel (2026-08-24)
+- Codex is shipping `/earn` as the plain-language paid contributor entry: mission and net payout before sign-in, moderated **Request mission**, then the unchanged claim → proof → review → payout → receipt lifecycle.
+- Eligible Board rewards and homepage paid-work CTAs enter `/earn`; eligible legacy `/dare/<short-id>` links redirect there so map links converge without editing the Claude-owned map renderer.
+- Sponsor-commercial-reuse-required missions are hidden from `/earn` and blocked at the claim API until explicit versioned consent exists. A rejected request releases the request slot for the next exact-CAS request.
+- Files touched include `app/earn/*`, the narrow `/dare` layout redirect, claim/bounty response routing, creator mission policy/read model/components, `lib/board.ts`, and two minimal homepage paid-work CTA files (`HomeMarketSignal.tsx`, `RoleChoiceCards.tsx`). No map renderer, proof, payout, contract, schema, or migration changes.
+
 ### Codex Island Pulse venue events (2026-08-13 — SHIPPED)
 - Codex owns the first sourced venue-event slice: new event signal/event/RSVP models and migration, `lib/venue-events*`, public/admin event APIs and pages, compact community + venue-page integrations, and canonical nearby-venue `eventPulse` data.
 - Opted-in Instagram professional accounts can now attach to canonical venues through an encrypted server-only feed registry. An hourly CRON fetches recent media through Meta's API, filters event-like captions, deduplicates by platform media id, and queues drafts for review; it never auto-publishes.

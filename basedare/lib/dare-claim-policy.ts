@@ -47,6 +47,11 @@ export function isPendingClaimStale(
   return now.getTime() - claimRequestedAt.getTime() > ttlMs;
 }
 
+/** A rejected request releases the mission back to the public pool. */
+export function isVacantClaimRequestStatus(status: string | null | undefined): boolean {
+  return status == null || status === 'REJECTED';
+}
+
 /**
  * Decide whether `claimantWallet` may take the single claim slot on `dare`.
  * Deterministic and side-effect free — the caller performs a compare-and-set
@@ -106,6 +111,15 @@ export function evaluateClaimEligibility(
       code: 'SLOT_TAKEN',
       message:
         'Another wallet has a pending claim request. Please wait for moderator review or try again shortly.',
+    };
+  }
+
+  if (!isVacantClaimRequestStatus(dare.claimRequestStatus)) {
+    return {
+      ok: false,
+      status: 409,
+      code: 'CLAIM_STATE_BLOCKED',
+      message: 'This mission is no longer accepting requests.',
     };
   }
 

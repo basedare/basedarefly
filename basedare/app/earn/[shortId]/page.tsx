@@ -40,10 +40,10 @@ function formatDeadline(expiresAt: Date | null) {
 export async function generateMetadata({ params }: MissionPageProps): Promise<Metadata> {
   const { shortId } = await params;
   const mission = await getCreatorMissionByShortId(shortId);
-  if (!mission) return { title: 'Creator Mission | BaseDare' };
+  if (!mission) return { title: 'Paid Mission | BaseDare' };
   return {
-    title: `${mission.title} | BaseDare Creator Mission`,
-    description: `${mission.typeLabel}. ${formatUsdc(mission.creatorPayout)} USDC after approval.`,
+    title: `${mission.title} | BaseDare Paid Mission`,
+    description: `${mission.typeLabel}. ${formatUsdc(mission.creatorPayout)} USDC when the work is approved.`,
     alternates: { canonical: `/earn/${encodeURIComponent(mission.shortId)}` },
   };
 }
@@ -76,7 +76,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
                   {mission.typeLabel}
                 </span>
                 <span className="rounded-full border border-emerald-200/16 bg-emerald-300/[0.05] px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100">
-                  Paid creator mission
+                  Paid mission
                 </span>
               </div>
 
@@ -87,7 +87,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
               </div>
 
               <div className={`${controlInset} mt-7 p-5 sm:p-6`}>
-                <p className={controlMicroLabel}>What to make</p>
+                <p className={controlMicroLabel}>What to do</p>
                 <p className="mt-3 text-xl font-black leading-8 text-white">{mission.whatToMake}</p>
                 <div className="mt-5 border-t border-white/8 pt-4">
                   <p className="flex items-start gap-2 text-sm font-semibold leading-6 text-white/58">
@@ -122,7 +122,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
               <div className="rounded-[26px] border border-yellow-200/18 bg-[linear-gradient(180deg,rgba(255,227,106,0.1),rgba(7,7,12,0.94)_38%)] p-5 shadow-[0_22px_52px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.1)] sm:p-6">
                 <p className={controlMicroLabel}>You receive</p>
                 <p className="mt-2 text-5xl font-black tracking-tight text-yellow-200">{formatUsdc(mission.creatorPayout)}</p>
-                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/38">USDC after approval</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/38">USDC when your work is approved</p>
                 <p className="mt-4 text-xs leading-5 text-white/42">
                   {formatUsdc(mission.grossReward)} USDC reward less the 4% settlement fee.
                 </p>
@@ -134,6 +134,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
                   shortId={mission.shortId}
                   title={mission.title}
                   isAvailable={mission.isAvailable}
+                  sponsorReuseNeedsOptIn={mission.sponsorReuseNeedsOptIn}
                   initialClaimRequestWallet={mission.claimRequestWallet}
                   initialClaimRequestStatus={mission.claimRequestStatus}
                 />
@@ -149,7 +150,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
 
         <div className="mt-5 flex justify-center">
           <Link href="/earn" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/45 hover:text-white">
-            <Sparkles className="h-4 w-4 text-cyan-200" aria-hidden="true" /> See all creator missions
+            <Sparkles className="h-4 w-4 text-cyan-200" aria-hidden="true" /> See all paid missions
           </Link>
         </div>
       </div>

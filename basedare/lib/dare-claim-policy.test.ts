@@ -8,6 +8,7 @@ import {
   isOpenHandle,
   isRealCreatorHandle,
   isPendingClaimStale,
+  isVacantClaimRequestStatus,
   PENDING_CLAIM_TTL_MS,
   type ClaimDareSnapshot,
 } from './dare-claim-policy.ts';
@@ -45,6 +46,23 @@ test('handle helpers', () => {
 test('fresh open dare is claimable by a non-funder wallet', () => {
   const r = evaluateClaimEligibility(openDare(), CLAIMER, NOW);
   assert.deepEqual(r, { ok: true, kind: 'FRESH' });
+});
+
+test('a rejected request releases the mission for a new request', () => {
+  const r = evaluateClaimEligibility(
+    openDare({ claimRequestStatus: 'REJECTED' }),
+    CLAIMER,
+    NOW,
+  );
+  assert.deepEqual(r, { ok: true, kind: 'FRESH' });
+  assert.equal(isVacantClaimRequestStatus('REJECTED'), true);
+});
+
+test('unknown or approved request states fail closed', () => {
+  for (const status of ['APPROVED', 'UNKNOWN']) {
+    const r = evaluateClaimEligibility(openDare({ claimRequestStatus: status }), CLAIMER, NOW);
+    assert.equal(r.ok === false && r.code, 'CLAIM_STATE_BLOCKED');
+  }
 });
 
 test('null handle counts as open', () => {

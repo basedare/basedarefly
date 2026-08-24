@@ -49,7 +49,7 @@ Operationalize BaseDare as a remote-first playable social map:
 | --- | --- | --- | --- | --- |
 | 1 | Reconcile `PHILOSOPHY.md` and Brain vision | codex | DONE | One remote-first canon now governs both agent entrypoints |
 | 2 | Universal consumer onboarding language | codex | DEPLOYED | Measure `/join` and map-to-action behavior with ordinary tourists and locals |
-| 3 | Creator mission-first onboarding | product/growth + human | SOFTWARE_READY_FOR_PILOT | Send five creators an exact funded `/earn/<mission>` link and record unaided understanding, accept conversion and every clarification question |
+| 3 | Creator mission-first onboarding | product/growth + human | SOFTWARE_READY_FOR_PILOT | Send five contributors an exact funded `/earn/<mission>` link and record unaided understanding, request conversion and every clarification question |
 | 4 | Preview-test claim + proximity rail | product/release | READY | Apply migrations to preview and run claim → proof → review/reject → payout/retry smoke |
 | 5 | Capture sponsor-usable media/data rights | product/legal | PARTIAL | Add explicit campaign commercial-use consent; existing Terms cover only BaseDare display/promotion |
 | 6 | Seed one playable-map alpha | growth/product | NEXT | Prepare 10–12 free Sparks, 3–4 social activities, 3–4 paid Dares and 2 Routes in one micro-area |

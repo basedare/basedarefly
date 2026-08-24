@@ -15,7 +15,7 @@ export function CreatorMissionShareButton({ missionId, title }: { missionId: str
       if (navigator.share) {
         await navigator.share({
           title: `BaseDare · ${title}`,
-          text: `Paid creator mission: ${title}`,
+          text: `Paid BaseDare mission: ${title}`,
           url,
         });
         return;

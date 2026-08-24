@@ -13,6 +13,7 @@ import {
   resolveCommunitySparkPlayAccess,
 } from '@/lib/community-spark-map-policy';
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
+import { requiresSponsorCommercialReuseConsent } from '@/lib/creator-mission-policy';
 
 // ============================================================================
 // CLAIM DARE API - For @open dares (moderated claim request flow)
@@ -110,6 +111,17 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Dare not found' }, { status: 404 });
     }
 
+    if (requiresSponsorCommercialReuseConsent(dare.outcomeContractSnapshot)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'This mission needs an explicit sponsor-use consent step before requests can open.',
+          code: 'SPONSOR_REUSE_CONSENT_REQUIRED',
+        },
+        { status: 409 },
+      );
+    }
+
     if (isCommunitySparkRecord({ bounty: dare.bounty, missionTag: dare.tag })) {
       const targetLatitude = dare.latitude ?? dare.venue?.latitude ?? null;
       const targetLongitude = dare.longitude ?? dare.venue?.longitude ?? null;
@@ -201,9 +213,10 @@ export async function POST(
     }
 
     // Compare-and-set: only win the slot if the exact observed state is intact.
-    // FRESH → the slot must still be empty; STALE_TAKEOVER → the same stale
-    // request we saw must still be present. A concurrent writer that changed the
-    // row makes count === 0 → 409.
+    // FRESH → the slot must still match the vacant state we observed (null or a
+    // released REJECTED request); STALE_TAKEOVER → the same stale request we saw
+    // must still be present. A concurrent writer that changed the row makes
+    // count === 0 → 409.
     // Open-ness (exact observed handle), unassigned, PENDING, and unexpired are
     // all inside the predicate, so time passing or a concurrent handle/claim
     // change makes the write lose (count 0 → 409).
@@ -227,7 +240,10 @@ export async function POST(
             claimedBy: null,
             targetWalletAddress: null,
             streamerHandle: dare.streamerHandle,
-            claimRequestStatus: null,
+            claimRequestStatus: dare.claimRequestStatus,
+            claimRequestWallet: dare.claimRequestWallet,
+            claimRequestTag: dare.claimRequestTag,
+            claimRequestedAt: dare.claimRequestedAt,
             ...unexpired,
           };
 

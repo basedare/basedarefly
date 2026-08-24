@@ -53,7 +53,7 @@ updated_at: 2026-08-24
 | Autonomous treasury | NEXT | Define spend caps, multisig thresholds, fraud tripwires, pause rules, and audit logs |
 | Remote verification | READY_PREVIEW | Apply migrations and smoke-test submission proximity, then measure automated versus Sentinel review cost |
 | Consumer first action | DEPLOYED | Measure `/join` and plain-language navigation → map → action-open conversion |
-| Creator first value | SOFTWARE_READY_FOR_PILOT | Send five creators exact `/earn/<mission>` links; measure unaided understanding, accept requests and clarification questions before expanding profile onboarding |
+| Creator first value | SOFTWARE_READY_FOR_PILOT | Send five contributors exact `/earn/<mission>` links; measure unaided understanding, mission requests and clarification questions before expanding profile onboarding |
 | Short-form participation | READY | Run 12 artifact-led TikTok/Instagram episodes across three locked series; optimize for qualified map actions, not followers |
 | Cross-browser creator attribution | ALPHA_LIVE | Portable share/copy continuation passed a production database-backed smoke. Verify the Resend domain before enabling email, then test real Instagram/TikTok → Safari/Chrome continuation on iOS and Android; keep performance bonuses disabled |
 | Earned venue access | PILOT_GATED | Official verified contact routes are live. Recruit three claimed venues, authorize one Ambassador and fund one attributable perk each, then measure response, arrival, redemption, repeat and complaint rates before building tiers or subscriptions |

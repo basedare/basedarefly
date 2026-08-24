@@ -43,7 +43,7 @@ export default function HomeMarketSignal({ variant = 'standalone' }: HomeMarketS
 
           <div className="grid gap-2 sm:grid-cols-2 lg:w-[25rem]">
             <Link
-              href="/join?source=home-market-signal"
+              href="/earn?source=home-market-signal"
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#f5c518]/30 bg-[linear-gradient(180deg,rgba(245,197,24,0.2),rgba(245,197,24,0.08))] px-4 py-3 text-center text-[10px] font-black uppercase tracking-[0.11em] text-[#f9e27a] shadow-[0_14px_24px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_16px_rgba(0,0,0,0.2)] transition hover:border-[#f5c518]/48 active:scale-[0.985]"
             >
               <Zap className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />

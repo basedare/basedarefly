@@ -5,6 +5,7 @@ import {
   buildCreatorMissionCopy,
   calculateCreatorPayout,
   isCreatorMissionAvailable,
+  isCreatorMissionFunnelCandidate,
   isPublicFacingDareTitle,
   type CreatorMissionRecord,
 } from './creator-mission-policy.ts';
@@ -34,7 +35,18 @@ test('only genuine open paid missions enter the creator feed', () => {
   assert.equal(isCreatorMissionAvailable(openMission({ isSimulated: true }), now), false);
   assert.equal(isCreatorMissionAvailable(openMission({ streamerHandle: '@specific' }), now), false);
   assert.equal(isCreatorMissionAvailable(openMission({ claimRequestStatus: 'PENDING' }), now), false);
+  assert.equal(isCreatorMissionAvailable(openMission({ claimRequestStatus: 'REJECTED' }), now), true);
   assert.equal(isCreatorMissionAvailable(openMission({ expiresAt: new Date('2026-08-22T23:59:59.000Z') }), now), false);
+});
+
+test('sponsor-reuse missions stay in the clear mission view but cannot receive requests', () => {
+  const mission = openMission({
+    outcomeContractSnapshot: {
+      rights: { sponsorCommercialReuseRequired: true },
+    },
+  });
+  assert.equal(isCreatorMissionFunnelCandidate(mission), true);
+  assert.equal(isCreatorMissionAvailable(mission), false);
 });
 
 test('QA and smoke rows stay off public creator surfaces', () => {

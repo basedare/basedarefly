@@ -34,7 +34,7 @@ export function CreatorMissionCard({ mission }: { mission: CreatorMission }) {
             {formatUsdc(mission.creatorPayout)}
           </strong>
           <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-white/34">
-            USDC after approval
+            USDC when your work is approved
           </span>
         </span>
       </div>
@@ -56,7 +56,7 @@ export function CreatorMissionCard({ mission }: { mission: CreatorMission }) {
       </div>
 
       <span className="mt-auto inline-flex items-center gap-2 pt-7 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100">
-        Open mission
+        View mission
         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
       </span>
     </Link>

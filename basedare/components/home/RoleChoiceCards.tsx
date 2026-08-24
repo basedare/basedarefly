@@ -17,9 +17,9 @@ export default function RoleChoiceCards() {
       </p>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        {/* Creator — the spark. Prominent (gold). */}
+        {/* Paid work — show the mission before profile setup. */}
         <Link
-          href="/creators/signup"
+          href="/earn?source=home-role"
           prefetch={false}
           className={`group ${controlSoftCard} flex flex-col gap-3 border-yellow-300/25 p-5 text-left transition hover:border-yellow-300/45 sm:p-6`}
         >
@@ -32,17 +32,17 @@ export default function RoleChoiceCards() {
           </span>
           <div className="relative">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-200/70">
-              Founding creator
+              Paid missions
             </p>
             <h3 className="mt-1 text-xl font-black italic tracking-[-0.02em] text-white sm:text-2xl">
-              I&apos;m joining as a creator
+              I want paid work
             </h3>
             <p className="mt-2 text-sm font-bold leading-6 text-white/64">
-              Show up. Post it. Bring people. Get paid.
+              Pick a mission. Do the work. Submit it. Get paid when approved.
             </p>
           </div>
           <span className="relative mt-auto inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#f5c518]">
-            Become a founding creator
+            See paid missions
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </span>
         </Link>

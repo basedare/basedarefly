@@ -19,6 +19,7 @@ type CreatorMissionAcceptClientProps = {
   shortId: string;
   title: string;
   isAvailable: boolean;
+  sponsorReuseNeedsOptIn: boolean;
   initialClaimRequestWallet: string | null;
   initialClaimRequestStatus: string | null;
 };
@@ -28,6 +29,7 @@ export function CreatorMissionAcceptClient({
   shortId,
   title,
   isAvailable,
+  sponsorReuseNeedsOptIn,
   initialClaimRequestWallet,
   initialClaimRequestStatus,
 }: CreatorMissionAcceptClientProps) {
@@ -48,11 +50,11 @@ export function CreatorMissionAcceptClient({
     requestStatus === 'PENDING' && Boolean(normalizedWallet) && requestWallet === normalizedWallet;
   const anotherRequestIsPending = requestStatus === 'PENDING' && !isMyPendingRequest;
 
-  const acceptMission = async () => {
+  const requestMission = async () => {
     if (!address || !waiverAccepted || !isAvailable) return;
     setLoading(true);
     setError(null);
-    trackClientEvent('creator_mission_accept_started', { mission_id: missionId });
+    trackClientEvent('creator_mission_request_started', { mission_id: missionId });
     try {
       const authHeaders = await buildWalletActionAuthHeaders({
         walletAddress: address,
@@ -73,9 +75,9 @@ export function CreatorMissionAcceptClient({
       }
       setRequestWallet(address.toLowerCase());
       setRequestStatus('PENDING');
-      trackClientEvent('creator_mission_accept_requested', { mission_id: missionId });
-    } catch (acceptError) {
-      setError(acceptError instanceof Error ? acceptError.message : 'Unable to request this mission.');
+      trackClientEvent('creator_mission_request_submitted', { mission_id: missionId });
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Unable to request this mission.');
     } finally {
       setLoading(false);
     }
@@ -95,9 +97,17 @@ export function CreatorMissionAcceptClient({
     return (
       <div className="rounded-[22px] border border-white/10 bg-black/24 p-5 text-center">
         <p className="text-base font-black text-white">
-          {anotherRequestIsPending ? 'Another creator is being reviewed' : 'This mission is not currently open'}
+          {anotherRequestIsPending
+            ? 'Another contributor is being reviewed'
+            : sponsorReuseNeedsOptIn
+              ? 'This mission needs a clearer rights agreement'
+              : 'This mission is not currently open'}
         </p>
-        <p className="mt-2 text-sm leading-6 text-white/46">Browse the live creator missions for another brief.</p>
+        <p className="mt-2 text-sm leading-6 text-white/46">
+          {sponsorReuseNeedsOptIn
+            ? 'Requests stay closed until explicit sponsor-use consent is available.'
+            : 'Browse the live paid missions for another brief.'}
+        </p>
         <CosmicButton href="/earn" variant="blue" size="md" className="mt-4">
           See open missions
         </CosmicButton>
@@ -117,7 +127,7 @@ export function CreatorMissionAcceptClient({
         <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-white/50">
           {isBlockedWebview
             ? `Save it, then open the pass in Safari or Chrome outside ${socialWebviewLabel}.`
-            : 'Sign in only when you are ready to request it. No creator profile is required first.'}
+            : 'Sign in only when you are ready to request it. No public profile is required first.'}
         </p>
         <div className="mt-4 flex justify-center">
           {isBlockedWebview ? (
@@ -125,7 +135,7 @@ export function CreatorMissionAcceptClient({
               Save Mission Pass
             </CosmicButton>
           ) : (
-            <IdentityButton disconnectedLabel="Sign in to accept" />
+            <IdentityButton disconnectedLabel="Sign in to request" />
           )}
         </div>
         <MissionPassSheet
@@ -135,7 +145,7 @@ export function CreatorMissionAcceptClient({
           targetId={missionId}
           targetHref={`/earn/${encodeURIComponent(shortId)}`}
           title={title}
-          description="Save this paid creator mission and continue in Safari or Chrome when you are ready to accept it."
+          description="Save this paid mission and continue in Safari or Chrome when you are ready to request it."
         />
       </div>
     );
@@ -151,7 +161,7 @@ export function CreatorMissionAcceptClient({
       />
       {error ? <p className="mt-3 text-sm font-semibold text-red-300">{error}</p> : null}
       <CosmicButton
-        onClick={() => void acceptMission()}
+        onClick={() => void requestMission()}
         disabled={loading || !waiverAccepted}
         variant="gold"
         size="lg"
@@ -159,10 +169,10 @@ export function CreatorMissionAcceptClient({
         className="mt-4"
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-        Accept mission
+        Request mission
       </CosmicButton>
       <p className="mt-3 text-center text-xs leading-5 text-white/38">
-        This sends a request. Work starts after BaseDare approves and assigns the mission to you.
+        Work starts only after BaseDare approves and assigns the mission to you.
       </p>
     </div>
   );

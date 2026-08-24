@@ -16,15 +16,16 @@ import { getCreatorMissions } from '@/lib/creator-missions-server';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Paid Creator Missions | BaseDare',
-  description: 'Pick a real-world brief, make the content, submit your work, and get paid when approved.',
+  title: 'Paid Missions | BaseDare',
+  description: 'Pick a real-world mission, do the work, submit it, and get paid when your work is approved.',
   alternates: { canonical: '/earn' },
 };
 
 const LOOP = [
-  ['1', 'Pick a brief'],
-  ['2', 'Make the content'],
-  ['3', 'Get paid when approved'],
+  ['1', 'Pick'],
+  ['2', 'Do'],
+  ['3', 'Submit'],
+  ['4', 'Get paid'],
 ] as const;
 
 export default async function EarnPage() {
@@ -41,12 +42,12 @@ export default async function EarnPage() {
           <div className={controlHairline} />
           <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
-              <p className={`${controlMicroLabel} text-cyan-100/62`}>Paid creator missions</p>
+              <p className={`${controlMicroLabel} text-cyan-100/62`}>Paid missions</p>
               <h1 className="mt-3 max-w-4xl text-4xl font-black leading-[0.96] text-white sm:text-6xl">
-                Pick a brief. Make it. Get paid.
+                Pick a mission. Make it real. Get paid.
               </h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/55 sm:text-base">
-                See the work and payout first. Sign in only when you want to accept a mission.
+                Check a place, capture a moment, or create something for a venue or brand. Sign in only when you want to request it.
               </p>
             </div>
             <Link
@@ -58,7 +59,7 @@ export default async function EarnPage() {
             </Link>
           </div>
 
-          <div className="mt-7 grid gap-2 sm:grid-cols-3">
+          <div className="mt-7 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {LOOP.map(([number, label]) => (
               <div key={number} className={`${controlInset} flex items-center gap-3 px-4 py-3`}>
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-yellow-300 text-xs font-black text-black">{number}</span>
@@ -86,7 +87,7 @@ export default async function EarnPage() {
           ) : (
             <div className={`${controlPanel} px-6 py-10 text-center sm:px-10`}>
               <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-200" aria-hidden="true" />
-              <h2 className="mt-4 text-2xl font-black text-white">No open creator missions right now</h2>
+              <h2 className="mt-4 text-2xl font-black text-white">No open paid missions right now</h2>
               <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/48">
                 BaseDare does not show fake jobs to make the page look busy. Check back after the next funded brief goes live.
               </p>
@@ -110,7 +111,7 @@ export default async function EarnPage() {
 
         <section className="mx-auto mt-8 flex max-w-3xl items-start gap-3 rounded-[22px] border border-white/8 bg-black/24 px-5 py-4 text-xs leading-5 text-white/42">
           <WalletCards className="mt-0.5 h-4 w-4 shrink-0 text-violet-200" aria-hidden="true" />
-          <p>A creator profile builds after real work. It does not block you from seeing a brief or requesting an open mission.</p>
+          <p>A public profile can build after real work. It does not block you from seeing or requesting an open mission.</p>
         </section>
       </div>
     </main>

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { isPublicFacingDareTitle } from '@/lib/creator-mission-policy';
+import { isCreatorMissionAvailable, isPublicFacingDareTitle } from '@/lib/creator-mission-policy';
 
 /**
  * The Board — flyer projection (scout/IRL operating layer).
@@ -43,7 +43,6 @@ export type BoardSections = {
   placesLitUp: Flyer[];
 };
 
-const OPEN_DARE_EXCLUDE = ['EXPIRED', 'FAILED', 'VERIFIED', 'PAID', 'COMPLETED', 'REFUNDED', 'DECLINED'];
 const COMPLETED_DARE_STATUSES = ['VERIFIED', 'PAID', 'COMPLETED'];
 const TONES: FlyerTone[] = ['gold', 'cyan', 'emerald', 'violet'];
 
@@ -89,8 +88,43 @@ export async function getBoardSections(opts: { city?: string } = {}): Promise<Bo
         ? prisma.venue.findMany({ where: { id: { in: venueIds }, ...cityFilter }, select: { id: true, slug: true, name: true, city: true } })
         : Promise.resolve([] as Array<{ id: string; slug: string; name: string; city: string | null }>),
       prisma.dare.findMany({
-        where: { venueId: { not: null }, status: { notIn: OPEN_DARE_EXCLUDE }, bounty: { gt: 0 }, ...relCityFilter },
-        select: { id: true, shortId: true, title: true, bounty: true, streamerHandle: true, venue: { select: { slug: true, name: true, city: true } } },
+        where: {
+          venueId: { not: null },
+          status: 'PENDING',
+          bounty: { gt: 0 },
+          isSimulated: false,
+          claimedBy: null,
+          targetWalletAddress: null,
+          AND: [
+            { OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }] },
+            { OR: [{ claimRequestStatus: null }, { claimRequestStatus: 'REJECTED' }] },
+            {
+              OR: [
+                { streamerHandle: null },
+                { streamerHandle: { equals: '@open', mode: 'insensitive' } },
+                { streamerHandle: { equals: '@everyone', mode: 'insensitive' } },
+              ],
+            },
+          ],
+          ...relCityFilter,
+        },
+        select: {
+          id: true,
+          shortId: true,
+          title: true,
+          status: true,
+          bounty: true,
+          isSimulated: true,
+          missionMode: true,
+          tag: true,
+          streamerHandle: true,
+          claimedBy: true,
+          targetWalletAddress: true,
+          claimRequestStatus: true,
+          expiresAt: true,
+          outcomeContractSnapshot: true,
+          venue: { select: { slug: true, name: true, city: true } },
+        },
         orderBy: { createdAt: 'desc' },
         take: 24,
       }),
@@ -133,7 +167,7 @@ export async function getBoardSections(opts: { city?: string } = {}): Promise<Bo
     });
 
     const rewards: Flyer[] = openDares
-      .filter((dare) => dare.venue && isPublicFacingDareTitle(dare.title))
+      .filter((dare) => dare.venue && isCreatorMissionAvailable(dare))
       .map((dare) => ({
         id: `dare:${dare.id}`,
         kind: 'MISSION' as const,
@@ -141,13 +175,11 @@ export async function getBoardSections(opts: { city?: string } = {}): Promise<Bo
         venueName: dare.venue?.name ?? null,
         venueSlug: dare.venue?.slug ?? null,
         city: dare.venue?.city ?? null,
-        detail: dare.streamerHandle?.trim()
-          ? `Targeted · @${dare.streamerHandle.replace(/^@/, '')}`
-          : 'Open dare — claim it, prove it, get paid.',
+        detail: 'Open paid mission — request it, do the work, submit, get paid.',
         stamps: ['REWARD', 'CHECK_IN_OPEN'],
         metricValue: formatAmount(dare.bounty),
         metricLabel: 'USDC bounty',
-        href: dare.shortId ? `/dare/${encodeURIComponent(dare.shortId)}` : '/map',
+        href: dare.shortId ? `/earn/${encodeURIComponent(dare.shortId)}` : '/earn',
         tone: 'gold',
         sortWeight: 500 + Math.min(dare.bounty, 5000),
       }));

@@ -678,7 +678,9 @@ export async function POST(request: NextRequest) {
           body: isCommunitySpark
             ? `Free community proof${locationLabel ? ` · ${locationLabel}` : ''}`
             : `${effectiveAmount} USDC${locationLabel ? ` · ${locationLabel}` : ''}`,
-          url: `/dare/${shortId}`,
+          url: isOpenBounty && !isCommunitySpark && effectiveAmount > 0
+            ? `/earn/${shortId}`
+            : `/dare/${shortId}`,
           latitude,
           longitude,
           radiusKm: discoveryRadiusKm ?? 5,
@@ -723,7 +725,9 @@ export async function POST(request: NextRequest) {
           status: dareStatus,
           expiresAt: expiresAt.toISOString(),
           shortId,
-          shareUrl: `/dare/${shortId}`,
+          shareUrl: isOpenBounty && !isCommunitySpark && effectiveAmount > 0
+            ? `/earn/${shortId}`
+            : `/dare/${shortId}`,
           venueId: canonicalVenueId,
           // Invite flow fields
           awaitingClaim: isAwaitingClaim,
@@ -1002,7 +1006,7 @@ export async function POST(request: NextRequest) {
       void sendNearbyDarePush({
         title: `Nearby dare: ${title}`,
         body: `${amount} USDC${locationLabel ? ` · ${locationLabel}` : ''}`,
-        url: `/dare/${shortId}`,
+        url: isOpenBounty && amount > 0 ? `/earn/${shortId}` : `/dare/${shortId}`,
         latitude,
         longitude,
         radiusKm: discoveryRadiusKm ?? 5,
@@ -1045,7 +1049,7 @@ export async function POST(request: NextRequest) {
         status: dareStatus,
         expiresAt: expiresAt.toISOString(),
         shortId,
-        shareUrl: `/dare/${shortId}`,
+        shareUrl: isOpenBounty && amount > 0 ? `/earn/${shortId}` : `/dare/${shortId}`,
         // Invite flow fields
         awaitingClaim: isAwaitingClaim,
         inviteLink,
