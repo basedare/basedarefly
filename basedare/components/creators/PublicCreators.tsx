@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight, Star, MapPin, Clock, Briefcase, Radio } from "lucide-react";
-import LiquidBackground from "@/components/LiquidBackground";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
@@ -290,7 +289,6 @@ export default function CreatorsPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      <LiquidBackground />
       <div className="fixed inset-0 z-10 pointer-events-none">
         <GradualBlurOverlay />
       </div>

@@ -37,7 +37,6 @@ const MetallicText = dynamic(() => import("@/components/MetallicText"), {
   loading: () => <div className="h-full w-full" aria-hidden="true" />,
 });
 const ParticleNetwork = dynamic(() => import("@/components/ParticleNetwork"));
-const LiquidBackground = dynamic(() => import("@/components/LiquidBackground"));
 const GradualBlurOverlay = dynamic(() => import("@/components/GradualBlurOverlay"));
 const PeeBearConveyor = dynamic(() => import("@/components/PeeBearConveyor"));
 const PeeBearOrb = dynamic(() => import("@/components/PeeBearOrb"));
@@ -191,15 +190,8 @@ function HomeContent() {
   return (
     <main className="flex flex-col items-center min-h-screen bg-transparent font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
       {view === 'FAN' ? (
-        <LiquidBackground
-          veilOpacity={useLightweightHome ? 0.72 : 0.65}
-          performanceMode={useLightweightHome ? 'quiet' : 'normal'}
-        />
-      ) : null}
-      {view === 'FAN' ? (
-        <div className="pointer-events-none fixed inset-0 z-[1] hidden opacity-90 lg:block" aria-hidden="true">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(168,85,247,0.10),transparent_38%),radial-gradient(circle_at_10%_25%,rgba(34,211,238,0.04),transparent_24%),radial-gradient(circle_at_86%_28%,rgba(245,197,24,0.04),transparent_22%)] mix-blend-soft-light" />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.30)_0%,rgba(0,0,0,0.22)_34%,rgba(0,0,0,0.40)_100%)]" />
+        <div className="pointer-events-none fixed inset-0 z-[1] hidden lg:block" aria-hidden="true">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(34,211,238,0.08),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(168,85,247,0.11),transparent_34%),radial-gradient(circle_at_50%_30%,rgba(245,197,24,0.035),transparent_30%)]" />
         </div>
       ) : null}
       {/* Control mode gets NO blur overlay: it soft-focused the copy mid-viewport

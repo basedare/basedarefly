@@ -411,25 +411,25 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
 
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <Link
-                  href="/map"
+                  href="/earn?source=creator-pool"
                   onClick={() => setIsOpen(false)}
                   className="rounded-full border border-cyan-300/28 bg-cyan-300/10 px-2.5 py-3 text-center text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100 transition hover:bg-cyan-300/16"
                 >
-                  Earn
+                  Find work
                 </Link>
                 <Link
-                  href="/create"
+                  href="/create?sparkType=paid&source=creator-pool"
                   onClick={() => setIsOpen(false)}
                   className="rounded-full border border-yellow-300/32 bg-yellow-300/12 px-2.5 py-3 text-center text-[0.62rem] font-black uppercase tracking-[0.18em] text-yellow-100 transition hover:bg-yellow-300/18"
                 >
-                  Create
+                  Fund a Dare
                 </Link>
                 <Link
-                  href="/first-spark"
+                  href="/brands/portal?from=home&source=creator-pool"
                   onClick={() => setIsOpen(false)}
                   className="rounded-full border border-purple-300/32 bg-purple-300/14 px-2.5 py-3 text-center text-[0.62rem] font-black uppercase tracking-[0.18em] text-purple-100 transition hover:bg-purple-300/20"
                 >
-                  Launch
+                  For brands
                 </Link>
               </div>
             </div>

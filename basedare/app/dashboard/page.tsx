@@ -6,7 +6,6 @@ import { Plus, Clock, CheckCircle, XCircle, Loader2, LogIn, ChevronDown, Chevron
 import SubmitEvidence from "@/components/SubmitEvidence";
 import ShareWinButton from "@/components/ShareWinButton";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
-import LiquidBackground from "@/components/LiquidBackground";
 import LivePotLeaderboard from "@/components/LivePotLeaderboard";
 import PushActivationCard from "@/components/PushActivationCard";
 import SignalRoomCard from "@/components/SignalRoomCard";
@@ -1242,7 +1241,6 @@ export default function Dashboard() {
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      <LiquidBackground />
       <div className="fixed inset-0 z-10 pointer-events-none hidden md:block">
         <GradualBlurOverlay />
       </div>
