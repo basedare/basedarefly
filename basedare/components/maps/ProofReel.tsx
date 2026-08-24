@@ -109,7 +109,7 @@ export default function ProofReel({
       ref={shellRef}
       className="fixed inset-0 z-[130] flex flex-col bg-black/95 backdrop-blur-sm"
       role="dialog"
-      aria-label={`Verified proof reel for ${venueName}`}
+      aria-label={`Clips from ${venueName}`}
       onPointerDown={(event) => {
         pointerStartRef.current = { x: event.clientX, time: Date.now() };
       }}
@@ -150,7 +150,7 @@ export default function ProofReel({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <span className="rounded-full border border-[#f5c518]/40 bg-[#f5c518]/[0.12] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-[#f8dd72]">
-              Verified proof
+              Verified update
             </span>
             <button
               type="button"
@@ -161,7 +161,7 @@ export default function ProofReel({
               onPointerDown={(event) => event.stopPropagation()}
               onPointerUp={(event) => event.stopPropagation()}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/14 bg-white/[0.07] text-white/75 transition hover:text-white"
-              aria-label="Close proof reel"
+              aria-label="Close clips"
             >
               <X className="h-4 w-4" />
             </button>
@@ -188,7 +188,7 @@ export default function ProofReel({
           <Image
             key={item.id}
             src={item.proofMediaUrl}
-            alt={item.caption || 'Verified proof'}
+            alt={item.caption || 'Verified update'}
             fill
             sizes="100vw"
             className="object-contain"
@@ -200,7 +200,7 @@ export default function ProofReel({
             <div className="relative h-44 w-44 overflow-hidden rounded-[22px] border border-[#f5c518]/25 bg-[linear-gradient(180deg,rgba(245,197,24,0.16)_0%,rgba(14,12,20,0.96)_100%)]">
               <Image
                 src="/assets/peebear-head.webp"
-                alt="BaseDare verified proof stamp"
+                alt="BaseDare verified update stamp"
                 fill
                 sizes="176px"
                 className="object-contain p-4"
@@ -218,7 +218,7 @@ export default function ProofReel({
           </p>
           {item.firstMark ? (
             <span className="shrink-0 rounded-full border border-[#f5c518]/35 bg-[#f5c518]/[0.12] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-[#f8dd72]">
-              First proof
+              First verified update
             </span>
           ) : null}
           <span className="ml-auto shrink-0 text-[10px] uppercase tracking-[0.16em] text-white/45">

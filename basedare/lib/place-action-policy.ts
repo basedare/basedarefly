@@ -13,7 +13,7 @@ export type PlaceActionPolicy = {
   primary: PlaceActionId;
   secondary: PlaceActionId | null;
   tertiary: PlaceActionId[];
-  verifyLabel: 'Be first to verify' | 'Add fresh proof';
+  verifyLabel: 'Be first to verify' | 'Add an update';
 };
 
 const FUNDING_SOURCES = new Set([
@@ -64,7 +64,7 @@ export function resolvePlaceActionPolicy(input: {
   canNavigate: boolean;
   intent: PlaceVisitorIntent;
 }): PlaceActionPolicy {
-  const verifyLabel = input.hasVerifiedTrace ? 'Add fresh proof' : 'Be first to verify';
+  const verifyLabel = input.hasVerifiedTrace ? 'Add an update' : 'Be first to verify';
   const navigationPrimary: PlaceActionId = input.canNavigate ? 'directions' : 'open-venue';
   const navigationSecondary: PlaceActionId = input.canNavigate ? 'directions' : 'open-venue';
 

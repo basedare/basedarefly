@@ -76,7 +76,7 @@ test('explicit contributor intent keeps verification available regardless of pla
 
   assert.equal(policy.primary, 'verify-place');
   assert.equal(policy.secondary, 'directions');
-  assert.equal(policy.verifyLabel, 'Add fresh proof');
+  assert.equal(policy.verifyLabel, 'Add an update');
   assert.deepEqual(policy.tertiary, ['open-venue', 'fund-dare']);
 });
 
@@ -115,7 +115,7 @@ test('verified places lead with directions and expose check-in only when usable 
 
   assert.equal(nearby.primary, 'directions');
   assert.equal(nearby.secondary, 'open-venue');
-  assert.equal(nearby.verifyLabel, 'Add fresh proof');
+  assert.equal(nearby.verifyLabel, 'Add an update');
   assert.deepEqual(nearby.tertiary, ['check-in', 'verify-place', 'fund-dare']);
   assert.equal(remote.primary, 'directions');
   assert.equal(remote.secondary, 'open-venue');
