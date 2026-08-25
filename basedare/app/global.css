@@ -2935,3 +2935,178 @@ button[data-testid='ockConnectWalletButton']:hover {
 /* Layer filter: "Free Meetups" hides the paid pin layer via a single CSS hook
    on the viewport — no paid-marker JS or MapLibre changes. */
 [data-layer-filter="meetups"] .basedare-maplibre-marker { display: none !important; }
+
+/* ============================================================================
+   Map command deck — keep MapLibre behavior untouched while making the search,
+   filter, and camera controls feel like one BaseDare instrument panel.
+   ============================================================================ */
+.bd-map-route-active .map-command-header {
+  background:
+    radial-gradient(circle at 15% -30%, rgba(103, 232, 249, 0.08), transparent 34%),
+    radial-gradient(circle at 88% -40%, rgba(245, 197, 24, 0.07), transparent 30%),
+    linear-gradient(180deg, rgba(10, 12, 24, 0.9), rgba(6, 7, 16, 0.78));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -1px 0 rgba(103, 232, 249, 0.08),
+    0 16px 34px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(18px) saturate(118%);
+  -webkit-backdrop-filter: blur(18px) saturate(118%);
+}
+
+.bd-map-route-active .map-command-header .bd-dent-surface {
+  border-color: rgba(103, 232, 249, 0.12) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(103, 232, 249, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(13, 15, 29, 0.96), rgba(4, 5, 13, 0.97)) !important;
+  box-shadow:
+    inset 8px 9px 20px rgba(0, 0, 0, 0.5),
+    inset -5px -5px 12px rgba(103, 232, 249, 0.025),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 10px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+.bd-map-route-active .map-top-control-stack {
+  position: relative;
+  padding-top: 0.12rem;
+}
+
+.bd-map-route-active .map-status-rail {
+  gap: 0.42rem !important;
+}
+
+.bd-map-route-active .map-status-pill {
+  min-height: 2.5rem !important;
+  gap: 0.44rem !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background:
+    radial-gradient(circle at 50% -12%, rgba(255, 255, 255, 0.13), transparent 44%),
+    linear-gradient(180deg, rgba(25, 25, 43, 0.9) 0%, rgba(10, 10, 22, 0.96) 54%, rgba(4, 5, 13, 0.98) 100%) !important;
+  padding: 0.42rem 0.78rem 0.4rem !important;
+  color: rgba(255, 255, 255, 0.68) !important;
+  font-size: 0.61rem !important;
+  letter-spacing: 0.125em !important;
+  box-shadow:
+    0 11px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    inset 0 -11px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+.bd-map-route-active .map-status-pill::before {
+  inset: 2px 12% auto !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.34), transparent) !important;
+}
+
+.bd-map-route-active .map-status-pill span:last-child:not(:first-child) {
+  min-width: 1.45rem !important;
+  height: 1.45rem !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0.38)) !important;
+  color: rgba(255, 255, 255, 0.84) !important;
+  box-shadow:
+    inset 2px 3px 6px rgba(0, 0, 0, 0.36),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.035) !important;
+}
+
+.bd-map-route-active .map-status-pill:hover:not(:disabled) {
+  border-color: rgba(103, 232, 249, 0.26) !important;
+  color: #e6fbff !important;
+  filter: brightness(1.08);
+}
+
+.bd-map-route-active .map-status-pill[data-active='true'] {
+  border-color: rgba(245, 197, 24, 0.42) !important;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(255, 235, 112, 0.2), transparent 44%),
+    linear-gradient(180deg, rgba(87, 64, 15, 0.42), rgba(17, 12, 8, 0.97)) !important;
+  color: #fff0a8 !important;
+  box-shadow:
+    0 12px 22px rgba(0, 0, 0, 0.32),
+    0 0 18px rgba(245, 197, 24, 0.09),
+    inset 0 1px 0 rgba(255, 239, 164, 0.2),
+    inset 0 -12px 18px rgba(0, 0, 0, 0.3) !important;
+}
+
+.bd-map-route-active .map-status-pill[data-active='true'] span:last-child:not(:first-child) {
+  border-color: rgba(245, 197, 24, 0.26) !important;
+  color: #ffe78a !important;
+}
+
+.bd-map-route-active .map-status-pill--filters {
+  border-color: rgba(103, 232, 249, 0.22) !important;
+  color: #cffafe !important;
+}
+
+.bd-map-route-active .map-status-pill--filters[data-active='true'] {
+  border-color: rgba(103, 232, 249, 0.42) !important;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(103, 232, 249, 0.2), transparent 44%),
+    linear-gradient(180deg, rgba(14, 71, 84, 0.4), rgba(7, 14, 22, 0.97)) !important;
+  color: #dffcff !important;
+  box-shadow:
+    0 12px 22px rgba(0, 0, 0, 0.32),
+    0 0 18px rgba(34, 211, 238, 0.1),
+    inset 0 1px 0 rgba(207, 250, 254, 0.18),
+    inset 0 -12px 18px rgba(0, 0, 0, 0.3) !important;
+}
+
+.bd-map-route-active .map-advanced-filter-panel {
+  border-color: rgba(103, 232, 249, 0.14) !important;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(168, 85, 247, 0.16), transparent 34%),
+    radial-gradient(circle at 92% 0%, rgba(103, 232, 249, 0.09), transparent 30%),
+    linear-gradient(160deg, rgba(21, 20, 39, 0.97), rgba(5, 6, 15, 0.98)) !important;
+  box-shadow:
+    0 20px 44px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    inset 0 -14px 20px rgba(0, 0, 0, 0.24) !important;
+  backdrop-filter: blur(18px) saturate(116%);
+  -webkit-backdrop-filter: blur(18px) saturate(116%);
+}
+
+.bd-map-route-active .map-navigation-controls > div,
+.bd-map-route-active .basedare-maplibre-map button[aria-label='Orbit map left'],
+.bd-map-route-active .basedare-maplibre-map button[aria-label='Orbit map right'],
+.bd-map-route-active .basedare-maplibre-map button[aria-label='Tilt map down'],
+.bd-map-route-active .basedare-maplibre-map button[aria-label='Tilt map up'] {
+  border-color: rgba(103, 232, 249, 0.14) !important;
+}
+
+.bd-map-route-active .map-navigation-controls > div {
+  border-radius: 1rem !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(103, 232, 249, 0.1), transparent 38%),
+    linear-gradient(180deg, rgba(19, 23, 38, 0.94), rgba(5, 7, 15, 0.97)) !important;
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.4),
+    0 0 18px rgba(34, 211, 238, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -12px 18px rgba(0, 0, 0, 0.22) !important;
+}
+
+.bd-map-route-active .map-navigation-controls button:hover,
+.bd-map-route-active .basedare-maplibre-map button[aria-label^='Orbit map']:hover,
+.bd-map-route-active .basedare-maplibre-map button[aria-label^='Tilt map']:hover {
+  background: rgba(103, 232, 249, 0.1) !important;
+  color: #e6fbff !important;
+}
+
+@media (max-width: 767px) {
+  .bd-map-route-active .map-status-rail {
+    margin-inline: -0.15rem;
+    width: calc(100% + 0.3rem) !important;
+    padding: 0.08rem 0.15rem 0.18rem !important;
+    scroll-padding-inline: 0.15rem;
+  }
+
+  .bd-map-route-active .map-status-pill {
+    min-height: 2.4rem !important;
+    padding-inline: 0.68rem !important;
+    font-size: 0.54rem !important;
+  }
+
+  .bd-map-route-active .map-status-pill span:last-child:not(:first-child) {
+    min-width: 1.35rem !important;
+    height: 1.35rem !important;
+  }
+}
