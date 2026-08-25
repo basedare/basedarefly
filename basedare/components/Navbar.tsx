@@ -163,11 +163,6 @@ export default function Navbar() {
 
           {/* 3. RIGHT SIDE ACTIONS */}
           <div className="flex items-center gap-2 md:gap-3 z-50">
-            {isMapRoute ? (
-              <div className="order-0 relative hidden h-10 w-10 shrink-0 md:block">
-                <DeferredGlobalSearch isDesktopApp />
-              </div>
-            ) : null}
             <div className="order-1 hidden md:flex">
               <BackgroundToneToggle />
             </div>
@@ -293,10 +288,12 @@ export default function Navbar() {
               Join BaseDare
             </Link>
 
-            {/* Mobile Search Button (Under FAQ) */}
-            <div className="mt-6 w-full flex justify-center">
-              <DeferredGlobalSearch />
-            </div>
+            {/* The map already owns a full search field; keep global search off that route. */}
+            {!isMapRoute ? (
+              <div className="mt-6 flex w-full justify-center">
+                <DeferredGlobalSearch />
+              </div>
+            ) : null}
 
             {/* Mobile Connect Button */}
             <div className="mt-8 mb-12">
