@@ -219,10 +219,13 @@ test('legacy Community Sparks use the current friendly title and visible play ho
     distanceKm: 0.4,
   });
 
-  assert.equal(spark.title, 'Three things before you surf');
-  assert.equal(spark.summary, 'Show the three things you never skip before a session.');
+  assert.equal(spark.title, 'What’s your pre-surf routine?');
+  assert.equal(
+    spark.summary,
+    'Pick three things you always do before paddling out. Compare yours with a surf buddy.',
+  );
   assert.equal(spark.share.title, spark.title);
-  assert.match(spark.share.text, /three things you never skip/i);
+  assert.match(spark.share.text, /before paddling out/i);
 });
 
 function stub(id: string, type: LivePlan['type'], overrides: Partial<LivePlan> = {}): LivePlan {

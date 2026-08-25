@@ -1,4 +1,4 @@
-export const ACTION_SPORTS_COMMUNITY_SPARK_VERSION = 4 as const;
+export const ACTION_SPORTS_COMMUNITY_SPARK_VERSION = 5 as const;
 
 export const ACTION_SPORTS_COMMUNITY_SPARK_KEYS = [
   'WAKEPARK_PROGRESSION_LAP',
@@ -30,11 +30,11 @@ export const ACTION_SPORTS_COMMUNITY_SPARKS = [
   {
     key: 'WAKEPARK_PROGRESSION_LAP',
     venueSlug: 'siargao-wakepark',
-    title: 'Three tries, one clean lap',
-    hook: 'Call the move. Three tries. Land it—or keep the funniest miss.',
-    instructions: 'Pick a move you know. Say it. Go.',
-    capturePrompt: 'Keep the landing or funniest safe miss.',
-    socialPrompt: 'Tag the friend who has to try next.',
+    title: 'Land a wakeboard trick in 3 tries',
+    hook: 'Pick one safe trick. You get three tries—keep your best landing or funniest miss.',
+    instructions: 'Choose one wakeboard trick you can already do and give it up to three tries.',
+    capturePrompt: 'Save your best landing or funniest safe miss.',
+    socialPrompt: 'Challenge a friend to try the same trick.',
     safety:
       'Use required safety gear, follow operator instructions and park rules, and stop if conditions or your ability make the attempt unsafe.',
     estimatedMinutes: 20,
@@ -44,11 +44,11 @@ export const ACTION_SPORTS_COMMUNITY_SPARKS = [
   {
     key: 'MALINAO_SKATE_CLEAN_LINE',
     venueSlug: 'malinao-skate-road',
-    title: 'Name your line',
-    hook: 'Build a two-or-three-move line. Name it. Make a friend match or remix it.',
-    instructions: 'Call the line, then link two or three moves you already know.',
-    capturePrompt: 'One angle. Full line. Crew reaction.',
-    socialPrompt: 'Challenge a friend: match it or remix it.',
+    title: 'Make a skate combo',
+    hook: 'Link 2–3 easy moves, name the combo, then ask a friend to copy it.',
+    instructions: 'Choose two or three skate moves you already know and do them in a row.',
+    capturePrompt: 'Keep one clip that shows the full combo.',
+    socialPrompt: 'Ask a friend to copy it or change one move.',
     safety:
       'Wear appropriate protective gear, inspect the surface, yield to others, and never attempt a trick beyond your current ability for the clip.',
     estimatedMinutes: 20,
@@ -58,11 +58,11 @@ export const ACTION_SPORTS_COMMUNITY_SPARKS = [
   {
     key: 'SURF_PREP_SIGNAL_MARCO',
     venueSlug: 'marco-surf-school-siargao',
-    title: 'Three things before you surf',
-    hook: 'Show the three things you never skip before a session.',
-    instructions: 'Show your three-step ritual, then the local signal shaping today’s plan.',
-    capturePrompt: 'Three fast shots. Finish with today’s signal.',
-    socialPrompt: 'Tag a surfer: what did they forget?',
+    title: 'What’s your pre-surf routine?',
+    hook: 'Pick three things you always do before paddling out. Compare yours with a surf buddy.',
+    instructions: 'Choose three simple things you do before surfing and run through them in order.',
+    capturePrompt: 'Keep one quick clip of all three steps.',
+    socialPrompt: 'Ask a surf buddy what they do differently.',
     safety:
       'Stay on public or customer-authorized ground, follow local guidance, and get consent before filming anyone. Entering the water is not required.',
     estimatedMinutes: 15,
@@ -72,11 +72,11 @@ export const ACTION_SPORTS_COMMUNITY_SPARKS = [
   {
     key: 'SURF_PREP_SIGNAL_KANAWAY',
     venueSlug: 'kanaway-surf-school',
-    title: 'Board, boat or beach?',
-    hook: 'You get one surf day. Pick your route.',
-    instructions: 'Confirm one real option today: board, boat, or beach launch.',
-    capturePrompt: 'Reveal your pick—and why.',
-    socialPrompt: 'Ask the next person: board, boat or beach?',
+    title: 'Choose today’s surf plan',
+    hook: 'Rent a board, find a boat crew or surf from shore—pick one and invite a friend.',
+    instructions: 'Choose one real option for today: board rental, boat crew or beach session.',
+    capturePrompt: 'Share what you picked and why.',
+    socialPrompt: 'Invite a friend to choose the next surf plan.',
     safety:
       'Ask before filming staff or customers, make no partnership claim, and never treat a boat or rental option as confirmed until the operator confirms it.',
     estimatedMinutes: 15,
@@ -86,11 +86,11 @@ export const ACTION_SPORTS_COMMUNITY_SPARKS = [
   {
     key: 'SURFIT_MOBILITY_RESET',
     venueSlug: 'surfit-gym-siargao',
-    title: 'Make a three-move combo',
-    hook: 'Pick three easy moves. Can your friend copy the combo?',
-    instructions: 'Pick three gentle moves and give the combo a name.',
-    capturePrompt: 'Film one clean round.',
-    socialPrompt: 'Challenge a friend to copy it or swap one move.',
+    title: 'Make a mini workout',
+    hook: 'Choose three easy exercises. Do one round, then challenge a friend to copy it.',
+    instructions: 'Choose three exercises you can do safely and complete one easy round.',
+    capturePrompt: 'Keep one quick clip of the full round.',
+    socialPrompt: 'Ask a friend to copy it or change one exercise.',
     safety:
       'Use only equipment you are authorized and competent to use. Stop for pain or dizziness; this is not medical or coaching advice.',
     estimatedMinutes: 10,
@@ -100,11 +100,11 @@ export const ACTION_SPORTS_COMMUNITY_SPARKS = [
   {
     key: 'PRIMEFIT_MOBILITY_RESET',
     venueSlug: 'primefit-gym-general-luna',
-    title: 'You pick two. They pick one.',
-    hook: 'Build a three-move reset together. Then swap the last move.',
-    instructions: 'Choose two gentle moves. Let a friend add the third.',
-    capturePrompt: 'Film one round. Show all three move names.',
-    socialPrompt: 'Pass it on: change only the final move.',
+    title: 'Stretch with a friend',
+    hook: 'Pick two easy stretches. Your friend adds one. Do all three together.',
+    instructions: 'Choose two gentle stretches, let a friend choose the third, then do all three.',
+    capturePrompt: 'Keep one quick clip of all three stretches.',
+    socialPrompt: 'Pass it on and let the next friend change one stretch.',
     safety:
       'Use only equipment you are authorized and competent to use. Stop for pain or dizziness; this is not medical or coaching advice.',
     estimatedMinutes: 10,

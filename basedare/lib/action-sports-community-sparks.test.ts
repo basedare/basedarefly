@@ -41,15 +41,23 @@ test('Wakepark has a dedicated self-directed action-sports Spark', () => {
   assert.match(`${wakepark.instructions} ${wakepark.safety}`, /operator/i);
 });
 
-test('fitness Sparks sound like invitations, not training-program labels', () => {
-  assert.equal(
-    getActionSportsCommunitySpark('SURFIT_MOBILITY_RESET').title,
-    'Make a three-move combo',
+test('Spark cards explain the activity in plain language', () => {
+  assert.deepEqual(
+    ACTION_SPORTS_COMMUNITY_SPARKS.map(({ title }) => title),
+    [
+      'Land a wakeboard trick in 3 tries',
+      'Make a skate combo',
+      'What’s your pre-surf routine?',
+      'Choose today’s surf plan',
+      'Make a mini workout',
+      'Stretch with a friend',
+    ],
   );
-  assert.equal(
-    getActionSportsCommunitySpark('PRIMEFIT_MOBILITY_RESET').title,
-    'You pick two. They pick one.',
-  );
+
+  const publicCardCopy = ACTION_SPORTS_COMMUNITY_SPARKS
+    .flatMap(({ title, hook }) => [title, hook])
+    .join(' ');
+  assert.doesNotMatch(publicCardCopy, /\b(?:lap|line|reset|signal)\b/i);
 });
 
 test('current Spark stream IDs resolve to their play-first brief', () => {
@@ -57,9 +65,9 @@ test('current Spark stream IDs resolve to their play-first brief', () => {
   assert.equal(streamId, `community-spark:surf_prep_signal_kanaway:v${ACTION_SPORTS_COMMUNITY_SPARK_VERSION}`);
 
   const resolved = getActionSportsCommunitySparkByStreamId(streamId);
-  assert.equal(resolved?.title, 'Board, boat or beach?');
+  assert.equal(resolved?.title, 'Choose today’s surf plan');
   assert.equal(resolved?.isCurrentVersion, true);
-  assert.match(resolved?.instructions ?? '', /confirm/i);
+  assert.match(resolved?.instructions ?? '', /choose/i);
   assert.match(`${resolved?.instructions} ${resolved?.safety}`, /boat|rental/i);
 });
 
