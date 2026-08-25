@@ -131,7 +131,7 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
               href={dares.length > 0 && dare.short_id
                 ? `/dare/${encodeURIComponent(dare.short_id)}`
                 : '/map?source=home-orbit'}
-              className="-translate-x-1/2 -translate-y-1/2 cursor-pointer"
+              className="block -translate-x-1/2 -translate-y-1/2 cursor-pointer"
               onClick={() => onCardClick && onCardClick(dare)}
               aria-label={dares.length > 0 ? `Open ${dare.description || dare.title}` : 'Open the live map'}
             >

@@ -238,7 +238,7 @@ function HomeContent() {
               <div className="w-full relative">
                 {/* Desktop: Full 3D Hero with orbiting cards */}
                 <div className="hidden lg:block">
-                  <HeroEllipticalStream dares={dares} />
+                  <HeroEllipticalStream />
                 </div>
 
                 {/* Mobile/tablet: simplified hero avoids iPad WebKit overload */}

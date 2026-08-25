@@ -98,6 +98,16 @@ export default function PortalVortex() {
             />
           </div>
 
+          {/* The original vertical glow gives PeeBear and the event horizon depth. */}
+          <div
+            className="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-[80%] h-[400px] bg-gradient-to-t from-purple-500/20 to-transparent blur-2xl"
+            style={{
+              transform: 'rotateX(-75deg) translateY(-50%)',
+              transformOrigin: 'bottom center',
+              pointerEvents: 'none'
+            }}
+          />
+
         </div>
       </div>
 
