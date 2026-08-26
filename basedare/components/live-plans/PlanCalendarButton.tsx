@@ -3,6 +3,7 @@
 import { CalendarPlus } from 'lucide-react';
 import { useState } from 'react';
 
+import { trackClientEvent } from '@/lib/analytics';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import { buildPlanCalendarFile } from '@/lib/plan-calendar';
 import { getBaseDareUrl } from '@/lib/social-share';
@@ -49,6 +50,7 @@ export default function PlanCalendarButton({
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    trackClientEvent('live_plan_calendar_added', { plan_path: plan.href });
     triggerHaptic('selection');
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1600);

@@ -48,6 +48,7 @@ test('repeat links preserve the activity, place and unlock threshold', () => {
   });
   const url = new URL(href, 'https://basedare.xyz');
   assert.equal(url.pathname, '/community/rally/new');
+  assert.equal(url.searchParams.get('repeat'), '1');
   assert.equal(url.searchParams.get('template'), 'trivia');
   assert.equal(url.searchParams.get('venueId'), 'venue-1');
   assert.equal(url.searchParams.get('minimum'), '5');

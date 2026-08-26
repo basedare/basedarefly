@@ -138,6 +138,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       });
       return {
         creatorBaretagId: crew.creatorBaretagId,
+        joinedConfirmedNow: !wasConfirmed && willBeConfirmed,
         reachedMinimum:
           crew.members.filter((member) => member.commitment === 'CONFIRMED').length < crew.minimumCrew &&
           confirmedCount >= crew.minimumCrew,
@@ -158,7 +159,13 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }).catch((error) => console.error('[BOAT_CREW_MEMBERSHIP] threshold notification failed:', error));
     }
 
-    return NextResponse.json({ success: true, data: { reachedMinimum: transition.reachedMinimum } });
+    return NextResponse.json({
+      success: true,
+      data: {
+        joinedConfirmedNow: transition.joinedConfirmedNow,
+        reachedMinimum: transition.reachedMinimum,
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
     const known: Record<string, [string, number]> = {

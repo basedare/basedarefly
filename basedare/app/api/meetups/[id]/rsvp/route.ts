@@ -128,7 +128,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const count = result.count;
     return NextResponse.json({
       success: true,
-      data: { rsvped: true, count, unlockedNow: result.unlockedNow },
+      data: {
+        rsvped: true,
+        count,
+        joinedNow: result.joinedNow,
+        unlockedNow: result.unlockedNow,
+      },
     });
   } catch (error) {
     const code = error instanceof Error ? error.message : '';

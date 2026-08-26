@@ -2,7 +2,7 @@
 type: product_psychology_learning
 status: ACTIVE
 created_at: 2026-08-24
-updated_at: 2026-08-24
+updated_at: 2026-08-26
 owner: BaseDare
 ---
 
@@ -19,7 +19,7 @@ BaseDare should retain people by making a useful real-world plan easier to join 
 - Discover: **What is happening here right now?**
 - Evaluate: place · time · people · ability or useful constraint · honest cost
 - Join: **3 confirmed · 1 more makes it**
-- Commit: **You’re in** · map · calendar · invite
+- Commit: **You’re in** · directions · calendar · invite
 - Unlock: **Crew unlocked** only when real participants cross the stated minimum
 - Return: **Plan ended. Go again?**
 
@@ -30,8 +30,10 @@ RSVP is intent, not attendance. Without a secure check-in or accepted proof, Bas
 - Live Plans aggregates boats, meetups, events, Sparks, and paid Dares.
 - Rally and boat cards show real participant counts and minimums.
 - Plan Links explain the real activity before signup.
-- My Next Move preserves joined plans.
+- My Next Move preserves joined plans with time, directions, calendar and invite actions.
 - Rally repeat links preserve activity, place, and crew threshold.
+- Boat repeat links preserve launch, break, time window, ability lane, and board need.
+- Verified place updates end with **You made this place current** and a shareable receipt.
 
 ## Highest-value reinforcement
 
@@ -39,7 +41,7 @@ The missing seam is immediately after joining. Turn a lightweight RSVP into a co
 
 1. acknowledge the commitment
 2. keep the plan persistently reachable
-3. offer map, calendar, and invite actions
+3. offer directions, calendar, and invite actions
 4. signal the real threshold crossing once
 5. offer a fresh repeat only after the plan ends
 
@@ -53,11 +55,13 @@ North star: **weekly real-world plans completed by two or more people**, once co
 
 Near-term software metrics:
 
-- plan opened → RSVP
-- RSVP → calendar add
-- RSVP → invite shared
+- plan opened → confirmed join
+- confirmed join → directions opened
+- confirmed join → calendar add
+- confirmed join → invite shared
 - invite opened → RSVP
 - real crew thresholds crossed
-- ended RSVP’d plan → repeat Rally started
+- ended RSVP’d Rally → repeat Rally started
+- departed joined boat → repeat boat started
 
-Do not report RSVP or calendar adds as verified attendance.
+Do not report RSVP, directions, calendar adds, invite shares, or time-window expiry as verified attendance. Populate the north star only from a future secure attendance/completion signal that can prove at least two people completed the same plan.

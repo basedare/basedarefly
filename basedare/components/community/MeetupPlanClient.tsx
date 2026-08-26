@@ -8,6 +8,7 @@ import { useAccount, useSignMessage } from 'wagmi';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
 import PlanCalendarButton from '@/components/live-plans/PlanCalendarButton';
+import { trackClientEvent } from '@/lib/analytics';
 import { getMeetupSharePath, getMeetupShareText, getRepeatRallyHref, type MeetupPlanSummary } from '@/lib/meetup-plan';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
@@ -79,6 +80,12 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
       if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Could not join this plan.');
       const nextCount = Number(payload.data?.count) || plan.rsvpCount + 1;
       const unlockedNow = payload.data?.unlockedNow === true;
+      if (payload.data?.joinedNow === true) {
+        trackClientEvent('live_plan_joined', {
+          plan_type: 'meetup',
+          crew_unlocked: unlockedNow,
+        });
+      }
       const remaining = plan.minimumPeople ? Math.max(0, plan.minimumPeople - nextCount) : null;
       setPlan((current) => ({ ...current, viewerRsvped: true, rsvpCount: nextCount }));
       triggerHaptic(unlockedNow ? 'success' : 'selection');

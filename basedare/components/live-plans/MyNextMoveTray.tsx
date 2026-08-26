@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight, MapPin, Sparkles, Users } from 'lucide-react';
+import { ChevronRight, Navigation, Sparkles, Users } from 'lucide-react';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
 import PlanCalendarButton from '@/components/live-plans/PlanCalendarButton';
-import { getLivePlanMapHref, isLivePlanCalendarReady, type LivePlan } from '@/lib/live-plans';
+import { trackClientEvent } from '@/lib/analytics';
+import { getLivePlanDirectionsHref, isLivePlanCalendarReady, type LivePlan } from '@/lib/live-plans';
 
 function formatTime(value: string | null) {
   if (!value) return 'Open now';
@@ -57,9 +58,15 @@ export default function MyNextMoveTray({ plans }: { plans: LivePlan[] }) {
       </div>
 
       <div className={`mt-2 grid ${calendarReady ? 'grid-cols-3' : 'grid-cols-2'} gap-2 border-t border-white/7 pt-2`}>
-        <Link href={getLivePlanMapHref(plan)} prefetch={false} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.065] px-3 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100">
-          <MapPin className="h-4 w-4" /> Map
-        </Link>
+        <a
+          href={getLivePlanDirectionsHref(plan)}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => trackClientEvent('live_plan_directions_opened', { plan_type: plan.type })}
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.065] px-3 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100"
+        >
+          <Navigation className="h-4 w-4" /> Directions
+        </a>
         {calendarReady ? (
           <PlanCalendarButton plan={{
             id: plan.id,

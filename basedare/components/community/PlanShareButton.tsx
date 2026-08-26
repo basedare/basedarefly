@@ -3,6 +3,7 @@
 import { Check, Share2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+import { trackClientEvent } from '@/lib/analytics';
 import { getBaseDareUrl } from '@/lib/social-share';
 
 export default function PlanShareButton({
@@ -26,6 +27,7 @@ export default function PlanShareButton({
   const copyPlan = async () => {
     try {
       await navigator.clipboard.writeText(`${text}\n\n${url}`);
+      trackClientEvent('live_plan_invite_shared', { method: 'copy_link', plan_path: href });
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
@@ -38,6 +40,7 @@ export default function PlanShareButton({
     if (typeof navigator.share === 'function') {
       try {
         await navigator.share({ title, text, url });
+        trackClientEvent('live_plan_invite_shared', { method: 'native', plan_path: href });
         return;
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;

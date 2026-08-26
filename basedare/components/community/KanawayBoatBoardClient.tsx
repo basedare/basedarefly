@@ -8,6 +8,7 @@ import { useAccount, useSignMessage } from 'wagmi';
 import { Anchor, ArrowLeft, Check, Copy, LifeBuoy, MapPin, RefreshCw, ShipWheel, Waves } from 'lucide-react';
 
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import { trackClientEvent } from '@/lib/analytics';
 import PlanShareButton from '@/components/community/PlanShareButton';
 import {
   BOAT_DESTINATIONS,
@@ -66,18 +67,29 @@ export default function KanawayBoatBoardClient() {
   const sessionWallet = sessionShape?.walletAddress ?? sessionShape?.user?.walletAddress ?? null;
   const actorWallet = address ?? sessionWallet;
   const [today, tomorrow] = getAllowedBoatDays();
+  const repeatRequested = searchParams.get('repeat') === 'boat';
+  const requestedLaunch = searchParams.get('launch');
+  const initialLaunchSlug = BOAT_LAUNCHES.some((launch) => launch.value === requestedLaunch)
+    ? requestedLaunch as BoatLaunchSlug
+    : KANAWAY_BOAT_VENUE_SLUG;
+  const requestedDestination = searchParams.get('destination');
+  const initialDestination = getBoatLaunchDestinations(initialLaunchSlug).find(
+    (option) => option.value === requestedDestination,
+  )?.value ?? getBoatLaunchDestinations(initialLaunchSlug)[0]?.value ?? 'best-today';
+  const requestedTimeWindow = searchParams.get('time');
+  const initialTimeWindow = BOAT_TIME_WINDOWS.find((option) => option.value === requestedTimeWindow)?.value ?? 'early';
+  const requestedAbility = searchParams.get('ability');
+  const initialAbility = SURF_ABILITY_LANES.find((option) => option.value === requestedAbility)?.value ?? 'independent';
 
   const [crews, setCrews] = useState<BoatCrewSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [launchSlug, setLaunchSlug] = useState<BoatLaunchSlug>(
-    searchParams.get('launch') === 'cemetery' ? 'siargao-beach-club' : KANAWAY_BOAT_VENUE_SLUG,
-  );
-  const [departureDay, setDepartureDay] = useState(today);
-  const [timeWindow, setTimeWindow] = useState<BoatTimeWindow>('early');
-  const [destination, setDestination] = useState<BoatDestination>('best-today');
-  const [abilityLane, setAbilityLane] = useState<SurfAbilityLane>('independent');
-  const [needsBoard, setNeedsBoard] = useState(false);
+  const [showCreate, setShowCreate] = useState(repeatRequested);
+  const [launchSlug, setLaunchSlug] = useState<BoatLaunchSlug>(initialLaunchSlug);
+  const [departureDay, setDepartureDay] = useState(repeatRequested ? tomorrow : today);
+  const [timeWindow, setTimeWindow] = useState<BoatTimeWindow>(initialTimeWindow);
+  const [destination, setDestination] = useState<BoatDestination>(initialDestination);
+  const [abilityLane, setAbilityLane] = useState<SurfAbilityLane>(initialAbility);
+  const [needsBoard, setNeedsBoard] = useState(searchParams.get('board') === '1');
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>(null);
   const [operatorUrl, setOperatorUrl] = useState<string | null>(null);
@@ -179,6 +191,9 @@ export default function KanawayBoatBoardClient() {
       setCreatedCrewId(payload.data.id);
       setShowCreate(false);
       setSubmitState({ type: 'success', message: 'Boat call is live on the map.' });
+      if (repeatRequested) {
+        trackClientEvent('live_plan_repeat_started', { plan_type: 'boat' });
+      }
       await loadCrews();
     } catch (error) {
       setSubmitState({ type: 'error', message: error instanceof Error ? error.message : 'Could not start this crew.' });
@@ -207,6 +222,12 @@ export default function KanawayBoatBoardClient() {
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Could not update your seat.');
+      if (payload.data?.joinedConfirmedNow === true) {
+        trackClientEvent('live_plan_joined', {
+          plan_type: 'boat',
+          crew_unlocked: payload.data?.reachedMinimum === true,
+        });
+      }
       await loadCrews();
     } catch (error) {
       setSubmitState({ type: 'error', message: error instanceof Error ? error.message : 'Could not update your seat.' });

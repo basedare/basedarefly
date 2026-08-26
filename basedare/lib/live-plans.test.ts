@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import {
   computeLivePlanTotals,
   dedupeLivePlans,
+  getLivePlanDirectionsHref,
   getLivePlanMapHref,
   getSpotsNeeded,
   isLivePlanCalendarReady,
@@ -37,6 +38,23 @@ test('My Next Move map links preserve the canonical place and exact meetup', () 
   const unboundUrl = new URL(getLivePlanMapHref(unbound), 'https://basedare.xyz');
   assert.equal(unboundUrl.pathname, '/map');
   assert.equal(unboundUrl.searchParams.get('place'), null);
+});
+
+test('My Next Move directions use only public place-granularity coordinates', () => {
+  const plan = stub('meet-1', 'meetup', {
+    place: {
+      venueId: 'venue-1',
+      venueSlug: 'hideaway',
+      label: 'Hideaway',
+      lat: 9.812345,
+      lng: 126.156789,
+      approx: true,
+    },
+  });
+  const url = new URL(getLivePlanDirectionsHref(plan));
+  assert.equal(url.hostname, 'www.google.com');
+  assert.equal(url.pathname, '/maps/dir/');
+  assert.equal(url.searchParams.get('destination'), '9.812,126.157');
 });
 
 test('boat calendars wait for exact operator-confirmed departure details', () => {

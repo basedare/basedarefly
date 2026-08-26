@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
 
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import { trackClientEvent } from '@/lib/analytics';
 import type { MeetupType } from '@/lib/meetups';
 
 type CommunitySession = {
@@ -161,6 +162,9 @@ export default function RallyComposerClient() {
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success || !payload.data?.shareHref) throw new Error(payload?.error || 'Could not start this Rally.');
+      if (searchParams.get('repeat') === '1') {
+        trackClientEvent('live_plan_repeat_started', { plan_type: 'meetup' });
+      }
       setState({ type: 'success', message: 'Rally live. Opening the invite…' });
       router.push(payload.data.shareHref);
     } catch (error) {

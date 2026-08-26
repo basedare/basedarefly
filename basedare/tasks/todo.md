@@ -1,14 +1,16 @@
 # BaseDare Todo
 
-### Task — Live Plan commitment loop (2026-08-24)
+### Task — Live Plan commitment loop (2026-08-26)
 - Owner: Codex
 - Goal: Turn a real RSVP into a useful when/where commitment and repeat-crew loop without fake attendance, artificial scarcity, or streak pressure.
 
 ### Plan
 - [x] Audit existing needs-people, invite-link, My Next Move, and repeat behavior.
-- [x] Add honest crew progress plus calendar, map, share, and open-plan tools.
+- [x] Add honest `BOAT 3/4+ · NEEDS 1` map progress plus directions, calendar, invite, and open-plan tools.
 - [x] Notify the existing crew once when a real RSVP crosses the stated minimum.
-- [x] Show repeat only after an RSVP'd plan ends; never call an RSVP verified attendance.
+- [x] Show a prefilled repeat only after an RSVP'd Rally ends or a joined boat departs; never call intent verified attendance.
+- [x] Close verified place updates with **You made this place current** and the existing shareable receipt.
+- [x] Instrument confirmed join, directions, calendar, invite, and repeat actions without inventing completion events.
 - [x] Verify focused policy tests, typechecks, lint, safety, build, responsive UI, and Graphify.
 
 ### Guardrails
@@ -17,9 +19,9 @@
 - A closed plan may prompt a repeat but may not claim that participants showed up.
 
 ### Review
-- Outcome: Existing Live Plans now close the post-join gap with truthful crew progress, meaningful threshold haptics, a persistent My Next Move utility tray, exact calendar export, canonical map/share actions, crew-unlocked notifications, and a repeat prompt only after an RSVP'd plan ends.
-- Verification: 19/19 focused tests, app/test typechecks, touched-source lint, static production safety, production build, Graphify rebuild, live API smoke, and 390px/1440px browser checks passed. No schema, migration, map-renderer, proof, payout, or contract changes were introduced.
-- Follow-up: Instrument RSVP → calendar/share and ended plan → repeat before adding any broader retention mechanic. Verified attendance remains a separate secure check-in/proof problem.
+- Outcome: Existing Live Plans now close the post-join gap with truthful map crew progress, a persistent My Next Move tray, exact invite links before signup, directions/calendar utilities, a shareable place-current receipt, and prefilled Rally/boat repeats.
+- Verification: 28/28 focused tests, app/test typechecks, touched-source lint, static production safety, production build, Graphify rebuild, and HTTP smoke checks for `/now`, boat-board, and Rally creation passed. No schema, migration, map-renderer, proof, payout, or contract changes were introduced.
+- Follow-up: Define the secure two-person completion signal before populating the north-star metric. RSVP and time-window expiry remain intent and scheduling signals, not attendance.
 
 ### Task — Island Pulse automatic venue feeds (2026-08-13)
 - Owner: Codex

@@ -118,6 +118,12 @@ export function getLivePlanMapHref(plan: Pick<LivePlan, 'type' | 'sourceId' | 'p
   return `/map?${query.toString()}`;
 }
 
+export function getLivePlanDirectionsHref(plan: Pick<LivePlan, 'place'>) {
+  const destination = `${roundLivePlanCoord(plan.place.lat)},${roundLivePlanCoord(plan.place.lng)}`;
+  const query = new URLSearchParams({ api: '1', destination });
+  return `https://www.google.com/maps/dir/?${query.toString()}`;
+}
+
 export function isLivePlanCalendarReady(plan: Pick<LivePlan, 'type' | 'startsAt' | 'status'>) {
   if (!plan.startsAt || !Number.isFinite(new Date(plan.startsAt).getTime())) return false;
   if (plan.type !== 'boat') return true;

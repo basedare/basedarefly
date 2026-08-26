@@ -1,19 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { Anchor, ArrowLeft, Check, LifeBuoy, MapPin, ShipWheel, Users, Waves } from 'lucide-react';
+import { Anchor, ArrowLeft, Check, LifeBuoy, MapPin, Repeat2, ShipWheel, Users, Waves } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
 import { IdentityButton } from '@/components/IdentityButton';
+import { trackClientEvent } from '@/lib/analytics';
 import {
   BOAT_DESTINATIONS,
   BOAT_TIME_WINDOWS,
   SURF_ABILITY_LANES,
   getBoatCrewCountLabel,
   getBoatCrewInvitePath,
+  getRepeatBoatCrewHref,
   getBoatCrewShareText,
   getBoatCrewStatusCopy,
   getBoatLaunch,
@@ -98,6 +100,12 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Could not join this crew.');
       const reachedMinimum = payload.data?.reachedMinimum === true;
+      if (payload.data?.joinedConfirmedNow === true) {
+        trackClientEvent('live_plan_joined', {
+          plan_type: 'boat',
+          crew_unlocked: reachedMinimum,
+        });
+      }
       triggerHaptic(reachedMinimum ? 'success' : 'selection');
       setState({
         type: 'success',
@@ -188,6 +196,14 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
 
           <PlanShareButton title={`Join the ${destination} surf boat`} text={getBoatCrewShareText(crew)} href={getBoatCrewInvitePath(crew.id)} label="Invite friends" className="mt-4 w-full" />
           <Link href={launch.mapPath} className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/42 hover:text-white/72"><MapPin className="h-4 w-4" /> Open {launch.mapLabel} on map</Link>
+          {crew.status === 'DEPARTED' && crew.viewerMembership ? (
+            <div className="mt-3 rounded-2xl border border-violet-200/14 bg-violet-300/[0.055] p-4">
+              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/48">Boat window ended</p>
+              <p className="mt-1 text-lg font-black text-white">Same crew tomorrow?</p>
+              <p className="mt-1 text-xs leading-5 text-white/42">Open the same launch, break and ability lane with a fresh crew count.</p>
+              <Link href={getRepeatBoatCrewHref(crew)} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-violet-200/16 bg-black/18 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100/78"><Repeat2 className="h-4 w-4" /> Start it again</Link>
+            </div>
+          ) : null}
         </section>
 
         <p className="mt-4 flex items-start gap-2 px-2 text-[10px] leading-4 text-white/34"><LifeBuoy className="mt-0.5 h-4 w-4 shrink-0" /> BaseDare coordinates the crew only. Pay the operator directly and check conditions, ability, equipment and safety locally.</p>

@@ -63,6 +63,7 @@ export function getDefaultMeetHereStart(now = new Date()) {
 export function getRepeatRallyHref(plan: Pick<MeetupPlanSummary, 'title' | 'type' | 'venueId' | 'minimumPeople'>) {
   const template = ['padel', 'trivia', 'drinks', 'surf'].includes(plan.type) ? plan.type : 'meet';
   const query = new URLSearchParams({
+    repeat: '1',
     template,
     title: plan.title,
     minimum: String(plan.minimumPeople ?? 2),

@@ -258,9 +258,10 @@ export function getBoatCrewDepartureLabel(
 export function getBoatCrewLoadingLabel(
   crew: Pick<BoatCrewSummary, 'confirmedCount' | 'minimumCrew' | 'status'>,
 ) {
-  if (crew.status === 'READY') return `READY · ${crew.confirmedCount}+`;
-  if (crew.confirmedCount >= crew.minimumCrew) return `CREW · ${crew.confirmedCount}+`;
-  return `LOADING · ${crew.confirmedCount}/${crew.minimumCrew}`;
+  if (crew.status === 'READY') return `BOAT ${crew.confirmedCount}+ · READY`;
+  if (crew.confirmedCount >= crew.minimumCrew) return `BOAT ${crew.confirmedCount}+ · CONFIRMING`;
+  const needed = crew.minimumCrew - crew.confirmedCount;
+  return `BOAT ${crew.confirmedCount}/${crew.minimumCrew}+ · NEEDS ${needed}`;
 }
 
 export function getBoatCrewCountLabel(
@@ -279,6 +280,22 @@ export function getBoatCrewSharePath(id: string) {
 
 export function getBoatCrewInvitePath(id: string) {
   return `${getBoatCrewSharePath(id)}?invite=crew`;
+}
+
+export function getRepeatBoatCrewHref(
+  crew: Pick<BoatCrewSummary, 'venueSlug' | 'destination' | 'timeWindow' | 'abilityLane'> & {
+    viewerMembership?: Pick<NonNullable<BoatCrewSummary['viewerMembership']>, 'needsBoard'> | null;
+  },
+) {
+  const query = new URLSearchParams({
+    repeat: 'boat',
+    launch: crew.venueSlug,
+    destination: crew.destination,
+    time: crew.timeWindow,
+    ability: crew.abilityLane,
+  });
+  if (crew.viewerMembership?.needsBoard) query.set('board', '1');
+  return `/community/boat/kanaway?${query.toString()}`;
 }
 
 export function getBoatCrewShareText(crew: BoatCrewSummary) {

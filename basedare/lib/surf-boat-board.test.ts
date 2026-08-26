@@ -12,6 +12,7 @@ import {
   getBoatCrewInvitePath,
   getBoatCrewLoadingLabel,
   getBoatCrewMarkerPosition,
+  getRepeatBoatCrewHref,
   getAllowedBoatDays,
   getBoatLaunchDestinations,
   getBoatCrewSharePath,
@@ -111,7 +112,7 @@ test('map boats say whether they are loading and when they leave', () => {
     minimumCrew: 4,
     status: 'FORMING' as const,
   };
-  assert.equal(getBoatCrewLoadingLabel(forming), 'LOADING · 3/4');
+  assert.equal(getBoatCrewLoadingLabel(forming), 'BOAT 3/4+ · NEEDS 1');
   assert.equal(
     getBoatCrewDepartureLabel(
       { departureDay: '2026-08-11', timeWindow: 'early', operatorConfirmation: null },
@@ -119,4 +120,22 @@ test('map boats say whether they are loading and when they leave', () => {
     ),
     'TODAY · Early 7–9',
   );
+});
+
+test('repeat boat links preserve the real launch, break, window and ability lane', () => {
+  const href = getRepeatBoatCrewHref({
+    venueSlug: 'kanaway-surf-school',
+    destination: 'rock-island',
+    timeWindow: 'early',
+    abilityLane: 'independent',
+    viewerMembership: { needsBoard: true },
+  });
+  const url = new URL(href, 'https://basedare.xyz');
+  assert.equal(url.pathname, '/community/boat/kanaway');
+  assert.equal(url.searchParams.get('repeat'), 'boat');
+  assert.equal(url.searchParams.get('launch'), 'kanaway-surf-school');
+  assert.equal(url.searchParams.get('destination'), 'rock-island');
+  assert.equal(url.searchParams.get('time'), 'early');
+  assert.equal(url.searchParams.get('ability'), 'independent');
+  assert.equal(url.searchParams.get('board'), '1');
 });

@@ -489,14 +489,12 @@ export default function TagPlaceButton({
       setSubmittedVerified(presenceVerified);
       setSubmittedReceipt({
         title: presenceVerified
-          ? payload.data?.firstMark
-            ? `First Mark verified at ${venueName}`
-            : `Place update verified at ${venueName}`
+          ? `You made ${venueName} current`
           : payload.data?.firstMark
             ? `First Mark candidate submitted at ${venueName}`
             : `Place update submitted at ${venueName}`,
         detail: presenceVerified
-          ? 'A recent confirmed venue check-in matched this proof, so it is live on the map.'
+          ? 'Your verified place update is live on the map and helps the next person decide where to go.'
           : payload.data?.firstMark
             ? 'This is waiting for review. If approved, it earns the venue’s First Mark.'
             : 'This is waiting for review. If approved, the venue updates automatically.',
@@ -619,13 +617,13 @@ export default function TagPlaceButton({
                     {submittedVerified ? 'Update verified' : 'Update pending'}
                   </p>
                   <p className="mt-3 text-lg font-bold text-white">
-                    {submittedVerified ? 'Your approved update is live on the map.' : 'Your update is in review.'}
+                    {submittedVerified ? 'You made this place current.' : 'Your update is in review.'}
                   </p>
                   <p className="mt-2 text-sm text-white/65">
                     {submittedVerified
                       ? submittedFirstMark
-                        ? 'Your check-in verified it instantly — your First Mark is live here.'
-                        : 'Your check-in verified it instantly. The venue is already updated.'
+                        ? 'Your verified update is live here—and you earned the First Mark.'
+                        : 'Your verified update is live and helps the next person decide where to go.'
                       : submittedFirstMark
                         ? 'If approved, you earn the First Mark credit here.'
                         : 'If this clears, the venue updates automatically.'}
