@@ -1,265 +1,283 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft,
   ArrowRight,
+  BadgeCheck,
+  CircleDollarSign,
   Clock3,
-  Shield,
+  FileCheck2,
+  Fingerprint,
+  MapPin,
+  RefreshCcw,
   ShieldCheck,
   Sparkles,
-  Users,
-  Zap,
-  Wallet,
+  WalletCards,
 } from 'lucide-react';
+
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
-import WhyClaimTagStrip from '@/components/WhyClaimTagStrip';
+import {
+  controlHairline,
+  controlInset,
+  controlMicroLabel,
+  controlPanel,
+  controlSoftCard,
+} from '@/components/control/tokens';
 
-const raisedPanelClass =
-  'relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]';
+export const metadata: Metadata = {
+  title: 'Trust & Safety | BaseDare',
+  description:
+    'How BaseDare reserves paid rewards, checks real-world evidence, handles review and appeals, and creates durable place updates.',
+  alternates: { canonical: '/trust' },
+};
 
-const softCardClass =
-  'relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]';
-
-const insetDentClass =
-  'bd-dent-surface bd-dent-surface--soft rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)]';
-
-const TRUST_CARDS = [
+const PAID_FLOW = [
   {
-    title: 'Escrow stays reserved',
-    body: 'When a dare is funded, the money is locked for that mission. It does not disappear just because the creator is still deciding or review is still happening.',
-    icon: Shield,
-    tone: 'text-[#f8dd72] border-[#f5c518]/20 bg-[#f5c518]/[0.08]',
+    title: 'Brief locked',
+    body: 'The task, place, reward and evidence rule are visible before a contributor accepts.',
+    icon: FileCheck2,
   },
   {
-    title: 'Proof has to be real',
-    body: 'QR + nearby location creates a stronger presence signal. Depending on the mission and its risk level, proof may clear automatically or move to review — so weak or uncertain submissions are stopped before settlement.',
+    title: 'Reward reserved',
+    body: 'A live paid Dare reserves its reward before the work begins. Free plans never pretend to have a payout.',
+    icon: WalletCards,
+  },
+  {
+    title: 'Evidence checked',
+    body: 'Location, time, media and prior trust can support a submission. Uncertainty goes to review.',
     icon: ShieldCheck,
-    tone: 'text-fuchsia-100 border-fuchsia-400/18 bg-fuchsia-500/[0.08]',
   },
   {
-    title: 'Queued is not lost',
-    body: 'If a dare says payout queued, it means approval is done and settlement is processing. The creator is through review. The worker still needs to clear the transaction.',
-    icon: Wallet,
-    tone: 'text-emerald-200 border-emerald-400/18 bg-emerald-500/[0.08]',
+    title: 'Outcome recorded',
+    body: 'Approved work moves toward payout and becomes a durable receipt or place update.',
+    icon: BadgeCheck,
+  },
+] as const;
+
+const EVIDENCE_LAYERS = [
+  {
+    title: 'Who submitted it',
+    body: 'A wallet signature binds the action to an account. A public creator tag is useful, but it is not required for first value.',
+    icon: Fingerprint,
+    accent: 'border-violet-200/20 bg-violet-300/[0.08] text-violet-100',
   },
   {
-    title: 'Expired has a path',
-    body: 'If nobody accepts, claims, or completes the dare in time, the protocol moves it toward the refund path instead of leaving money trapped forever.',
+    title: 'Place and time',
+    body: 'Device location, check-ins and venue handshakes support presence. They are evidence signals—not perfect truth on their own.',
+    icon: MapPin,
+    accent: 'border-cyan-200/20 bg-cyan-300/[0.08] text-cyan-100',
+  },
+  {
+    title: 'Media and freshness',
+    body: 'Server-pinned photos or clips, timestamps and duplicate checks help connect a fresh submission to the brief.',
+    icon: Sparkles,
+    accent: 'border-fuchsia-200/20 bg-fuchsia-300/[0.08] text-fuchsia-100',
+  },
+  {
+    title: 'Review and appeal',
+    body: 'Clear evidence can proceed. Missing or uncertain signals pause for review; rejected work keeps an appeal path.',
+    icon: RefreshCcw,
+    accent: 'border-yellow-200/20 bg-yellow-300/[0.08] text-yellow-100',
+  },
+] as const;
+
+const MONEY_STATES = [
+  {
+    label: 'Reward reserved',
+    body: 'Funding is attached to this paid Dare.',
+    icon: CircleDollarSign,
+    tone: 'text-yellow-200',
+  },
+  {
+    label: 'In review',
+    body: 'Evidence needs a decision. No payout yet.',
+    icon: ShieldCheck,
+    tone: 'text-violet-200',
+  },
+  {
+    label: 'Payout queued',
+    body: 'Work is approved and settlement is processing.',
+    icon: WalletCards,
+    tone: 'text-emerald-200',
+  },
+  {
+    label: 'Refund path',
+    body: 'Unclaimed or expired paid Dares remain trackable for refund.',
     icon: Clock3,
-    tone: 'text-cyan-100 border-cyan-400/18 bg-cyan-500/[0.08]',
+    tone: 'text-cyan-100',
   },
-];
+] as const;
 
-const FLOW = [
-  'Fund or target the dare',
-  'Creator accepts and does it',
-  'Proof is checked — strong presence signals may clear it automatically, otherwise it’s reviewed',
-  'Escrow settles to the creator wallet',
-];
-
-const PROTOCOL_CARDS = [
-  {
-    title: 'Atomic settlement',
-    body: 'Every dare is a real onchain mission. Money is locked first, then released only after the protocol sees a valid completion path.',
-    icon: Zap,
-    tone: 'text-purple-300 border-purple-400/18 bg-purple-500/[0.08]',
-  },
-  {
-    title: 'Verifiable truth',
-    body: 'Trust comes from layered signals — location, freshness, media and reputation — not one unfakeable token. Strong signals can settle automatically; when they’re weak or uncertain, escrow holds and review decides — so money only moves on a real outcome.',
-    icon: Shield,
-    tone: 'text-cyan-100 border-cyan-400/18 bg-cyan-500/[0.08]',
-  },
-  {
-    title: 'Social liquidity',
-    body: 'Creators, venues, and brands build compounding trust through completions, first sparks, reviews, and place memory instead of empty clout.',
-    icon: Users,
-    tone: 'text-[#f8dd72] border-[#f5c518]/20 bg-[#f5c518]/[0.08]',
-  },
-];
+const BOUNDARIES = [
+  'GPS or a QR scan alone proves the whole outcome.',
+  'An RSVP proves someone attended.',
+  'Every activity on BaseDare is paid or onchain.',
+  'A listed venue is a partner unless the page says so.',
+  'Approved work guarantees commercial results for a buyer.',
+] as const;
 
 export default function TrustPage() {
-  const router = useRouter();
-
   return (
-    <div className="relative min-h-screen overflow-hidden bg-transparent">
+    <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-8 text-white sm:px-6 md:pt-12">
       <LiquidBackground />
       <div className="pointer-events-none fixed inset-0 z-10 hidden md:block">
         <GradualBlurOverlay />
       </div>
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_14%_6%,rgba(34,211,238,0.11),transparent_30%),radial-gradient(circle_at_84%_16%,rgba(168,85,247,0.15),transparent_34%)]" />
 
-      <section className="relative z-20 mx-auto max-w-6xl px-6 pb-20 pt-24 md:pt-28">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <button
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/22 hover:bg-white/[0.08] hover:text-white"
+      <div className="relative z-20 mx-auto max-w-6xl">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href="/how-it-works"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/12 bg-white/[0.045] px-4 text-[10px] font-black uppercase tracking-[0.15em] text-white/58 transition hover:border-white/22 hover:text-white"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Go Back
-          </button>
-
-          <div className="flex flex-wrap items-center gap-2">
+            How it works
+          </Link>
+          <div className="flex items-center gap-2">
             <Link
-              href="/"
-              className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-fuchsia-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/34 hover:bg-fuchsia-500/[0.12]"
+              href="/terms"
+              className="inline-flex min-h-10 items-center rounded-full border border-white/10 bg-white/[0.035] px-4 text-[10px] font-black uppercase tracking-[0.15em] text-white/48 transition hover:border-white/20 hover:text-white"
             >
-              Back To Grid
+              Terms
+            </Link>
+            <Link
+              href="/privacy"
+              className="inline-flex min-h-10 items-center rounded-full border border-white/10 bg-white/[0.035] px-4 text-[10px] font-black uppercase tracking-[0.15em] text-white/48 transition hover:border-white/20 hover:text-white"
+            >
+              Privacy
+            </Link>
+          </div>
+        </div>
+
+        <section className={`${controlPanel} px-6 py-10 text-center sm:px-10 md:py-14`}>
+          <div className={controlHairline} />
+          <p className={controlMicroLabel}>Trust &amp; safety</p>
+          <h1 className="mx-auto mt-4 max-w-4xl text-4xl font-black leading-[0.96] sm:text-6xl md:text-7xl">
+            Evidence before payout.<br />
+            <span className="text-yellow-300">Receipts after.</span>
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/58 md:text-lg">
+            Paid Dares lock the brief, reward and evidence rule before anyone accepts. BaseDare checks the submission, routes uncertainty to review, and records accepted work as useful place memory.
+          </p>
+          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link
+              href="/earn?source=trust"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-yellow-300 px-6 text-[11px] font-black uppercase tracking-[0.15em] text-black transition hover:bg-yellow-200"
+            >
+              Find paid missions <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <Link
+              href="/create?sparkType=paid&source=trust"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.07] px-6 text-[11px] font-black uppercase tracking-[0.15em] text-cyan-100 transition hover:border-cyan-100/30 hover:bg-cyan-300/[0.1]"
+            >
+              Fund a Dare
+            </Link>
+          </div>
+        </section>
+
+        <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Paid Dare trust flow">
+          {PAID_FLOW.map((step, index) => (
+            <article key={step.title} className={`${controlSoftCard} p-5`}>
+              <div className={controlHairline} />
+              <div className="flex items-center justify-between gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-2xl border border-yellow-200/18 bg-yellow-300/[0.07] text-yellow-100">
+                  <step.icon className="h-4.5 w-4.5" aria-hidden="true" />
+                </span>
+                <span className="text-xs font-black text-white/22">0{index + 1}</span>
+              </div>
+              <h2 className="mt-4 text-lg font-black text-white">{step.title}</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-white/46">{step.body}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className={`${controlPanel} mt-5 p-6 sm:p-8`} aria-labelledby="evidence-title">
+          <div className={controlHairline} />
+          <p className={controlMicroLabel}>Layered evidence</p>
+          <div className="mt-3 grid gap-5 lg:grid-cols-[0.72fr_1.28fr] lg:items-end">
+            <div>
+              <h2 id="evidence-title" className="text-2xl font-black text-white sm:text-3xl">
+                No single signal proves everything.
+              </h2>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-white/46">
+                BaseDare combines the signals the mission actually needs. Exact contributor location stays private; public receipts show the result, not a precise GPS trail.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {EVIDENCE_LAYERS.map((layer) => (
+                <article key={layer.title} className={`${controlInset} flex gap-3 p-4`}>
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl border ${layer.accent}`}>
+                    <layer.icon className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-white/86">{layer.title}</h3>
+                    <p className="mt-1 text-xs leading-5 text-white/42">{layer.body}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-5 grid gap-5 lg:grid-cols-[1.08fr_0.92fr]">
+          <div className={`${controlPanel} p-6 sm:p-8`}>
+            <div className={controlHairline} />
+            <p className={controlMicroLabel}>Readable money states</p>
+            <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">You should always know what happens next.</h2>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {MONEY_STATES.map((state) => (
+                <div key={state.label} className={`${controlInset} flex gap-3 p-4`}>
+                  <state.icon className={`mt-0.5 h-4 w-4 shrink-0 ${state.tone}`} aria-hidden="true" />
+                  <div>
+                    <h3 className="text-sm font-black text-white/84">{state.label}</h3>
+                    <p className="mt-1 text-xs leading-5 text-white/42">{state.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={`${controlSoftCard} p-6 sm:p-8`}>
+            <div className={controlHairline} />
+            <p className={controlMicroLabel}>Honest boundaries</p>
+            <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">BaseDare does not claim that…</h2>
+            <ul className="mt-5 space-y-3">
+              {BOUNDARIES.map((boundary) => (
+                <li key={boundary} className="flex gap-3 text-sm leading-6 text-white/52">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-fuchsia-300/80" />
+                  {boundary}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section className="mt-5 flex flex-col items-start gap-5 rounded-[1.6rem] border border-cyan-200/16 bg-cyan-300/[0.055] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-cyan-100" aria-hidden="true" />
+            <div>
+              <h2 className="text-sm font-black text-white">Free plans stay light. Paid work earns stronger checks.</h2>
+              <p className="mt-1 max-w-2xl text-xs leading-5 text-white/43">
+                BaseDare asks for more trust only when money, safety or a durable receipt depends on it.
+              </p>
+            </div>
+          </div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Link
+              href="/map?source=trust"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/12 bg-white/[0.045] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-white/64 transition hover:border-white/22 hover:text-white"
+            >
+              Explore the map
             </Link>
             <Link
               href="/faq"
-              className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white/68 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/22 hover:bg-white/[0.08] hover:text-white"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-200/20 bg-cyan-300/[0.08] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-100/32"
             >
-              FAQ
+              Read the FAQ <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
-        </div>
-
-        <div className={`${raisedPanelClass} px-6 py-10 md:px-10 md:py-12`}>
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
-          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/26 to-transparent" />
-
-          <div className="relative">
-            <div className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12)]">
-              <Shield className="h-4 w-4 text-fuchsia-300" />
-              Trust & Protocol
-            </div>
-
-            <div className="mt-6 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
-              <div>
-                <h1 className="text-4xl font-black uppercase italic tracking-tight text-white md:text-6xl">
-                  BaseDare Runs On
-                  <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#ffe27a] to-[#c39106]">
-                    Escrow, Proof,
-                  </span>
-                  <br />
-                  And Real Outcomes
-                </h1>
-                <p className="mt-5 max-w-2xl text-base leading-7 text-white/62 md:text-lg">
-                  BaseDare is a dare economy, but the important part is not chaos for its own sake.
-                  It is that funding, proof, payout, and place memory all follow a legible system
-                  people can actually trust.
-                </p>
-              </div>
-
-              <div className={`${insetDentClass} px-5 py-5`}>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.26em] text-white/34">
-                  The short version
-                </div>
-                <div className="mt-3 space-y-3">
-                  {FLOW.map((item, index) => (
-                    <div key={item} className="flex items-center gap-3 text-sm text-white/76">
-                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-[11px] font-black text-white/56">
-                        {index + 1}
-                      </span>
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="relative z-20 mx-auto max-w-6xl px-6 pb-16">
-        <WhyClaimTagStrip />
-      </section>
-
-      <section className="relative z-20 mx-auto max-w-6xl px-6 pb-16">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-          <Sparkles className="h-4 w-4 text-[#f5c518]" />
-          What BaseDare Is Really Doing
-        </div>
-
-        <div className="mb-6 grid gap-6 md:grid-cols-3">
-          {PROTOCOL_CARDS.map((card) => {
-            const Icon = card.icon;
-
-            return (
-              <div key={card.title} className={`${softCardClass} p-6`}>
-                <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
-                <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] shadow-[0_12px_20px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)] ${card.tone}`}>
-                  <Icon className="h-4 w-4" />
-                  Protocol
-                </div>
-                <h2 className="mt-5 text-2xl font-black italic text-white">{card.title}</h2>
-                <div className={`${insetDentClass} mt-5 px-4 py-4`}>
-                  <p className="text-sm leading-6 text-white/68 md:text-[15px]">{card.body}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          {TRUST_CARDS.map((card) => {
-            const Icon = card.icon;
-
-            return (
-              <div key={card.title} className={`${softCardClass} p-6`}>
-                <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
-                <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] shadow-[0_12px_20px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)] ${card.tone}`}>
-                  <Icon className="h-4 w-4" />
-                  Trust signal
-                </div>
-                <h2 className="mt-5 text-2xl font-black italic text-white">{card.title}</h2>
-                <div className={`${insetDentClass} mt-5 px-4 py-4`}>
-                  <p className="text-sm leading-6 text-white/68 md:text-[15px]">{card.body}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="relative z-20 mx-auto max-w-6xl px-6 pb-28">
-        <div className={`${softCardClass} p-6 md:p-8`}>
-          <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
-          <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr] lg:items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                <Sparkles className="h-4 w-4 text-[#f5c518]" />
-                Need the practical version?
-              </div>
-              <h2 className="mt-4 text-3xl font-black uppercase italic text-white">
-                Follow The Surface
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60 md:text-base">
-                Dare pages now show the lifecycle, review timing, and payout state directly. Use
-                this page when you want the full system logic without digging through status badges.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                onClick={() => router.back()}
-                className="inline-flex items-center justify-between rounded-[18px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(25,27,40,0.14)_100%)] px-5 py-4 text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_16px_28px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/22"
-              >
-                <span>Go back</span>
-                <ArrowLeft className="h-4 w-4" />
-              </button>
-              <Link
-                href="/create"
-                className="inline-flex items-center justify-between rounded-[18px] border border-[#f5c518]/22 bg-[linear-gradient(180deg,rgba(245,197,24,0.14)_0%,rgba(74,52,6,0.14)_100%)] px-5 py-4 text-sm font-black uppercase tracking-[0.14em] text-[#fff1ba] shadow-[0_16px_28px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-[#f5c518]/36"
-              >
-                <span>Start a dare</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/faq"
-                className="inline-flex items-center justify-between rounded-[18px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(25,27,40,0.14)_100%)] px-5 py-4 text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_16px_28px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-white/22"
-              >
-                <span>Read the FAQ</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </main>
   );
 }
