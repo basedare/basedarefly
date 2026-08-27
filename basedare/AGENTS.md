@@ -16,6 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex BaseDare Relic map system (2026-08-27 — SHIPPED)
+- The user explicitly assigned Codex this marker-system pass. Venue identity now stays on one canonical category relic while Spark, paid Dare, crew/hang, event, and recent-update states attach as a shared signal layer.
+- Existing assets are normalized through common scale, plinth, label, ring, glow, cluster, zoom-detail, and motion rules. Surf breaks keep their wave form on a BaseDare plinth; clusters are smaller number-only nodes whose rim reflects actionable content.
+- Files touched: `components/maps/RealWorldMap.tsx`, `lib/map-adventure-policy*`, and the new pure `lib/map-relic-system*` policy/tests.
+- Scope is presentation and marker classification only. No camera, renderer, canvas, tile, MapLibre source/layer, gesture, database, proof, payout, or mission-lifecycle behavior changed.
+
 ### Codex Live Plan commitment loop (2026-08-26 — SHIPPED)
 - Codex tightened the existing Rally/Live Plans seam around ethical real-world retention: truthful `BOAT 3/4+ · NEEDS 1` map progress, a useful **My Next Move** tray, directions/calendar/invite tools after joining, one crew-unlocked notification, a shareable place-current receipt, and prefilled Rally/boat repeat prompts.
 - Files touched in this pass: `components/live-plans/*`, the narrow boat/meetup clients and RSVP/membership responses, pure `lib/live-plans*` / `lib/meetup-plan*` / `lib/surf-boat-board*` helpers and tests, `components/place-tags/TagPlaceButton.tsx`, plus matching Brain/task records.

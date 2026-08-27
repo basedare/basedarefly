@@ -85,6 +85,11 @@ import {
   SURF_SIGNAL_PATTERN,
   type AdventureSpriteKind,
 } from '@/lib/map-adventure-policy';
+import {
+  getMapRelicClusterTone,
+  getMapRelicZoomBand,
+  resolveMapRelicSignal,
+} from '@/lib/map-relic-system';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { isSiargaoVenueFeaturedTonight } from '@/lib/siargao-nightlife';
 import {
@@ -3139,6 +3144,7 @@ function createSurfBreakMarkerHtml(label: string) {
           <path class="surf-swell-crest surf-swell-crest--3" d="M3 25C6 21 9 21 12 25S18 28 22 22.5" />
         </svg>
       </span>
+      <span class="surf-break-relic-plinth" aria-hidden="true"></span>
     </div>
   `;
 }
@@ -3221,27 +3227,19 @@ function createPeebearMarkerHtml({
   const showPulseChip = !compact && heatScore > 0;
   const hasChallengeLive = challengeLiveCount > 0;
   const hasCommunitySpark = hasChallengeLive && communitySparkLive;
-  const showChallengeLiveChrome = hasChallengeLive && !compact;
   const showMatchBadge = matched && !compact;
   const stateLabel =
     visualState === 'first-mark'
-      ? 'FIRST'
+      ? 'FIRST UPDATE'
       : visualState === 'pending'
         ? 'PENDING'
         : visualState === 'hot'
-          ? 'VERIFIED'
+          ? 'UPDATED'
           : visualState === 'active'
-            ? 'VERIFIED'
-            : 'NO PROOF';
+            ? 'UPDATED'
+            : 'NO UPDATES';
   const activationBadgeLabel = activationLabel ?? 'ACTIVATED';
   const safeActivationBadgeLabel = escapeMarkerAttribute(activationBadgeLabel);
-  const liveLabel = hasCommunitySpark
-    ? challengeLiveCount > 1
-      ? `SPARK ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}`
-      : 'SPARK'
-    : challengeLiveCount > 1
-      ? `LIVE ${challengeLiveCount > 9 ? '9+' : challengeLiveCount}`
-      : 'LIVE';
   const showActivatedMarkerChrome = activated && (!compact || active);
   // Category is now carried by one transparent 3D object. Additional venue
   // legends stay in the selected-place surface instead of stacking emoji pills
@@ -3257,11 +3255,24 @@ function createPeebearMarkerHtml({
     venueName,
     venueSlug,
   });
-  const adventureModifier = hasChallengeLive
-    ? hasCommunitySpark ? '✦' : liveLabel
-    : approvedCount > 0
-        ? '✓'
-        : '';
+  const relicSignal = resolveMapRelicSignal({
+    selected: active,
+    challengeLiveCount,
+    communitySparkLive: hasCommunitySpark,
+    localSignalLabel,
+    liveTonight,
+    approvedCount,
+  });
+  const signalGlyph =
+    relicSignal.kind === 'spark'
+      ? '✦'
+      : relicSignal.kind === 'dare'
+        ? 'ϟ'
+        : relicSignal.kind === 'crew'
+          ? '••'
+          : relicSignal.kind === 'event'
+            ? '▦'
+            : '';
   const venueLabel = getMarkerVenueLabel(venueName);
   const safeVenueLabel = venueLabel ? escapeMarkerAttribute(venueLabel) : null;
   const safeVenueTitle = venueName ? escapeMarkerAttribute(venueName) : null;
@@ -3269,7 +3280,7 @@ function createPeebearMarkerHtml({
   const safeLocalSignalLabel = localSignalLabel
     ? escapeMarkerAttribute(localSignalLabel.slice(0, 10).toUpperCase())
     : null;
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${hasChallengeLive ? `${hasCommunitySpark ? 'community-spark' : 'challenge'}-${Math.min(challengeLiveCount, 9)}` : 'standard'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${categoryKey}:${adventureSprite}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${safeLocalSignalLabel ?? 'no-local'}:${liveTonight ? 'tonight' : 'off-night'}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${relicSignal.kind}:${relicSignal.ring}:${relicSignal.label ?? 'no-signal'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${categoryKey}:${adventureSprite}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${safeLocalSignalLabel ?? 'no-local'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -3277,21 +3288,19 @@ function createPeebearMarkerHtml({
   }
 
   const html = `
-    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} ${active ? 'is-active' : ''} ${showChallengeLiveChrome ? 'has-challenge-live' : ''} ${hasCommunitySpark ? 'has-community-spark' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${liveTonight ? 'is-live-tonight' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
+    <div class="peebear-marker peebear-marker--${pulse} peebear-marker--${visualState} relic-category--${adventureSprite} relic-signal--${relicSignal.kind} relic-ring--${relicSignal.ring} ${relicSignal.actionable ? 'is-actionable' : ''} ${active ? 'is-active' : ''} ${hasChallengeLive ? 'has-challenge-live' : ''} ${hasCommunitySpark ? 'has-community-spark' : ''} ${matched ? 'is-matched' : ''} ${compact ? 'is-compact' : ''} ${activated ? 'is-activated-venue' : ''} ${liveTonight ? 'is-live-tonight' : ''} ${safeVenueLabel ? 'has-venue-label' : ''}">
       ${
         safeVenueLabel
           ? `<span class="peebear-venue-label ${activated ? 'peebear-venue-label--activated' : ''}" title="${safeVenueTitle ?? safeVenueLabel}"><span class="peebear-venue-label-name">${safeVenueLabel}</span></span>`
           : ''
       }
-      ${liveTonight ? `<span class="peebear-tonight-ring" aria-hidden="true"></span>${compact ? '' : '<span class="peebear-tonight-pill">TONIGHT</span>'}` : ''}
       ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
-      ${showChallengeLiveChrome ? `<span class="peebear-challenge-aura" aria-hidden="true"></span><span class="peebear-challenge-ring" aria-hidden="true"></span><span class="peebear-challenge-pill">${liveLabel}</span>` : ''}
-      ${safeLocalSignalLabel && !showChallengeLiveChrome && !compact ? `<span class="peebear-local-pill">${safeLocalSignalLabel}</span>` : ''}
+      ${relicSignal.label && !compact ? `<span class="relic-signal-tab relic-signal-tab--${relicSignal.kind}"><span class="relic-signal-emblem" aria-hidden="true">${signalGlyph}</span><span class="relic-signal-copy">${escapeMarkerAttribute(relicSignal.label)}</span></span>` : ''}
+      ${relicSignal.kind === 'update' ? '<span class="relic-update-pulse" title="Recent verified update" aria-hidden="true"></span>' : ''}
       ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
       ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
-      <span class="adventure-place-object adventure-place-object--${visualState} ${hasChallengeLive ? 'has-live-dare' : ''}" aria-hidden="true">
+      <span class="adventure-place-object adventure-place-object--${visualState} relic-category-object--${adventureSprite}" aria-hidden="true">
         <span class="adventure-sprite adventure-sprite--${adventureSprite}"></span>
-        ${adventureModifier ? `<span class="adventure-place-modifier">${adventureModifier}</span>` : ''}
       </span>
       <div class="peebear-core map-pin-marker map-pin-marker--${visualState} peebear-core--${pulse} peebear-core--${visualState}">
         <img src="/assets/peebear-head.webp" alt="PeeBear pin" class="peebear-head" />
@@ -3401,20 +3410,20 @@ function createPlaceClusterMarkerHtml({
   matched: boolean;
   challengeLiveCount: number;
 }) {
-  const cacheKey = `${count > 9 ? '9+' : count}:${pulse}:${visualState}:${matched ? 'matched' : 'neutral'}:${challengeLiveCount > 0 ? 'live' : 'quiet'}`;
+  const tone = getMapRelicClusterTone({ challengeLiveCount, matched });
+  const cacheKey = `${count > 9 ? '9+' : count}:${pulse}:${visualState}:${tone}:${challengeLiveCount > 0 ? 'live' : 'quiet'}`;
   const cachedHtml = placeClusterIconCache.get(cacheKey);
   if (cachedHtml) {
     return cachedHtml;
   }
 
   const html = `
-    <div class="place-cluster-marker place-cluster-marker--${pulse} place-cluster-marker--${visualState} ${matched ? 'is-matched' : ''} ${challengeLiveCount > 0 ? 'has-live' : ''}">
+    <div class="place-cluster-marker place-cluster-marker--${pulse} place-cluster-marker--${visualState} place-cluster-marker--${tone} ${matched ? 'is-matched' : ''} ${challengeLiveCount > 0 ? 'has-live' : ''}" aria-label="${count} nearby places${challengeLiveCount > 0 ? `, ${challengeLiveCount} live` : ''}">
       <span class="place-cluster-aura"></span>
       ${matched ? '<span class="place-cluster-match">MATCH</span>' : ''}
       ${challengeLiveCount > 0 ? `<span class="place-cluster-live">${challengeLiveCount > 9 ? '9+' : challengeLiveCount} LIVE</span>` : ''}
       <span class="place-cluster-core">
         <span class="place-cluster-count">${count > 99 ? '99+' : count}</span>
-        <span class="place-cluster-label">PLACES</span>
       </span>
       <span class="place-cluster-shadow"></span>
     </div>
@@ -5577,7 +5586,7 @@ export default function RealWorldMap() {
         // Zoom band drives label declutter via CSS only (no re-render): far =
         // bears + lit pins speak; mid = lit/warm labels; near = everything.
         // Updated on moveend/load, never per-frame.
-        const band = zoom < 14.2 ? 'far' : zoom < 15.8 ? 'mid' : 'near';
+        const band = getMapRelicZoomBand(zoom);
         const viewportNode = mapViewportRef.current;
         if (viewportNode && viewportNode.getAttribute('data-zoom-band') !== band) {
           viewportNode.setAttribute('data-zoom-band', band);
@@ -9033,6 +9042,7 @@ export default function RealWorldMap() {
         selectedPlace.slug && communitySparkMarkerVenueSlugSet.has(selectedPlace.slug),
       ),
       venueName: selectedPlace.name,
+      venueSlug: selectedPlace.slug,
       matched: Boolean(showMatchedLayer && selectedPlaceMatch),
       activated: selectedVenueActivated,
       activationLabel: getVenueActivationMarkerLabel(selectedCommandCenter),
@@ -9044,8 +9054,11 @@ export default function RealWorldMap() {
       mayorTag: selectedPlace.slug
         ? nearbyPlaces.find((place) => place.slug === selectedPlace.slug)?.mayor?.tag ?? null
         : null,
+      localSignalLabel: selectedPlace.slug
+        ? localSignalLabelByVenueSlug.get(selectedPlace.slug) ?? null
+        : null,
     });
-  }, [communitySparkMarkerVenueSlugSet, mapAttentionIntent, nearbyPlaces, selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
+  }, [communitySparkMarkerVenueSlugSet, localSignalLabelByVenueSlug, mapAttentionIntent, nearbyPlaces, selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
   const currentLocationMarkerHtml = useMemo(
     () => createCurrentLocationMarkerHtml({ centered: isUserCentered, heading: userHeading }),
     [isUserCentered, userHeading]
@@ -9312,7 +9325,7 @@ export default function RealWorldMap() {
             isVenueNightTonight(place.name, place.slug),
           mayorTag: place.mayor?.tag ?? null,
           localSignalLabel:
-            place.activeDareCount > 0 ? null : localSignalLabelByVenueSlug.get(place.slug) ?? null,
+            localSignalLabelByVenueSlug.get(place.slug) ?? null,
         }),
         className: `basedare-maplibre-marker basedare-maplibre-marker--venue${
           isAttentionPick ? ' basedare-maplibre-marker--attention-pick' : ''
@@ -11531,20 +11544,20 @@ export default function RealWorldMap() {
                     </div>
                     <div className="map-legend-row map-legend-row--live">
                       <span className="map-legend-hologram map-legend-hologram--live" aria-hidden="true">
-                        <span className="adventure-sprite adventure-sprite--flag" />
+                        <span className="map-legend-relic-signal map-legend-relic-signal--dare">ϟ</span>
                       </span>
                       <div className="min-w-0">
-                        <p className="map-legend-title text-cyan-100">Live challenge</p>
-                        <p className="map-legend-detail">Open money is moving</p>
+                        <p className="map-legend-title text-[#f8dd72]">Paid Dare signal</p>
+                        <p className="map-legend-detail">Attached to the place relic</p>
                       </div>
                     </div>
                     <div className="map-legend-row map-legend-row--community">
                       <span className="map-legend-hologram map-legend-hologram--community" aria-hidden="true">
-                        <span className="adventure-sprite adventure-sprite--flag" />
+                        <span className="map-legend-relic-signal map-legend-relic-signal--spark">✦</span>
                       </span>
                       <div className="min-w-0">
                         <p className="map-legend-title text-emerald-200">Community Spark</p>
-                        <p className="map-legend-detail">Free to view · Play unlocks nearby</p>
+                        <p className="map-legend-detail">Free activity at this place</p>
                       </div>
                     </div>
                     <div className="map-legend-row map-legend-row--open">
@@ -19641,6 +19654,395 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.peebear-marker--unmarked) {
           opacity: 0.94;
+        }
+
+        /* ================================================================
+           BASEDARE RELIC SYSTEM
+           Category is the permanent object; live state is an attachment.
+           Visible geometry may scale down, while the marker's existing DOM
+           footprint remains the same touch target.
+           ================================================================ */
+        .basedare-maplibre-map :global(.peebear-marker) {
+          --relic-rgb: 168, 85, 247;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.relic-ring--active) {
+          --relic-rgb: 196, 157, 255;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.relic-ring--cyan),
+        .basedare-maplibre-map :global(.peebear-marker.relic-signal--spark) {
+          --relic-rgb: 34, 211, 238;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.relic-ring--gold) {
+          --relic-rgb: 245, 197, 24;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.relic-ring--selected) {
+          --relic-rgb: 255, 226, 112;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker .adventure-place-object) {
+          --holo-rgb: var(--relic-rgb);
+          width: 66px;
+          height: 70px;
+          transform: translateX(-50%) translateY(-7px);
+          scale: 0.94;
+          filter:
+            saturate(0.94)
+            drop-shadow(0 10px 7px rgba(0, 0, 0, 0.48))
+            drop-shadow(0 0 6px rgba(var(--relic-rgb), 0.18));
+          animation: none;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker .adventure-place-object::before) {
+          width: 39px;
+          height: 9px;
+          border-color: rgba(var(--relic-rgb), 0.48);
+          background: radial-gradient(ellipse, rgba(var(--relic-rgb), 0.28), rgba(4, 5, 14, 0.68) 56%, transparent 76%);
+          box-shadow:
+            0 0 4px rgba(var(--relic-rgb), 0.42),
+            0 0 11px rgba(var(--relic-rgb), 0.22),
+            inset 0 0 5px rgba(var(--relic-rgb), 0.3);
+          animation: none;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker .adventure-place-object::after) {
+          width: 29px;
+          height: 36px;
+          background: linear-gradient(180deg, transparent, rgba(var(--relic-rgb), 0.14));
+          opacity: 0.34;
+          animation: none;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker .adventure-place-object .adventure-sprite) {
+          width: 60px;
+          height: 60px;
+          flex-basis: 60px;
+          transform: translateY(-7px) scale(1.03);
+          filter:
+            saturate(1.02)
+            contrast(1.02)
+            drop-shadow(0 7px 5px rgba(0, 0, 0, 0.54))
+            drop-shadow(0 0 4px rgba(var(--relic-rgb), 0.2));
+        }
+
+        /* Cups and glasses share the system without overpowering activity. */
+        .basedare-maplibre-map :global(.peebear-marker.relic-category--cafe .adventure-place-object .adventure-sprite) {
+          transform: translateY(-5px) scale(0.92);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.relic-category--beer .adventure-place-object .adventure-sprite) {
+          transform: translateY(-5px) scale(0.95);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.relic-category--wine .adventure-place-object .adventure-sprite) {
+          transform: translateY(-5px) scale(0.96);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-actionable .adventure-place-object),
+        .basedare-maplibre-map :global(.peebear-marker.is-active .adventure-place-object) {
+          filter:
+            saturate(1.05)
+            drop-shadow(0 11px 8px rgba(0, 0, 0, 0.5))
+            drop-shadow(0 0 9px rgba(var(--relic-rgb), 0.34));
+          animation: relicObjectFloat 5.8s ease-in-out infinite;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-active .adventure-place-object) {
+          transform: translateX(-50%) translateY(-9px);
+          scale: 1.08;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker .peebear-ripple),
+        .basedare-maplibre-map :global(.peebear-marker .peebear-challenge-aura),
+        .basedare-maplibre-map :global(.peebear-marker .peebear-challenge-ring),
+        .basedare-maplibre-map :global(.peebear-marker .peebear-challenge-pill),
+        .basedare-maplibre-map :global(.peebear-marker .peebear-local-pill),
+        .basedare-maplibre-map :global(.peebear-marker .peebear-tonight-ring),
+        .basedare-maplibre-map :global(.peebear-marker .peebear-tonight-pill) {
+          display: none !important;
+        }
+
+        .basedare-maplibre-map :global(.relic-signal-tab) {
+          position: absolute;
+          right: -7px;
+          top: 24px;
+          z-index: 15;
+          display: inline-flex;
+          min-height: 18px;
+          align-items: center;
+          gap: 4px;
+          border: 1px solid rgba(var(--relic-rgb), 0.52);
+          border-radius: 999px;
+          background:
+            linear-gradient(180deg, rgba(var(--relic-rgb), 0.16), rgba(var(--relic-rgb), 0.07)),
+            linear-gradient(180deg, rgba(12, 14, 24, 0.96), rgba(4, 6, 13, 0.98));
+          padding: 2px 7px 2px 4px;
+          color: rgba(255, 255, 255, 0.92);
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 6.5px;
+          font-weight: 950;
+          letter-spacing: 0.14em;
+          line-height: 1;
+          white-space: nowrap;
+          box-shadow:
+            0 7px 14px rgba(0, 0, 0, 0.34),
+            0 0 12px rgba(var(--relic-rgb), 0.16),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .basedare-maplibre-map :global(.relic-signal-emblem) {
+          display: grid;
+          width: 13px;
+          height: 13px;
+          place-items: center;
+          border-radius: 4px;
+          background: rgba(var(--relic-rgb), 0.22);
+          color: rgb(var(--relic-rgb));
+          font-size: 9px;
+          letter-spacing: 0;
+          text-shadow: 0 0 7px rgba(var(--relic-rgb), 0.72);
+        }
+
+        .basedare-maplibre-map :global(.relic-signal-tab--spark .relic-signal-emblem) {
+          border-radius: 2px 5px 5px 2px;
+          background: rgba(52, 211, 153, 0.2);
+          color: #86efac;
+          clip-path: polygon(0 0, 100% 8%, 78% 50%, 100% 92%, 0 100%);
+          animation: relicPennantFlick 9s ease-in-out infinite;
+        }
+
+        .basedare-maplibre-map :global(.relic-signal-tab--dare) {
+          --relic-rgb: 245, 197, 24;
+        }
+
+        .basedare-maplibre-map :global(.relic-signal-tab--crew) {
+          --relic-rgb: 34, 211, 238;
+        }
+
+        .basedare-maplibre-map :global(.relic-signal-tab--event) {
+          --relic-rgb: 184, 127, 255;
+        }
+
+        .basedare-maplibre-map :global(.relic-update-pulse) {
+          position: absolute;
+          right: 7px;
+          top: 38px;
+          z-index: 14;
+          width: 7px;
+          height: 7px;
+          border: 1px solid rgba(255, 255, 255, 0.78);
+          border-radius: 999px;
+          background: #fff;
+          box-shadow:
+            0 0 0 3px rgba(255, 255, 255, 0.08),
+            0 0 9px rgba(255, 255, 255, 0.62);
+        }
+
+        .basedare-maplibre-map :global(.peebear-venue-label) {
+          min-height: 19px;
+          max-width: 122px;
+          align-items: center;
+          border-color: rgba(var(--relic-rgb, 168, 85, 247), 0.3);
+          background: linear-gradient(180deg, rgba(18, 20, 31, 0.94), rgba(4, 6, 13, 0.97));
+          padding: 4px 8px;
+          font-size: 7px;
+          letter-spacing: 0.14em;
+          box-shadow:
+            0 7px 14px rgba(0, 0, 0, 0.32),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+          text-shadow: none;
+        }
+
+        /* Zoom is the complexity control: sigil -> relic -> full relic. */
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker:not(.is-active) .adventure-place-object) {
+          scale: 0.58;
+        }
+
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker.is-actionable:not(.is-active) .adventure-place-object) {
+          scale: 0.68;
+        }
+
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-venue-label) {
+          opacity: 0 !important;
+          visibility: hidden !important;
+        }
+
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker.is-active .peebear-venue-label),
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.peebear-marker.is-actionable .peebear-venue-label) {
+          opacity: 1 !important;
+          visibility: visible !important;
+        }
+
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.relic-signal-tab) {
+          right: 7px;
+          top: 38px;
+          width: 14px;
+          min-width: 14px;
+          height: 14px;
+          min-height: 14px;
+          overflow: hidden;
+          border-radius: 5px;
+          padding: 0;
+        }
+
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.relic-signal-copy) {
+          display: none;
+        }
+
+        .basedare-maplibre-map[data-zoom-band='far'] :global(.relic-signal-emblem) {
+          width: 100%;
+          height: 100%;
+        }
+
+        .basedare-maplibre-map[data-zoom-band='mid'] :global(.peebear-marker:not(.is-active) .adventure-place-object) {
+          scale: 0.82;
+        }
+
+        .basedare-maplibre-map[data-zoom-band='mid'] :global(.peebear-marker.relic-ring--quiet:not(.is-active) .peebear-venue-label) {
+          opacity: 0 !important;
+          visibility: hidden !important;
+        }
+
+        .basedare-maplibre-map[data-zoom-band='near'] :global(.peebear-marker:not(.is-active) .adventure-place-object) {
+          scale: 0.94;
+        }
+
+        /* Surf breaks now live on the same energy plinth as place relics. */
+        .basedare-maplibre-map :global(.surf-break-relic-plinth) {
+          position: absolute;
+          left: 50%;
+          bottom: -3px;
+          z-index: 0;
+          width: 31px;
+          height: 8px;
+          transform: translateX(-50%) perspective(34px) rotateX(62deg);
+          border: 1px solid rgba(245, 197, 24, 0.44);
+          border-radius: 999px;
+          background: radial-gradient(ellipse, rgba(245, 197, 24, 0.24), rgba(10, 7, 20, 0.64) 58%, transparent 78%);
+          box-shadow:
+            0 0 5px rgba(245, 197, 24, 0.42),
+            0 0 12px rgba(184, 127, 255, 0.2);
+        }
+
+        .basedare-maplibre-map :global(.surf-swell-flow),
+        .basedare-maplibre-map :global(.surf-break-map-label) {
+          z-index: 2;
+        }
+
+        /* Density is information, not a second dashboard widget. */
+        .basedare-maplibre-map :global(.place-cluster-marker) {
+          width: 62px;
+          height: 62px;
+        }
+
+        .basedare-maplibre-map :global(.place-cluster-aura) {
+          inset: 9px;
+          background: radial-gradient(circle, rgba(168, 85, 247, 0.17), transparent 72%);
+          filter: blur(5px);
+          opacity: 0.72;
+        }
+
+        .basedare-maplibre-map :global(.place-cluster-core) {
+          width: 48px;
+          height: 48px;
+          gap: 0;
+          border-color: rgba(184, 127, 255, 0.34);
+          box-shadow:
+            0 10px 20px rgba(0, 0, 0, 0.34),
+            0 0 0 2px rgba(168, 85, 247, 0.06),
+            inset 0 1px 0 rgba(255, 255, 255, 0.11),
+            inset 0 -9px 13px rgba(0, 0, 0, 0.22) !important;
+        }
+
+        .basedare-maplibre-map :global(.place-cluster-count) {
+          font-size: 18px;
+        }
+
+        .basedare-maplibre-map :global(.place-cluster-label) {
+          display: none;
+        }
+
+        .basedare-maplibre-map :global(.place-cluster-marker--cyan .place-cluster-core) {
+          border-color: rgba(34, 211, 238, 0.64);
+          box-shadow:
+            0 10px 20px rgba(0, 0, 0, 0.34),
+            0 0 12px rgba(34, 211, 238, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.11),
+            inset 0 -9px 13px rgba(0, 0, 0, 0.22) !important;
+        }
+
+        .basedare-maplibre-map :global(.place-cluster-marker--gold .place-cluster-core) {
+          border-color: rgba(245, 197, 24, 0.7);
+          box-shadow:
+            0 10px 20px rgba(0, 0, 0, 0.34),
+            0 0 14px rgba(245, 197, 24, 0.22),
+            inset 0 1px 0 rgba(255, 255, 255, 0.11),
+            inset 0 -9px 13px rgba(0, 0, 0, 0.22) !important;
+        }
+
+        .basedare-maplibre-map :global(.place-cluster-live) {
+          right: -4px;
+          bottom: 0;
+          padding: 3px 5px;
+          font-size: 5.5px;
+        }
+
+        .basedare-maplibre-map :global(.place-cluster-shadow) {
+          bottom: 5px;
+          width: 34px;
+          height: 9px;
+          filter: blur(7px);
+        }
+
+        .basedare-maplibre-map :global(.map-legend-relic-signal) {
+          display: grid;
+          width: 23px;
+          height: 23px;
+          place-items: center;
+          border: 1px solid currentColor;
+          border-radius: 7px;
+          background: rgba(6, 8, 16, 0.86);
+          font-size: 14px;
+          font-weight: 950;
+          box-shadow: 0 0 12px currentColor;
+        }
+
+        .basedare-maplibre-map :global(.map-legend-relic-signal--dare) {
+          color: #f5c518;
+        }
+
+        .basedare-maplibre-map :global(.map-legend-relic-signal--spark) {
+          color: #6ee7b7;
+        }
+
+        @keyframes relicObjectFloat {
+          0%, 100% { translate: 0 0; }
+          50% { translate: 0 -2px; }
+        }
+
+        @keyframes relicPennantFlick {
+          0%, 88%, 100% { rotate: 0deg; }
+          91% { rotate: -6deg; }
+          94% { rotate: 4deg; }
+        }
+
+        .basedare-maplibre-map[data-map-moving='true'] :global(.peebear-marker .adventure-place-object),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.relic-signal-emblem),
+        .basedare-maplibre-map[data-map-moving='true'] :global(.surf-swell-crest) {
+          animation: none !important;
+          filter: none !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .basedare-maplibre-map :global(.peebear-marker .adventure-place-object),
+          .basedare-maplibre-map :global(.relic-signal-emblem),
+          .basedare-maplibre-map :global(.surf-swell-crest) {
+            animation: none !important;
+            transition: none !important;
+          }
         }
 
         .basedare-maplibre-map :global(.maplibregl-ctrl-group),

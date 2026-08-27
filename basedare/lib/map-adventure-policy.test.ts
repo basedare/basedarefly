@@ -149,14 +149,14 @@ test('a beach bar keeps its nightlife identity beside beach activities', () => {
   );
 });
 
-test('a live funded challenge remains the strongest marker state', () => {
+test('a live funded challenge does not replace the venue category relic', () => {
   assert.equal(
     getAdventurePlaceSprite({ challengeLiveCount: 1, categories: ['nightlife', 'bar'] }),
-    'flag'
+    'beer'
   );
 });
 
-test('venue-backed dares reuse the venue flag instead of stacking a focal flag', () => {
+test('venue-backed dares reuse the canonical venue marker instead of stacking a focal marker', () => {
   const renderedVenueIds = new Set(['venue-kanaway', 'venue-marco', 'venue-malinao']);
 
   for (const venueId of renderedVenueIds) {

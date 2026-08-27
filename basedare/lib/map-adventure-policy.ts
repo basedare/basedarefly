@@ -51,7 +51,6 @@ function getSpriteForCategory(category: string): AdventureSpriteKind | null {
 }
 
 export function getAdventurePlaceSprite({
-  challengeLiveCount,
   categories,
   venueName,
   venueSlug,
@@ -61,7 +60,9 @@ export function getAdventurePlaceSprite({
   venueName?: string | null;
   venueSlug?: string | null;
 }): AdventureSpriteKind {
-  if (challengeLiveCount > 0) return 'flag';
+  // The relic always describes the place. A live Dare or Spark is rendered as
+  // an attachment by the map relic system and must never replace category
+  // identity with a generic flag.
   if (isPremiumDrinkVenue(venueName, venueSlug)) return 'wine';
 
   const normalizedCategories = (categories ?? []).map((category) => category.toLowerCase());
