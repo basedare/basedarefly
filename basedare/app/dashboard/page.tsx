@@ -1817,7 +1817,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className={`${softCardClass} order-5 mb-8 p-5 sm:p-6`}>
+        <div id="your-trail" className={`${softCardClass} order-5 mb-8 scroll-mt-24 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Your trail</h2>

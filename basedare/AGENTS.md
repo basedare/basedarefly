@@ -16,6 +16,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex creator action tiles (2026-08-27 — SHIPPED)
+- The user explicitly assigned Codex the narrow `/creators` action-tile pass: route paid-mission discovery to `/earn`, make the four creator-loop tiles state-aware through the existing read-only action-center API, and add a `#your-trail` dashboard anchor.
+- Files owned only for this pass: `components/creators/PublicCreators.tsx`, `components/creators/CreatorLoopActions.tsx`, `lib/creator-loop-actions.ts`, `lib/creator-loop-actions.test.ts`, and the one dashboard anchor in `app/dashboard/page.tsx`.
+- No claim, proof, review, payout, schema, or action-center lifecycle behavior is changing.
+
 ### Codex BaseDare Relic map system (2026-08-27 — SHIPPED)
 - The user explicitly assigned Codex this marker-system pass. Venue identity now stays on one canonical category relic while Spark, paid Dare, crew/hang, event, and recent-update states attach as a shared signal layer.
 - Existing assets are normalized through common scale, plinth, label, ring, glow, cluster, zoom-detail, and motion rules. Surf breaks keep their wave form on a BaseDare plinth; clusters are smaller number-only nodes whose rim reflects actionable content.

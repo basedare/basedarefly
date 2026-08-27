@@ -9,6 +9,7 @@ import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
 import { ClaimTagModule } from "@/components/ClaimTagModule";
+import { CreatorLoopActions } from "@/components/creators/CreatorLoopActions";
 import { buildCreatorMissionActivationHref } from "@/lib/mission-routing";
 
 type Creator = {
@@ -75,38 +76,6 @@ const launchCreatorMissionHref = buildCreatorMissionActivationHref({
   city: "Founding city",
   skills: ["Venue scouting", "Proof capture", "Local clips"],
 });
-
-const creatorLoopSteps: Array<{
-  label: string;
-  detail: string;
-  icon: React.ComponentType<{ className?: string }>;
-  tone: "cyan" | "purple" | "yellow" | "neutral";
-}> = [
-  {
-    label: "Find mission",
-    detail: "Pick paid work from the map.",
-    icon: Briefcase,
-    tone: "cyan",
-  },
-  {
-    label: "Show up",
-    detail: "Follow the place brief safely.",
-    icon: MapPin,
-    tone: "purple",
-  },
-  {
-    label: "Submit proof",
-    detail: "Photo, clip, receipt, or field note.",
-    icon: Shield,
-    tone: "yellow",
-  },
-  {
-    label: "Build record",
-    detail: "Your proof history compounds.",
-    icon: Trophy,
-    tone: "neutral",
-  },
-];
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -319,11 +288,11 @@ export default function CreatorsPage() {
               </h1>
 
               <p className="mt-4 text-gray-400 font-mono text-sm max-w-xl mx-auto mb-8">
-                Open the map, choose real missions, submit useful proof, and build a public proof record that unlocks better work.
+                Browse paid missions, choose a clear brief, submit useful proof, and build a public record that unlocks better work.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-2xl mx-auto">
-                <Link href="/map?source=creators-page" className="flex-1">
+                <Link href="/earn?source=creators-page" className="flex-1">
                   <motion.button
                     whileTap={{ scale: 0.98 }}
                     className="w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border border-cyan-300/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(12,12,22,0.94)_100%)] text-cyan-50 text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_14px_22px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_14px_rgba(0,0,0,0.24)] hover:-translate-y-[1px] hover:border-cyan-200/40"
@@ -359,34 +328,7 @@ export default function CreatorsPage() {
                   Apply as a Local Partner
                 </Link>
               </p>
-              <div className="mx-auto mt-6 grid max-w-4xl gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                {creatorLoopSteps.map((step) => {
-                  const StepIcon = step.icon;
-                  const toneClass =
-                    step.tone === "cyan"
-                      ? "border-cyan-300/16 bg-cyan-400/[0.055] text-cyan-100"
-                      : step.tone === "purple"
-                        ? "border-fuchsia-300/16 bg-fuchsia-400/[0.055] text-fuchsia-100"
-                        : step.tone === "yellow"
-                          ? "border-yellow-300/18 bg-yellow-400/[0.07] text-yellow-100"
-                          : "border-white/10 bg-white/[0.035] text-white/72";
-
-                  return (
-                    <div
-                      key={step.label}
-                      className={`rounded-[18px] border p-3 text-left shadow-[0_12px_20px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.06)] ${toneClass}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] border border-white/10 bg-black/24">
-                          <StepIcon className="h-4 w-4" />
-                        </span>
-                        <span className="text-[11px] font-black uppercase tracking-[0.14em]">{step.label}</span>
-                      </div>
-                      <p className="mt-2 text-xs leading-5 text-white/52">{step.detail}</p>
-                    </div>
-                  );
-                })}
-              </div>
+              <CreatorLoopActions />
             </div>
           </div>
         </motion.div>
@@ -537,7 +479,7 @@ export default function CreatorsPage() {
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2 md:w-[22rem]">
                           <Link
-                            href="/map?source=creators-empty-state"
+                            href="/earn?source=creators-empty-state"
                             className={`${ghostButtonClass} bd-tactile-button--cyan min-h-11 px-4 tracking-[0.13em]`}
                           >
                             Find Paid Missions
@@ -642,7 +584,7 @@ export default function CreatorsPage() {
                   </p>
                   <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
                     <Link
-                      href="/map?source=creators-empty-state"
+                      href="/earn?source=creators-empty-state"
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-200/40"
                     >
                       Find Paid Missions <ArrowRight className="w-4 h-4" />
