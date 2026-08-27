@@ -21,8 +21,7 @@ function shouldSkipGlobalBackground(pathname: string | null) {
     pathname?.startsWith('/map/') ||
     pathname === '/first-spark' ||
     pathname === '/scouts/dashboard' ||
-    pathname === '/brands/portal' ||
-    pathname === '/chat'
+    pathname === '/brands/portal'
   );
 }
 

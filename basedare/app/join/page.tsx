@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Coins, Map, Radio, Sparkles, Users } from 'lucide-react';
 
-import GradualBlurOverlay from '@/components/GradualBlurOverlay';
-import LiquidBackground from '@/components/LiquidBackground';
 import { OnboardingLink } from '@/components/onboarding/OnboardingLink';
 import {
   controlHairline,
@@ -58,10 +56,6 @@ const STEPS = [
 export default function JoinBaseDarePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-transparent px-4 pb-24 pt-8 sm:px-6 md:pt-12">
-      <LiquidBackground />
-      <div className="pointer-events-none fixed inset-0 z-10 hidden md:block"><GradualBlurOverlay /></div>
-      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_18%_8%,rgba(34,211,238,0.12),transparent_31%),radial-gradient(circle_at_82%_15%,rgba(168,85,247,0.14),transparent_34%)]" />
-
       <div className="relative z-20 mx-auto max-w-6xl">
         <section className={`${controlPanel} px-6 py-10 text-center sm:px-10 md:py-14`}>
           <div className={controlHairline} />

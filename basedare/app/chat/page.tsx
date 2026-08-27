@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { isAddress } from 'viem';
 
-import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
@@ -388,12 +387,6 @@ function ChatInbox() {
 
   return (
     <main className="relative min-h-[calc(100dvh-6rem)] overflow-visible bg-transparent px-3 py-5 text-white sm:px-6 sm:py-8 lg:px-10">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(circle_at_50%_10%,rgba(168,85,247,0.12),transparent_38%),radial-gradient(circle_at_14%_16%,rgba(245,197,24,0.045),transparent_26%),linear-gradient(180deg,rgba(2,2,4,0.12)_0%,rgba(2,2,4,0.05)_36%,rgba(2,2,4,0.28)_100%)]"
-      />
-      <GradualBlurOverlay />
-
       <section className="relative z-20 mx-auto flex max-w-7xl flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
