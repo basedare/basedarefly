@@ -16,6 +16,10 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex map filter pill polish (2026-08-28 — SHIPPED)
+- The user explicitly assigned Codex this presentation-only map control pass. Filters beneath search now form one recessed segmented control with slimmer pills, a gold active state, quieter count capsules, a cyan More state, and horizontal mobile scrolling.
+- The change is scoped to late map-route overrides in `app/global.css`; it preserves the newer command-deck, mobile selected-place sheet, map renderer, camera, and filter behavior.
+
 ### Codex Board + mobile place-sheet loop (2026-08-28 — SHIPPED)
 - The user explicitly assigned Codex the narrow Board integration and mobile place-sheet ergonomics pass. `/board` now reads the shared Live Plans projection (boats, rallies, published venue events, Sparks, and paid Dares), keeps exact map context, and adds Board-specific map/directions/share/action analytics.
 - The mobile selected-place sheet now owns the task area while open: the expanded sheet covers the map search deck and the floating Board entry no longer obscures compact Directions/View place actions.
