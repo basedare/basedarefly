@@ -111,8 +111,11 @@ export function getSpotsNeeded(going: number, minimum: number | null) {
   return Math.max(0, minimum - going);
 }
 
-export function getLivePlanMapHref(plan: Pick<LivePlan, 'type' | 'sourceId' | 'place'>) {
-  const query = new URLSearchParams({ source: 'my-next-move' });
+export function getLivePlanMapHref(
+  plan: Pick<LivePlan, 'type' | 'sourceId' | 'place'>,
+  source = 'my-next-move',
+) {
+  const query = new URLSearchParams({ source });
   if (plan.place.venueSlug) query.set('place', plan.place.venueSlug);
   if (plan.type === 'meetup') query.set('meetupId', plan.sourceId);
   return `/map?${query.toString()}`;

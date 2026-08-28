@@ -16,6 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Board + mobile place-sheet loop (2026-08-28 — SHIPPED)
+- The user explicitly assigned Codex the narrow Board integration and mobile place-sheet ergonomics pass. `/board` now reads the shared Live Plans projection (boats, rallies, published venue events, Sparks, and paid Dares), keeps exact map context, and adds Board-specific map/directions/share/action analytics.
+- The mobile selected-place sheet now owns the task area while open: the expanded sheet covers the map search deck and the floating Board entry no longer obscures compact Directions/View place actions.
+- Files owned for this pass: `app/board/page.tsx`, `app/map/page.tsx`, `app/global.css`, `components/live-plans/LivePlanCard.tsx`, the narrow event/share tracking clients, shared Live Plan URL helpers/tests, and the directions source enum. `components/maps/RealWorldMap.tsx` remains untouched.
+- ShakaBrah Skate Park is included as one canonical curated venue in the same release. No schema, migration, proof, payout, claim, renderer, camera, or promotion-ranking behavior changes.
+
 ### Codex creator action tiles (2026-08-27 — SHIPPED)
 - The user explicitly assigned Codex the narrow `/creators` action-tile pass: route paid-mission discovery to `/earn`, make the four creator-loop tiles state-aware through the existing read-only action-center API, and add a `#your-trail` dashboard anchor.
 - Files owned only for this pass: `components/creators/PublicCreators.tsx`, `components/creators/CreatorLoopActions.tsx`, `lib/creator-loop-actions.ts`, `lib/creator-loop-actions.test.ts`, and the one dashboard anchor in `app/dashboard/page.tsx`.

@@ -6,14 +6,21 @@ import {
   CalendarClock,
   ChevronRight,
   CircleDollarSign,
+  Map,
   MapPin,
+  Navigation,
   Radio,
   Sparkles,
   Users,
 } from 'lucide-react';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
-import type { LivePlan } from '@/lib/live-plans';
+import { trackClientEvent } from '@/lib/analytics';
+import {
+  getLivePlanDirectionsHref,
+  getLivePlanMapHref,
+  type LivePlan,
+} from '@/lib/live-plans';
 
 const PLAN_STYLE: Record<LivePlan['type'], {
   eyebrow: string;
@@ -81,9 +88,11 @@ function getPeopleLabel(plan: LivePlan) {
 export default function LivePlanCard({
   plan,
   compact = false,
+  context = 'now',
 }: {
   plan: LivePlan;
   compact?: boolean;
+  context?: 'now' | 'board';
 }) {
   const style = PLAN_STYLE[plan.type];
   const Icon = style.icon;
@@ -93,6 +102,35 @@ export default function LivePlanCard({
   const crewProgress = plan.people?.minimum
     ? Math.min(100, Math.round((plan.people.going / plan.people.minimum) * 100))
     : null;
+  const mapHref = getLivePlanMapHref(plan, context);
+  const directionsHref = getLivePlanDirectionsHref(plan);
+
+  const recordDirections = () => {
+    trackClientEvent('live_plan_directions_opened', {
+      plan_id: plan.id,
+      plan_type: plan.type,
+      source: context,
+    });
+    if (context !== 'board') return;
+    const clientEventId = window.crypto?.randomUUID?.();
+    if (!clientEventId) return;
+    void fetch('/api/places/directions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientEventId,
+        placeId: plan.place.venueId ?? plan.id,
+        destinationVenueId: plan.place.venueId,
+        placeSlug: plan.place.venueSlug,
+        activeDareId:
+          plan.type === 'paid_dare' || plan.type === 'community_spark'
+            ? plan.sourceId
+            : null,
+        sourceSurface: 'board_live_plan',
+      }),
+      keepalive: true,
+    }).catch(() => undefined);
+  };
 
   return (
     <article
@@ -167,10 +205,42 @@ export default function LivePlanCard({
         </details>
       ) : null}
 
+      {context === 'board' ? (
+        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/7 pt-3">
+          <Link
+            href={mapHref}
+            prefetch={false}
+            onClick={() => trackClientEvent('live_plan_map_opened', {
+              plan_id: plan.id,
+              plan_type: plan.type,
+              source: context,
+            })}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-violet-200/16 bg-violet-300/[0.06] px-3 text-[9px] font-black uppercase tracking-[0.11em] text-violet-100/78 transition hover:border-violet-100/32 hover:text-white"
+          >
+            <Map className="h-3.5 w-3.5" aria-hidden="true" /> On map
+          </Link>
+          <a
+            href={directionsHref}
+            target="_blank"
+            rel="noreferrer"
+            onClick={recordDirections}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.065] px-3 text-[9px] font-black uppercase tracking-[0.11em] text-cyan-100 transition hover:border-cyan-100/36 hover:text-white"
+          >
+            <Navigation className="h-3.5 w-3.5" aria-hidden="true" /> Directions
+          </a>
+        </div>
+      ) : null}
+
       <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
         <Link
           href={plan.action.href}
           prefetch={false}
+          onClick={() => trackClientEvent('live_plan_action_opened', {
+            action_kind: plan.action.kind,
+            plan_id: plan.id,
+            plan_type: plan.type,
+            source: context,
+          })}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#f5c518] px-4 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006] transition hover:bg-[#ffe36e] active:scale-[0.985]"
         >
           {participant ? 'Open plan' : plan.action.label}
@@ -182,6 +252,7 @@ export default function LivePlanCard({
           href={plan.share.href}
           label="Share"
           compact
+          analyticsSource={context}
           className="min-w-20"
         />
       </div>

@@ -27,14 +27,38 @@ export const metadata: Metadata = {
   },
 };
 
-export default function MapPage() {
+type MapSearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+const BOARD_LOCATION_PARAMS = [
+  'place',
+  'meetupId',
+  'lat',
+  'lng',
+  'zoom',
+  'bearing',
+  'pitch',
+  'radiusKm',
+] as const;
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function MapPage({ searchParams }: { searchParams: MapSearchParams }) {
+  const params = await searchParams;
+  const boardQuery = new URLSearchParams({ source: 'map' });
+  for (const key of BOARD_LOCATION_PARAMS) {
+    const value = firstParam(params[key]);
+    if (value) boardQuery.set(key, value);
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#02030a] font-display">
       <MapRouteChromeGuard />
       <RealWorldMapClient />
-      {/* Lightweight entry to The Board — the map's living layer (flyers + receipts). */}
+      {/* The Board is the list view of this map area. Preserve exact-pin context. */}
       <Link
-        href="/board"
+        href={`/board?${boardQuery.toString()}`}
         prefetch={false}
         className="map-board-entry fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 z-[35] inline-flex -translate-x-1/2 items-center gap-2.5 whitespace-nowrap rounded-full border border-[#f5c518]/40 bg-[linear-gradient(180deg,rgba(245,197,24,0.16)_0%,rgba(10,9,19,0.92)_58%,rgba(6,5,12,0.96)_100%)] px-7 py-3.5 text-xs font-black uppercase tracking-[0.22em] text-[#f8dd72] shadow-[0_18px_44px_rgba(0,0,0,0.6),0_0_24px_rgba(245,197,24,0.14),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#f5c518]/70 hover:text-white"
       >

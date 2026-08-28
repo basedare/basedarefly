@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Compass, Flag, MapPin, MoonStar, Radio, Sparkles, Users } from 'lucide-react';
+import LivePlanCard from '@/components/live-plans/LivePlanCard';
 import { getBoardSections, type BoardSections, type Flyer, type FlyerStamp, type FlyerTone } from '@/lib/board';
 import { FieldStationEntryBeacon, FieldStationTrackedLink } from '@/components/field-stations/FieldStationTrackedLink';
 import {
@@ -14,15 +15,17 @@ import {
   type FieldStationInventoryResult,
 } from '@/lib/field-stations/inventory';
 import type { FieldStationInventoryCandidate } from '@/lib/field-stations/inventory-policy';
+import { getLivePlanSnapshot } from '@/lib/live-plans-server';
+import type { LivePlan } from '@/lib/live-plans';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'The Board | BaseDare',
-  description: 'What is verified-happening near you — live dares, venue nights, and proof. If BaseDare can drive attendance or produce a receipt, it is on The Board.',
+  description: 'The BaseDare map in list form: boats, meetups, published venue events, free Sparks, and paid Dares near you.',
   openGraph: {
     title: 'The Board | BaseDare',
-    description: 'Live dares, venue nights, and verified presence — the local board for what is actually happening.',
+    description: 'Boats, meetups, venue events, Sparks, and paid Dares—the BaseDare map in list form.',
     url: 'https://www.basedare.xyz/board',
     siteName: 'BaseDare',
     type: 'website',
@@ -58,6 +61,7 @@ const PAPER_GRAIN =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
 const TILTS = [-1.5, 1.1, -0.7, 1.4, -1.2, 0.8];
+const SIARGAO_CENTER = { latitude: 9.803, longitude: 126.159 };
 
 function FlyerCard({ flyer, index, tone, fieldStation = false }: { flyer: Flyer; index: number; tone: FlyerTone; fieldStation?: boolean }) {
   const note = NOTE_TONE[tone];
@@ -157,6 +161,31 @@ function BoardSection({ title, subtitle, flyers, tone, fieldStation = false }: {
   );
 }
 
+function LivePlanBoardSection({
+  title,
+  subtitle,
+  plans,
+}: {
+  title: string;
+  subtitle: string;
+  plans: LivePlan[];
+}) {
+  if (plans.length === 0) return null;
+  return (
+    <section className="mt-10">
+      <div className="mb-5 flex flex-wrap items-baseline gap-3">
+        <h2 className="text-xl font-black uppercase italic tracking-tight text-white">{title}</h2>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">{subtitle}</span>
+      </div>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {plans.map((plan) => (
+          <LivePlanCard key={plan.id} plan={plan} context="board" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 type BoardSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 function firstParam(value: string | string[] | undefined) {
@@ -187,6 +216,11 @@ function normalizedRadius(value: string | undefined) {
   } catch {
     return normalizeDensityRadiusKm(undefined);
   }
+}
+
+function normalizedLiveRadius(value: string | undefined) {
+  const parsed = value ? Number(value) : Number.NaN;
+  return Number.isFinite(parsed) ? Math.min(25, Math.max(0.5, parsed)) : 12;
 }
 
 function copyParams(
@@ -280,6 +314,11 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
   const longitude = Number(firstParam(params.lng));
   const minimumDensity = normalizedThreshold(firstParam(params.minimumDensity));
   const radiusKm = normalizedRadius(firstParam(params.radiusKm));
+  const liveRadiusKm = normalizedLiveRadius(firstParam(params.radiusKm));
+  const liveCenter = {
+    latitude: Number.isFinite(latitude) ? latitude : SIARGAO_CENTER.latitude,
+    longitude: Number.isFinite(longitude) ? longitude : SIARGAO_CENTER.longitude,
+  };
   let inventory: FieldStationInventoryResult | null = null;
   let inventoryUnavailable = false;
   if (
@@ -309,9 +348,26 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
   );
   // Field Station scans never pay for the full Board projection before the
   // visitor asks for it. This keeps the first answer fast on constrained data.
-  const sections = fieldStation ? FIELD_STATION_EMPTY_SECTIONS : await getBoardSections();
+  const [liveSnapshot, sections] = fieldStation
+    ? [null, FIELD_STATION_EMPTY_SECTIONS] as const
+    : await Promise.all([
+        getLivePlanSnapshot({
+          latitude: liveCenter.latitude,
+          longitude: liveCenter.longitude,
+          radiusKm: liveRadiusKm,
+          horizonHours: 72,
+          limit: 60,
+        }).catch((error) => {
+          console.error('[BOARD] Live Plans projection failed:', error);
+          return null;
+        }),
+        getBoardSections(),
+      ]);
+  const livePlans = liveSnapshot?.plans ?? [];
+  const formingPlans = livePlans.filter((plan) => plan.status.forming);
+  const readyPlans = livePlans.filter((plan) => !plan.status.forming);
   const total =
-    sections.tonight.length + sections.rewards.length + sections.receipts.length + sections.placesLitUp.length;
+    livePlans.length + sections.tonight.length + sections.rewards.length + sections.receipts.length + sections.placesLitUp.length;
   const backToMapParams = copyParams(params, {
     source: 'board',
     field: null,
@@ -442,16 +498,30 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
         ) : total === 0 ? (
           <div className="mx-auto mt-12 max-w-md rounded-[24px] border border-white/10 bg-black/40 p-8 text-center backdrop-blur-md">
             <p className="text-sm font-bold leading-6 text-white/60">
-              The board&apos;s quiet right now. Be the first to light up a venue —{' '}
-              <Link href="/map" className="text-[#f8dd72] underline-offset-2 hover:underline">open the map</Link>, check in, and drop a proof.
+              Nothing is forming in this area yet.{' '}
+              <Link href="/community/rally/new" className="text-[#f8dd72] underline-offset-2 hover:underline">Start a Rally</Link>
+              {' '}or <Link href="/map" className="text-cyan-100 underline-offset-2 hover:underline">open the map</Link> to choose a place.
             </p>
           </div>
         ) : (
           <>
-            <BoardSection title="Tonight" subtitle="Live now" flyers={sections.tonight} tone="cyan" fieldStation={fieldStation} />
-            <BoardSection title="Rewards" subtitle="Open paid dares" flyers={sections.rewards} tone="gold" fieldStation={fieldStation} />
-            <BoardSection title="Receipts" subtitle="Verified proof" flyers={sections.receipts} tone="emerald" fieldStation={fieldStation} />
-            <BoardSection title="Places lit up" subtitle="Recent verified activity" flyers={sections.placesLitUp} tone="violet" fieldStation={fieldStation} />
+            {livePlans.length ? (
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-[9px] font-black uppercase tracking-[0.13em] text-white/44">
+                <span className="rounded-full border border-white/10 bg-black/24 px-3 py-1.5">{liveSnapshot?.totals.plans ?? livePlans.length} live plans</span>
+                <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.07] px-3 py-1.5 text-[#fff0a8]/72">{liveSnapshot?.totals.forming ?? formingPlans.length} need people</span>
+                <span className="rounded-full border border-violet-200/14 bg-violet-300/[0.06] px-3 py-1.5 text-violet-100/66">{liveSnapshot?.totals.events ?? 0} venue events</span>
+              </div>
+            ) : null}
+            <LivePlanBoardSection title="Needs people" subtitle="Join and help it happen" plans={formingPlans} />
+            <LivePlanBoardSection title="Live plans" subtitle="Boats · rallies · events · Sparks · paid Dares" plans={readyPlans} />
+            {!livePlans.length ? (
+              <>
+                <BoardSection title="Tonight" subtitle="Live now" flyers={sections.tonight} tone="cyan" fieldStation={fieldStation} />
+                <BoardSection title="Rewards" subtitle="Open paid dares" flyers={sections.rewards} tone="gold" fieldStation={fieldStation} />
+              </>
+            ) : null}
+            <BoardSection title="Receipts" subtitle="Recently verified" flyers={sections.receipts} tone="emerald" fieldStation={fieldStation} />
+            <BoardSection title="Place memory" subtitle="Recent verified activity" flyers={sections.placesLitUp} tone="violet" fieldStation={fieldStation} />
           </>
         )}
       </section>

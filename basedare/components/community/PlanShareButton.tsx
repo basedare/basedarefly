@@ -13,6 +13,7 @@ export default function PlanShareButton({
   label = 'Share plan',
   compact = false,
   className = '',
+  analyticsSource = 'live_plan',
 }: {
   title: string;
   text: string;
@@ -20,6 +21,7 @@ export default function PlanShareButton({
   label?: string;
   compact?: boolean;
   className?: string;
+  analyticsSource?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const url = useMemo(() => getBaseDareUrl(href), [href]);
@@ -27,7 +29,11 @@ export default function PlanShareButton({
   const copyPlan = async () => {
     try {
       await navigator.clipboard.writeText(`${text}\n\n${url}`);
-      trackClientEvent('live_plan_invite_shared', { method: 'copy_link', plan_path: href });
+      trackClientEvent('live_plan_invite_shared', {
+        method: 'copy_link',
+        plan_path: href,
+        source: analyticsSource,
+      });
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
@@ -40,7 +46,11 @@ export default function PlanShareButton({
     if (typeof navigator.share === 'function') {
       try {
         await navigator.share({ title, text, url });
-        trackClientEvent('live_plan_invite_shared', { method: 'native', plan_path: href });
+        trackClientEvent('live_plan_invite_shared', {
+          method: 'native',
+          plan_path: href,
+          source: analyticsSource,
+        });
         return;
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;

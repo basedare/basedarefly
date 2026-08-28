@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 
 import PlanShareButton from "@/components/community/PlanShareButton";
+import { trackClientEvent } from "@/lib/analytics";
 import type { PublicVenueEvent } from "@/lib/venue-events-server";
 import { buildWalletActionAuthHeaders } from "@/lib/wallet-action-auth";
 
@@ -77,6 +78,12 @@ export default function EventDetailClient({
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success)
         throw new Error(payload?.error || "Could not save that.");
+      if (status === "GOING" && event.viewerStatus !== "GOING") {
+        trackClientEvent("live_plan_joined", {
+          plan_type: "venue_event",
+          plan_id: event.id,
+        });
+      }
       setEvent((current) => ({
         ...current,
         viewerStatus: status,

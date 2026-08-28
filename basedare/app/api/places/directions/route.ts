@@ -16,6 +16,7 @@ const DirectionsEventSchema = z.object({
     'map_place_sheet',
     'map_live_dare_sheet',
     'map_claimed_mission_sheet',
+    'board_live_plan',
   ]),
 });
 

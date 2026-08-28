@@ -3109,4 +3109,28 @@ button[data-testid='ockConnectWalletButton']:hover {
     min-width: 1.35rem !important;
     height: 1.35rem !important;
   }
+
+  /* A selected place becomes the active mobile task. The compact dock keeps
+     map tools visible; expanding it temporarily clears those tools so the
+     sheet never slides underneath the search/filter deck. */
+  body.bd-map-route-active:has(.selected-place-panel-wrap:not(.selected-place-panel-wrap--compact):not(.selected-place-panel-wrap--save-spot))
+    .map-command-header {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  body.bd-map-route-active:has(.selected-place-panel-wrap:not(.selected-place-panel-wrap--compact):not(.selected-place-panel-wrap--save-spot))
+    .selected-place-panel-wrap {
+    top: calc(4.25rem + env(safe-area-inset-top)) !important;
+    z-index: 70 !important;
+  }
+
+  /* The Board remains available as soon as the place sheet closes. Hiding it
+     while either sheet state is open prevents it covering Directions/View. */
+  body.bd-map-route-active:has(.selected-place-panel-wrap) .map-board-entry {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
 }

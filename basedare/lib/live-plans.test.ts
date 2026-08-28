@@ -32,6 +32,10 @@ test('My Next Move map links preserve the canonical place and exact meetup', () 
   assert.equal(meetupUrl.searchParams.get('meetupId'), 'meet-1');
   assert.equal(meetupUrl.searchParams.get('source'), 'my-next-move');
 
+  const boardUrl = new URL(getLivePlanMapHref(meetup, 'board'), 'https://basedare.xyz');
+  assert.equal(boardUrl.searchParams.get('source'), 'board');
+  assert.equal(boardUrl.searchParams.get('place'), 'hideaway');
+
   const unbound = stub('spark-1', 'community_spark', {
     place: { venueId: null, venueSlug: null, label: 'Public area', lat: 9.8, lng: 126.16, approx: true },
   });

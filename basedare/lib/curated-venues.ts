@@ -916,6 +916,33 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     ],
   },
   {
+    slug: 'shakabrah-skate-park',
+    name: 'ShakaBrah Skate Park',
+    description:
+      'Santa Fe mini-ramp and bowl skate park for surfskate sessions and relaxed all-level community hangs. Confirm current access, rentals, and coaching on arrival.',
+    address: 'R4QQ+CV6, Barangay Santa Fe, General Luna, Surigao del Norte, Philippines',
+    city: 'General Luna',
+    country: 'Philippines',
+    latitude: 9.83814,
+    longitude: 126.13929,
+    timezone: 'Asia/Manila',
+    locationConfidence: 'siargaovibes-listing-cross-checked-plus-code',
+    instagramHandle: '@shakabrah_siargao',
+    categories: [
+      'activity',
+      'skatepark',
+      'skateboarding',
+      'surfskate',
+      'mini-ramp',
+      'bowl',
+      'lessons',
+      'social',
+      'santa-fe',
+      'siargao',
+      'general-luna',
+    ],
+  },
+  {
     slug: 'lagkaw-beach-bar-siargao',
     name: 'Lagkaw Beach Bar',
     description:
@@ -1073,6 +1100,12 @@ const SIARGAO_QUERY_TOKENS = [
   'water zipline',
   'minigolf',
   'mini golf',
+  'shakabrah',
+  'shaka brah',
+  'shakabrah skate',
+  'skatepark',
+  'surfskate',
+  'santa fe skate',
   'consuelo',
   'paddleboard',
   'kayak',
@@ -1222,7 +1255,7 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v12',
+            curatedSet: 'siargao-v13',
             locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
             coordinatePolicy:
               'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
@@ -1248,7 +1281,7 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v12',
+            curatedSet: 'siargao-v13',
             locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
             coordinatePolicy:
               'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
