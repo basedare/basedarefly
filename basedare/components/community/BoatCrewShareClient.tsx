@@ -9,6 +9,7 @@ import { useAccount, useSignMessage } from 'wagmi';
 import PlanShareButton from '@/components/community/PlanShareButton';
 import LivePlanInviteTracker from '@/components/live-plans/LivePlanInviteTracker';
 import PlanAttendanceButton from '@/components/live-plans/PlanAttendanceButton';
+import CrewRoomClient from '@/components/live-plans/CrewRoomClient';
 import { IdentityButton } from '@/components/IdentityButton';
 import { trackClientEvent } from '@/lib/analytics';
 import {
@@ -132,6 +133,43 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
     }
   };
 
+  const leave = async () => {
+    setState(null);
+    if (!actorWallet) return;
+    setPending('CONFIRMED');
+    try {
+      const headers = await buildWalletActionAuthHeaders({
+        walletAddress: actorWallet,
+        sessionToken: sessionShape?.token ?? null,
+        sessionWallet,
+        action: 'boat-crew:membership',
+        resource: `crew:${crew.id}`,
+        signMessageAsync,
+      });
+      const response = await fetch(`/api/boat-crews/${encodeURIComponent(crew.id)}/membership`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({
+          walletAddress: actorWallet,
+          commitment: 'LEAVE',
+          abilityLane: crew.abilityLane,
+          needsBoard: false,
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Could not leave this crew.');
+      setState({ type: 'success', message: 'You released your place.' });
+      setCrew((current) => ({ ...current, viewerMembership: null }));
+      window.dispatchEvent(new Event('basedare:live-plans-updated'));
+      await refresh();
+    } catch (error) {
+      setState({ type: 'error', message: error instanceof Error ? error.message : 'Could not leave this crew.' });
+      throw error;
+    } finally {
+      setPending(null);
+    }
+  };
+
   const destination = getOptionLabel(BOAT_DESTINATIONS, crew.destination);
   const launch = getBoatLaunch(crew.venueSlug);
   const time = getOptionLabel(BOAT_TIME_WINDOWS, crew.timeWindow);
@@ -200,6 +238,7 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
 
           <PlanShareButton title={`Join the ${destination} surf boat`} text={getBoatCrewShareText(crew)} href={getBoatCrewInvitePath(crew.id)} label="Invite friends" className="mt-4 w-full" />
           <Link href={launch.mapPath} className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/42 hover:text-white/72"><MapPin className="h-4 w-4" /> Open {launch.mapLabel} on map</Link>
+          {crew.viewerMembership?.commitment === 'CONFIRMED' ? <CrewRoomClient planType="boat" planId={crew.id} onCantMakeIt={leave} /> : null}
           {crew.status === 'DEPARTED' && crew.viewerMembership ? (
             <div className="mt-3 rounded-2xl border border-violet-200/14 bg-violet-300/[0.055] p-4">
               <PlanAttendanceButton planType="boat" planId={crew.id} />

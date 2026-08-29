@@ -45,6 +45,7 @@ type InboxThread = {
     venue: { name: string; href: string; city: string | null; country: string | null } | null;
     dare: { title: string; href: string; status: string } | null;
     campaign: { title: string; href: string; status: string } | null;
+    plan: { type: 'boat' | 'meetup'; id: string; title: string; href: string } | null;
   };
 };
 
@@ -94,6 +95,7 @@ function formatTime(value: string) {
 
 function threadCounterpartLabel(thread: InboxThread) {
   if (thread.type === 'SUPPORT') return 'BaseDare Support';
+  if (thread.type === 'CREW_ROOM') return `${thread.participantWallets.length} in crew`;
   const labels = thread.counterpartWallets.map(shortWallet).filter(Boolean);
   return labels.length ? labels.join(', ') : 'BaseDare thread';
 }
@@ -382,6 +384,8 @@ function ChatInbox() {
   const participantLabel = activeThread
     ? activeThread.type === 'SUPPORT'
       ? `${shortWallet(normalizedAddress ?? '')} / BaseDare Support`
+      : activeThread.type === 'CREW_ROOM'
+        ? `${activeThread.participantWallets.length} plan participants`
       : activeThread.participantWallets.map(shortWallet).join(' / ')
     : null;
 
@@ -398,8 +402,8 @@ function ChatInbox() {
               BaseDare <span className="text-[#f8dd72]">Chat</span>
             </h1>
             <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-white/55">
-              Message creators, venue owners, brands, and support without leaking phone numbers or emails.
-              Keep the deal, venue, proof, and payout trail inside BaseDare.
+              Coordinate joined plans, paid work, venues, and support without leaking phone numbers or emails.
+              Crew Rooms stay attached to a real place, time, and activity.
             </p>
           </div>
 
@@ -577,6 +581,14 @@ function ChatInbox() {
                       className="rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.11),rgba(255,255,255,0.035))] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_10px_20px_rgba(0,0,0,0.16)] transition hover:bg-white/[0.09] hover:text-white"
                     >
                       Campaign
+                    </Link>
+                  ) : null}
+                  {activeThread?.context.plan ? (
+                    <Link
+                      href={activeThread.context.plan.href}
+                      className="rounded-full border border-cyan-200/20 bg-cyan-300/[0.07] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100/78 transition hover:bg-cyan-300/[0.12]"
+                    >
+                      Open plan
                     </Link>
                   ) : null}
                 </div>

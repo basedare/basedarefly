@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight, Navigation, Sparkles, Users } from 'lucide-react';
+import { ChevronRight, MessageCircle, Navigation, Sparkles, Users } from 'lucide-react';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
 import PlanCalendarButton from '@/components/live-plans/PlanCalendarButton';
 import { trackClientEvent } from '@/lib/analytics';
-import { getLivePlanDirectionsHref, isLivePlanCalendarReady, type LivePlan } from '@/lib/live-plans';
+import { getLivePlanCrewRoomHref, getLivePlanDirectionsHref, isLivePlanCalendarReady, livePlanHasCrewRoom, type LivePlan } from '@/lib/live-plans';
 
 function formatTime(value: string | null) {
   if (!value) return 'Open now';
@@ -33,6 +33,7 @@ export default function MyNextMoveTray({ plans, className = '' }: { plans: LiveP
   const plan = plans[0];
   if (!plan) return null;
   const calendarReady = isLivePlanCalendarReady(plan);
+  const crewRoomReady = livePlanHasCrewRoom(plan);
 
   return (
     <aside
@@ -57,7 +58,7 @@ export default function MyNextMoveTray({ plans, className = '' }: { plans: LiveP
         </Link>
       </div>
 
-      <div className={`mt-2 grid ${calendarReady ? 'grid-cols-3' : 'grid-cols-2'} gap-2 border-t border-white/7 pt-2`}>
+      <div className={`mt-2 grid ${calendarReady || crewRoomReady ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'} gap-2 border-t border-white/7 pt-2`}>
         <a
           href={getLivePlanDirectionsHref(plan)}
           target="_blank"
@@ -77,6 +78,11 @@ export default function MyNextMoveTray({ plans, className = '' }: { plans: LiveP
             href: plan.action.href,
             description: commitmentLabel(plan),
           }} compact />
+        ) : null}
+        {crewRoomReady ? (
+          <Link href={getLivePlanCrewRoomHref(plan)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-violet-200/18 bg-violet-300/[0.065] px-3 text-[9px] font-black uppercase tracking-[0.12em] text-violet-100">
+            <MessageCircle className="h-4 w-4" /> Crew
+          </Link>
         ) : null}
         <PlanShareButton title={plan.share.title} text={plan.share.text} href={plan.share.href} label="Invite" compact />
       </div>

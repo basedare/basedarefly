@@ -7,6 +7,7 @@ import { isAddress } from 'viem';
 import { resolveHostBaretag, resolveViewerBaretag, getBlockedBaretagIds } from '@/lib/meetups-server';
 import { getMeetupSharePath, normalizeMeetupInviteTags } from '@/lib/meetup-plan';
 import { createWalletNotification } from '@/lib/notifications';
+import { syncLivePlanCrewRoom } from '@/lib/live-plan-room-server';
 
 // ============================================================================
 // FREE MEETUP LAYER — read + create. No settlement, payouts, or value, ever.
@@ -233,6 +234,9 @@ export async function POST(request: NextRequest) {
         }),
       ),
     );
+    await syncLivePlanCrewRoom('meetup', meetup.id).catch((error) => {
+      console.error('[MEETUPS] Crew Room sync failed:', error);
+    });
 
     return NextResponse.json({
       success: true,

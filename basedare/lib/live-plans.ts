@@ -102,6 +102,15 @@ export function livePlanId(type: LivePlanType, sourceId: string) {
   return `${type}:${sourceId}`;
 }
 
+export function livePlanHasCrewRoom(plan: Pick<LivePlan, 'type' | 'viewer'>) {
+  return (plan.type === 'boat' || plan.type === 'meetup') && plan.viewer.isNextMove;
+}
+
+export function getLivePlanCrewRoomHref(plan: Pick<LivePlan, 'type' | 'sourceId' | 'action'>) {
+  if (plan.type !== 'boat' && plan.type !== 'meetup') return plan.action.href;
+  return `${plan.action.href.split('#')[0]}#crew-room`;
+}
+
 /** Public coordinates stay at place granularity (~110m), never device precision. */
 export function roundLivePlanCoord(value: number) {
   return Math.round(value * 1000) / 1000;

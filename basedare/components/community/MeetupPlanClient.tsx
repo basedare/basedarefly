@@ -10,6 +10,7 @@ import PlanShareButton from '@/components/community/PlanShareButton';
 import PlanCalendarButton from '@/components/live-plans/PlanCalendarButton';
 import LivePlanInviteTracker from '@/components/live-plans/LivePlanInviteTracker';
 import PlanAttendanceButton from '@/components/live-plans/PlanAttendanceButton';
+import CrewRoomClient from '@/components/live-plans/CrewRoomClient';
 import { trackClientEvent } from '@/lib/analytics';
 import { getMeetupInvitePath, getMeetupSharePath, getMeetupShareText, getRepeatRallyHref, type MeetupPlanSummary } from '@/lib/meetup-plan';
 import { triggerHaptic } from '@/lib/mobile-haptics';
@@ -206,6 +207,7 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
             <PlanShareButton title={plan.title} text={getMeetupShareText(plan)} href={getMeetupInvitePath(plan.id)} label="Invite mates" className="mt-3 w-full" />
           ) : null}
           <Link href={mapHref} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-[10px] font-black uppercase tracking-[0.14em] text-white/62"><MapPin className="h-4 w-4 text-cyan-200" /> Open on map</Link>
+          {plan.viewerRsvped ? <CrewRoomClient planType="meetup" planId={plan.id} onCantMakeIt={leave} /> : null}
           {!active && plan.viewerRsvped ? (
             <div className="mt-3 rounded-2xl border border-violet-200/14 bg-violet-300/[0.055] p-4">
               <PlanAttendanceButton planType="meetup" planId={plan.id} />

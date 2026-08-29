@@ -9,6 +9,7 @@ import { createWalletNotification } from '@/lib/notifications';
 import { didMeetupJustUnlock, getMeetupSharePath } from '@/lib/meetup-plan';
 import { applyJourneyCookie } from '@/lib/creator-attribution-server';
 import { LIVE_PLAN_JOINED_EVENT } from '@/lib/live-plan-retention';
+import { syncLivePlanCrewRoom } from '@/lib/live-plan-room-server';
 import { recordLivePlanJourneyEvent } from '@/lib/live-plan-retention-server';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 
@@ -129,6 +130,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }).catch((error) => console.error('[MEETUPS] RSVP notification failed:', error));
     }
 
+    await syncLivePlanCrewRoom('meetup', id).catch((error) => {
+      console.error('[MEETUPS] Crew Room sync failed:', error);
+    });
+
     let journeyToken: string | null = null;
     if (result.joinedNow) {
       try {
@@ -220,6 +225,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       await tx.meetupRsvp.deleteMany({ where: { meetupId: id, baretagId: baretag.id } });
       const count = await tx.meetupRsvp.count({ where: { meetupId: id } });
       return { count };
+    });
+    await syncLivePlanCrewRoom('meetup', id).catch((error) => {
+      console.error('[MEETUPS] Crew Room sync after withdrawal failed:', error);
     });
     return NextResponse.json({ success: true, data: { rsvped: false, count: result.count } });
   } catch (error) {

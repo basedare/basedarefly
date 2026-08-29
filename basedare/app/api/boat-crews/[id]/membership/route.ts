@@ -10,6 +10,7 @@ import { createWalletNotification } from '@/lib/notifications';
 import { applyJourneyCookie } from '@/lib/creator-attribution-server';
 import { LIVE_PLAN_JOINED_EVENT } from '@/lib/live-plan-retention';
 import { recordLivePlanJourneyEvent } from '@/lib/live-plan-retention-server';
+import { syncLivePlanCrewRoom } from '@/lib/live-plan-room-server';
 
 const MembershipSchema = z.object({
   walletAddress: z.string().refine((value) => isAddress(value), 'Valid wallet required').optional(),
@@ -162,6 +163,10 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         link: getBoatCrewSharePath(id),
       }).catch((error) => console.error('[BOAT_CREW_MEMBERSHIP] threshold notification failed:', error));
     }
+
+    await syncLivePlanCrewRoom('boat', id).catch((error) => {
+      console.error('[BOAT_CREW_MEMBERSHIP] Crew Room sync failed:', error);
+    });
 
     let journeyToken: string | null = null;
     if (transition.joinedConfirmedNow) {

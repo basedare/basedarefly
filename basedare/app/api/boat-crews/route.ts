@@ -23,6 +23,7 @@ import {
 } from '@/lib/surf-boat-board';
 import { serializeBoatCrew } from '@/lib/surf-boat-board-server';
 import { createWalletNotification } from '@/lib/notifications';
+import { syncLivePlanCrewRoom } from '@/lib/live-plan-room-server';
 
 const CreateBoatCrewSchema = z.object({
   walletAddress: z.string().refine((value) => isAddress(value), 'Valid wallet required').optional(),
@@ -216,6 +217,9 @@ export async function POST(request: NextRequest) {
       message: `${getOptionLabel(BOAT_DESTINATIONS, input.destination)} · ${getOptionLabel(BOAT_TIME_WINDOWS, input.timeWindow)}`,
       link: getBoatCrewInvitePath(crew.id),
     })));
+    await syncLivePlanCrewRoom('boat', crew.id).catch((error) => {
+      console.error('[BOAT_CREWS] Crew Room sync failed:', error);
+    });
 
     return NextResponse.json({ success: true, data: { id: crew.id, sameCrewInvited: previousCrewMembers.length } }, { status: 201 });
   } catch (error) {

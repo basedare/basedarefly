@@ -18,7 +18,9 @@ import PlanShareButton from '@/components/community/PlanShareButton';
 import { trackClientEvent } from '@/lib/analytics';
 import {
   getLivePlanDirectionsHref,
+  getLivePlanCrewRoomHref,
   getLivePlanMapHref,
+  livePlanHasCrewRoom,
   type LivePlan,
 } from '@/lib/live-plans';
 
@@ -104,6 +106,7 @@ export default function LivePlanCard({
     : null;
   const mapHref = getLivePlanMapHref(plan, context);
   const directionsHref = getLivePlanDirectionsHref(plan);
+  const crewRoomReady = livePlanHasCrewRoom(plan);
 
   const recordDirections = () => {
     trackClientEvent('live_plan_directions_opened', {
@@ -233,7 +236,7 @@ export default function LivePlanCard({
 
       <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
         <Link
-          href={plan.action.href}
+          href={crewRoomReady ? getLivePlanCrewRoomHref(plan) : plan.action.href}
           prefetch={false}
           onClick={() => trackClientEvent('live_plan_action_opened', {
             action_kind: plan.action.kind,
@@ -243,7 +246,7 @@ export default function LivePlanCard({
           })}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#f5c518] px-4 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006] transition hover:bg-[#ffe36e] active:scale-[0.985]"
         >
-          {participant ? 'Open plan' : plan.action.label}
+          {crewRoomReady ? 'Open crew' : participant ? 'Open plan' : plan.action.label}
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </Link>
         <PlanShareButton

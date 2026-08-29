@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { createWalletNotification } from '@/lib/notifications';
 import { haveCrossedPaths } from '@/lib/crossed-paths';
 import { getInboxApiError } from '@/lib/inbox-errors';
+import { isInboxMessageOnlyBlockedContact, sanitizeInboxMessageBody } from '@/lib/inbox-message-policy';
+import { isCrewRoomMetadataOpen, readCrewRoomMetadata } from '@/lib/live-plan-room';
 import { prisma } from '@/lib/prisma';
 import { alertInboxSupportMessage } from '@/lib/telegram';
 import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
@@ -17,7 +19,7 @@ const ADMIN_INBOX_SENDER = 'basedare-admin';
 
 const SendMessageSchema = z.object({
   wallet: z.string().min(1),
-  threadId: z.string().cuid().optional(),
+  threadId: z.string().min(1).max(240).optional(),
   recipientWallet: z.string().optional(),
   recipientTag: z.string().max(120).optional(),
   venueSlug: z.string().max(160).optional(),
@@ -51,29 +53,6 @@ function normalizeWallet(value: string | null | undefined) {
 function normalizeTag(value: string | null | undefined) {
   const clean = value?.trim().replace(/^@/, '').toLowerCase();
   return clean || null;
-}
-
-function sanitizeMessageBody(value: string) {
-  let body = value.replace(/\s+/g, ' ').trim();
-  let redacted = false;
-
-  const replacements: Array<[RegExp, string]> = [
-    [/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[blocked email]'],
-    [/(?:\+?\d[\d\s().-]{7,}\d)/g, '[blocked phone]'],
-    [/\b(?:https?:\/\/)?(?:t\.me|telegram\.me|wa\.me)\/[^\s]+/gi, '[blocked contact link]'],
-  ];
-
-  for (const [pattern, replacement] of replacements) {
-    if (pattern.test(body)) {
-      redacted = true;
-      body = body.replace(pattern, replacement);
-    }
-  }
-
-  return {
-    body: body.slice(0, 1000),
-    redacted,
-  };
 }
 
 function walletLabel(wallet: string) {
@@ -121,7 +100,7 @@ async function authorizeInboxRequest(request: NextRequest, wallet: string, actio
 }
 
 async function fetchThreadsForWallet(wallet: string) {
-  return prisma.inboxThread.findMany({
+  const threads = await prisma.inboxThread.findMany({
     where: {
       participantWallets: {
         has: wallet,
@@ -160,6 +139,7 @@ async function fetchThreadsForWallet(wallet: string) {
       },
     },
   });
+  return threads.filter((thread) => thread.type !== 'CREW_ROOM' || isCrewRoomMetadataOpen(thread.metadataJson));
 }
 
 async function buildUnreadCountMap(wallet: string, threadIds: string[]) {
@@ -194,6 +174,7 @@ function mapThread(thread: InboxThreadRecord, wallet: string, unreadCount: numbe
   const dareShortId = readMetadataString(thread.metadataJson, 'dareShortId');
   const dareTitle = readMetadataString(thread.metadataJson, 'dareTitle');
   const campaignTitle = readMetadataString(thread.metadataJson, 'campaignTitle');
+  const crewRoom = readCrewRoomMetadata(thread.metadataJson);
   const contextLabel =
     venueName ||
     campaignTitle ||
@@ -255,6 +236,14 @@ function mapThread(thread: InboxThreadRecord, wallet: string, unreadCount: numbe
             title: campaignTitle ?? contextLabel,
             status: 'ACTIVE',
             href: `/brands/portal?campaign=${encodeURIComponent(thread.campaignId)}`,
+          }
+        : null,
+      plan: crewRoom
+        ? {
+            type: crewRoom.planType,
+            id: crewRoom.planId,
+            title: crewRoom.planTitle,
+            href: crewRoom.planHref,
           }
         : null,
     },
@@ -487,7 +476,7 @@ export async function GET(request: NextRequest) {
 
     const threads = await fetchThreadsForWallet(wallet);
     const threadIds = threads.map((thread) => thread.id);
-    const selectedThread =
+    const selectedThreadCandidate =
       requestedThreadId
         ? threads.find((thread) => thread.id === requestedThreadId) ??
           await prisma.inboxThread.findFirst({
@@ -518,6 +507,10 @@ export async function GET(request: NextRequest) {
             },
           })
         : threads[0] ?? null;
+    const selectedThread =
+      selectedThreadCandidate?.type === 'CREW_ROOM' && !isCrewRoomMetadataOpen(selectedThreadCandidate.metadataJson)
+        ? null
+        : selectedThreadCandidate;
     const messages = selectedThread ? await fetchActiveMessages(selectedThread, wallet) : [];
     const unreadCounts = await buildUnreadCountMap(wallet, selectedThread && !threadIds.includes(selectedThread.id) ? [...threadIds, selectedThread.id] : threadIds);
     const mappedThreads = threads.map((thread) => mapThread(thread, wallet, unreadCounts.get(thread.id) ?? 0));
@@ -568,8 +561,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const sanitized = sanitizeMessageBody(input.body);
-    if (!sanitized.body || sanitized.body === '[blocked email]' || sanitized.body === '[blocked phone]') {
+    const sanitized = sanitizeInboxMessageBody(input.body);
+    if (isInboxMessageOnlyBlockedContact(sanitized.body)) {
       return NextResponse.json({ success: false, error: 'Message cannot be empty or only contact details.' }, { status: 400 });
     }
 
@@ -591,6 +584,10 @@ export async function POST(request: NextRequest) {
       : null;
 
     let recipientWallets = thread?.participantWallets.filter((wallet) => wallet !== senderWallet) ?? [];
+
+    if (thread?.type === 'CREW_ROOM' && !isCrewRoomMetadataOpen(thread.metadataJson)) {
+      return NextResponse.json({ success: false, error: 'This Crew Room has expired.' }, { status: 410 });
+    }
 
     if (!thread) {
       const resolved = await resolveRecipient({
@@ -744,7 +741,7 @@ export async function POST(request: NextRequest) {
 
     const contextLabel = thread.subject || 'BaseDare inbox';
     await Promise.all(
-      recipientWallets.map((wallet) =>
+      (thread.type === 'CREW_ROOM' ? [] : recipientWallets).map((wallet) =>
         createWalletNotification({
           wallet,
           type: 'INBOX_MESSAGE',

@@ -16,6 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex plan-bound Crew Rooms (2026-08-29 — SHIPPED)
+- Boats and joined Rallies/meetups now sync a private, expiring `CREW_ROOM` through the existing Inbox ledger. Access follows canonical confirmed-crew/RSVP membership; room links never grant membership.
+- Each room pins the real plan context and exposes one-tap coordination for coming, arrival, delay, equipment needs and cancellation. Cancellation also invokes the plan's existing leave path. Ordinary messages remain quiet; only useful state changes notify participants.
+- Crew Rooms surface from joined Live Plan cards and My Next Move, while the global Chat remains the aggregate inbox. Paid Dare/direct commercial threads and proximity-aware place rooms remain separate.
+- Files owned in this pass are the narrow Crew Room policy/server/API/component files, Inbox presentation seam, boat/meetup sync seams, Live Plan entry actions, and this matching Brain playbook. No Prisma migration, paid Dare lifecycle, proof/payout logic, `app/map/*`, or `components/maps/RealWorldMap.tsx` change is included.
+
 ### Codex Live Plan retention completion (2026-08-29 — SHIPPED)
 - Completes the ethical crew loop across existing Live Plans: My Next Move persists on Map, Board, and Dashboard; exact invite opens and joins enter the append-only attribution ledger; ended boat/meetup plans offer an honest crew-reported **We went** confirmation; two distinct joined participants make a plan count as completed together.
 - **Same crew again** creates a fresh plan and notifies prior participants without silently rejoining them. PeeBear's **Pick for me** selects only real live inventory and prioritizes joined or needs-people plans.
