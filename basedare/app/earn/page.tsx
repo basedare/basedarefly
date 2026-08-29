@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, BriefcaseBusiness, CheckCircle2, WalletCards } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, CheckCircle2, Radio, WalletCards } from 'lucide-react';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
+import { MissionAlertForm } from '@/components/creator-entry/MissionAlertForm';
 import { CreatorMissionCard } from '@/components/creators/CreatorMissionCard';
 import {
   controlHairline,
@@ -23,12 +24,17 @@ export const metadata: Metadata = {
 
 const LOOP = [
   ['1', 'Pick'],
-  ['2', 'Do'],
+  ['2', 'Make'],
   ['3', 'Submit'],
   ['4', 'Get paid'],
 ] as const;
 
-export default async function EarnPage() {
+export default async function EarnPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ alerts?: string; city?: string }>;
+}) {
+  const { alerts, city } = await searchParams;
   const missions = await getCreatorMissions();
 
   return (
@@ -47,15 +53,15 @@ export default async function EarnPage() {
                 Pick a mission. Make it real. Get paid.
               </h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/55 sm:text-base">
-                Check a place, capture a moment, or create something for a venue or brand. Sign in only when you want to request it.
+                Check a place, capture a moment, or create something for a venue or brand. Once your work is approved, you get paid.
               </p>
             </div>
             <Link
-              href="/missions"
+              href="/action-center"
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/[0.04] px-5 text-[10px] font-black uppercase tracking-[0.15em] text-white/72 transition hover:border-white/24 hover:text-white"
             >
               <BriefcaseBusiness className="h-4 w-4 text-yellow-200" aria-hidden="true" />
-              My missions
+              My work
             </Link>
           </div>
 
@@ -93,10 +99,10 @@ export default async function EarnPage() {
               </p>
               <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
-                  href="/creators/signup"
+                  href="#mission-alerts"
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-yellow-200/18 bg-yellow-300/[0.07] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100"
                 >
-                  Join the creator list <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  Get mission alerts <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
                 <Link
                   href="/now"
@@ -107,6 +113,29 @@ export default async function EarnPage() {
               </div>
             </div>
           )}
+        </section>
+
+        <section
+          id="mission-alerts"
+          className={`${controlPanel} mt-8 scroll-mt-28 p-6 sm:p-8`}
+          aria-labelledby="mission-alerts-heading"
+        >
+          <div className={controlHairline} />
+          <div className="grid gap-7 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
+            <div>
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-200/16 bg-cyan-300/[0.06] text-cyan-100">
+                <Radio className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <p className={`${controlMicroLabel} mt-5`}>Mission alerts</p>
+              <h2 id="mission-alerts-heading" className="mt-2 text-3xl font-black leading-tight text-white">
+                Hear when real work opens.
+              </h2>
+              <p className="mt-3 max-w-md text-sm font-semibold leading-6 text-white/50">
+                Leave one contact and your city. No wallet, public profile, follower count or creator application required.
+              </p>
+            </div>
+            <MissionAlertForm defaultCity={city} autoFocus={alerts === '1'} />
+          </div>
         </section>
 
         <section className="mx-auto mt-8 flex max-w-3xl items-start gap-3 rounded-[22px] border border-white/8 bg-black/24 px-5 py-4 text-xs leading-5 text-white/42">

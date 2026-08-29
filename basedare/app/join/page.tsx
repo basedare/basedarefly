@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Coins, Map, Radio, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Coins, Map, Radio, Sparkles, Users } from 'lucide-react';
 
 import { OnboardingLink } from '@/components/onboarding/OnboardingLink';
 import {
@@ -37,6 +37,15 @@ const START_PATHS = [
     accent: 'border-violet-300/24 bg-violet-400/[0.08] text-violet-100',
   },
   {
+    title: 'Earn from a mission',
+    description: 'See real paid briefs first. Sign in only when you choose one.',
+    href: '/earn?source=join',
+    intent: 'earn' as const,
+    cta: 'Find paid work',
+    icon: BriefcaseBusiness,
+    accent: 'border-yellow-300/24 bg-yellow-400/[0.09] text-yellow-100',
+  },
+  {
     title: 'Start something',
     description: 'Create a Rally, free Spark or paid Dare without learning every tool first.',
     href: '/start',
@@ -71,7 +80,7 @@ export default function JoinBaseDarePage() {
           </p>
         </section>
 
-        <section className="mt-5 grid gap-4 md:grid-cols-3" aria-label="Choose your next move">
+        <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Choose your next move">
           {START_PATHS.map((path) => (
             <OnboardingLink
               key={path.title}

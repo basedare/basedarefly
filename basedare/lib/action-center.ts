@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { prisma } from '@/lib/prisma';
+import { calculateCreatorPayout } from '@/lib/creator-mission-policy';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { DARE_STATUS_PENDING_ACCEPTANCE } from '@/lib/dare-status';
 
@@ -28,6 +29,9 @@ export type ActionCenterItem = {
   statusLabel?: string | null;
   locationLabel?: string | null;
   bounty?: number | null;
+  creatorPayout?: number | null;
+  expiresAt?: string | null;
+  directionsHref?: string | null;
   createdAt?: string | null;
 };
 
@@ -48,6 +52,9 @@ type RelevantDare = {
   updatedAt: Date;
   verifiedAt: Date | null;
   moderatedAt: Date | null;
+  expiresAt: Date | null;
+  latitude: number | null;
+  longitude: number | null;
   locationLabel: string | null;
   stakerAddress: string | null;
   targetWalletAddress: string | null;
@@ -92,6 +99,7 @@ function toLifecycleInput(dare: RelevantDare) {
     createdAt: dare.createdAt.toISOString(),
     verifiedAt: dare.verifiedAt?.toISOString() ?? null,
     moderatedAt: dare.moderatedAt?.toISOString() ?? null,
+    expiresAt: dare.expiresAt?.toISOString() ?? null,
   };
 }
 
@@ -126,12 +134,12 @@ function getClaimLoopState(dare: RelevantDare, walletAddress?: string | null) {
 
   if (isPendingRequester && dare.claimRequestStatus === 'PENDING') {
     return {
-      label: 'Claim Pending',
+      label: 'Requested',
       detail: dare.claimRequestedAt
-        ? `Requested ${formatStatusTimestamp(dare.claimRequestedAt)}. Moderator review is still in flight.`
-        : 'Moderator review is still in flight.',
-      cta: 'Open Brief',
-      priority: 1,
+        ? `Requested ${formatStatusTimestamp(dare.claimRequestedAt)}. Wait for confirmation before starting.`
+        : 'BaseDare is confirming the assignment. Wait before starting.',
+      cta: 'View mission',
+      priority: 0,
     };
   }
 
@@ -203,6 +211,19 @@ function getClaimLoopState(dare: RelevantDare, walletAddress?: string | null) {
     detail: 'Open the brief to review the current state.',
     cta: 'Open brief',
     priority: 5,
+  };
+}
+
+function buildDirectionsHref(latitude: number | null, longitude: number | null) {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+}
+
+function creatorMissionFields(dare: RelevantDare) {
+  return {
+    creatorPayout: calculateCreatorPayout(dare.bounty),
+    expiresAt: dare.expiresAt?.toISOString() ?? null,
+    directionsHref: buildDirectionsHref(dare.latitude, dare.longitude),
   };
 }
 
@@ -297,6 +318,9 @@ export async function getActionCenter(
         updatedAt: true,
         verifiedAt: true,
         moderatedAt: true,
+        expiresAt: true,
+        latitude: true,
+        longitude: true,
         locationLabel: true,
         stakerAddress: true,
         targetWalletAddress: true,
@@ -364,7 +388,12 @@ export async function getActionCenter(
   const items: ActionCenterItem[] = [];
 
   const creatorClaims = dareRows
-    .filter((dare) => walletsMatch(dare.targetWalletAddress, lowerWallet) || walletsMatch(dare.claimedBy, lowerWallet))
+    .filter(
+      (dare) =>
+        walletsMatch(dare.targetWalletAddress, lowerWallet) ||
+        walletsMatch(dare.claimedBy, lowerWallet) ||
+        (walletsMatch(dare.claimRequestWallet, lowerWallet) && dare.claimRequestStatus === 'PENDING')
+    )
     .sort((left, right) => {
       const leftPriority = getClaimLoopState(left, lowerWallet).priority;
       const rightPriority = getClaimLoopState(right, lowerWallet).priority;
@@ -381,6 +410,26 @@ export async function getActionCenter(
     const lifecycle = getDareLifecycleModel(toLifecycleInput(dare));
     const href = `/dare/${dare.shortId || dare.id}`;
 
+    if (loopState.label === 'Requested') {
+      items.push({
+        id: `creator-${dare.id}-requested`,
+        dareId: dare.id,
+        category: 'Under review',
+        title: dare.title,
+        detail: loopState.detail,
+        cta: loopState.cta,
+        href: `/earn/${dare.shortId || dare.id}`,
+        priority: 0,
+        role: 'creator',
+        statusLabel: 'Requested',
+        locationLabel: dare.locationLabel,
+        bounty: dare.bounty,
+        ...creatorMissionFields(dare),
+        createdAt: dare.claimRequestedAt?.toISOString() ?? dare.createdAt.toISOString(),
+      });
+      return;
+    }
+
     if (dare.status === DARE_STATUS_PENDING_ACCEPTANCE && loopState.label === 'Respond Now') {
       items.push({
         id: `creator-${dare.id}-respond`,
@@ -392,9 +441,10 @@ export async function getActionCenter(
         href,
         priority: 0,
         role: 'creator',
-        statusLabel: lifecycle.currentStatusLabel,
+        statusLabel: 'Awaiting your answer',
         locationLabel: dare.locationLabel,
         bounty: dare.bounty,
+        ...creatorMissionFields(dare),
         createdAt: dare.createdAt.toISOString(),
       });
       return;
@@ -411,9 +461,10 @@ export async function getActionCenter(
         href,
         priority: 1,
         role: 'creator',
-        statusLabel: lifecycle.currentStatusLabel,
+        statusLabel: loopState.label === 'Proof Uploaded' ? 'Submitted' : 'Confirmed',
         locationLabel: dare.locationLabel,
         bounty: dare.bounty,
+        ...creatorMissionFields(dare),
         createdAt: dare.createdAt.toISOString(),
       });
       return;
@@ -430,9 +481,10 @@ export async function getActionCenter(
         href,
         priority: 2,
         role: 'creator',
-        statusLabel: lifecycle.currentStatusLabel,
+        statusLabel: 'Submitted',
         locationLabel: dare.locationLabel,
         bounty: dare.bounty,
+        ...creatorMissionFields(dare),
         createdAt: dare.createdAt.toISOString(),
       });
       return;
@@ -449,9 +501,10 @@ export async function getActionCenter(
         href,
         priority: 3,
         role: 'creator',
-        statusLabel: lifecycle.currentStatusLabel,
+        statusLabel: 'Approved',
         locationLabel: dare.locationLabel,
         bounty: dare.bounty,
+        ...creatorMissionFields(dare),
         createdAt: dare.createdAt.toISOString(),
       });
       return;
@@ -468,9 +521,10 @@ export async function getActionCenter(
         href,
         priority: 4,
         role: 'creator',
-        statusLabel: lifecycle.currentStatusLabel,
+        statusLabel: 'Paid',
         locationLabel: dare.locationLabel,
         bounty: dare.bounty,
+        ...creatorMissionFields(dare),
         createdAt: dare.createdAt.toISOString(),
       });
     }

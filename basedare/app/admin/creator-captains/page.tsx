@@ -32,8 +32,13 @@ type CreatorCaptain = {
   title: string;
   status: CreatorCaptainStatus;
   statusLabel: string;
+  applicationKind: string;
+  isMissionAlert: boolean;
   creatorName: string;
   email: string;
+  contact: string;
+  contactKind: string;
+  workLaneLabel: string;
   city: string;
   primaryHandle: string;
   primaryPlatformLabel: string;
@@ -423,6 +428,11 @@ export default function AdminCreatorCaptainsPage() {
                       <span className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] ${statusClass(captain.status)}`}>
                         {captain.statusLabel}
                       </span>
+                      {captain.isMissionAlert ? (
+                        <span className="rounded-full border border-yellow-300/25 bg-yellow-300/[0.09] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100">
+                          Mission alert
+                        </span>
+                      ) : null}
                       <span className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] ${priorityClass(captain.priority.score)}`}>
                         Score {captain.priority.score}
                       </span>
@@ -438,24 +448,41 @@ export default function AdminCreatorCaptainsPage() {
                       {captain.creatorName} · {captain.city} · {captain.primaryPlatformLabel} · {captain.audienceLabel}
                     </p>
 
+                    {captain.isMissionAlert ? (
+                      <div className="mt-4 rounded-[20px] border border-yellow-300/15 bg-yellow-300/[0.055] p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-yellow-100/60">
+                          Contact for suitable work
+                        </p>
+                        <p className="mt-2 break-words text-sm font-bold leading-6 text-yellow-50/75">
+                          {captain.contact} · {captain.workLaneLabel}
+                        </p>
+                      </div>
+                    ) : null}
+
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                       <div className="rounded-[20px] border border-white/10 bg-black/22 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Creator lane</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
+                          {captain.isMissionAlert ? 'Preferred work' : 'Creator lane'}
+                        </p>
                         <p className="mt-2 text-sm font-bold leading-6 text-white/70">{captain.categoriesLabel || 'No lane set'}</p>
                       </div>
                       <div className="rounded-[20px] border border-white/10 bg-black/22 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Captain help</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
+                          {captain.isMissionAlert ? 'Next step' : 'Captain help'}
+                        </p>
                         <p className="mt-2 text-sm font-bold leading-6 text-white/70">{captain.helpModesLabel || 'Not selected'}</p>
                       </div>
                       <div className="rounded-[20px] border border-white/10 bg-black/22 p-4 md:col-span-2">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Availability / payout</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
+                          {captain.isMissionAlert ? 'Alert state / reward' : 'Availability / payout'}
+                        </p>
                         <p className="mt-2 text-sm font-bold leading-6 text-white/70">
                           {captain.availabilityLabel} · {captain.expectedPayoutLabel}
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-3">
+                    {!captain.isMissionAlert ? <div className="mt-4 grid gap-3">
                       <div className="rounded-[20px] border border-white/10 bg-black/22 p-4">
                         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Content style</p>
                         <p className="mt-2 text-sm font-semibold leading-6 text-white/62">{captain.contentStyle}</p>
@@ -464,7 +491,7 @@ export default function AdminCreatorCaptainsPage() {
                         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">Dare ideas</p>
                         <p className="mt-2 text-sm font-semibold leading-6 text-white/62">{captain.dareIdeas}</p>
                       </div>
-                    </div>
+                    </div> : null}
 
                     {captain.venueLead || captain.socialLinks || captain.walletAddress ? (
                       <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -506,7 +533,7 @@ export default function AdminCreatorCaptainsPage() {
                   </div>
 
                   <aside className="grid gap-3 rounded-[24px] border border-white/10 bg-black/24 p-4">
-                    <div className="rounded-[22px] border border-cyan-300/15 bg-cyan-300/[0.055] p-4">
+                    {!captain.isMissionAlert ? <div className="rounded-[22px] border border-cyan-300/15 bg-cyan-300/[0.055] p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/62">
@@ -547,9 +574,21 @@ export default function AdminCreatorCaptainsPage() {
                         <Clipboard className="h-3.5 w-3.5" />
                         Use packet
                       </button>
-                    </div>
+                    </div> : (
+                      <div className="rounded-[22px] border border-yellow-300/15 bg-yellow-300/[0.055] p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100/62">
+                          Mission alert
+                        </p>
+                        <h3 className="mt-2 text-sm font-black leading-5 text-white">
+                          Match to real paid work
+                        </h3>
+                        <p className="mt-3 text-xs font-semibold leading-5 text-white/58">
+                          Contact this creator only when a suitable brief opens near {captain.city || 'their area'}.
+                        </p>
+                      </div>
+                    )}
 
-                    {captain.mission.missionUrl ? (
+                    {!captain.isMissionAlert && captain.mission.missionUrl ? (
                       <div className="rounded-[22px] border border-emerald-300/15 bg-emerald-300/[0.055] p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -577,7 +616,7 @@ export default function AdminCreatorCaptainsPage() {
                       </div>
                     ) : null}
 
-                    <label>
+                    {!captain.isMissionAlert ? <label>
                       <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
                         Suggested venue
                       </span>
@@ -592,9 +631,9 @@ export default function AdminCreatorCaptainsPage() {
                         className="w-full rounded-2xl border border-white/10 bg-black/28 px-3 py-2 text-sm font-bold text-white outline-none focus:border-cyan-300/30"
                         placeholder="Venue or city lane"
                       />
-                    </label>
+                    </label> : null}
 
-                    <label>
+                    {!captain.isMissionAlert ? <label>
                       <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
                         First mission
                       </span>
@@ -609,7 +648,7 @@ export default function AdminCreatorCaptainsPage() {
                         className="min-h-[82px] w-full resize-none rounded-2xl border border-white/10 bg-black/28 px-3 py-2 text-sm font-bold leading-6 text-white outline-none focus:border-cyan-300/30"
                         placeholder="One safe, filmable pilot mission"
                       />
-                    </label>
+                    </label> : null}
 
                     <label>
                       <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
@@ -663,7 +702,7 @@ export default function AdminCreatorCaptainsPage() {
                         disabled={updating}
                         className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100 disabled:opacity-50"
                       >
-                        Shortlist
+                        {captain.isMissionAlert ? 'Ready to match' : 'Shortlist'}
                       </button>
                       <button
                         type="button"
@@ -680,7 +719,7 @@ export default function AdminCreatorCaptainsPage() {
                         className="inline-flex items-center justify-center gap-1 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 disabled:opacity-50"
                       >
                         <CheckCircle2 className="h-3.5 w-3.5" />
-                        Onboard
+                        {captain.isMissionAlert ? 'Matched' : 'Onboard'}
                       </button>
                       <button
                         type="button"
@@ -694,7 +733,7 @@ export default function AdminCreatorCaptainsPage() {
                     </div>
 
                     <div className="grid gap-2">
-                      <button
+                      {!captain.isMissionAlert ? <button
                         type="button"
                         onClick={() => void updateCaptain(captain.id, { action: 'launch_mission' })}
                         disabled={updating}
@@ -702,7 +741,7 @@ export default function AdminCreatorCaptainsPage() {
                       >
                         {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                         {captain.mission.missionUrl ? 'Refresh mission link' : 'Launch proof mission'}
-                      </button>
+                      </button> : null}
                       {captain.links.replyMailtoHref ? (
                         <a
                           href={captain.links.replyMailtoHref}
@@ -717,7 +756,7 @@ export default function AdminCreatorCaptainsPage() {
                         className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-white/60 hover:text-white"
                       >
                         <Sparkles className="h-4 w-4" />
-                        Open activation route
+                        {captain.isMissionAlert ? 'Browse paid missions' : 'Open activation route'}
                       </Link>
                     </div>
                   </aside>

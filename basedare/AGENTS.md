@@ -16,6 +16,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex creator entry + map relic release (2026-08-30)
+- Codex is finishing the creator-first `/earn` entry, optional mission alerts, persistent creator work tray, plain work-state labels, and legacy `/creators/signup` redirect.
+- A separate narrow map calibration standardizes marker signal priority, quiets ordinary venues, removes empty update labels, optically reduces café relics, and clusters ordinary venues sooner.
+- Release files are owned by Codex until the combined `main` push completes. No schema, payout, proof-review, or Dare lifecycle transition is changed.
+
 ### Codex plan-bound Crew Rooms (2026-08-29 — SHIPPED)
 - Boats and joined Rallies/meetups now sync a private, expiring `CREW_ROOM` through the existing Inbox ledger. Access follows canonical confirmed-crew/RSVP membership; room links never grant membership.
 - Each room pins the real plan context and exposes one-tap coordination for coming, arrival, delay, equipment needs and cancellation. Cancellation also invokes the plan's existing leave path. Ordinary messages remain quiet; only useful state changes notify participants.

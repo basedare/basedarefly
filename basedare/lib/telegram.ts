@@ -924,6 +924,29 @@ ${htmlLink(appUrl(`/admin/creator-captains?applicationId=${encodeURIComponent(da
   return sendMessage(message);
 }
 
+export async function alertCreatorMissionAlert(data: {
+  applicationId: string;
+  handleOrName: string;
+  city: string;
+  contact: string;
+  contactKind: 'email' | 'telegram' | 'whatsapp' | 'unknown';
+  workLane: string;
+}): Promise<boolean> {
+  const message = `
+💼 <b>PAID MISSION ALERT REQUEST</b>
+
+<b>${escapeHtml(data.handleOrName)}</b>
+City: ${escapeHtml(data.city)}
+Contact: ${escapeHtml(data.contact)} · ${escapeHtml(data.contactKind)}
+Work: ${escapeHtml(data.workLane)}
+Request: <code>${escapeHtml(data.applicationId)}</code>
+
+${htmlLink(appUrl(`/admin/creator-captains?applicationId=${encodeURIComponent(data.applicationId)}`), 'Open mission-alert queue')} · ${htmlLink(appUrl('/earn'), 'Paid missions')}
+`.trim();
+
+  return sendMessage(message);
+}
+
 export async function alertCreatorCaptainStatusUpdate(data: {
   applicationId: string;
   creatorName: string;

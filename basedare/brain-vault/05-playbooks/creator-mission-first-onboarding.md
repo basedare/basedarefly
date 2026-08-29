@@ -3,7 +3,7 @@ type: playbook
 status: SOFTWARE_READY_FOR_PILOT
 owner: product_growth
 created_at: 2026-08-24
-updated_at: 2026-08-24
+updated_at: 2026-08-30
 ---
 
 # Creator mission-first onboarding
@@ -17,7 +17,8 @@ Move a cold creator from a shared link to an informed mission request without te
 - General creator entry: `/earn`
 - Preferred outreach entry: `/earn/<mission-short-id>`
 - Existing canonical contract and receipt page: `/dare/<mission-short-id>`
-- Assigned/in-progress work: `/missions`
+- Assigned/in-progress work: `/action-center`
+- Optional mission alerts: `/earn#mission-alerts`
 
 ## Operating sequence
 
@@ -29,6 +30,10 @@ Move a cold creator from a shared link to an informed mission request without te
 6. A human approves or rejects through the existing claim queue.
 7. Approved assignment, proof upload, review, payout and receipt remain unchanged.
 8. Invite the creator to complete profile, tag and availability after value is demonstrated.
+
+## Entry rule
+
+`/creators/signup` is a compatibility redirect, not a second application funnel. It lands on the optional mission-alert form inside `/earn`. Seeing real work never requires a wallet, follower count, public profile, or creator application. Authentication is requested only after someone chooses a mission.
 
 ## State truth
 
@@ -59,6 +64,7 @@ Run five observed contributor handoffs. Call this onboarding usable only if at l
 ## Integration contract
 
 - Homepage **Find paid missions** opens `/earn`.
+- The connected-wallet menu opens **My work** at `/action-center`; legacy Mission Passes remain a separate saved-pass utility.
 - Eligible Board rewards link directly to `/earn/<mission-short-id>`.
 - Legacy eligible `/dare/<mission-short-id>` links—including map and older shared links—redirect to the same `/earn` detail.
 - Once assigned or in proof, review, payout or receipt states, the Dare page remains the canonical operational record.

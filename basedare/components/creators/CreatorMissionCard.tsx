@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, Clock3, MapPin } from 'lucide-react';
 
+import { formatPhp, formatUsdc, getBaseCashPhpPerUsdc } from '@/lib/basecash-shared';
 import type { CreatorMission } from '@/lib/creator-missions-server';
 
 function formatDeadline(expiresAt: Date | null) {
@@ -14,11 +15,9 @@ function formatDeadline(expiresAt: Date | null) {
   }).format(expiresAt);
 }
 
-function formatUsdc(value: number) {
-  return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
-}
-
 export function CreatorMissionCard({ mission }: { mission: CreatorMission }) {
+  const estimatedPhp = mission.creatorPayout * getBaseCashPhpPerUsdc();
+
   return (
     <Link
       href={`/earn/${encodeURIComponent(mission.shortId)}`}
@@ -31,10 +30,10 @@ export function CreatorMissionCard({ mission }: { mission: CreatorMission }) {
         </span>
         <span className="text-right">
           <strong className="block text-2xl font-black text-yellow-200">
-            {formatUsdc(mission.creatorPayout)}
+            ≈ {formatPhp(estimatedPhp)}
           </strong>
           <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-white/34">
-            USDC when your work is approved
+            {formatUsdc(mission.creatorPayout)} when approved
           </span>
         </span>
       </div>

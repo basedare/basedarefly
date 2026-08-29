@@ -14,7 +14,7 @@ type CosmicOption = {
 
 type OnboardingLinkProps = {
   href: string;
-  intent: 'explore' | 'join' | 'create' | 'profile' | 'learn';
+  intent: 'explore' | 'join' | 'create' | 'profile' | 'learn' | 'earn';
   placement: 'hero' | 'path-card';
   className?: string;
   children: ReactNode;

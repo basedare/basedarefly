@@ -13,6 +13,7 @@ import {
   controlMicroLabel,
   controlPanel,
 } from '@/components/control/tokens';
+import { formatPhp, formatUsdc, getBaseCashPhpPerUsdc } from '@/lib/basecash-shared';
 import { getCreatorMissionByShortId } from '@/lib/creator-missions-server';
 
 export const dynamic = 'force-dynamic';
@@ -20,10 +21,6 @@ export const dynamic = 'force-dynamic';
 type MissionPageProps = {
   params: Promise<{ shortId: string }>;
 };
-
-function formatUsdc(value: number) {
-  return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
-}
 
 function formatDeadline(expiresAt: Date | null) {
   if (!expiresAt) return 'No fixed deadline';
@@ -43,7 +40,7 @@ export async function generateMetadata({ params }: MissionPageProps): Promise<Me
   if (!mission) return { title: 'Paid Mission | BaseDare' };
   return {
     title: `${mission.title} | BaseDare Paid Mission`,
-    description: `${mission.typeLabel}. ${formatUsdc(mission.creatorPayout)} USDC when the work is approved.`,
+    description: `${mission.typeLabel}. ${formatUsdc(mission.creatorPayout)} when the work is approved.`,
     alternates: { canonical: `/earn/${encodeURIComponent(mission.shortId)}` },
   };
 }
@@ -52,6 +49,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
   const { shortId } = await params;
   const mission = await getCreatorMissionByShortId(shortId);
   if (!mission) notFound();
+  const estimatedPhp = mission.creatorPayout * getBaseCashPhpPerUsdc();
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-transparent px-4 pb-24 pt-6 text-white sm:px-6 md:pt-10">
@@ -121,10 +119,12 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
             <aside className="lg:sticky lg:top-28 lg:self-start">
               <div className="rounded-[26px] border border-yellow-200/18 bg-[linear-gradient(180deg,rgba(255,227,106,0.1),rgba(7,7,12,0.94)_38%)] p-5 shadow-[0_22px_52px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.1)] sm:p-6">
                 <p className={controlMicroLabel}>You receive</p>
-                <p className="mt-2 text-5xl font-black tracking-tight text-yellow-200">{formatUsdc(mission.creatorPayout)}</p>
-                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/38">USDC when your work is approved</p>
+                <p className="mt-2 text-5xl font-black tracking-tight text-yellow-200">≈ {formatPhp(estimatedPhp)}</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/52">
+                  {formatUsdc(mission.creatorPayout)} paid when approved
+                </p>
                 <p className="mt-4 text-xs leading-5 text-white/42">
-                  {formatUsdc(mission.grossReward)} USDC reward less the 4% settlement fee.
+                  Approximate peso value at BaseDare&apos;s displayed rate. Exact settlement: {formatUsdc(mission.grossReward)} reward less the 4% fee.
                 </p>
 
                 <div className="my-5 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />

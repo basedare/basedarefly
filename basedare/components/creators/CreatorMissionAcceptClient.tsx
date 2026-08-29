@@ -75,6 +75,7 @@ export function CreatorMissionAcceptClient({
       }
       setRequestWallet(address.toLowerCase());
       setRequestStatus('PENDING');
+      window.dispatchEvent(new Event('basedare:mission-updated'));
       trackClientEvent('creator_mission_request_submitted', { mission_id: missionId });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to request this mission.');

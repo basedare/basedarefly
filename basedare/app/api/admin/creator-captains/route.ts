@@ -81,6 +81,28 @@ function buildReplyDraft(input: {
   ].filter(Boolean).join('\n');
 }
 
+function buildMissionAlertReplyDraft(input: {
+  creatorName: string;
+  city: string;
+  workLaneLabel: string;
+}) {
+  const name = input.creatorName || 'there';
+  const cityLine = input.city ? ` near ${input.city}` : '';
+  return [
+    `Hi ${name}, you are on the BaseDare mission alert list.`,
+    '',
+    `We will contact you when suitable ${input.workLaneLabel.toLowerCase()} work opens${cityLine}.`,
+    'You can browse current paid missions any time: https://www.basedare.xyz/earn',
+  ].join('\n');
+}
+
+function formatContactKind(value: string) {
+  if (value === 'email') return 'Email';
+  if (value === 'telegram') return 'Telegram';
+  if (value === 'whatsapp') return 'WhatsApp';
+  return 'Contact';
+}
+
 function buildMailtoHref(input: { email: string; subject: string; body: string }) {
   if (!input.email) return null;
   const query = new URLSearchParams({
@@ -152,10 +174,17 @@ function mapCaptainEvent(event: {
     .map((mode) => formatLabel(CREATOR_CAPTAIN_HELP_MODE_LABELS, mode))
     .join(', ');
   const status = normalizeCaptainStatus(event.status);
+  const applicationKind = stringValue(metadata.applicationKind) || 'creator';
+  const isMissionAlert = applicationKind === 'mission_alert';
   const creatorName = stringValue(metadata.creatorName);
-  const email = stringValue(metadata.email || event.actor);
+  const contact = stringValue(metadata.contact || event.actor);
+  const contactKind = stringValue(metadata.contactKind);
+  const email = isMissionAlert
+    ? (contactKind === 'email' ? contact : '')
+    : stringValue(metadata.email || event.actor);
   const primaryHandle = stringValue(metadata.primaryHandle);
   const city = stringValue(metadata.city);
+  const workLaneLabel = stringValue(metadata.workLaneLabel) || 'Paid mission';
   const primaryPlatform = stringValue(metadata.primaryPlatform);
   const audienceSize = stringValue(metadata.audienceSize);
   const availability = stringValue(metadata.availability);
@@ -187,41 +216,61 @@ function mapCaptainEvent(event: {
     guestMission: 'Guests check in, collect a receipt, and unlock one simple venue perk.',
     perkLabel: 'Venue provides one access/status perk',
   });
-  const replyDraft = buildReplyDraft({
-    creatorName,
-    primaryHandle,
-    city,
-    categoriesLabel: categoriesLabel || 'creator missions',
-    helpModesLabel,
-    availabilityLabel: formatLabel(CREATOR_CAPTAIN_AVAILABILITY_LABELS, availability),
-    missionTitle: missionPacket.title,
-    firstMission: missionPacket.firstMission,
-  });
+  const replyDraft = isMissionAlert
+    ? buildMissionAlertReplyDraft({ creatorName, city, workLaneLabel })
+    : buildReplyDraft({
+        creatorName,
+        primaryHandle,
+        city,
+        categoriesLabel: categoriesLabel || 'creator missions',
+        helpModesLabel,
+        availabilityLabel: formatLabel(CREATOR_CAPTAIN_AVAILABILITY_LABELS, availability),
+        missionTitle: missionPacket.title,
+        firstMission: missionPacket.firstMission,
+      });
 
   return {
     id: event.id,
     title: event.title || `${primaryHandle || creatorName || 'Creator'} application`,
     status,
-    statusLabel: CREATOR_CAPTAIN_STATUS_LABELS[status],
+    statusLabel: isMissionAlert
+      ? ({
+          NEW: 'Waiting',
+          SHORTLISTED: 'Ready to match',
+          CONTACTED: 'Contacted',
+          NEEDS_INFO: 'Needs info',
+          ONBOARDED: 'Matched',
+          REJECTED: 'Closed',
+        } satisfies Record<CreatorCaptainStatus, string>)[status]
+      : CREATOR_CAPTAIN_STATUS_LABELS[status],
+    applicationKind,
+    isMissionAlert,
     creatorName,
     email,
+    contact,
+    contactKind,
+    workLaneLabel,
     city,
     primaryHandle,
     primaryPlatform,
-    primaryPlatformLabel: formatLabel(CREATOR_CAPTAIN_PLATFORM_LABELS, primaryPlatform),
+    primaryPlatformLabel: isMissionAlert
+      ? formatContactKind(contactKind)
+      : formatLabel(CREATOR_CAPTAIN_PLATFORM_LABELS, primaryPlatform),
     socialLinks: stringValue(metadata.socialLinks),
     categories,
-    categoriesLabel,
+    categoriesLabel: isMissionAlert ? workLaneLabel : categoriesLabel,
     helpModes,
-    helpModesLabel,
+    helpModesLabel: isMissionAlert ? 'Notify when suitable paid work opens' : helpModesLabel,
     audienceSize,
-    audienceLabel: formatLabel(CREATOR_CAPTAIN_AUDIENCE_LABELS, audienceSize),
-    contentStyle: stringValue(metadata.contentStyle),
-    dareIdeas: stringValue(metadata.dareIdeas),
+    audienceLabel: isMissionAlert ? 'Mission alerts' : formatLabel(CREATOR_CAPTAIN_AUDIENCE_LABELS, audienceSize),
+    contentStyle: isMissionAlert ? 'Asked BaseDare to send suitable paid work.' : stringValue(metadata.contentStyle),
+    dareIdeas: isMissionAlert
+      ? `Notify for ${workLaneLabel.toLowerCase()} work${city ? ` near ${city}` : ''}.`
+      : stringValue(metadata.dareIdeas),
     availability,
-    availabilityLabel: formatLabel(CREATOR_CAPTAIN_AVAILABILITY_LABELS, availability),
+    availabilityLabel: isMissionAlert ? 'Waiting for a mission' : formatLabel(CREATOR_CAPTAIN_AVAILABILITY_LABELS, availability),
     expectedPayout,
-    expectedPayoutLabel: formatLabel(CREATOR_CAPTAIN_PAYOUT_LABELS, expectedPayout),
+    expectedPayoutLabel: isMissionAlert ? 'Reward shown in each brief' : formatLabel(CREATOR_CAPTAIN_PAYOUT_LABELS, expectedPayout),
     walletAddress: stringValue(metadata.walletAddress),
     venueLead: stringValue(metadata.venueLead),
     referralSource: stringValue(metadata.referralSource),
@@ -258,11 +307,13 @@ function mapCaptainEvent(event: {
     links: {
       replyMailtoHref: buildMailtoHref({
         email,
-        subject: `BaseDare Founding Dare Captain: ${primaryHandle || creatorName}`,
+        subject: isMissionAlert
+          ? `Your BaseDare mission alerts: ${creatorName}`
+          : `BaseDare Founding Dare Captain: ${primaryHandle || creatorName}`,
         body: replyDraft,
       }),
       creatorSearchHref: primaryHandle ? `/creators?search=${encodeURIComponent(primaryHandle.replace(/^@/, ''))}` : '/creators',
-      createHref: activationHref,
+      createHref: isMissionAlert ? '/earn' : activationHref,
     },
     replyDraft,
   };
@@ -379,6 +430,12 @@ export async function PUT(request: NextRequest) {
     if (input.firstMission !== undefined) nextOperator.firstMission = cleanOptional(input.firstMission);
 
     if (input.action === 'launch_mission') {
+      if (stringValue(metadata.applicationKind) === 'mission_alert') {
+        return NextResponse.json(
+          { success: false, error: 'Mission alerts are matched to existing paid work; they do not use Captain proof missions.' },
+          { status: 400 }
+        );
+      }
       const primaryHandle = stringValue(metadata.primaryHandle);
       const creatorName = stringValue(metadata.creatorName);
       const city = stringValue(metadata.city);

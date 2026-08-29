@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -16,6 +16,12 @@ import {
   normalizeText,
   scoreCreatorCaptain,
 } from '@/lib/creator-captains';
+import {
+  CREATOR_MISSION_ALERT_LANES,
+  CREATOR_MISSION_ALERT_LANE_LABELS,
+  isUsableMissionAlertContact,
+  normalizeMissionAlertInput,
+} from '@/lib/creator-mission-alerts';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 import {
@@ -24,7 +30,18 @@ import {
   normalizeScoutCode,
   stringValue as scoutStringValue,
 } from '@/lib/scout-creator-leads';
-import { alertCreatorCaptainApplication } from '@/lib/telegram';
+import { alertCreatorCaptainApplication, alertCreatorMissionAlert } from '@/lib/telegram';
+
+const CreatorMissionAlertSchema = z.object({
+  applicationKind: z.literal('mission_alert'),
+  handleOrName: z.string().min(2).max(120),
+  city: z.string().min(2).max(140),
+  contact: z.string().min(3).max(180).refine(isUsableMissionAlertContact, {
+    message: 'Use an email, WhatsApp number, or Telegram @handle.',
+  }),
+  workLane: z.enum(CREATOR_MISSION_ALERT_LANES).optional().default('anything'),
+  companyWebsite: z.string().max(240).optional().default(''),
+});
 
 const CreatorCaptainApplicationSchema = z.object({
   applicationKind: z.enum(['creator', 'local_partner']).optional().default('creator'),
@@ -142,6 +159,87 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
+    if (body?.applicationKind === 'mission_alert') {
+      const alertValidation = CreatorMissionAlertSchema.safeParse(body);
+      if (!alertValidation.success) {
+        return NextResponse.json(
+          { success: false, error: alertValidation.error.issues[0]?.message || 'Invalid mission alert' },
+          { status: 400, headers: createRateLimitHeaders(rateLimit) }
+        );
+      }
+
+      if (alertValidation.data.companyWebsite) {
+        return NextResponse.json({ success: true, data: { received: true } });
+      }
+
+      const alert = normalizeMissionAlertInput(alertValidation.data);
+      const contactHash = createHash('sha256')
+        .update(`${alert.contact.toLowerCase()}|${alert.city.toLowerCase()}`)
+        .digest('hex')
+        .slice(0, 32);
+      const event = await prisma.founderEvent.upsert({
+        where: { dedupeKey: `creator-mission-alert:${contactHash}` },
+        create: {
+          eventType: CREATOR_CAPTAIN_EVENT_TYPE,
+          source: 'creator-mission-alert',
+          subjectType: 'creator_mission_alert',
+          dedupeKey: `creator-mission-alert:${contactHash}`,
+          title: `${alert.handleOrName} asked for paid mission alerts`,
+          status: 'NEW',
+          actor: alert.contact,
+          href: '/admin/creator-captains',
+          metadataJson: {
+            applicationKind: 'mission_alert',
+            creatorName: alert.handleOrName,
+            primaryHandle: alert.handleOrName.startsWith('@') ? alert.handleOrName : '',
+            city: alert.city,
+            contact: alert.contact,
+            contactKind: alert.contactKind,
+            email: alert.contactKind === 'email' ? alert.contact : '',
+            workLane: alert.workLane,
+            workLaneLabel: CREATOR_MISSION_ALERT_LANE_LABELS[alert.workLane],
+            priority: { score: 50, reasons: ['requested-paid-work-alert'] },
+            clientIp,
+          } satisfies Prisma.InputJsonValue,
+        },
+        update: {
+          status: 'NEW',
+          actor: alert.contact,
+          occurredAt: new Date(),
+          metadataJson: {
+            applicationKind: 'mission_alert',
+            creatorName: alert.handleOrName,
+            primaryHandle: alert.handleOrName.startsWith('@') ? alert.handleOrName : '',
+            city: alert.city,
+            contact: alert.contact,
+            contactKind: alert.contactKind,
+            email: alert.contactKind === 'email' ? alert.contact : '',
+            workLane: alert.workLane,
+            workLaneLabel: CREATOR_MISSION_ALERT_LANE_LABELS[alert.workLane],
+            priority: { score: 50, reasons: ['requested-paid-work-alert'] },
+            clientIp,
+          } satisfies Prisma.InputJsonValue,
+        },
+        select: { id: true },
+      });
+
+      void alertCreatorMissionAlert({
+        applicationId: event.id,
+        handleOrName: alert.handleOrName,
+        city: alert.city,
+        contact: alert.contact,
+        contactKind: alert.contactKind,
+        workLane: CREATOR_MISSION_ALERT_LANE_LABELS[alert.workLane],
+      }).catch((alertError) => {
+        console.error('[CREATOR_MISSION_ALERT] Telegram alert failed:', alertError);
+      });
+
+      return NextResponse.json(
+        { success: true, data: { id: event.id, received: true } },
+        { headers: createRateLimitHeaders(rateLimit) }
+      );
+    }
+
     const validation = CreatorCaptainApplicationSchema.safeParse(body);
 
     if (!validation.success) {
