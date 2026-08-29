@@ -86,6 +86,7 @@ import {
   type AdventureSpriteKind,
 } from '@/lib/map-adventure-policy';
 import {
+  getMapRelicClusterCellSize,
   getMapRelicClusterTone,
   getMapRelicZoomBand,
   resolveMapRelicSignal,
@@ -1133,14 +1134,6 @@ function getDareRadiusKmForViewport(
   }
 }
 
-function getClusterCellSize(zoom: number) {
-  if (zoom >= 15) return 0;
-  if (zoom >= 14) return 54;
-  if (zoom >= 13) return 62;
-  if (zoom >= 12) return 72;
-  return 84;
-}
-
 function projectLatLngToWorldPoint(latitude: number, longitude: number, zoom: number) {
   const sin = Math.sin((latitude * Math.PI) / 180);
   const scale = 256 * 2 ** zoom;
@@ -1318,28 +1311,18 @@ function getTrustColor({
 // Review sentiment lives in the venue panel (Spot Vault), never on pins.
 function getMapLibreSignalLabel({
   activeDareCount,
-  approvedCount,
   matched,
-  reviewSignal,
   visualState,
-  heatScore,
 }: {
   activeDareCount: number;
-  approvedCount: number;
   matched: boolean;
-  reviewSignal: VenueReviewSignal;
   visualState: PlaceVisualState;
-  heatScore: number;
 }) {
-  if (activeDareCount > 1) return `${activeDareCount} live`;
-  if (activeDareCount === 1) return 'live dare';
-  if (approvedCount > 1) return `${approvedCount} updates`;
-  if (approvedCount === 1) return 'first update';
-  if (reviewSignal.count > 0) return 'verified';
+  if (activeDareCount > 1) return `${activeDareCount} paid`;
+  if (activeDareCount === 1) return 'paid';
   if (matched) return 'for you';
   if (visualState === 'pending') return 'pending';
-  if (heatScore > 0) return 'presence';
-  return 'no updates';
+  return '';
 }
 
 // Recency pushes heat toward "popping now": fresh verified activity boosts a
@@ -1429,11 +1412,8 @@ function buildVenueSignalCollection({
           }),
           signalLabel: getMapLibreSignalLabel({
             activeDareCount: place.activeDareCount,
-            approvedCount: place.tagSummary.approvedCount,
             matched,
-            reviewSignal,
             visualState,
-            heatScore: place.tagSummary.heatScore,
           }),
         },
         geometry: {
@@ -2093,9 +2073,7 @@ function ensureMapLibreDareLayers(
     filter: [
       'any',
       ['>', ['get', 'activeDareCount'], 0],
-      ['>', ['get', 'approvedCount'], 0],
-      ['>', ['get', 'reviewCount'], 0],
-      ['==', ['get', 'reviewSignalState'], 'needs-review'],
+      ['==', ['get', 'visualState'], 'pending'],
       ['==', ['get', 'matched'], true],
       ['==', ['get', 'selected'], true],
     ],
@@ -2365,12 +2343,6 @@ function getSpotVaultToneClass(tone: SpotVaultTimelineTone) {
     default:
       return 'border-white/10 bg-white/[0.04] text-white/60';
   }
-}
-
-function getSparkBadge(approvedCount: number) {
-  if (approvedCount <= 0) return '!';
-  if (approvedCount > 9) return '9+';
-  return String(approvedCount);
 }
 
 function getPlaceVisualState({
@@ -3221,23 +3193,8 @@ function createPeebearMarkerHtml({
   mayorTag?: string | null;
   localSignalLabel?: string | null;
 }) {
-  const badge = getSparkBadge(approvedCount);
-  const showRipple = !compact && (pulse !== 'cold' || visualState === 'pending' || visualState === 'first-mark');
-  const showCount = approvedCount > 0;
-  const showPulseChip = !compact && heatScore > 0;
   const hasChallengeLive = challengeLiveCount > 0;
   const hasCommunitySpark = hasChallengeLive && communitySparkLive;
-  const showMatchBadge = matched && !compact;
-  const stateLabel =
-    visualState === 'first-mark'
-      ? 'FIRST UPDATE'
-      : visualState === 'pending'
-        ? 'PENDING'
-        : visualState === 'hot'
-          ? 'UPDATED'
-          : visualState === 'active'
-            ? 'UPDATED'
-            : 'NO UPDATES';
   const activationBadgeLabel = activationLabel ?? 'ACTIVATED';
   const safeActivationBadgeLabel = escapeMarkerAttribute(activationBadgeLabel);
   const showActivatedMarkerChrome = activated && (!compact || active);
@@ -3263,6 +3220,7 @@ function createPeebearMarkerHtml({
     liveTonight,
     approvedCount,
   });
+  const showRipple = !compact && (active || relicSignal.actionable);
   const signalGlyph =
     relicSignal.kind === 'spark'
       ? '✦'
@@ -3280,7 +3238,7 @@ function createPeebearMarkerHtml({
   const safeLocalSignalLabel = localSignalLabel
     ? escapeMarkerAttribute(localSignalLabel.slice(0, 10).toUpperCase())
     : null;
-  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${relicSignal.kind}:${relicSignal.ring}:${relicSignal.label ?? 'no-signal'}:${badge}:${Math.min(heatScore, 999)}:${legendKey}:${categoryKey}:${adventureSprite}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${safeLocalSignalLabel ?? 'no-local'}`;
+  const cacheKey = `${pulse}:${visualState}:${active ? 'active' : 'idle'}:${matched ? 'matched' : 'neutral'}:${compact ? 'compact' : 'full'}:${showActivatedMarkerChrome ? `activated-${safeActivationBadgeLabel}` : activated ? 'activated-compact' : 'standard-venue'}:${relicSignal.kind}:${relicSignal.ring}:${relicSignal.label ?? 'no-signal'}:${Math.min(heatScore, 999)}:${legendKey}:${categoryKey}:${adventureSprite}:${safeVenueLabel ?? 'no-label'}:${safeMayorTag ?? 'no-mayor'}:${safeLocalSignalLabel ?? 'no-local'}`;
 
   const cachedHtml = markerIconCache.get(cacheKey);
   if (cachedHtml) {
@@ -3297,8 +3255,6 @@ function createPeebearMarkerHtml({
       ${showRipple ? `<span class="peebear-ripple peebear-ripple--${visualState === 'pending' ? 'pending' : pulse}"></span>` : ''}
       ${relicSignal.label && !compact ? `<span class="relic-signal-tab relic-signal-tab--${relicSignal.kind}"><span class="relic-signal-emblem" aria-hidden="true">${signalGlyph}</span><span class="relic-signal-copy">${escapeMarkerAttribute(relicSignal.label)}</span></span>` : ''}
       ${relicSignal.kind === 'update' ? '<span class="relic-update-pulse" title="Recent verified update" aria-hidden="true"></span>' : ''}
-      ${showMatchBadge ? `<span class="peebear-match-badge">MATCH</span>` : ''}
-      ${showCount ? `<span class="peebear-count peebear-count--${visualState === 'first-mark' ? 'first-mark' : pulse}">${badge}</span>` : ''}
       <span class="adventure-place-object adventure-place-object--${visualState} relic-category-object--${adventureSprite}" aria-hidden="true">
         <span class="adventure-sprite adventure-sprite--${adventureSprite}"></span>
       </span>
@@ -3307,8 +3263,6 @@ function createPeebearMarkerHtml({
       </div>
       <div class="peebear-meta">
         ${safeMayorTag && !compact ? `<span class="peebear-mayor">👑 ${safeMayorTag}</span>` : ''}
-        ${showPulseChip ? `<span class="peebear-pulse-pill peebear-pulse-pill--${pulse}">HEAT ${Math.min(heatScore, 99)}</span>` : ''}
-        <span class="peebear-state peebear-state--${visualState}">${stateLabel}</span>
       </div>
       <div class="peebear-shadow"></div>
     </div>
@@ -6935,6 +6889,30 @@ export default function RealWorldMap() {
     });
     return labels;
   }, [localSignals]);
+  const boatCrewSignalLabelByVenueSlug = useMemo(() => {
+    const labels = new Map<string, string>();
+    const neededByVenue = new Map<string, number>();
+
+    activeBoatCrews.forEach((crew) => {
+      const needed = Math.max(0, crew.minimumCrew - crew.confirmedCount);
+      const previousNeeded = neededByVenue.get(crew.venueSlug);
+      if (needed > 0 && (previousNeeded === undefined || needed < previousNeeded)) {
+        neededByVenue.set(crew.venueSlug, needed);
+        labels.set(crew.venueSlug, `NEEDS ${needed}`);
+      } else if (needed === 0 && previousNeeded === undefined && !labels.has(crew.venueSlug)) {
+        labels.set(crew.venueSlug, 'BOAT READY');
+      }
+    });
+
+    return labels;
+  }, [activeBoatCrews]);
+  const relicSignalLabelByVenueSlug = useMemo(() => {
+    const labels = new Map(localSignalLabelByVenueSlug);
+    boatCrewSignalLabelByVenueSlug.forEach((label, venueSlug) => {
+      labels.set(venueSlug, label);
+    });
+    return labels;
+  }, [boatCrewSignalLabelByVenueSlug, localSignalLabelByVenueSlug]);
   const localSignalVenueSlugSet = useMemo(
     () => new Set(localSignalLabelByVenueSlug.keys()),
     [localSignalLabelByVenueSlug]
@@ -7694,13 +7672,15 @@ export default function RealWorldMap() {
     }
 
     const roundedZoom = Math.max(0, Math.round(mapZoom));
-    const preserveActivatedMarkers = roundedZoom >= 14;
     const preservedPlaces = filteredNearbyPlaces.filter((place) =>
+      place.id === selectedPlace?.placeId ||
+      place.slug === selectedPlace?.slug ||
+      liveVenueSlugSet.has(place.slug) ||
       communitySparkVenueSlugSet.has(place.slug) ||
       boatCrewVenueSlugSet.has(place.slug) ||
       localSignalVenueSlugSet.has(place.slug) ||
       SIARGAO_CANONICAL_SURF_BREAK_VENUE_SLUGS.has(place.slug) ||
-      (preserveActivatedMarkers && isVenueActivated(place.commandCenter))
+      (mapAttentionIntent === 'tonight' && isVenueNightTonight(place.name, place.slug))
     );
     const preservedPlaceIds = new Set(preservedPlaces.map((place) => place.id));
     const clusterablePlaces = filteredNearbyPlaces.filter(
@@ -7712,7 +7692,7 @@ export default function RealWorldMap() {
       place,
     }));
 
-    const cellSize = getClusterCellSize(roundedZoom);
+    const cellSize = getMapRelicClusterCellSize(roundedZoom);
 
     if (cellSize <= 0 || clusterablePlaces.length <= 1) {
       return [
@@ -7786,7 +7766,7 @@ export default function RealWorldMap() {
     });
 
     return [...markers, ...preservedMarkers];
-  }, [boatCrewVenueSlugSet, communitySparkVenueSlugSet, filteredNearbyPlaces, localSignalVenueSlugSet, mapZoom, matchedVenueIndex, showMatchedLayer]);
+  }, [boatCrewVenueSlugSet, communitySparkVenueSlugSet, filteredNearbyPlaces, liveVenueSlugSet, localSignalVenueSlugSet, mapAttentionIntent, mapZoom, matchedVenueIndex, selectedPlace?.placeId, selectedPlace?.slug, showMatchedLayer]);
 
   const renderedVenueMarkerIdSet = useMemo(
     () => new Set(
@@ -9055,10 +9035,10 @@ export default function RealWorldMap() {
         ? nearbyPlaces.find((place) => place.slug === selectedPlace.slug)?.mayor?.tag ?? null
         : null,
       localSignalLabel: selectedPlace.slug
-        ? localSignalLabelByVenueSlug.get(selectedPlace.slug) ?? null
+        ? relicSignalLabelByVenueSlug.get(selectedPlace.slug) ?? null
         : null,
     });
-  }, [communitySparkMarkerVenueSlugSet, localSignalLabelByVenueSlug, mapAttentionIntent, nearbyPlaces, selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
+  }, [communitySparkMarkerVenueSlugSet, mapAttentionIntent, nearbyPlaces, relicSignalLabelByVenueSlug, selectedCommandCenter, selectedPlace, selectedPlaceMatch, selectedPulse, selectedVenueActivated, selectedVenueProfile?.legends, selectedVisualState, showMatchedLayer]);
   const currentLocationMarkerHtml = useMemo(
     () => createCurrentLocationMarkerHtml({ centered: isUserCentered, heading: userHeading }),
     [isUserCentered, userHeading]
@@ -9286,18 +9266,20 @@ export default function RealWorldMap() {
         approvedCount: place.tagSummary.approvedCount,
         lastTaggedAt: place.tagSummary.lastTaggedAt,
       });
-      const reviewSignal = getVenueReviewSignal(place);
       const isActive = selectedPlace?.placeId === place.id;
       const isMatchedVenue = showMatchedLayer && matchedVenueIndex.has(place.slug);
       const isAttentionPick = mapAttentionSuggestedSlugSet.has(place.slug);
       const activatedVenue = isVenueActivated(place.commandCenter);
+      const liveTonight =
+        mapAttentionIntent === 'tonight' &&
+        isVenueNightTonight(place.name, place.slug);
       const highSignalVenue =
-        activatedVenue ||
+        isActive ||
         isMatchedVenue ||
-        reviewSignal.state !== 'none' ||
         place.activeDareCount > 0 ||
-        place.tagSummary.approvedCount > 0 ||
-        getVenueClusterScore(place) >= 20;
+        boatCrewVenueSlugSet.has(place.slug) ||
+        localSignalVenueSlugSet.has(place.slug) ||
+        liveTonight;
       const compact = !isActive && !highSignalVenue && mapZoom < compactMarkerZoomThreshold;
 
       addMarker({
@@ -9320,12 +9302,10 @@ export default function RealWorldMap() {
           activationLabel: getVenueActivationMarkerLabel(place.commandCenter),
           legends: place.profile?.legends,
           categories: place.categories,
-          liveTonight:
-            mapAttentionIntent === 'tonight' &&
-            isVenueNightTonight(place.name, place.slug),
+          liveTonight,
           mayorTag: place.mayor?.tag ?? null,
           localSignalLabel:
-            localSignalLabelByVenueSlug.get(place.slug) ?? null,
+            relicSignalLabelByVenueSlug.get(place.slug) ?? null,
         }),
         className: `basedare-maplibre-marker basedare-maplibre-marker--venue${
           isAttentionPick ? ' basedare-maplibre-marker--attention-pick' : ''
@@ -9555,6 +9535,7 @@ export default function RealWorldMap() {
   }, [
     adventureMode,
     armMapClickSuppression,
+    boatCrewVenueSlugSet,
     clusteredNearbyMarkers,
     compactMarkerZoomThreshold,
     communitySparkMarkerVenueSlugSet,
@@ -9573,7 +9554,8 @@ export default function RealWorldMap() {
     handlePrivateSpotDragEnd,
     handleAdventureActivitySelect,
     localSignals,
-    localSignalLabelByVenueSlug,
+    localSignalVenueSlugSet,
+    relicSignalLabelByVenueSlug,
     activeBoatCrews,
     mapAttentionSuggestedSlugSet,
     mapAttentionIntent,
@@ -19730,7 +19712,7 @@ export default function RealWorldMap() {
 
         /* Cups and glasses share the system without overpowering activity. */
         .basedare-maplibre-map :global(.peebear-marker.relic-category--cafe .adventure-place-object .adventure-sprite) {
-          transform: translateY(-5px) scale(0.92);
+          transform: translateY(-4px) scale(0.81);
         }
 
         .basedare-maplibre-map :global(.peebear-marker.relic-category--beer .adventure-place-object .adventure-sprite) {
@@ -19816,10 +19798,6 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map :global(.relic-signal-tab--dare) {
           --relic-rgb: 245, 197, 24;
-        }
-
-        .basedare-maplibre-map :global(.relic-signal-tab--crew) {
-          --relic-rgb: 34, 211, 238;
         }
 
         .basedare-maplibre-map :global(.relic-signal-tab--event) {
@@ -19908,6 +19886,55 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map[data-zoom-band='near'] :global(.peebear-marker:not(.is-active) .adventure-place-object) {
           scale: 0.94;
+        }
+
+        /* Ordinary places rest. Only a current action or selection carries a
+           strong energy field; an approved update is the small white pulse. */
+        .basedare-maplibre-map
+          :global(.peebear-marker:not(.is-actionable):not(.is-active) .adventure-place-object) {
+          filter:
+            saturate(0.84)
+            drop-shadow(0 8px 6px rgba(0, 0, 0, 0.46)) !important;
+          animation: none !important;
+        }
+
+        .basedare-maplibre-map
+          :global(.peebear-marker:not(.is-actionable):not(.is-active) .adventure-place-object::before) {
+          border-color: rgba(168, 85, 247, 0.2);
+          background: radial-gradient(ellipse, rgba(168, 85, 247, 0.1), rgba(4, 5, 14, 0.58) 56%, transparent 76%);
+          box-shadow: inset 0 0 4px rgba(168, 85, 247, 0.12);
+          opacity: 0.58;
+          animation: none !important;
+        }
+
+        .basedare-maplibre-map
+          :global(.peebear-marker:not(.is-actionable):not(.is-active) .adventure-place-object::after) {
+          opacity: 0.08;
+          animation: none !important;
+        }
+
+        .basedare-maplibre-map[data-zoom-band='far']
+          :global(.peebear-marker:not(.is-actionable):not(.is-active) .peebear-core) {
+          filter: none !important;
+        }
+
+        .basedare-maplibre-map
+          :global(.peebear-marker.is-activated-venue:not(.is-actionable):not(.is-active)) {
+          height: 112px;
+        }
+
+        .basedare-maplibre-map
+          :global(.peebear-marker.is-activated-venue.is-compact:not(.is-actionable):not(.is-active)) {
+          height: 94px;
+        }
+
+        .basedare-maplibre-map
+          :global(.peebear-marker.is-activated-venue:not(.is-actionable):not(.is-active) .peebear-venue-label) {
+          top: 3px;
+          max-width: 122px;
+          padding: 4px 8px;
+          font-size: 7px;
+          animation: none !important;
         }
 
         /* Surf breaks now live on the same energy plinth as place relics. */

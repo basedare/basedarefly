@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import {
+  getMapRelicClusterCellSize,
   getMapRelicClusterTone,
   getMapRelicZoomBand,
   resolveMapRelicSignal,
@@ -18,7 +19,7 @@ const quietPlace = {
 test('paid Dares, free Sparks, crews, events, and updates resolve into one signal attachment', () => {
   assert.deepEqual(
     resolveMapRelicSignal({ ...quietPlace, challengeLiveCount: 2 }),
-    { kind: 'dare', label: 'DARE 2+', ring: 'gold', actionable: true },
+    { kind: 'dare', label: 'PAID 2+', ring: 'gold', actionable: true },
   );
   assert.deepEqual(
     resolveMapRelicSignal({
@@ -30,8 +31,40 @@ test('paid Dares, free Sparks, crews, events, and updates resolve into one signa
   );
   assert.equal(resolveMapRelicSignal({ ...quietPlace, localSignalLabel: 'HANG' }).kind, 'crew');
   assert.equal(resolveMapRelicSignal({ ...quietPlace, liveTonight: true }).kind, 'event');
-  assert.equal(resolveMapRelicSignal({ ...quietPlace, approvedCount: 2 }).kind, 'update');
+  assert.deepEqual(
+    resolveMapRelicSignal({ ...quietPlace, approvedCount: 2 }),
+    { kind: 'update', label: null, ring: 'active', actionable: false },
+  );
   assert.equal(resolveMapRelicSignal(quietPlace).kind, 'none');
+});
+
+test('one attachment follows needs people, paid, tonight, Spark, crew, then update priority', () => {
+  assert.deepEqual(
+    resolveMapRelicSignal({
+      ...quietPlace,
+      challengeLiveCount: 1,
+      localSignalLabel: 'NEEDS 1',
+      liveTonight: true,
+    }),
+    { kind: 'crew', label: 'NEEDS 1', ring: 'gold', actionable: true },
+  );
+  assert.equal(
+    resolveMapRelicSignal({
+      ...quietPlace,
+      challengeLiveCount: 1,
+      liveTonight: true,
+    }).kind,
+    'dare',
+  );
+  assert.equal(
+    resolveMapRelicSignal({
+      ...quietPlace,
+      challengeLiveCount: 1,
+      communitySparkLive: true,
+      liveTonight: true,
+    }).kind,
+    'event',
+  );
 });
 
 test('selection changes the ring without replacing the underlying signal', () => {
@@ -57,4 +90,11 @@ test('clusters only use gold when they contain a live paid or playable signal', 
   assert.equal(getMapRelicClusterTone({ challengeLiveCount: 1, matched: false }), 'gold');
   assert.equal(getMapRelicClusterTone({ challengeLiveCount: 0, matched: true }), 'cyan');
   assert.equal(getMapRelicClusterTone({ challengeLiveCount: 0, matched: false }), 'purple');
+});
+
+test('ordinary venues cluster through medium zoom and separate at close zoom', () => {
+  assert.equal(getMapRelicClusterCellSize(13), 72);
+  assert.equal(getMapRelicClusterCellSize(14), 62);
+  assert.equal(getMapRelicClusterCellSize(15), 50);
+  assert.equal(getMapRelicClusterCellSize(16), 0);
 });

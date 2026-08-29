@@ -10,7 +10,8 @@ export type MapRelicSignal = {
   actionable: boolean;
 };
 
-const CREW_SIGNAL_PATTERN = /^(?:HANG|MEET|MEETUP|CREW|ASK|OFFER)$/i;
+const NEEDS_PEOPLE_SIGNAL_PATTERN = /^NEEDS\s+[1-9]\d*$/i;
+const CREW_SIGNAL_PATTERN = /^(?:HANG|MEET|MEETUP|CREW|ASK|OFFER|BOAT READY)$/i;
 
 export function resolveMapRelicSignal(input: {
   selected: boolean;
@@ -25,30 +26,21 @@ export function resolveMapRelicSignal(input: {
     return { ...underlying, ring: 'selected' };
   }
 
-  if (input.challengeLiveCount > 0) {
-    if (input.communitySparkLive) {
-      return {
-        kind: 'spark',
-        label: input.challengeLiveCount > 1 ? `SPARK ${Math.min(input.challengeLiveCount, 9)}+` : 'SPARK',
-        ring: 'cyan',
-        actionable: true,
-      };
-    }
-
+  const localLabel = input.localSignalLabel?.trim().toUpperCase() ?? null;
+  if (localLabel && NEEDS_PEOPLE_SIGNAL_PATTERN.test(localLabel)) {
     return {
-      kind: 'dare',
-      label: input.challengeLiveCount > 1 ? `DARE ${Math.min(input.challengeLiveCount, 9)}+` : 'DARE',
+      kind: 'crew',
+      label: localLabel,
       ring: 'gold',
       actionable: true,
     };
   }
 
-  const localLabel = input.localSignalLabel?.trim().toUpperCase() ?? null;
-  if (localLabel && CREW_SIGNAL_PATTERN.test(localLabel)) {
+  if (input.challengeLiveCount > 0 && !input.communitySparkLive) {
     return {
-      kind: 'crew',
-      label: localLabel === 'MEETUP' ? 'MEET' : localLabel,
-      ring: 'cyan',
+      kind: 'dare',
+      label: input.challengeLiveCount > 1 ? `PAID ${Math.min(input.challengeLiveCount, 9)}+` : 'PAID',
+      ring: 'gold',
       actionable: true,
     };
   }
@@ -57,6 +49,24 @@ export function resolveMapRelicSignal(input: {
     return {
       kind: 'event',
       label: 'TONIGHT',
+      ring: 'cyan',
+      actionable: true,
+    };
+  }
+
+  if (input.challengeLiveCount > 0 && input.communitySparkLive) {
+    return {
+      kind: 'spark',
+      label: input.challengeLiveCount > 1 ? `SPARK ${Math.min(input.challengeLiveCount, 9)}+` : 'SPARK',
+      ring: 'cyan',
+      actionable: true,
+    };
+  }
+
+  if (localLabel && CREW_SIGNAL_PATTERN.test(localLabel)) {
+    return {
+      kind: 'crew',
+      label: localLabel === 'MEETUP' ? 'MEET' : localLabel,
       ring: 'cyan',
       actionable: true,
     };
@@ -83,6 +93,15 @@ export function getMapRelicZoomBand(zoom: number): MapRelicZoomBand {
   if (zoom < 14.2) return 'far';
   if (zoom < 15.8) return 'mid';
   return 'near';
+}
+
+export function getMapRelicClusterCellSize(zoom: number) {
+  if (zoom >= 16) return 0;
+  if (zoom >= 15) return 50;
+  if (zoom >= 14) return 62;
+  if (zoom >= 13) return 72;
+  if (zoom >= 12) return 82;
+  return 96;
 }
 
 export function getMapRelicClusterTone(input: {
