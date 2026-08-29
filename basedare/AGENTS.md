@@ -16,7 +16,7 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
-### Codex Live Plan retention completion (2026-08-29 — READY TO SHIP)
+### Codex Live Plan retention completion (2026-08-29 — SHIPPED)
 - Completes the ethical crew loop across existing Live Plans: My Next Move persists on Map, Board, and Dashboard; exact invite opens and joins enter the append-only attribution ledger; ended boat/meetup plans offer an honest crew-reported **We went** confirmation; two distinct joined participants make a plan count as completed together.
 - **Same crew again** creates a fresh plan and notifies prior participants without silently rejoining them. PeeBear's **Pick for me** selects only real live inventory and prioritizes joined or needs-people plans.
 - Uses the existing `AttributionEvent` ledger, so there is no schema migration. Crew-reported attendance is explicitly not GPS proof, verified place memory, or paid-mission evidence. No fake daily boats or seed attendance were added.
