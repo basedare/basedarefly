@@ -22,6 +22,7 @@ import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import MobileIgnitionField from "@/components/MobileIgnitionField";
 import NebulaFlowField from "@/components/NebulaFlowField";
 import AppStabilityGuard from "@/components/AppStabilityGuard";
+import GlobalMyNextMove from "@/components/live-plans/GlobalMyNextMove";
 
 // FIXED PATH
 import { IgnitionProvider } from "@/app/context/IgnitionContext";
@@ -174,6 +175,7 @@ export default function RootLayout({
                     <Footer />
                   </div>
                   <DeferredLivePotBubble />
+                  <GlobalMyNextMove />
                 </IgnitionProvider>
               </ViewProvider>
             </BackgroundToneProvider>

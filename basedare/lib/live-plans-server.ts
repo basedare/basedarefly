@@ -16,6 +16,7 @@ import {
   type LivePlanSnapshot,
 } from '@/lib/live-plans';
 import { getBlockedBaretagIds, getViewerWallet, resolveViewerBaretag } from '@/lib/meetups-server';
+import { getCompletedTogetherPlans7d } from '@/lib/live-plan-retention-server';
 import { MEETUP_LIVE_WINDOW_MS } from '@/lib/meetups';
 import { prisma } from '@/lib/prisma';
 import {
@@ -105,7 +106,7 @@ export async function getLivePlanSnapshot(input: LivePlanQuery): Promise<LivePla
   ]);
   const blocked = await getBlockedBaretagIds(viewer?.id ?? null);
 
-  const [nearestVenue, nearbyVenues, meetups, dares, events, boats] = await Promise.all([
+  const [nearestVenue, nearbyVenues, meetups, dares, events, boats, completedTogether7d] = await Promise.all([
     prisma.venue.findFirst({
       where: {
         status: 'ACTIVE',
@@ -220,6 +221,7 @@ export async function getLivePlanSnapshot(input: LivePlanQuery): Promise<LivePla
       orderBy: [{ departureDay: 'asc' }, { createdAt: 'asc' }],
       take: MAX_SOURCE_ROWS,
     }),
+    getCompletedTogetherPlans7d(now),
   ]);
 
   const plans: LivePlan[] = [];
@@ -348,7 +350,7 @@ export async function getLivePlanSnapshot(input: LivePlanQuery): Promise<LivePla
       lng: roundLivePlanCoord(input.longitude),
       radiusKm,
     },
-    totals: computeLivePlanTotals(sorted),
+    totals: computeLivePlanTotals(sorted, completedTogether7d),
     plans: sorted,
     myNextMoves: sorted.filter((plan) => plan.viewer.isNextMove),
   };

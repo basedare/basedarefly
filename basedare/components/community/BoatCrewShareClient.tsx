@@ -7,6 +7,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
+import LivePlanInviteTracker from '@/components/live-plans/LivePlanInviteTracker';
+import PlanAttendanceButton from '@/components/live-plans/PlanAttendanceButton';
 import { IdentityButton } from '@/components/IdentityButton';
 import { trackClientEvent } from '@/lib/analytics';
 import {
@@ -62,6 +64,7 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
         ...next,
         viewerMembership: next.viewerMembership ?? current.viewerMembership,
       }));
+      window.dispatchEvent(new Event('basedare:live-plans-updated'));
     }
   }, [initialCrew.id]);
 
@@ -137,6 +140,7 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
 
   return (
     <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-28 text-white sm:px-6">
+      <LivePlanInviteTracker planType="boat" planId={crew.id} />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_0%,rgba(34,211,238,0.15),transparent_34%),radial-gradient(circle_at_12%_28%,rgba(245,197,24,0.12),transparent_30%)]" />
       <div className="relative mx-auto max-w-2xl">
         <Link href={launch.boardPath} className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/48 hover:text-white">
@@ -198,10 +202,11 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
           <Link href={launch.mapPath} className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/42 hover:text-white/72"><MapPin className="h-4 w-4" /> Open {launch.mapLabel} on map</Link>
           {crew.status === 'DEPARTED' && crew.viewerMembership ? (
             <div className="mt-3 rounded-2xl border border-violet-200/14 bg-violet-300/[0.055] p-4">
-              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/48">Boat window ended</p>
-              <p className="mt-1 text-lg font-black text-white">Same crew tomorrow?</p>
-              <p className="mt-1 text-xs leading-5 text-white/42">Open the same launch, break and ability lane with a fresh crew count.</p>
-              <Link href={getRepeatBoatCrewHref(crew)} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-violet-200/16 bg-black/18 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100/78"><Repeat2 className="h-4 w-4" /> Start it again</Link>
+              <PlanAttendanceButton planType="boat" planId={crew.id} />
+              <p className="mt-4 text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/48">Boat window ended</p>
+              <p className="mt-3 text-lg font-black text-white">Same crew tomorrow?</p>
+              <p className="mt-1 text-xs leading-5 text-white/42">Start the same route and invite everyone who confirmed this boat.</p>
+              <Link href={getRepeatBoatCrewHref(crew)} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-violet-200/16 bg-black/18 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100/78"><Repeat2 className="h-4 w-4" /> Invite same crew</Link>
             </div>
           ) : null}
         </section>

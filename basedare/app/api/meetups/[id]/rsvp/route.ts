@@ -7,6 +7,9 @@ import { isMeetupExpired } from '@/lib/meetups';
 import { resolveHostBaretag } from '@/lib/meetups-server';
 import { createWalletNotification } from '@/lib/notifications';
 import { didMeetupJustUnlock, getMeetupSharePath } from '@/lib/meetup-plan';
+import { applyJourneyCookie } from '@/lib/creator-attribution-server';
+import { LIVE_PLAN_JOINED_EVENT } from '@/lib/live-plan-retention';
+import { recordLivePlanJourneyEvent } from '@/lib/live-plan-retention-server';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 
 const RsvpSchema = z.object({
@@ -67,6 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           id: true,
           title: true,
           placeLabel: true,
+          venueId: true,
           creatorBaretagId: true,
           minimumPeople: true,
           status: true,
@@ -125,8 +129,28 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }).catch((error) => console.error('[MEETUPS] RSVP notification failed:', error));
     }
 
+    let journeyToken: string | null = null;
+    if (result.joinedNow) {
+      try {
+        const attribution = await recordLivePlanJourneyEvent(request, {
+          eventType: LIVE_PLAN_JOINED_EVENT,
+          planType: 'meetup',
+          planId: id,
+          venueId: result.meetup.venueId,
+          baretagId: baretag.id,
+          metadata: {
+            source: 'meetup_rsvp',
+            crewUnlocked: result.unlockedNow,
+          },
+        });
+        journeyToken = attribution.journeyToken;
+      } catch (error) {
+        console.error('[MEETUPS] join attribution failed:', error);
+      }
+    }
+
     const count = result.count;
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         rsvped: true,
@@ -135,6 +159,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         unlockedNow: result.unlockedNow,
       },
     });
+    if (journeyToken) applyJourneyCookie(response, journeyToken);
+    return response;
   } catch (error) {
     const code = error instanceof Error ? error.message : '';
     if (code === 'MEETUP_NOT_FOUND') {

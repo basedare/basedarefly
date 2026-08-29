@@ -29,7 +29,7 @@ function commitmentLabel(plan: LivePlan) {
   return plan.status.label;
 }
 
-export default function MyNextMoveTray({ plans }: { plans: LivePlan[] }) {
+export default function MyNextMoveTray({ plans, className = '' }: { plans: LivePlan[]; className?: string }) {
   const plan = plans[0];
   if (!plan) return null;
   const calendarReady = isLivePlanCalendarReady(plan);
@@ -37,7 +37,7 @@ export default function MyNextMoveTray({ plans }: { plans: LivePlan[] }) {
   return (
     <aside
       id="my-next-move"
-      className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-2xl overflow-hidden rounded-[1.35rem] border border-emerald-200/20 bg-[linear-gradient(150deg,rgba(10,35,30,0.97),rgba(5,8,14,0.99))] p-3 shadow-[0_20px_70px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl"
+      className={`fixed inset-x-3 bottom-3 z-40 mx-auto max-w-2xl overflow-hidden rounded-[1.35rem] border border-emerald-200/20 bg-[linear-gradient(150deg,rgba(10,35,30,0.97),rgba(5,8,14,0.99))] p-3 shadow-[0_20px_70px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl ${className}`.trim()}
       aria-label="My next move"
     >
       <div className="flex items-center gap-3">

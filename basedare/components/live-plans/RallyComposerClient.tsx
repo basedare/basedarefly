@@ -158,6 +158,7 @@ export default function RallyComposerClient() {
           startTime: parsedStart.toISOString(),
           note: note.trim() || undefined,
           minimumPeople,
+          repeatMeetupId: searchParams.get('repeatFrom') || undefined,
         }),
       });
       const payload = await response.json().catch(() => null);
@@ -165,7 +166,8 @@ export default function RallyComposerClient() {
       if (searchParams.get('repeat') === '1') {
         trackClientEvent('live_plan_repeat_started', { plan_type: 'meetup' });
       }
-      setState({ type: 'success', message: 'Rally live. Opening the invite…' });
+      const sameCrewInvited = Number(payload.data?.sameCrewInvited) || 0;
+      setState({ type: 'success', message: sameCrewInvited ? `Rally live. ${sameCrewInvited} previous crew ${sameCrewInvited === 1 ? 'mate was' : 'mates were'} invited.` : 'Rally live. Opening the invite…' });
       router.push(payload.data.shareHref);
     } catch (error) {
       setState({ type: 'error', message: error instanceof Error ? error.message : 'Could not start this Rally.' });

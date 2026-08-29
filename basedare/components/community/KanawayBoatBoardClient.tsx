@@ -184,13 +184,15 @@ export default function KanawayBoatBoardClient() {
           destination,
           abilityLane,
           needsBoard,
+          repeatCrewId: searchParams.get('repeatFrom') || undefined,
         }),
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) throw new Error(payload?.error || 'Could not start this crew.');
       setCreatedCrewId(payload.data.id);
       setShowCreate(false);
-      setSubmitState({ type: 'success', message: 'Boat call is live on the map.' });
+      const sameCrewInvited = Number(payload.data?.sameCrewInvited) || 0;
+      setSubmitState({ type: 'success', message: sameCrewInvited ? `Boat call is live. ${sameCrewInvited} previous crew ${sameCrewInvited === 1 ? 'mate was' : 'mates were'} invited.` : 'Boat call is live on the map.' });
       if (repeatRequested) {
         trackClientEvent('live_plan_repeat_started', { plan_type: 'boat' });
       }

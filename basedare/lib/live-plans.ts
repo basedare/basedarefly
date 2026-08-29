@@ -92,6 +92,7 @@ export type LivePlanSnapshot = {
     events: number;
     sparks: number;
     paidDares: number;
+    completedTogether7d: number;
   };
   plans: LivePlan[];
   myNextMoves: LivePlan[];
@@ -131,6 +132,17 @@ export function isLivePlanCalendarReady(plan: Pick<LivePlan, 'type' | 'startsAt'
   if (!plan.startsAt || !Number.isFinite(new Date(plan.startsAt).getTime())) return false;
   if (plan.type !== 'boat') return true;
   return plan.status.key === 'OPERATOR_CONFIRMED' || plan.status.key === 'READY';
+}
+
+/**
+ * PeeBear only chooses from real inventory. A plan the viewer already joined
+ * stays first, then a plan that needs people, then the server-ranked result.
+ */
+export function pickLivePlan(plans: LivePlan[]) {
+  return plans.find((plan) => plan.viewer.isNextMove)
+    ?? plans.find((plan) => plan.status.forming)
+    ?? plans[0]
+    ?? null;
 }
 
 function planPlace(input: {
@@ -250,6 +262,7 @@ export function shapeLiveMeetupPlan(
   },
 ): LivePlan {
   const href = `/community/meet/${encodeURIComponent(meetup.id)}`;
+  const inviteHref = `${href}?invite=1`;
   const spotsNeeded = getSpotsNeeded(input.going, meetup.minimumPeople);
   return {
     id: livePlanId('meetup', meetup.id),
@@ -282,7 +295,7 @@ export function shapeLiveMeetupPlan(
     },
     action: { kind: 'JOIN', label: "I'm in", href },
     share: {
-      href,
+      href: inviteHref,
       title: meetup.title,
       text: `${meetup.title}\n${meetup.placeLabel}`,
     },
@@ -480,7 +493,7 @@ export function sortLivePlans(plans: LivePlan[], now = new Date()) {
   });
 }
 
-export function computeLivePlanTotals(plans: LivePlan[]): LivePlanSnapshot['totals'] {
+export function computeLivePlanTotals(plans: LivePlan[], completedTogether7d = 0): LivePlanSnapshot['totals'] {
   return {
     plans: plans.length,
     going: plans.reduce((sum, plan) => sum + (plan.people?.going ?? 0), 0),
@@ -490,5 +503,6 @@ export function computeLivePlanTotals(plans: LivePlan[]): LivePlanSnapshot['tota
     events: plans.filter((plan) => plan.type === 'venue_event').length,
     sparks: plans.filter((plan) => plan.type === 'community_spark').length,
     paidDares: plans.filter((plan) => plan.type === 'paid_dare').length,
+    completedTogether7d,
   };
 }

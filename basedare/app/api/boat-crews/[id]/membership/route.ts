@@ -7,6 +7,9 @@ import { prisma } from '@/lib/prisma';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 import { BOAT_COMMITMENTS, SURF_ABILITY_LANES, getBoatCrewSharePath } from '@/lib/surf-boat-board';
 import { createWalletNotification } from '@/lib/notifications';
+import { applyJourneyCookie } from '@/lib/creator-attribution-server';
+import { LIVE_PLAN_JOINED_EVENT } from '@/lib/live-plan-retention';
+import { recordLivePlanJourneyEvent } from '@/lib/live-plan-retention-server';
 
 const MembershipSchema = z.object({
   walletAddress: z.string().refine((value) => isAddress(value), 'Valid wallet required').optional(),
@@ -137,6 +140,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         data: { status: nextStatus, termsVersion: nextTermsVersion },
       });
       return {
+        venueId: crew.venueId,
         creatorBaretagId: crew.creatorBaretagId,
         joinedConfirmedNow: !wasConfirmed && willBeConfirmed,
         reachedMinimum:
@@ -159,13 +163,35 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }).catch((error) => console.error('[BOAT_CREW_MEMBERSHIP] threshold notification failed:', error));
     }
 
-    return NextResponse.json({
+    let journeyToken: string | null = null;
+    if (transition.joinedConfirmedNow) {
+      try {
+        const attribution = await recordLivePlanJourneyEvent(request, {
+          eventType: LIVE_PLAN_JOINED_EVENT,
+          planType: 'boat',
+          planId: id,
+          venueId: transition.venueId,
+          baretagId: baretag.id,
+          metadata: {
+            source: 'boat_crew_membership',
+            reachedMinimum: transition.reachedMinimum,
+          },
+        });
+        journeyToken = attribution.journeyToken;
+      } catch (error) {
+        console.error('[BOAT_CREW_MEMBERSHIP] join attribution failed:', error);
+      }
+    }
+
+    const response = NextResponse.json({
       success: true,
       data: {
         joinedConfirmedNow: transition.joinedConfirmedNow,
         reachedMinimum: transition.reachedMinimum,
       },
     });
+    if (journeyToken) applyJourneyCookie(response, journeyToken);
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
     const known: Record<string, [string, number]> = {

@@ -43,7 +43,7 @@ Operationalize BaseDare as a remote-first playable social map:
 - Publicly pseudonymous branding is compatible with the vision; concealed employment, ownership, payment activity, or local commercial control is not.
 - Growth is judged by useful proof density, contributor repeat behavior, organic actions per paid action, and sponsor pull—not raw bounty volume.
 - Wakepark Sunday Funday now has a freshness-expiring ritual record, and action-sports Community Sparks are free-play supply with no payout promise. A Wakepark Field Station remains blocked until placement permission and healthy ACTION inventory are recorded.
-- Live Plans already have real needs-people states, exact invite links, joined-state recovery, and repeat links. The current retention pass closes the commitment seam with map/calendar/invite tools, real threshold-crossing feedback, and a post-plan repeat prompt; RSVP remains intent rather than verified attendance.
+- Live Plans have real needs-people states, exact invite links, joined-state recovery, persistent My Next Move, real-inventory PeeBear choice, crew-confirmed attendance, and prior-crew repeat invites. RSVP remains intent and **We went** remains self-report rather than verified attendance or place proof.
 
 ## Top Priorities
 

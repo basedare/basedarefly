@@ -124,6 +124,7 @@ test('map boats say whether they are loading and when they leave', () => {
 
 test('repeat boat links preserve the real launch, break, window and ability lane', () => {
   const href = getRepeatBoatCrewHref({
+    id: 'crew-previous',
     venueSlug: 'kanaway-surf-school',
     destination: 'rock-island',
     timeWindow: 'early',
@@ -138,4 +139,5 @@ test('repeat boat links preserve the real launch, break, window and ability lane
   assert.equal(url.searchParams.get('time'), 'early');
   assert.equal(url.searchParams.get('ability'), 'independent');
   assert.equal(url.searchParams.get('board'), '1');
+  assert.equal(url.searchParams.get('repeatFrom'), 'crew-previous');
 });

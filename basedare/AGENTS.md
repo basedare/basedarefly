@@ -16,6 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Live Plan retention completion (2026-08-29 — READY TO SHIP)
+- Completes the ethical crew loop across existing Live Plans: My Next Move persists on Map, Board, and Dashboard; exact invite opens and joins enter the append-only attribution ledger; ended boat/meetup plans offer an honest crew-reported **We went** confirmation; two distinct joined participants make a plan count as completed together.
+- **Same crew again** creates a fresh plan and notifies prior participants without silently rejoining them. PeeBear's **Pick for me** selects only real live inventory and prioritizes joined or needs-people plans.
+- Uses the existing `AttributionEvent` ledger, so there is no schema migration. Crew-reported attendance is explicitly not GPS proof, verified place memory, or paid-mission evidence. No fake daily boats or seed attendance were added.
+- Files owned in this pass are the narrow Live Plan retention helpers/routes/components, boat/meetup repeat + membership/RSVP seams, and matching Brain records. `components/maps/RealWorldMap.tsx`, paid Dare proof/review/payout logic, and map rendering remain untouched.
+
 ### Codex map filter pill polish (2026-08-28 — SHIPPED)
 - The user explicitly assigned Codex this presentation-only map control pass. Filters beneath search now form one recessed segmented control with slimmer pills, a gold active state, quieter count capsules, a cyan More state, and horizontal mobile scrolling.
 - The change is scoped to late map-route overrides in `app/global.css`; it preserves the newer command-deck, mobile selected-place sheet, map renderer, camera, and filter behavior.

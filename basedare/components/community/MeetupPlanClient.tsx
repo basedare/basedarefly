@@ -8,8 +8,10 @@ import { useAccount, useSignMessage } from 'wagmi';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
 import PlanCalendarButton from '@/components/live-plans/PlanCalendarButton';
+import LivePlanInviteTracker from '@/components/live-plans/LivePlanInviteTracker';
+import PlanAttendanceButton from '@/components/live-plans/PlanAttendanceButton';
 import { trackClientEvent } from '@/lib/analytics';
-import { getMeetupSharePath, getMeetupShareText, getRepeatRallyHref, type MeetupPlanSummary } from '@/lib/meetup-plan';
+import { getMeetupInvitePath, getMeetupSharePath, getMeetupShareText, getRepeatRallyHref, type MeetupPlanSummary } from '@/lib/meetup-plan';
 import { triggerHaptic } from '@/lib/mobile-haptics';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
@@ -88,6 +90,7 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
       }
       const remaining = plan.minimumPeople ? Math.max(0, plan.minimumPeople - nextCount) : null;
       setPlan((current) => ({ ...current, viewerRsvped: true, rsvpCount: nextCount }));
+      window.dispatchEvent(new Event('basedare:live-plans-updated'));
       triggerHaptic(unlockedNow ? 'success' : 'selection');
       setState({
         type: 'success',
@@ -132,6 +135,7 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
         viewerRsvped: false,
         rsvpCount: Math.max(1, Number(payload.data?.count) || current.rsvpCount - 1),
       }));
+      window.dispatchEvent(new Event('basedare:live-plans-updated'));
       setState({ type: 'success', message: 'You left this Rally.' });
     } catch (error) {
       setState({ type: 'error', message: error instanceof Error ? error.message : 'Could not leave this Rally.' });
@@ -149,6 +153,7 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
 
   return (
     <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-28 text-white sm:px-6">
+      <LivePlanInviteTracker planType="meetup" planId={plan.id} venueId={plan.venueId} />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(139,92,246,0.16),transparent_34%),radial-gradient(circle_at_84%_28%,rgba(34,211,238,0.11),transparent_30%)]" />
       <div className="relative mx-auto max-w-xl">
         <Link href="/community" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/48 hover:text-white"><ArrowLeft className="h-4 w-4" /> Community</Link>
@@ -187,7 +192,7 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
 
           {active && plan.viewerRsvped ? (
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <PlanShareButton title={plan.title} text={getMeetupShareText(plan)} href={getMeetupSharePath(plan.id)} label={spotsNeeded === 1 ? 'Invite one more' : 'Invite mates'} />
+              <PlanShareButton title={plan.title} text={getMeetupShareText(plan)} href={getMeetupInvitePath(plan.id)} label={spotsNeeded === 1 ? 'Invite one more' : 'Invite mates'} />
               <PlanCalendarButton plan={{
                 id: `meetup:${plan.id}`,
                 title: plan.title,
@@ -198,15 +203,16 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
               }} label="Add to calendar" />
             </div>
           ) : active ? (
-            <PlanShareButton title={plan.title} text={getMeetupShareText(plan)} href={getMeetupSharePath(plan.id)} label="Invite mates" className="mt-3 w-full" />
+            <PlanShareButton title={plan.title} text={getMeetupShareText(plan)} href={getMeetupInvitePath(plan.id)} label="Invite mates" className="mt-3 w-full" />
           ) : null}
           <Link href={mapHref} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-[10px] font-black uppercase tracking-[0.14em] text-white/62"><MapPin className="h-4 w-4 text-cyan-200" /> Open on map</Link>
           {!active && plan.viewerRsvped ? (
             <div className="mt-3 rounded-2xl border border-violet-200/14 bg-violet-300/[0.055] p-4">
-              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/48">Plan ended</p>
-              <p className="mt-1 text-lg font-black text-white">Go again?</p>
-              <p className="mt-1 text-xs leading-5 text-white/42">Start the same activity at this place with a fresh time and a fresh crew count.</p>
-              <Link href={getRepeatRallyHref(plan)} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-violet-200/16 bg-black/18 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100/78"><Repeat2 className="h-4 w-4" /> Run it again</Link>
+              <PlanAttendanceButton planType="meetup" planId={plan.id} />
+              <p className="mt-4 text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/48">Plan ended</p>
+              <p className="mt-3 text-lg font-black text-white">Same crew again?</p>
+              <p className="mt-1 text-xs leading-5 text-white/42">Start a fresh time and invite everyone who joined this one.</p>
+              <Link href={getRepeatRallyHref(plan)} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-violet-200/16 bg-black/18 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100/78"><Repeat2 className="h-4 w-4" /> Invite same crew</Link>
             </div>
           ) : null}
         </section>

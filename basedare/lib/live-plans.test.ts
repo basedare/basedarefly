@@ -8,6 +8,7 @@ import {
   getLivePlanMapHref,
   getSpotsNeeded,
   isLivePlanCalendarReady,
+  pickLivePlan,
   shapeLiveBoatPlan,
   shapeLiveDarePlan,
   shapeLiveMeetupPlan,
@@ -291,6 +292,19 @@ test('sorting prioritizes My Next Move, then plans that need people', () => {
   assert.deepEqual(sorted.map((plan) => plan.sourceId), ['mine', 'forming', 'open']);
 });
 
+test('PeeBear picks only real inventory and prioritizes a joined plan', () => {
+  const open = stub('open', 'meetup');
+  const forming = stub('forming', 'meetup', {
+    status: { key: 'FORMING', label: '1 more', forming: true },
+  });
+  const joined = stub('joined', 'venue_event', {
+    viewer: { identified: true, state: 'GOING', isNextMove: true },
+  });
+  assert.equal(pickLivePlan([open, forming, joined])?.sourceId, 'joined');
+  assert.equal(pickLivePlan([open, forming])?.sourceId, 'forming');
+  assert.equal(pickLivePlan([]), null);
+});
+
 test('totals keep sources and real people separate', () => {
   const totals = computeLivePlanTotals([
     stub('boat', 'boat', { people: { going: 3, interested: 1, minimum: 4, spotsNeeded: 1, unlocked: false }, status: { key: 'FORMING', label: 'Loading', forming: true } }),
@@ -306,5 +320,6 @@ test('totals keep sources and real people separate', () => {
     events: 1,
     sparks: 1,
     paidDares: 0,
+    completedTogether7d: 0,
   });
 });

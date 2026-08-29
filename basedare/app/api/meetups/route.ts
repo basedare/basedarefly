@@ -89,6 +89,7 @@ const CreateMeetupSchema = z.object({
   note: z.string().max(500).optional(),
   minimumPeople: z.number().int().min(2).max(50).optional(),
   inviteTags: z.array(z.string().max(40)).max(5).optional(),
+  repeatMeetupId: z.string().max(191).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -180,6 +181,15 @@ export async function POST(request: NextRequest) {
       return created;
     });
 
+    const previousCrew = input.repeatMeetupId
+      ? await prisma.meetup.findFirst({
+          where: {
+            id: input.repeatMeetupId,
+            rsvps: { some: { baretagId: baretag.id } },
+          },
+          select: { rsvps: { select: { baretagId: true } } },
+        })
+      : null;
     const inviteTags = normalizeMeetupInviteTags(input.inviteTags ?? []);
     const invitedCreators = inviteTags.length
       ? await prisma.streamerTag.findMany({
@@ -192,10 +202,21 @@ export async function POST(request: NextRequest) {
           take: 5,
         })
       : [];
+    const previousCrewCreators = previousCrew?.rsvps.length
+      ? await prisma.streamerTag.findMany({
+          where: {
+            id: { in: previousCrew.rsvps.map((rsvp) => rsvp.baretagId), not: baretag.id },
+            status: { in: ['ACTIVE', 'VERIFIED'] },
+          },
+          select: { walletAddress: true },
+          take: 20,
+        })
+      : [];
     const invitedWallets = [...new Set(
-      invitedCreators.map((creator) => creator.walletAddress.toLowerCase()),
+      [...invitedCreators, ...previousCrewCreators].map((creator) => creator.walletAddress.toLowerCase()),
     )];
     const shareHref = getMeetupSharePath(meetup.id);
+    const inviteHref = `${shareHref}?invite=1`;
     await Promise.allSettled(
       invitedWallets.map((wallet) =>
         createWalletNotification({
@@ -208,14 +229,14 @@ export async function POST(request: NextRequest) {
             hour: 'numeric',
             minute: '2-digit',
           })}`,
-          link: shareHref,
+          link: inviteHref,
         }),
       ),
     );
 
     return NextResponse.json({
       success: true,
-      data: { id: meetup.id, shareHref, invitedCount: invitedWallets.length },
+      data: { id: meetup.id, shareHref, invitedCount: invitedWallets.length, sameCrewInvited: previousCrewCreators.length },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

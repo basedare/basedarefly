@@ -283,7 +283,7 @@ export function getBoatCrewInvitePath(id: string) {
 }
 
 export function getRepeatBoatCrewHref(
-  crew: Pick<BoatCrewSummary, 'venueSlug' | 'destination' | 'timeWindow' | 'abilityLane'> & {
+  crew: Pick<BoatCrewSummary, 'id' | 'venueSlug' | 'destination' | 'timeWindow' | 'abilityLane'> & {
     viewerMembership?: Pick<NonNullable<BoatCrewSummary['viewerMembership']>, 'needsBoard'> | null;
   },
 ) {
@@ -293,6 +293,7 @@ export function getRepeatBoatCrewHref(
     destination: crew.destination,
     time: crew.timeWindow,
     ability: crew.abilityLane,
+    repeatFrom: crew.id,
   });
   if (crew.viewerMembership?.needsBoard) query.set('board', '1');
   return `/community/boat/kanaway?${query.toString()}`;

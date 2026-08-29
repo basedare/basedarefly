@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CircleHelp, Crosshair, Loader2, Map, Plus, RefreshCw, Sparkles } from 'lucide-react';
+import { CircleHelp, Crosshair, Dices, Loader2, Map, Plus, RefreshCw, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
@@ -12,7 +12,8 @@ import {
   LivePlansGuideCue,
   type LivePlansGuideStep,
 } from '@/components/onboarding/LivePlansGuide';
-import type { LivePlan, LivePlanSnapshot } from '@/lib/live-plans';
+import { pickLivePlan, type LivePlan, type LivePlanSnapshot } from '@/lib/live-plans';
+import { trackClientEvent } from '@/lib/analytics';
 
 const SIARGAO_CENTER = { latitude: 9.803, longitude: 126.159 };
 const FILTERS = [
@@ -120,6 +121,21 @@ export default function LivePlansClient() {
     return source;
   }, [filter, snapshot?.plans]);
   const nextMoves = snapshot?.myNextMoves ?? [];
+  const peebearPick = pickLivePlan(snapshot?.plans ?? []);
+
+  const letPeebearPick = () => {
+    if (!peebearPick) {
+      setError('Nothing real is live nearby yet. Start a Rally and invite your crew.');
+      return;
+    }
+    trackClientEvent('peebear_live_plan_picked', {
+      plan_id: peebearPick.id,
+      plan_type: peebearPick.type,
+      already_joined: peebearPick.viewer.isNextMove,
+      needs_people: peebearPick.status.forming,
+    });
+    window.location.assign(peebearPick.action.href);
+  };
 
   const rememberIntro = useCallback(() => {
     try {
@@ -174,6 +190,9 @@ export default function LivePlansClient() {
               <p className="mt-4 max-w-2xl text-sm leading-6 text-white/52">Boats, meetups, venue events, free Sparks and paid Dares—one clear next move at a time.</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={letPeebearPick} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-200/22 bg-yellow-300/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-yellow-100 hover:bg-yellow-300/[0.13]">
+                <Dices className="h-4 w-4" /> PeeBear: Pick for me
+              </button>
               <button type="button" onClick={startGuide} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/12 bg-white/[0.045] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-white/62 hover:text-white">
                 <CircleHelp className="h-4 w-4" /> Show me around
               </button>
@@ -207,6 +226,7 @@ export default function LivePlansClient() {
             <span className="rounded-full border border-white/9 bg-black/22 px-3 py-1.5">{snapshot.totals.plans} live</span>
             <span className="rounded-full border border-white/9 bg-black/22 px-3 py-1.5">{snapshot.totals.forming} need people</span>
             <span className="rounded-full border border-white/9 bg-black/22 px-3 py-1.5">{snapshot.totals.going} going</span>
+            {snapshot.totals.completedTogether7d > 0 ? <span className="rounded-full border border-emerald-200/14 bg-emerald-300/[0.055] px-3 py-1.5 text-emerald-100/65">{snapshot.totals.completedTogether7d} completed together this week</span> : null}
           </div>
         ) : null}
 

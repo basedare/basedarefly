@@ -24,6 +24,10 @@ export function getMeetupSharePath(id: string) {
   return `/community/meet/${encodeURIComponent(id)}`;
 }
 
+export function getMeetupInvitePath(id: string) {
+  return `${getMeetupSharePath(id)}?invite=1`;
+}
+
 export function getMeetupShareText(
   plan: Pick<MeetupPlanSummary, 'placeLabel' | 'startTime' | 'note' | 'rsvpCount'>
     & Partial<Pick<MeetupPlanSummary, 'title' | 'minimumPeople'>>,
@@ -60,13 +64,14 @@ export function getDefaultMeetHereStart(now = new Date()) {
   return next;
 }
 
-export function getRepeatRallyHref(plan: Pick<MeetupPlanSummary, 'title' | 'type' | 'venueId' | 'minimumPeople'>) {
+export function getRepeatRallyHref(plan: Pick<MeetupPlanSummary, 'id' | 'title' | 'type' | 'venueId' | 'minimumPeople'>) {
   const template = ['padel', 'trivia', 'drinks', 'surf'].includes(plan.type) ? plan.type : 'meet';
   const query = new URLSearchParams({
     repeat: '1',
     template,
     title: plan.title,
     minimum: String(plan.minimumPeople ?? 2),
+    repeatFrom: plan.id,
   });
   if (plan.venueId) query.set('venueId', plan.venueId);
   return `/community/rally/new?${query.toString()}`;

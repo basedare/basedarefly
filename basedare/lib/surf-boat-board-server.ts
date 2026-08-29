@@ -117,7 +117,6 @@ export async function getPublicBoatCrew(crewId: string, now = new Date()) {
     where: {
       id: crewId,
       status: { not: 'CANCELLED' },
-      expiresAt: { gt: now },
     },
     include: { members: true, venue: { select: { slug: true } } },
   });

@@ -2,7 +2,7 @@
 type: product_psychology_learning
 status: ACTIVE
 created_at: 2026-08-24
-updated_at: 2026-08-26
+updated_at: 2026-08-28
 owner: BaseDare
 ---
 
@@ -21,18 +21,19 @@ BaseDare should retain people by making a useful real-world plan easier to join 
 - Join: **3 confirmed · 1 more makes it**
 - Commit: **You’re in** · directions · calendar · invite
 - Unlock: **Crew unlocked** only when real participants cross the stated minimum
-- Return: **Plan ended. Go again?**
+- Return: **We went** → **Same crew again?**
 
-RSVP is intent, not attendance. Without a secure check-in or accepted proof, BaseDare may say a plan filled or ended; it may not say people showed up or completed it.
+RSVP is intent, not attendance. **We went** is explicit crew self-report, not verified presence. Two distinct joined people may make a plan count as **crew-confirmed completed together**, while only secure check-in or accepted proof may create verified attendance or place memory.
 
 ## What already exists
 
 - Live Plans aggregates boats, meetups, events, Sparks, and paid Dares.
 - Rally and boat cards show real participant counts and minimums.
 - Plan Links explain the real activity before signup.
-- My Next Move preserves joined plans with time, directions, calendar and invite actions.
-- Rally repeat links preserve activity, place, and crew threshold.
-- Boat repeat links preserve launch, break, time window, ability lane, and board need.
+- My Next Move preserves joined plans across NOW, Map, Board and Dashboard with time, directions, calendar and invite actions.
+- Rally repeats preserve activity, place and crew threshold, then invite the prior crew.
+- Boat repeats preserve launch, break, time window, ability lane and board need, then invite the prior confirmed crew.
+- Exact invite links record invite-open → join → crew-confirmed attendance on the existing append-only attribution rail.
 - Verified place updates end with **You made this place current** and a shareable receipt.
 
 ## Highest-value reinforcement
@@ -51,7 +52,9 @@ Haptics belong only on meaningful transitions: a soft selection pulse when joini
 
 ## Metrics
 
-North star: **weekly real-world plans completed by two or more people**, once completion can be honestly observed.
+North star: **weekly real-world plans completed by two or more people**.
+
+Current observable proxy: **weekly crew-confirmed plans completed by two or more joined people**. Keep this visibly separate from secure or proof-verified attendance.
 
 Near-term software metrics:
 
@@ -59,9 +62,10 @@ Near-term software metrics:
 - confirmed join → directions opened
 - confirmed join → calendar add
 - confirmed join → invite shared
-- invite opened → RSVP
+- invite opened → confirmed join
+- confirmed join → two-person crew confirmation
 - real crew thresholds crossed
 - ended RSVP’d Rally → repeat Rally started
 - departed joined boat → repeat boat started
 
-Do not report RSVP, directions, calendar adds, invite shares, or time-window expiry as verified attendance. Populate the north star only from a future secure attendance/completion signal that can prove at least two people completed the same plan.
+Do not report RSVP, directions, calendar adds, invite shares, time-window expiry, or **We went** as verified attendance. The current north-star proxy is deliberately labelled crew-confirmed until secure arrival or accepted evidence proves attendance.

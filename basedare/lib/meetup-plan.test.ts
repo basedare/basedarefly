@@ -41,6 +41,7 @@ test('Rally sharing makes the missing-person threshold explicit', () => {
 
 test('repeat links preserve the activity, place and unlock threshold', () => {
   const href = getRepeatRallyHref({
+    id: 'meetup-previous',
     title: 'Thursday trivia',
     type: 'trivia',
     venueId: 'venue-1',
@@ -52,6 +53,7 @@ test('repeat links preserve the activity, place and unlock threshold', () => {
   assert.equal(url.searchParams.get('template'), 'trivia');
   assert.equal(url.searchParams.get('venueId'), 'venue-1');
   assert.equal(url.searchParams.get('minimum'), '5');
+  assert.equal(url.searchParams.get('repeatFrom'), 'meetup-previous');
 });
 
 test('crew unlocks only when a real RSVP crosses the stated minimum', () => {

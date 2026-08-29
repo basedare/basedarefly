@@ -13,13 +13,16 @@ import {
   KANAWAY_BOAT_VENUE_SLUG,
   SURF_ABILITY_LANES,
   getBoatCrewExpiry,
+  getBoatCrewInvitePath,
   getBoatLaunch,
+  getOptionLabel,
   isBoatDestinationAllowed,
   isAllowedBoatDay,
   isBoatWindowOpen,
   type BoatTimeWindow,
 } from '@/lib/surf-boat-board';
 import { serializeBoatCrew } from '@/lib/surf-boat-board-server';
+import { createWalletNotification } from '@/lib/notifications';
 
 const CreateBoatCrewSchema = z.object({
   walletAddress: z.string().refine((value) => isAddress(value), 'Valid wallet required').optional(),
@@ -29,6 +32,7 @@ const CreateBoatCrewSchema = z.object({
   destination: z.enum(BOAT_DESTINATIONS.map((option) => option.value) as [string, ...string[]]),
   abilityLane: z.enum(SURF_ABILITY_LANES.map((option) => option.value) as [string, ...string[]]),
   needsBoard: z.boolean().default(false),
+  repeatCrewId: z.string().max(191).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -49,7 +53,9 @@ export async function GET(request: NextRequest) {
       where: {
         ...(crewId ? { id: crewId } : venueSlug ? { venue: { slug: venueSlug } } : {}),
         status: { not: 'CANCELLED' },
-        expiresAt: { gt: now },
+        // Exact shared links remain useful after departure for attendance and
+        // Same crew again. The public board still contains live calls only.
+        ...(!crewId ? { expiresAt: { gt: now } } : {}),
       },
       include: { members: true, venue: { select: { slug: true } } },
       orderBy: [{ departureDay: 'asc' }, { createdAt: 'asc' }],
@@ -160,6 +166,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const previousCrew = input.repeatCrewId
+      ? await prisma.surfBoatCrew.findFirst({
+          where: {
+            id: input.repeatCrewId,
+            members: { some: { baretagId: baretag.id, commitment: 'CONFIRMED' } },
+          },
+          select: {
+            members: {
+              where: { commitment: 'CONFIRMED', baretagId: { not: baretag.id } },
+              select: { baretagId: true },
+            },
+          },
+        })
+      : null;
+
     const crew = await prisma.surfBoatCrew.create({
       data: {
         venueId: venue.id,
@@ -181,7 +202,22 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     });
 
-    return NextResponse.json({ success: true, data: { id: crew.id } }, { status: 201 });
+    const previousCrewMembers = previousCrew?.members.length
+      ? await prisma.streamerTag.findMany({
+          where: { id: { in: previousCrew.members.map((member) => member.baretagId) } },
+          select: { walletAddress: true },
+          take: 20,
+        })
+      : [];
+    await Promise.allSettled(previousCrewMembers.map((member) => createWalletNotification({
+      wallet: member.walletAddress,
+      type: 'BOAT_CREW_REPEAT_INVITE',
+      title: `${baretag.tag} wants the crew back`,
+      message: `${getOptionLabel(BOAT_DESTINATIONS, input.destination)} · ${getOptionLabel(BOAT_TIME_WINDOWS, input.timeWindow)}`,
+      link: getBoatCrewInvitePath(crew.id),
+    })));
+
+    return NextResponse.json({ success: true, data: { id: crew.id, sameCrewInvited: previousCrewMembers.length } }, { status: 201 });
   } catch (error) {
     console.error('[BOAT_CREWS] POST failed:', error);
     return NextResponse.json({ success: false, error: 'Could not start this crew.' }, { status: 500 });
