@@ -4,6 +4,8 @@ export const CREW_ROOM_PLAN_TYPES = ['boat', 'meetup'] as const;
 export const CREW_ROOM_COORDINATION_KINDS = [
   'COMING',
   'HERE',
+  'ETA_10',
+  'ETA_20',
   'RUNNING_LATE',
   'NEED_GEAR',
   'CANT_MAKE_IT',
@@ -59,6 +61,10 @@ export function getCrewRoomQuickCopy(
       return 'I’m coming.';
     case 'HERE':
       return 'I’m here.';
+    case 'ETA_10':
+      return 'I’m 10 minutes away.';
+    case 'ETA_20':
+      return 'I’m 20 minutes away.';
     case 'RUNNING_LATE':
       return 'Running late.';
     case 'NEED_GEAR':
@@ -69,5 +75,10 @@ export function getCrewRoomQuickCopy(
 }
 
 export function shouldNotifyCrewRoomQuickAction(kind: CrewRoomCoordinationKind) {
-  return kind === 'HERE' || kind === 'RUNNING_LATE' || kind === 'NEED_GEAR' || kind === 'CANT_MAKE_IT';
+  return kind === 'HERE'
+    || kind === 'ETA_10'
+    || kind === 'ETA_20'
+    || kind === 'RUNNING_LATE'
+    || kind === 'NEED_GEAR'
+    || kind === 'CANT_MAKE_IT';
 }

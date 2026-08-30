@@ -35,6 +35,8 @@ type RoomSnapshot = {
 const QUICK_ACTIONS: Array<{ kind: CrewRoomCoordinationKind; label: string }> = [
   { kind: 'COMING', label: 'I’m coming' },
   { kind: 'HERE', label: 'I’m here' },
+  { kind: 'ETA_10', label: '10 min away' },
+  { kind: 'ETA_20', label: '20 min away' },
   { kind: 'RUNNING_LATE', label: 'Running late' },
   { kind: 'NEED_GEAR', label: 'Need gear' },
 ];
@@ -53,6 +55,8 @@ function coordinationLabel(kind: string, planType: CrewRoomPlanType) {
   switch (kind) {
     case 'HERE': return 'here';
     case 'RUNNING_LATE': return 'running late';
+    case 'ETA_10': return '10 min away';
+    case 'ETA_20': return '20 min away';
     case 'NEED_GEAR': return planType === 'boat' ? 'needs a board' : 'needs gear';
     case 'COMING': return 'coming';
     default: return null;
@@ -200,7 +204,7 @@ export default function CrewRoomClient({
 
       {room ? (
         <div className="p-4">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {QUICK_ACTIONS.map((action) => (
               <button key={action.kind} type="button" disabled={pending !== null} onClick={() => void post(action.kind)} className="min-h-10 rounded-full border border-cyan-200/13 bg-cyan-300/[0.055] px-2 text-[8px] font-black uppercase tracking-[0.09em] text-cyan-50/72 disabled:opacity-40">
                 {pending === action.kind ? 'Sending…' : action.kind === 'NEED_GEAR' && planType === 'boat' ? 'Need a board' : action.label}
@@ -215,7 +219,7 @@ export default function CrewRoomClient({
               })}
             </div>
           ) : null}
-          <p className="mt-2 text-[9px] font-bold leading-4 text-white/30">Quick updates can alert the crew. Normal chat stays quiet until they open it.</p>
+          <p className="mt-2 text-[9px] font-bold leading-4 text-white/30">ETA is a temporary message—not live location. Useful updates can alert the crew; normal chat stays quiet.</p>
 
           <div className="mt-4 max-h-64 space-y-2 overflow-y-auto rounded-2xl border border-white/7 bg-black/25 p-3">
             {room.messages.length ? room.messages.map((entry) => (

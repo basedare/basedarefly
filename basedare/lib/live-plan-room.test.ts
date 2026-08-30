@@ -45,7 +45,10 @@ test('metadata expires rooms without deleting their operational record', () => {
 test('quick coordination copy is actionable and only important state alerts', () => {
   assert.equal(getCrewRoomQuickCopy('NEED_GEAR', 'boat'), 'I need a board.');
   assert.equal(getCrewRoomQuickCopy('NEED_GEAR', 'meetup'), 'I need equipment.');
+  assert.equal(getCrewRoomQuickCopy('ETA_10', 'meetup'), 'I’m 10 minutes away.');
+  assert.equal(getCrewRoomQuickCopy('ETA_20', 'boat'), 'I’m 20 minutes away.');
   assert.equal(shouldNotifyCrewRoomQuickAction('COMING'), false);
+  assert.equal(shouldNotifyCrewRoomQuickAction('ETA_10'), true);
   assert.equal(shouldNotifyCrewRoomQuickAction('HERE'), true);
   assert.equal(shouldNotifyCrewRoomQuickAction('CANT_MAKE_IT'), true);
 });

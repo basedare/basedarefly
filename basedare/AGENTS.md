@@ -16,6 +16,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex World Pulse v1 (2026-08-30 — SHIPPED)
+- `/now` is now BaseDare's World Pulse decision surface: truthful `NOW / NEXT 2H / TONIGHT` modes, shareable public map context, and one real-inventory PeeBear choice with one primary action.
+- Shared links preserve the selected plan, time mode, and a rounded public area. Crew Rooms add declarative 10/20-minute ETA messages without collecting or exposing live coordinates.
+- `components/maps/RealWorldMap.tsx`, `app/map/*`, Prisma, paid Dare proof/review/payout logic, camera, renderer, and precise-location behavior remain untouched. The cinematic 3D layer remains a later phase.
+
 ### Codex creator directory closure (2026-08-30 — SHIPPED)
 - `/creators` is now a buyer/discovery directory; cold contributors enter through `/earn`, while tag, profile, Passport, and Signal Points remain optional post-value tools.
 - The directory shows completed work, place reach, strengths, and truthful active-work state. It no longer infers availability from old activity or presents a second tag/onboarding funnel.

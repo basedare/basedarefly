@@ -2,7 +2,7 @@
 type: product_playbook
 status: SOFTWARE_READY
 created_at: 2026-08-24
-updated_at: 2026-08-29
+updated_at: 2026-08-30
 owner: BaseDare
 ---
 
@@ -30,6 +30,13 @@ Close the gap between **I’m in** and a real plan without creating another prod
 10. Joining a Rally/meetup or confirming a boat seat unlocks one private Crew Room attached to that exact plan. Room access follows the canonical RSVP or confirmed-crew membership; sharing a room URL never grants access.
 11. The room pins the plan's time, place and participant count above the conversation. One-tap coordination states — **I'm coming**, **I'm here**, **Running late**, **Need equipment**, and **Can't make it** — are recorded as room activity. **Can't make it** must also release the member through the plan's existing leave route.
 12. Ordinary room messages stay quiet. Only operational state changes that materially affect the plan may notify the crew. Rooms remain active through a short post-plan grace period, then leave the active inbox without deleting the commercial or moderation record.
+13. World Pulse is the time-and-place control over the shared Live Plan read model:
+   - **NOW** means open inventory or a scheduled plan happening within the immediate 30-minute edge.
+   - **NEXT 2H** includes now plus plans beginning within two hours.
+   - **TONIGHT** ends at 04:00 in the destination timezone, not the viewer's device timezone.
+14. A shared World Pulse link may preserve the time mode, selected plan, radius and rounded public map centre. It must never contain device-precision coordinates.
+15. **Poke PeeBear** narrows the currently visible real inventory by **Surf**, **Social**, or **Surprise me**, then prioritizes the viewer's joined plan and plans that genuinely need people. It presents one answer before asking the user to act. Food/drink modes stay gated until opening hours and venue suitability are trustworthy.
+16. Crew Rooms may publish declarative **10 min away** or **20 min away** states. These are expiring crew messages, never continuous location sharing.
 
 ## Truth boundaries
 
@@ -40,6 +47,8 @@ Close the gap between **I’m in** and a real plan without creating another prod
 - Two confirmations support a crew-confirmed completion metric; they do not create verified presence or place memory.
 - Only secure check-in or accepted proof may create verified presence/place memory.
 - Crew Room membership is coordination access, not verified identity, attendance, safety clearance or payment authority.
+- World Pulse labels describe source and freshness honestly: open missions may be **LIVE**, crew state is **REPORTED**, and imported venue events remain **SOURCE CHECKED**. A forecast must never be presented as an observed condition.
+- Public view links use place-level coordinates only. BaseDare does not expose permanent precise participant location; future exact ETA sharing must be voluntary, temporary and crew-bound.
 - Paid Dare threads remain durable commercial records. Place rooms remain place-bound and proximity-aware. Crew Rooms remain temporary and plan-bound; there is no global public chat.
 
 ## UX rule
@@ -52,6 +61,18 @@ Keep the commitment layer compact. It is a utility tray, not a manual:
 >
 > Directions · Calendar · Invite · Open
 
+## World Pulse UX
+
+The pulse is a decision surface, not a surveillance globe:
+
+> See the island move. Join what happens next.
+>
+> NOW · NEXT 2H · TONIGHT · NEEDS PEOPLE
+>
+> PeeBear picked one → Rock Island boat · 3 going · needs 1
+
+The existing BaseDare map stays the spatial view. World Pulse preserves a selected plan and public map centre when moving between the list and the map. A future cinematic mode is optional; it cannot outrank truthful inventory, fast joining or privacy.
+
 ## Crew Room UX
 
 The room is an operating surface, not a destination feed:
@@ -60,7 +81,7 @@ The room is an operating surface, not a destination feed:
 >
 > 3 going · 1 more needed
 >
-> I'm coming · I'm here · Running late · Need a board
+> I'm coming · I'm here · 10 min away · Running late · Need a board
 >
 > Directions · Share · Open plan
 
