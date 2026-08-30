@@ -35,6 +35,10 @@ Move a cold creator from a shared link to an informed mission request without te
 
 `/creators/signup` is a compatibility redirect, not a second application funnel. It lands on the optional mission-alert form inside `/earn`. Seeing real work never requires a wallet, follower count, public profile, or creator application. Authentication is requested only after someone chooses a mission.
 
+`/creators` is the public contributor directory for buyers and discovery, not creator onboarding. It may show completed work, place reach, strengths, and active assignments, but it must not infer availability from old activity or lead cold contributors into tag, Passport, or identity setup. Its contributor exit always returns to `/earn`; its buyer exit goes to the paid Dare builder.
+
+Exact mission context survives authentication. Standard wallet connection happens in place on `/earn/<mission-short-id>`. Social webviews save a Mission Pass whose continuation target is that same exact mission URL. Neither path sends a creator back to a generic dashboard after sign-in.
+
 ## State truth
 
 This surface does not introduce a new lifecycle:

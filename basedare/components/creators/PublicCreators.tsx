@@ -1,15 +1,12 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Trophy, Zap, Tag, Shield, CheckCircle, ArrowRight, Star, MapPin, Clock, Briefcase, Radio } from "lucide-react";
+import { Users, CheckCircle, ArrowRight, Star, MapPin, Clock, Briefcase, Radio } from "lucide-react";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import HoneyGooAccent from "@/components/HoneyGooAccent";
-import { LiquidMetalButton } from "@/components/ui/LiquidMetalButton";
-import { ClaimTagModule } from "@/components/ClaimTagModule";
-import { CreatorLoopActions } from "@/components/creators/CreatorLoopActions";
 import { buildCreatorMissionActivationHref } from "@/lib/mission-routing";
 
 type Creator = {
@@ -70,12 +67,7 @@ const goldButtonClass =
 const sectionLabelClass =
   "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
 
-const launchCreatorMissionHref = buildCreatorMissionActivationHref({
-  creator: "@founding-host",
-  source: "available-creators",
-  city: "Founding city",
-  skills: ["Venue scouting", "Proof capture", "Local clips"],
-});
+const createMissionHref = "/create?source=creator-directory";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -101,8 +93,8 @@ function getCreatorAvailability(creator: Creator): {
 } {
   if ((creator.stats?.live ?? 0) > 0) {
     return {
-      label: "Ready now",
-      detail: `${creator.stats?.live ?? 0} live brief${(creator.stats?.live ?? 0) === 1 ? "" : "s"}`,
+      label: "Working now",
+      detail: `${creator.stats?.live ?? 0} active mission${(creator.stats?.live ?? 0) === 1 ? "" : "s"}`,
       dotClass: "bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,0.7)]",
       badgeClass: "border-emerald-300/30 bg-emerald-400/10 text-emerald-100",
     };
@@ -110,16 +102,16 @@ function getCreatorAvailability(creator: Creator): {
 
   if ((creator.stats?.approved ?? creator.completedDares) > 0 || (creator.businessMetrics?.venueReach ?? 0) > 0) {
     return {
-      label: "Available tonight",
-      detail: "Good for venue dares",
+      label: "Work history",
+      detail: "Completed BaseDare work",
       dotClass: "bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,0.7)]",
       badgeClass: "border-cyan-300/30 bg-cyan-400/10 text-cyan-100",
     };
   }
 
   return {
-    label: "Open this week",
-    detail: "Dare window open",
+    label: "New contributor",
+    detail: "No completed work yet",
     dotClass: "bg-[#f5c518] shadow-[0_0_14px_rgba(245,197,24,0.6)]",
     badgeClass: "border-[#f5c518]/30 bg-[#f5c518]/10 text-[#f9e27a]",
   };
@@ -152,7 +144,7 @@ function getCreatorSkillChips(creator: Creator): string[] {
   if ((creator.businessMetrics?.firstMarks ?? 0) > 0) skills.add("First spark");
   if ((creator.stats?.acceptRate ?? 0) >= 70) skills.add("Reliable");
 
-  ["Proof", "Local clips"].forEach((skill) => skills.add(skill));
+  ["Place updates", "Local clips"].forEach((skill) => skills.add(skill));
   return Array.from(skills).slice(0, 4);
 }
 
@@ -207,12 +199,6 @@ export default function CreatorsPage() {
     ishowspeed: "/assets/Ishowspeed.jpg",
     speed: "/assets/Ishowspeed.jpg",
   };
-
-  const verificationSteps = [
-    { icon: Tag, title: "Claim Your Tag", description: "Choose a unique @tag linked to your wallet" },
-    { icon: Shield, title: "Verify Identity", description: "Link your handle and submit proof" },
-    { icon: CheckCircle, title: "Start Earning", description: "Receive 96% of every successful dare you complete" },
-  ];
 
   const filteredCreators = React.useMemo(() => {
     const normalizedSearch = searchQuery.trim().toLowerCase();
@@ -276,59 +262,41 @@ export default function CreatorsPage() {
 
             <div className="relative">
               <div className={sectionLabelClass}>
-                <Zap className="w-4 h-4 text-fuchsia-300" />
-                FOR CREATORS
+                <Users className="w-4 h-4 text-fuchsia-300" />
+                CREATOR DIRECTORY
               </div>
 
               <h1 className="mt-5 text-4xl md:text-6xl font-black text-white tracking-tight">
-                Get paid to{" "}
+                Find people who{" "}
                 <span className="mt-1 block whitespace-nowrap text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.2)] sm:mt-0 sm:inline sm:bg-gradient-to-r sm:from-yellow-300 sm:via-yellow-400 sm:to-amber-500 sm:bg-clip-text sm:text-transparent sm:drop-shadow-none">
-                  show up
+                  make it real
                 </span>
               </h1>
 
               <p className="mt-4 text-gray-400 font-mono text-sm max-w-xl mx-auto mb-8">
-                Browse paid missions, choose a clear brief, submit useful proof, and build a public record that unlocks better work.
+                Browse contributors by completed work, places reached, and local experience. Open a profile or invite someone to a paid mission.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-2xl mx-auto">
-                <Link href="/earn?source=creators-page" className="flex-1">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-xl mx-auto">
+                <Link href={createMissionHref} className="flex-1">
                   <motion.button
                     whileTap={{ scale: 0.98 }}
-                    className="w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border border-cyan-300/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.16)_0%,rgba(12,12,22,0.94)_100%)] text-cyan-50 text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_14px_22px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-10px_14px_rgba(0,0,0,0.24)] hover:-translate-y-[1px] hover:border-cyan-200/40"
+                    className="bd-tactile-button bd-tactile-button--gold w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 hover:-translate-y-[1px]"
                   >
-                    <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/30 to-transparent" />
-                    <Briefcase className="w-4 h-4 text-cyan-200" />
-                    Find Paid Missions
+                    <Briefcase className="w-4 h-4" />
+                    Fund a mission
                   </motion.button>
                 </Link>
-                <LiquidMetalButton
-                  onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
-                  className="flex-1"
-                  size="md"
-                >
-                  <Tag className="w-4 h-4" />
-                  Claim Your Tag
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </LiquidMetalButton>
-                <Link href="/leaderboard" className="flex-1">
+                <Link href="/earn?source=creator-directory" className="flex-1">
                   <motion.button
                     whileTap={{ scale: 0.98 }}
-                    className="w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(11,11,18,0.95)_100%)] text-white text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_14px_22px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.24)] hover:-translate-y-[1px] hover:border-yellow-400/30 hover:text-yellow-100"
+                    className="bd-tactile-button bd-tactile-button--cyan w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 hover:-translate-y-[1px]"
                   >
-                    <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
-                    <Trophy className="w-4 h-4 text-yellow-400" />
-                    Leaderboard
+                    <ArrowRight className="w-4 h-4" />
+                    Find paid work
                   </motion.button>
                 </Link>
               </div>
-              <p className="mt-4 text-[11px] font-bold text-white/38">
-                Supporting approved routes or local operations?{' '}
-                <Link href="/hosts?source=creators-page" className="text-cyan-100/70 underline decoration-cyan-200/25 underline-offset-4 transition hover:text-cyan-50">
-                  Apply as a Local Partner
-                </Link>
-              </p>
-              <CreatorLoopActions />
             </div>
           </div>
         </motion.div>
@@ -346,21 +314,21 @@ export default function CreatorsPage() {
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-100 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
                     <Radio className="h-3.5 w-3.5" />
-                    Creator availability
+                    Featured contributors
                   </div>
                   <h2 className="mt-4 text-xl font-black tracking-tight text-white italic">
-                    Route-ready creators
+                    People with local work history
                   </h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-                    Pick contributors by area, proof record, and skill. Exact location stays private until a mission is accepted.
+                    Compare area, completed work, and strengths. Exact location stays private until a mission is accepted.
                   </p>
                 </div>
                 <Link
-                  href={launchCreatorMissionHref}
+                  href={createMissionHref}
                   className={`${goldButtonClass} min-h-[2.75rem] gap-2 px-4 text-[11px]`}
                 >
                   <Briefcase className="h-3.5 w-3.5" />
-                  Route mission
+                  Fund a mission
                 </Link>
               </div>
 
@@ -436,9 +404,9 @@ export default function CreatorsPage() {
                           <div className={creatorMetricWellClass}>
                             <div className="flex items-center gap-1.5 uppercase tracking-[0.16em] text-white/32 font-black">
                               <Clock className="h-3 w-3 text-[#f9e27a]" />
-                              Proofs
+                              Completed
                             </div>
-                            <p className="mt-1 font-black text-white/78">{creator.stats?.approved ?? creator.completedDares} proofs</p>
+                            <p className="mt-1 font-black text-white/78">{creator.stats?.approved ?? creator.completedDares} missions</p>
                           </div>
                         </div>
 
@@ -455,7 +423,7 @@ export default function CreatorsPage() {
                             href={`/creator/${plainTag}`}
                             className={ghostButtonClass}
                           >
-                            Proof record
+                            Work record
                           </Link>
                           <Link
                             href={inviteHref}
@@ -474,23 +442,22 @@ export default function CreatorsPage() {
                             {creatorFetchFailed ? "Creator rail is loading slowly." : "No creator availability signal yet."}
                           </p>
                           <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-white/52">
-                            No live availability yet. Open the map for paid missions or claim your tag to appear here.
+                            No public work history is available yet. Contributors enter through a real paid mission first.
                           </p>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2 md:w-[22rem]">
                           <Link
-                            href="/earn?source=creators-empty-state"
-                            className={`${ghostButtonClass} bd-tactile-button--cyan min-h-11 px-4 tracking-[0.13em]`}
-                          >
-                            Find Paid Missions
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
+                            href={createMissionHref}
                             className={`${goldButtonClass} min-h-11 px-4 tracking-[0.13em]`}
                           >
-                            Claim tag
-                          </button>
+                            Fund a mission
+                          </Link>
+                          <Link
+                            href="/earn?source=creator-directory-empty"
+                            className={`${ghostButtonClass} bd-tactile-button--cyan min-h-11 px-4 tracking-[0.13em]`}
+                          >
+                            Find paid work
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -512,7 +479,7 @@ export default function CreatorsPage() {
             <div className="relative">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-black text-white tracking-tight italic">
-                  CREATORS
+                  ALL CONTRIBUTORS
                 </h2>
                 <Link href="/leaderboard" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-3.5 py-2 text-[11px] font-black text-purple-300 hover:text-purple-200 transition-colors uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                   Hall of Fame <ArrowRight className="w-3 h-3" />
@@ -549,7 +516,7 @@ export default function CreatorsPage() {
                   {([
                     { value: "trust", label: "Most Trusted" },
                     { value: "earned", label: "Top Earned" },
-                    { value: "dares", label: "Most Dares" },
+                    { value: "dares", label: "Most Completed" },
                     { value: "az", label: "A-Z" },
                   ] as const).map((option) => (
                     <button
@@ -577,9 +544,9 @@ export default function CreatorsPage() {
                 <div className={`${insetCardClass} p-8 text-center`}>
                   <p className="text-gray-500 font-mono text-xs">
                     {creatorFetchFailed
-                      ? "Creator API is slow right now. The paid-mission map and tag claim rails still work."
+                      ? "The contributor directory is loading slowly. Paid missions remain available."
                       : creators.length === 0
-                        ? "No creators verified yet. Be the first!"
+                        ? "No public contributor profiles yet."
                         : "No creators match that search yet."}
                   </p>
                   <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
@@ -587,14 +554,14 @@ export default function CreatorsPage() {
                       href="/earn?source=creators-empty-state"
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-200/40"
                     >
-                      Find Paid Missions <ArrowRight className="w-4 h-4" />
+                      Find paid work <ArrowRight className="w-4 h-4" />
                     </Link>
-                    <button
-                      onClick={() => document.getElementById("claim-tag-section")?.scrollIntoView({ behavior: "smooth" })}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-purple-500/25 bg-purple-500/[0.08] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-purple-300 transition hover:border-purple-400/35 hover:text-purple-200"
+                    <Link
+                      href={createMissionHref}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#f5c518]/25 bg-[#f5c518]/[0.08] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-[#f9e27a] transition hover:border-[#f5c518]/40"
                     >
-                      Claim your tag <ArrowRight className="w-4 h-4" />
-                    </button>
+                      Fund a mission <ArrowRight className="w-4 h-4" />
+                    </Link>
                   </div>
                 </div>
               ) : (
@@ -682,7 +649,7 @@ export default function CreatorsPage() {
                                       <span className="block text-[11px] font-black leading-none text-white tabular-nums">
                                         {creator.stats?.approved ?? creator.completedDares}
                                       </span>
-                                      <span className="mt-1 block text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Proofs</span>
+                                      <span className="mt-1 block text-[8px] text-gray-500 uppercase font-black tracking-[0.14em]">Completed</span>
                                     </div>
                                     <div>
                                       <span className="block text-[11px] font-black leading-none text-cyan-100 tabular-nums">
@@ -705,54 +672,38 @@ export default function CreatorsPage() {
           </div>
         </motion.div>
 
-        {/* How It Works */}
+        {/* Directory exits */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="max-w-4xl mx-auto mb-16"
+          className="max-w-5xl mx-auto mb-16"
         >
           <div className={`${softCardClass} p-5 sm:p-6`}>
             <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-            <h2 className="text-xl font-black text-white text-center mb-6 tracking-tight italic">
-              How It Works
-            </h2>
-            <div className="space-y-3">
-              {verificationSteps.map((step, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 + index * 0.1 }}
-                  className={`${insetCardClass} p-4`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center shrink-0 shadow-[0_10px_18px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.08)]">
-                      <step.icon className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-white">{step.title}</h3>
-                      <p className="text-xs text-gray-500 font-mono">{step.description}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+            <div className="relative grid gap-3 md:grid-cols-2">
+              <Link href="/earn?source=creator-directory-footer" className={`${insetCardClass} group p-5 transition hover:border-cyan-300/25`}>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-200">Want paid work?</p>
+                <h2 className="mt-2 text-xl font-black text-white">Start with a real mission.</h2>
+                <p className="mt-2 text-sm font-semibold leading-6 text-white/52">
+                  See the brief and payout before signing in. Add a public profile after you have work to show.
+                </p>
+                <span className="mt-4 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-cyan-100">
+                  See paid missions <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                </span>
+              </Link>
+              <Link href={createMissionHref} className={`${insetCardClass} group p-5 transition hover:border-[#f5c518]/25`}>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#f9e27a]">Need someone local?</p>
+                <h2 className="mt-2 text-xl font-black text-white">Fund one clear mission.</h2>
+                <p className="mt-2 text-sm font-semibold leading-6 text-white/52">
+                  Set the place, useful outcome, reward, and deadline. BaseDare keeps the work and receipt together.
+                </p>
+                <span className="mt-4 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#f9e27a]">
+                  Create a paid Dare <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                </span>
+              </Link>
             </div>
           </div>
-        </motion.div>
-
-        {/* Bottom CTA replaced with the full Claim Tag Module */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="w-full relative mt-24 mb-12"
-        >
-          {/* subtle divider */}
-          <div className="bd-purple-pulse-line mb-16 mx-auto h-px w-1/2" />
-          <Suspense fallback={null}>
-            <ClaimTagModule />
-          </Suspense>
         </motion.div>
 
       </div>

@@ -16,6 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex creator directory closure (2026-08-30 — SHIPPED)
+- `/creators` is now a buyer/discovery directory; cold contributors enter through `/earn`, while tag, profile, Passport, and Signal Points remain optional post-value tools.
+- The directory shows completed work, place reach, strengths, and truthful active-work state. It no longer infers availability from old activity or presents a second tag/onboarding funnel.
+- Contributor exits route to paid work and buyer exits route to the paid Dare builder. Exact mission context remains preserved through in-place wallet connection or Mission Pass continuation.
+- No claim, proof, review, payout, schema, map, or Dare lifecycle behavior changed.
+
 ### Codex creator entry + map relic release (2026-08-30 — SHIPPED)
 - `/earn` now provides a creator-first mission entry, optional mission alerts, a persistent creator work tray, plain work-state labels, and a legacy `/creators/signup` redirect.
 - The map relic calibration standardizes marker signal priority, quiets ordinary venues, removes empty update labels, optically reduces café relics, and clusters ordinary venues sooner.
