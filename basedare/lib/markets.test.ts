@@ -16,6 +16,10 @@ test('the one live market separates paid work, funding, and optional identity', 
     label: 'Fund a mission',
     href: '/create?city=siargao&source=markets',
   });
+  assert.deepEqual(actions.community, {
+    label: 'Open Community',
+    href: '/community?city=siargao&source=markets',
+  });
   assert.deepEqual(actions.identity, {
     label: 'Claim your @tag',
     href: '/claim-tag?city=siargao&source=markets',
@@ -29,6 +33,7 @@ test('scouting markets collect mission alerts without implying live work', () =>
     assert.match(actions.contributor.href, /^\/earn\?alerts=1&city=/);
     assert.match(actions.contributor.href, /#mission-alerts$/);
     assert.equal(actions.buyer, null);
+    assert.equal(actions.community, null);
     assert.equal(actions.identity, null);
   }
 });

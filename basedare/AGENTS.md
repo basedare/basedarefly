@@ -16,6 +16,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Baretag + Community bridge (2026-08-31 — RELEASE READY)
+- Paid missions remain browseable/requestable without a public profile, while `/earn` now explains Baretag as the optional recognizable identity for hosting, place-bound asks/offers, and community history.
+- `/community` is discoverable from the global footer. Ask/Offer now checks the connected wallet's approved Baretag before signing, explains pending/missing identity states, and makes the reviewed post → Community → exact place-room path explicit.
+- The live Siargao market now links paid work, mission funding, Community, and optional Baretag as distinct intents. Scope is limited to those entry surfaces and pure identity/market policy tests. No map renderer, schema, claim review, paid-mission proof, payout, or settlement behavior changed.
+
 ### Codex Markets role clarity (2026-08-31 — COMPLETE LOCALLY)
 - The homepage Markets section now follows the money-first contributor funnel: live-market contributors enter real paid missions, buyers fund the paid-mission builder, and Baretag remains an optional public-identity step.
 - Scouting markets use the existing mission-alert intake instead of implying active city launches. Scope is limited to `lib/markets*` and `components/home/MarketsSection.tsx`; no claim, proof, payout, schema, map, or renderer behavior changes.

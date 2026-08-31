@@ -92,6 +92,7 @@ export type MarketAction = {
 export function getMarketActions(market: Market): {
   contributor: MarketAction;
   buyer: MarketAction | null;
+  community: MarketAction | null;
   identity: MarketAction | null;
 } {
   const city = encodeURIComponent(market.slug);
@@ -103,6 +104,7 @@ export function getMarketActions(market: Market): {
         href: `/earn?alerts=1&city=${city}&source=markets#mission-alerts`,
       },
       buyer: null,
+      community: null,
       identity: null,
     };
   }
@@ -115,6 +117,10 @@ export function getMarketActions(market: Market): {
     buyer: {
       label: 'Fund a mission',
       href: `/create?city=${city}&source=markets`,
+    },
+    community: {
+      label: 'Open Community',
+      href: `/community?city=${city}&source=markets`,
     },
     identity: {
       label: 'Claim your @tag',

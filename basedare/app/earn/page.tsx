@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, BriefcaseBusiness, CheckCircle2, Plus, Radio, WalletCards } from 'lucide-react';
+import { ArrowLeft, ArrowRight, AtSign, BriefcaseBusiness, CheckCircle2, Plus, Radio, Users } from 'lucide-react';
 
 import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
@@ -154,9 +154,33 @@ export default async function EarnPage({
           </div>
         </section>
 
-        <section className="mx-auto mt-8 flex max-w-3xl items-start gap-3 rounded-[22px] border border-white/8 bg-black/24 px-5 py-4 text-xs leading-5 text-white/42">
-          <WalletCards className="mt-0.5 h-4 w-4 shrink-0 text-violet-200" aria-hidden="true" />
-          <p>A public profile can build after real work. It does not block you from seeing or requesting an open mission.</p>
+        <section className={`${controlPanel} mx-auto mt-8 max-w-3xl p-5 sm:p-6`} aria-labelledby="basedare-identity-heading">
+          <div className="flex items-start gap-4">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-violet-200/16 bg-violet-300/[0.07] text-violet-100">
+              <AtSign className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className={`${controlMicroLabel} text-violet-100/58`}>Your BaseDare name</p>
+              <h2 id="basedare-identity-heading" className="mt-1 text-lg font-black text-white">Baretag is your public BaseDare name.</h2>
+              <p className="mt-2 text-xs font-semibold leading-5 text-white/46 sm:text-sm">
+                You can browse and request paid missions without one. Claim a Baretag when you want to meet people, join or host local plans, post asks and offers, and build a recognizable history across places.
+              </p>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <Link
+                  href="/claim-tag?source=earn"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-violet-200/18 bg-violet-300/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-violet-100 transition hover:border-violet-100/30"
+                >
+                  <AtSign className="h-4 w-4" aria-hidden="true" /> Claim your @tag
+                </Link>
+                <Link
+                  href="/community?source=earn#local-post"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-cyan-200/16 bg-cyan-300/[0.06] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-cyan-50 transition hover:border-cyan-100/28"
+                >
+                  <Users className="h-4 w-4" aria-hidden="true" /> Open Community
+                </Link>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </main>

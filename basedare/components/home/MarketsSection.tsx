@@ -17,7 +17,7 @@ export default function MarketsSection() {
           Choose your scene
         </h2>
         <p className="mx-auto mt-3 max-w-md text-sm font-bold leading-6 text-white/56">
-          Find paid work where BaseDare is live—or hear when your city opens.
+          Find paid work, local plans and community where BaseDare is live—or hear when your city opens.
         </p>
       </div>
 
@@ -76,9 +76,17 @@ export default function MarketsSection() {
                     </Link>
                   ) : null}
                 </div>
-                {actions.identity ? (
-                  <p className="mt-3 text-xs font-semibold text-white/38">
-                    Want a public BaseDare name?{' '}
+                {actions.community && actions.identity ? (
+                  <p className="mt-3 text-xs font-semibold leading-5 text-white/42">
+                    Here for people and local plans?{' '}
+                    <Link
+                      href={actions.community.href}
+                      prefetch={false}
+                      className="text-emerald-100/78 underline decoration-emerald-200/25 underline-offset-4 transition hover:text-white"
+                    >
+                      {actions.community.label}
+                    </Link>
+                    <span className="px-1.5 text-white/20">·</span>
                     <Link
                       href={actions.identity.href}
                       prefetch={false}

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Twitter, Shield, ShieldCheck, FileText, HelpCircle, Info, MessageSquare, Lightbulb } from 'lucide-react';
+import { Twitter, Shield, ShieldCheck, FileText, HelpCircle, Info, MessageSquare, Lightbulb, Users } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useView } from '@/app/context/ViewContext';
@@ -89,6 +89,15 @@ export default function Footer() {
                 Connect
                 <span className="md:hidden">—</span>
               </h3>
+              <Link
+                href="/community"
+                className="group flex min-h-10 items-center gap-3 rounded-xl px-2 text-gray-400 transition-colors hover:text-emerald-300 active:text-emerald-300 touch-manipulation"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 transition-colors group-hover:border-emerald-300/50 group-active:border-emerald-300/50 sm:h-8 sm:w-8">
+                  <Users className="h-4 w-4" />
+                </div>
+                <span className="text-xs font-mono uppercase tracking-wider">Community</span>
+              </Link>
               <a
                 href="https://x.com/basedare_xyz"
                 target="_blank"
@@ -175,6 +184,10 @@ export default function Footer() {
               <span className="text-white/20 hidden sm:inline">•</span>
               <Link href="/how-it-works" className="inline-flex min-h-9 items-center rounded-lg px-2 transition hover:text-yellow-400 active:text-yellow-400 touch-manipulation">
                 How It Works
+              </Link>
+              <span className="text-white/20 hidden sm:inline">•</span>
+              <Link href="/community" className="inline-flex min-h-9 items-center rounded-lg px-2 transition hover:text-emerald-300 active:text-emerald-300 touch-manipulation">
+                Community
               </Link>
               <span className="text-white/20 hidden sm:inline">•</span>
               <Link href="/contact" className="inline-flex min-h-9 items-center rounded-lg px-2 transition hover:text-yellow-400 active:text-yellow-400 touch-manipulation">

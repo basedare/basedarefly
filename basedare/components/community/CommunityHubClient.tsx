@@ -4,11 +4,16 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
-import { HandHeart, Map, MessageCircle, Plus, ShieldCheck, ShipWheel, Sparkles, Store } from 'lucide-react';
+import { AtSign, BadgeCheck, HandHeart, Map, MessageCircle, Plus, ShieldCheck, ShipWheel, Sparkles, Store } from 'lucide-react';
 
 import CommunityActivityCard from '@/components/community/CommunityActivityCard';
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
 import { getLocalPostMapHref, type LocalPostType } from '@/lib/community-around-policy';
+import {
+  resolveCommunityIdentity,
+  type CommunityIdentityState,
+  type CommunityIdentityTag,
+} from '@/lib/community-identity';
 import type { LivePlan } from '@/lib/live-plans';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
@@ -39,6 +44,8 @@ type LocalActivity = {
   submittedBy: string;
 };
 
+type IdentityCheckState = CommunityIdentityState | { status: 'disconnected' | 'checking' | 'unknown'; tag: null };
+
 function postTypeLabel(postType: 'ask' | 'offer') {
   return postType === 'ask' ? 'Ask nearby' : 'Offer nearby';
 }
@@ -61,6 +68,7 @@ export default function CommunityHubClient() {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [identityState, setIdentityState] = useState<IdentityCheckState>({ status: 'disconnected', tag: null });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -95,6 +103,33 @@ export default function CommunityHubClient() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    if (!actorWallet) {
+      setIdentityState({ status: 'disconnected', tag: null });
+      return;
+    }
+
+    const controller = new AbortController();
+    setIdentityState({ status: 'checking', tag: null });
+    void fetch(`/api/tags?wallet=${encodeURIComponent(actorWallet)}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.success || !Array.isArray(payload.tags)) {
+          throw new Error('Baretag check unavailable');
+        }
+        setIdentityState(resolveCommunityIdentity(payload.tags as CommunityIdentityTag[]));
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        setIdentityState({ status: 'unknown', tag: null });
+      });
+
+    return () => controller.abort();
+  }, [actorWallet]);
+
   const visibleLocalActivities = useMemo(
     () => localActivities.filter((activity) => activity.postType !== 'signal' || activity.category === 'community'),
     [localActivities]
@@ -104,6 +139,18 @@ export default function CommunityHubClient() {
     setSubmitState(null);
     if (!actorWallet) {
       setSubmitState({ type: 'error', message: 'Connect the wallet that owns your Baretag first.' });
+      return;
+    }
+    if (identityState.status === 'checking') {
+      setSubmitState({ type: 'error', message: 'Checking your Baretag. Try again in a moment.' });
+      return;
+    }
+    if (identityState.status === 'pending') {
+      setSubmitState({ type: 'error', message: `${identityState.tag ?? 'Your Baretag'} is still in review. Posting unlocks after approval.` });
+      return;
+    }
+    if (identityState.status === 'missing') {
+      setSubmitState({ type: 'error', message: 'Claim a Baretag before posting in the community.' });
       return;
     }
     if (!venueSlug || title.trim().length < 3) {
@@ -230,7 +277,7 @@ export default function CommunityHubClient() {
           </div>
           {!loading && visibleLocalActivities.length === 0 ? (
             <div className="mt-4 rounded-2xl border border-dashed border-white/14 bg-black/20 p-6 text-center text-sm text-white/48">
-              No local asks or offers yet. Open a place room to post something useful.
+              No local asks or offers yet. Start the first place-bound post below.
             </div>
           ) : null}
         </section>
@@ -261,11 +308,12 @@ export default function CommunityHubClient() {
           </div>
 
           <form
+            id="local-post"
             onSubmit={(event) => {
               event.preventDefault();
               void submitPost();
             }}
-            className="rounded-[1.75rem] border border-emerald-200/14 bg-[radial-gradient(circle_at_10%_0%,rgba(16,185,129,0.12),transparent_38%),rgba(5,10,13,0.72)] p-5 sm:p-6"
+            className="scroll-mt-28 rounded-[1.75rem] border border-emerald-200/14 bg-[radial-gradient(circle_at_10%_0%,rgba(16,185,129,0.12),transparent_38%),rgba(5,10,13,0.72)] p-5 sm:p-6"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -273,6 +321,39 @@ export default function CommunityHubClient() {
                 <h2 className="mt-2 text-2xl font-black">Ask or offer something useful</h2>
               </div>
               <Store className="h-6 w-6 text-emerald-200/72" aria-hidden="true" />
+            </div>
+
+            <p className="mt-3 text-xs font-semibold leading-5 text-white/46">
+              Pick a place once. After review, your post appears here and on that place&apos;s map room for 72 hours.
+            </p>
+
+            <div className={`mt-4 flex flex-col items-stretch gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${identityState.status === 'ready' ? 'border-emerald-200/18 bg-emerald-300/[0.07]' : identityState.status === 'pending' ? 'border-amber-200/18 bg-amber-300/[0.06]' : 'border-violet-200/14 bg-violet-300/[0.055]'}`}>
+              <span className="flex min-w-0 items-center gap-3">
+                {identityState.status === 'ready' ? <BadgeCheck className="h-5 w-5 shrink-0 text-emerald-200" aria-hidden="true" /> : <AtSign className="h-5 w-5 shrink-0 text-violet-200" aria-hidden="true" />}
+                <span className="min-w-0">
+                  <strong className="block truncate text-xs text-white/82">
+                    {identityState.status === 'ready'
+                      ? `Posting as ${identityState.tag}`
+                      : identityState.status === 'pending'
+                        ? `${identityState.tag ?? 'Baretag'} is in review`
+                        : identityState.status === 'checking'
+                          ? 'Checking your Baretag…'
+                          : 'Use your Baretag in the community'}
+                  </strong>
+                  <span className="mt-0.5 block text-[10px] leading-4 text-white/38">
+                    {identityState.status === 'ready'
+                      ? 'Your public name follows the post into its place room.'
+                      : identityState.status === 'pending'
+                        ? 'Posting unlocks after approval.'
+                        : 'It keeps replies recognizable without exposing phone numbers.'}
+                  </span>
+                </span>
+              </span>
+              {identityState.status !== 'ready' && identityState.status !== 'checking' ? (
+                <Link href="/claim-tag?source=community" className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-full border border-violet-200/18 bg-violet-300/[0.08] px-3 text-[9px] font-black uppercase tracking-[0.11em] text-violet-100">
+                  Claim @tag
+                </Link>
+              ) : null}
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-2">
@@ -312,10 +393,20 @@ export default function CommunityHubClient() {
               </p>
             ) : null}
 
-            <button type="submit" disabled={submitting || venues.length === 0} className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-full border border-emerald-100/25 bg-emerald-300 px-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#032018] transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-45">
-              {submitting ? 'Sending for review…' : `Submit ${postType}`}
+            <button type="submit" disabled={submitting || venues.length === 0 || identityState.status === 'disconnected' || identityState.status === 'checking' || identityState.status === 'pending' || identityState.status === 'missing'} className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-full border border-emerald-100/25 bg-emerald-300 px-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#032018] transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-45">
+              {submitting
+                ? 'Sending for review…'
+                : identityState.status === 'disconnected'
+                  ? 'Connect to post'
+                  : identityState.status === 'checking'
+                    ? 'Checking Baretag…'
+                    : identityState.status === 'pending'
+                      ? 'Baretag in review'
+                      : identityState.status === 'missing'
+                        ? 'Claim a Baretag to post'
+                        : `Submit ${postType}`}
             </button>
-            {!actorWallet ? <p className="mt-3 text-center text-[10px] text-white/38">Connect the wallet that owns your Baretag to post.</p> : null}
+            {identityState.status === 'unknown' ? <p className="mt-3 text-center text-[10px] text-white/38">We&apos;ll verify your Baretag securely when you post.</p> : null}
           </form>
         </section>
       </div>
