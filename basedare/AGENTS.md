@@ -16,6 +16,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Live Around You mobile rail polish (2026-09-01 — SHIPPED TO MAIN)
+- The homepage mobile rail now uses mandatory snap detents, a conditional edge fade and accessible next-arrow, a compact position/caught-up hint, and one best-effort selection haptic when a card or filter settles.
+- Haptics are progressive enhancement only: reduced-motion disables them, unsupported browsers keep the full visual interaction, and iOS web relies on the snap/press affordance rather than fake vibration.
+- Scope is limited to `components/PremiumBentoGrid.tsx` and `components/PremiumBentoGrid.css`. No map renderer, schema, Dare lifecycle, proof, payout, or settlement behavior changed.
+
 ### Codex Baretag + Community bridge (2026-08-31 — RELEASE READY)
 - Paid missions remain browseable/requestable without a public profile, while `/earn` now explains Baretag as the optional recognizable identity for hosting, place-bound asks/offers, and community history.
 - `/community` is discoverable from the global footer. Ask/Offer now checks the connected wallet's approved Baretag before signing, explains pending/missing identity states, and makes the reviewed post → Community → exact place-room path explicit.

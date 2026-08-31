@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { ArrowRight, Loader2, MapPin, Radio, Search, Users } from 'lucide-react';
 import PremiumDareCard, { PremiumDareCardStatus, SentinelSkeleton } from './PremiumDareCard';
 import CommunityActivityCard from '@/components/community/CommunityActivityCard';
 import { getLocalPostMapHref, type LocalPostType } from '@/lib/community-around-policy';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { cloneActiveVenueFallbacks } from '@/lib/home-active-venues';
+import { triggerHaptic } from '@/lib/mobile-haptics';
 import './PremiumBentoGrid.css';
 
 const FILTERS = [
@@ -377,6 +378,108 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
   const showMobileDares = mobileFilter === 'ALL' || mobileFilter === 'PLAY';
   const showMobileMeetups = mobileFilter === 'ALL' || mobileFilter === 'MEET';
   const showMobileLocal = mobileFilter === 'ALL' || mobileFilter === 'LOCAL';
+  const mobileRailRef = useRef<HTMLDivElement | null>(null);
+  const mobileRailSettleTimerRef = useRef<number | null>(null);
+  const mobileRailInteractingRef = useRef(false);
+  const mobileRailSettledIndexRef = useRef(0);
+  const [mobileRailIndex, setMobileRailIndex] = useState(0);
+  const [mobileRailCount, setMobileRailCount] = useState(0);
+  const [mobileRailHasNext, setMobileRailHasNext] = useState(false);
+
+  const measureMobileRail = useCallback(() => {
+    const rail = mobileRailRef.current;
+    if (!rail) return { index: 0, count: 0, hasNext: false };
+
+    const cards = Array.from(rail.children) as HTMLElement[];
+    const count = cards.length;
+    const center = rail.scrollLeft + rail.clientWidth / 2;
+    let index = 0;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    cards.forEach((card, cardIndex) => {
+      const cardCenter = card.offsetLeft + card.clientWidth / 2;
+      const distance = Math.abs(cardCenter - center);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        index = cardIndex;
+      }
+    });
+
+    return {
+      index,
+      count,
+      hasNext: count > 1 && rail.scrollLeft < rail.scrollWidth - rail.clientWidth - 8,
+    };
+  }, []);
+
+  const syncMobileRail = useCallback((settled: boolean) => {
+    const next = measureMobileRail();
+    setMobileRailCount(next.count);
+    setMobileRailHasNext(next.hasNext);
+
+    if (!settled) return;
+
+    setMobileRailIndex(next.index);
+    if (
+      mobileRailInteractingRef.current &&
+      next.index !== mobileRailSettledIndexRef.current
+    ) {
+      triggerHaptic('selection');
+    }
+    mobileRailSettledIndexRef.current = next.index;
+    mobileRailInteractingRef.current = false;
+  }, [measureMobileRail]);
+
+  const handleMobileRailScroll = useCallback(() => {
+    syncMobileRail(false);
+    if (mobileRailSettleTimerRef.current) {
+      window.clearTimeout(mobileRailSettleTimerRef.current);
+    }
+    mobileRailSettleTimerRef.current = window.setTimeout(() => {
+      syncMobileRail(true);
+    }, 120);
+  }, [syncMobileRail]);
+
+  const showNextMobileCard = useCallback(() => {
+    const rail = mobileRailRef.current;
+    if (!rail) return;
+    const cards = Array.from(rail.children) as HTMLElement[];
+    const nextIndex = Math.min(mobileRailSettledIndexRef.current + 1, cards.length - 1);
+    const nextCard = cards[nextIndex];
+    if (!nextCard || nextIndex === mobileRailSettledIndexRef.current) return;
+
+    mobileRailInteractingRef.current = false;
+    mobileRailSettledIndexRef.current = nextIndex;
+    setMobileRailIndex(nextIndex);
+    triggerHaptic('selection');
+    rail.scrollTo({ left: nextCard.offsetLeft, behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    const rail = mobileRailRef.current;
+    if (!rail) return;
+
+    rail.scrollTo({ left: 0, behavior: 'instant' as ScrollBehavior });
+    mobileRailSettledIndexRef.current = 0;
+    setMobileRailIndex(0);
+
+    const frame = window.requestAnimationFrame(() => syncMobileRail(true));
+    const resizeObserver = new ResizeObserver(() => syncMobileRail(false));
+    resizeObserver.observe(rail);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+    };
+  }, [mobileFilter, mobileDareCards.length, meetups.length, localActivities.length, communityLoading, syncMobileRail]);
+
+  useEffect(() => {
+    return () => {
+      if (mobileRailSettleTimerRef.current) {
+        window.clearTimeout(mobileRailSettleTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="w-full flex flex-col items-center">
@@ -386,7 +489,11 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
             <button
               key={tab.key}
               type="button"
-              onClick={() => setMobileFilter(tab.key)}
+              onClick={() => {
+                if (mobileFilter === tab.key) return;
+                triggerHaptic('selection');
+                setMobileFilter(tab.key);
+              }}
               className={`live-around-mobile__filter ${mobileFilter === tab.key ? 'live-around-mobile__filter--active' : ''}`}
               aria-pressed={mobileFilter === tab.key}
             >
@@ -395,7 +502,16 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
           ))}
         </div>
 
-        <div className="live-around-mobile__rail" aria-live="polite">
+        <div className="live-around-mobile__rail-shell" data-has-next={mobileRailHasNext ? 'true' : 'false'}>
+          <div
+            ref={mobileRailRef}
+            className="live-around-mobile__rail"
+            aria-live="polite"
+            onPointerDown={() => {
+              mobileRailInteractingRef.current = true;
+            }}
+            onScroll={handleMobileRailScroll}
+          >
           {communityLoading && mobileFilter !== 'PLAY'
             ? Array.from({ length: 2 }).map((_, index) => <SentinelSkeleton key={`community-${index}`} />)
             : null}
@@ -461,11 +577,25 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
               <span>Post a meetup, Ask, or Offer around a real place.</span>
             </Link>
           ) : null}
+          </div>
+          <button
+            type="button"
+            className="live-around-mobile__next"
+            onClick={showNextMobileCard}
+            disabled={!mobileRailHasNext}
+            aria-label="Show the next nearby activity"
+          >
+            <ArrowRight aria-hidden="true" />
+          </button>
         </div>
 
-        <div className="mt-3 flex items-center justify-between px-1">
-          <p className="text-[10px] font-bold text-white/42">Swipe for what is live nearby.</p>
-          <Link href="/community" prefetch={false} className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-200">
+        <div className="live-around-mobile__footer">
+          <p className="live-around-mobile__swipe-hint" aria-live="polite">
+            <span>{mobileRailCount > 0 ? `${mobileRailIndex + 1} / ${mobileRailCount}` : 'Live'}</span>
+            {mobileRailHasNext ? 'Swipe for more' : 'Caught up nearby'}
+            {mobileRailHasNext ? <ArrowRight aria-hidden="true" /> : null}
+          </p>
+          <Link href="/community" prefetch={false} className="whitespace-nowrap text-[10px] font-black uppercase tracking-[0.14em] text-cyan-200">
             Community hub →
           </Link>
         </div>
