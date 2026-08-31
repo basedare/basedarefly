@@ -75,8 +75,16 @@ export default function GlobalMyNextMove() {
     };
   }, [load, visible]);
 
-  if (!visible) return null;
+  if (!visible || pathname.startsWith('/earn/')) return null;
   const className = pathname === '/map' ? 'bottom-16 sm:bottom-3' : '';
-  if (creatorMission) return <CreatorMissionTray item={creatorMission} className={className} />;
+  if (creatorMission) {
+    return (
+      <CreatorMissionTray
+        item={creatorMission}
+        className={className}
+        variant={pathname === '/map' ? 'map' : 'default'}
+      />
+    );
+  }
   return <MyNextMoveTray plans={snapshot?.myNextMoves ?? []} className={className} />;
 }

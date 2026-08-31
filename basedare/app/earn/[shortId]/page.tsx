@@ -137,6 +137,15 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
                   sponsorReuseNeedsOptIn={mission.sponsorReuseNeedsOptIn}
                   initialClaimRequestWallet={mission.claimRequestWallet}
                   initialClaimRequestStatus={mission.claimRequestStatus}
+                  missionStatus={mission.status}
+                  assignedWallet={mission.assignedWallet}
+                  existingProofUrl={mission.existingProofUrl}
+                  bountyAmount={mission.grossReward}
+                  locationLabel={mission.locationLabel}
+                  missionMode={mission.missionMode}
+                  isNearbyDare={mission.isNearbyDare}
+                  outcomeContract={mission.outcomeContractSnapshot}
+                  reportedOutcome={mission.reportedOutcome}
                 />
               </div>
 

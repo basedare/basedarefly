@@ -16,6 +16,15 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex Markets role clarity (2026-08-31 — COMPLETE LOCALLY)
+- The homepage Markets section now follows the money-first contributor funnel: live-market contributors enter real paid missions, buyers fund the paid-mission builder, and Baretag remains an optional public-identity step.
+- Scouting markets use the existing mission-alert intake instead of implying active city launches. Scope is limited to `lib/markets*` and `components/home/MarketsSection.tsx`; no claim, proof, payout, schema, map, or renderer behavior changes.
+
+### Codex creator mission action clarity (2026-08-31 — COMPLETE LOCALLY)
+- Requested paid missions now explain that work/upload unlocks only after moderator approval; wallet-assigned missions expose the existing trusted camera/upload proof component directly on `/earn/[shortId]`; review, payout, and paid states stay read-only.
+- `/earn` now has clear `Back to map` and `Create a paid mission` routes. The persistent creator-work tray is removed from exact mission pages and becomes a compact, non-blocking map pill on mobile; it automatically yields whenever a place or nearby-Dare sheet is open.
+- The change is limited to `app/earn/*`, `components/creator-entry/*`, `components/live-plans/GlobalMyNextMove.tsx`, and narrow creator-mission presentation helpers/tests. Claim, proof verification, review, payout, schema, map renderer, `app/map/*`, and `components/maps/RealWorldMap.tsx` behavior were not changed.
+
 ### Codex World Pulse v1 (2026-08-30 — SHIPPED)
 - `/now` is now BaseDare's World Pulse decision surface: truthful `NOW / NEXT 2H / TONIGHT` modes, shareable public map context, and one real-inventory PeeBear choice with one primary action.
 - Shared links preserve the selected plan, time mode, and a rounded public area. Crew Rooms add declarative 10/20-minute ETA messages without collecting or exposing live coordinates.

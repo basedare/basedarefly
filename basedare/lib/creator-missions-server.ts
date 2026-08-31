@@ -33,6 +33,12 @@ export type CreatorMission = {
   isAvailable: boolean;
   isFunnelCandidate: boolean;
   status: string;
+  assignedWallet: string | null;
+  existingProofUrl: string | null;
+  isNearbyDare: boolean;
+  missionMode: string | null;
+  outcomeContractSnapshot: unknown;
+  reportedOutcome: unknown;
   claimRequestWallet: string | null;
   claimRequestStatus: string | null;
 };
@@ -47,6 +53,9 @@ const creatorMissionSelect = {
   tag: true,
   streamerHandle: true,
   status: true,
+  videoUrl: true,
+  isNearbyDare: true,
+  reportedOutcome: true,
   expiresAt: true,
   claimedBy: true,
   targetWalletAddress: true,
@@ -126,6 +135,12 @@ function shapeCreatorMission(row: CreatorMissionRow, now = new Date()): CreatorM
     isAvailable: isCreatorMissionAvailable(row, now),
     isFunnelCandidate: isCreatorMissionFunnelCandidate(row, now),
     status: row.status,
+    assignedWallet: row.targetWalletAddress ?? row.claimedBy,
+    existingProofUrl: row.videoUrl,
+    isNearbyDare: row.isNearbyDare,
+    missionMode: row.missionMode,
+    outcomeContractSnapshot: row.outcomeContractSnapshot,
+    reportedOutcome: row.reportedOutcome,
     claimRequestWallet: row.claimRequestWallet,
     claimRequestStatus: row.claimRequestStatus,
   };

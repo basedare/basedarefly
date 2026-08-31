@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, MapPin } from 'lucide-react';
-import { MARKETS } from '@/lib/markets';
+import { getMarketActions, MARKETS } from '@/lib/markets';
 
 /**
  * Markets discovery — "choose your scene." Airbnb-style city cards in BaseDare's
@@ -17,13 +17,13 @@ export default function MarketsSection() {
           Choose your scene
         </h2>
         <p className="mx-auto mt-3 max-w-md text-sm font-bold leading-6 text-white/56">
-          Creators earn and venues fund dares, city by city.
+          Find paid work where BaseDare is live—or hear when your city opens.
         </p>
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {MARKETS.map((market) => {
-          const creatorHref = `/creators/signup?city=${market.slug}`;
+          const actions = getMarketActions(market);
           return (
             <div
               key={market.slug}
@@ -55,7 +55,7 @@ export default function MarketsSection() {
                 <p className="text-sm font-bold leading-6 text-white/58">{market.blurb}</p>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <Link
-                    href={creatorHref}
+                    href={actions.contributor.href}
                     prefetch={false}
                     className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[11px] font-black uppercase tracking-[0.14em] transition ${
                       market.live
@@ -63,19 +63,31 @@ export default function MarketsSection() {
                         : 'border border-white/14 bg-white/[0.05] text-white/76 hover:bg-white/[0.09] hover:text-white'
                     }`}
                   >
-                    {market.creatorCta}
+                    {actions.contributor.label}
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
-                  {market.live ? (
+                  {actions.buyer ? (
                     <Link
-                      href={`/first-spark?city=${market.slug}`}
+                      href={actions.buyer.href}
                       prefetch={false}
                       className="inline-flex min-h-10 items-center gap-2 rounded-full border border-cyan-200/24 bg-cyan-300/[0.07] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100/88 transition hover:bg-cyan-300/[0.12] hover:text-white"
                     >
-                      Run a Venue Dare
+                      {actions.buyer.label}
                     </Link>
                   ) : null}
                 </div>
+                {actions.identity ? (
+                  <p className="mt-3 text-xs font-semibold text-white/38">
+                    Want a public BaseDare name?{' '}
+                    <Link
+                      href={actions.identity.href}
+                      prefetch={false}
+                      className="text-purple-100/76 underline decoration-purple-200/25 underline-offset-4 transition hover:text-white"
+                    >
+                      {actions.identity.label}
+                    </Link>
+                  </p>
+                ) : null}
               </div>
             </div>
           );
@@ -84,8 +96,8 @@ export default function MarketsSection() {
 
       <p className="mt-6 text-center text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
         Don&apos;t see your city?{' '}
-        <Link href="/creators/signup" className="text-[#f5c518]/80 underline-offset-4 hover:underline">
-          Put it on the map →
+        <Link href="/earn?alerts=1&source=markets#mission-alerts" className="text-[#f5c518]/80 underline-offset-4 hover:underline">
+          Get mission alerts →
         </Link>
       </p>
     </section>

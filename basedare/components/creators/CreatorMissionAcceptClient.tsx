@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Clock3, Loader2, ShieldCheck, WalletCards } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 import { useSignMessage } from 'wagmi';
@@ -9,9 +9,12 @@ import { IdentityButton } from '@/components/IdentityButton';
 import { MissionPassSheet } from '@/components/mission-pass/MissionPassSheet';
 import { useSocialWebview } from '@/components/mission-pass/SocialWebviewProvider';
 import SafetyWaiver from '@/components/SafetyWaiver';
+import SubmitEvidence from '@/components/SubmitEvidence';
 import CosmicButton from '@/components/ui/CosmicButton';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { trackClientEvent } from '@/lib/analytics';
+import { getCreatorMissionActionState } from '@/lib/creator-mission-action';
+import { isProximityGatedDare } from '@/lib/proof-proximity-policy';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 type CreatorMissionAcceptClientProps = {
@@ -22,6 +25,15 @@ type CreatorMissionAcceptClientProps = {
   sponsorReuseNeedsOptIn: boolean;
   initialClaimRequestWallet: string | null;
   initialClaimRequestStatus: string | null;
+  missionStatus: string;
+  assignedWallet: string | null;
+  existingProofUrl: string | null;
+  bountyAmount: number;
+  locationLabel: string;
+  missionMode: string | null;
+  isNearbyDare: boolean;
+  outcomeContract: unknown;
+  reportedOutcome: unknown;
 };
 
 export function CreatorMissionAcceptClient({
@@ -32,6 +44,15 @@ export function CreatorMissionAcceptClient({
   sponsorReuseNeedsOptIn,
   initialClaimRequestWallet,
   initialClaimRequestStatus,
+  missionStatus,
+  assignedWallet,
+  existingProofUrl,
+  bountyAmount,
+  locationLabel,
+  missionMode,
+  isNearbyDare,
+  outcomeContract,
+  reportedOutcome,
 }: CreatorMissionAcceptClientProps) {
   const { address, sessionWallet, isConnected, isResolving } = useActiveWallet();
   const { signMessageAsync } = useSignMessage();
@@ -46,8 +67,16 @@ export function CreatorMissionAcceptClient({
   const [showMissionPass, setShowMissionPass] = useState(false);
 
   const normalizedWallet = address?.toLowerCase() ?? null;
-  const isMyPendingRequest =
-    requestStatus === 'PENDING' && Boolean(normalizedWallet) && requestWallet === normalizedWallet;
+  const actionState = getCreatorMissionActionState({
+    walletAddress: normalizedWallet,
+    assignedWallet,
+    claimRequestWallet: requestWallet,
+    claimRequestStatus: requestStatus,
+    missionStatus,
+    hasProof: Boolean(existingProofUrl),
+    isAvailable,
+  });
+  const isMyPendingRequest = actionState === 'REQUESTED';
   const anotherRequestIsPending = requestStatus === 'PENDING' && !isMyPendingRequest;
 
   const requestMission = async () => {
@@ -84,12 +113,72 @@ export function CreatorMissionAcceptClient({
     }
   };
 
+  if (actionState === 'READY_TO_SUBMIT' || actionState === 'RESUME_SUBMISSION') {
+    return (
+      <div id="submit-work" className="scroll-mt-28">
+        <div className="mb-4 rounded-[22px] border border-emerald-200/20 bg-emerald-300/[0.07] p-4">
+          <p className="flex items-center gap-2 text-base font-black text-white">
+            <ShieldCheck className="h-5 w-5 text-emerald-200" aria-hidden="true" />
+            Mission confirmed
+          </p>
+          <p className="mt-1 text-sm leading-5 text-white/52">
+            Complete the brief, then take or upload one clear photo or short video here.
+          </p>
+        </div>
+        <SubmitEvidence
+          dareId={missionId}
+          dareTitle={title}
+          bountyAmount={bountyAmount}
+          shortId={shortId}
+          placeName={locationLabel}
+          existingProofUrl={existingProofUrl}
+          gatesLocation={isProximityGatedDare({ isNearbyDare, missionMode })}
+          outcomeContract={outcomeContract}
+          reportedOutcome={reportedOutcome}
+          onVerificationComplete={() => {
+            window.dispatchEvent(new Event('basedare:mission-updated'));
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (actionState === 'UNDER_REVIEW' || actionState === 'PAYOUT_QUEUED' || actionState === 'PAID') {
+    const stateCopy = {
+      UNDER_REVIEW: {
+        title: 'Work submitted',
+        detail: 'Your upload is safely attached and waiting for review.',
+        icon: Clock3,
+      },
+      PAYOUT_QUEUED: {
+        title: 'Payout queued',
+        detail: 'Your work was approved. BaseDare is retrying settlement automatically.',
+        icon: WalletCards,
+      },
+      PAID: {
+        title: 'Paid',
+        detail: 'This mission is complete and settled.',
+        icon: CheckCircle2,
+      },
+    }[actionState];
+    const StateIcon = stateCopy.icon;
+    return (
+      <div className="rounded-[22px] border border-cyan-200/18 bg-cyan-300/[0.06] p-5 text-center">
+        <StateIcon className="mx-auto h-7 w-7 text-cyan-100" aria-hidden="true" />
+        <p className="mt-3 text-lg font-black text-white">{stateCopy.title}</p>
+        <p className="mt-1 text-sm leading-6 text-white/52">{stateCopy.detail}</p>
+      </div>
+    );
+  }
+
   if (isMyPendingRequest) {
     return (
       <div className="rounded-[22px] border border-emerald-200/20 bg-emerald-300/[0.07] p-5 text-center">
         <CheckCircle2 className="mx-auto h-7 w-7 text-emerald-200" aria-hidden="true" />
         <p className="mt-3 text-lg font-black text-white">Request sent</p>
-        <p className="mt-1 text-sm leading-6 text-white/52">BaseDare is reviewing it. Your profile can come later.</p>
+        <p className="mt-1 text-sm leading-6 text-white/52">
+          BaseDare is reviewing it. You can start and upload your work after approval.
+        </p>
       </div>
     );
   }
