@@ -106,11 +106,11 @@ export default function HowItWorks() {
 
               <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.045] px-5 py-4 grayscale">
                 <p className="font-mono text-[0.68rem] uppercase tracking-[0.32em] text-white/58">
-                  For venues + brands
+                  For buyers + operators
                 </p>
                 <h4 className="mt-2 text-2xl font-black uppercase italic text-white">Flip to Control</h4>
                 <p className="mt-2 text-sm leading-6 text-white/58">
-                  Plan activations, open the Brand Portal, route creators, and read proof receipts in one operator layer.
+                  Scope a Field Sprint, let BaseDare route contributors, and read verified results in your Buyer Workspace.
                 </p>
               </div>
             </div>

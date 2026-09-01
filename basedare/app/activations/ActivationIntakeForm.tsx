@@ -349,6 +349,7 @@ export default function ActivationIntakeForm({
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [submittedCloseRoomHref, setSubmittedCloseRoomHref] = useState<string | null>(null);
+  const [submittedFieldSprint, setSubmittedFieldSprint] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const routedContextRef = useRef<string | null>(initialContextKey || null);
   const formStartTrackedRef = useRef(false);
@@ -627,6 +628,7 @@ export default function ActivationIntakeForm({
     form.routedMissionType === 'guest' ||
     form.routedGuestMission
   );
+  const isFieldSprintRequest = form.routedMissionType === 'field-mission';
   const isDeadWindowRescue = Boolean(
     form.routedMissionType === 'dead-window' ||
     form.deadWindowTime ||
@@ -634,8 +636,16 @@ export default function ActivationIntakeForm({
     form.deadWindowPerk ||
     form.deadWindowBaseline
   );
-  const primaryActionLabel = isPilotCloseLoop ? 'Send pilot request' : 'Route activation request';
-  const routingActionLabel = isPilotCloseLoop ? 'Sending pilot request' : 'Routing request';
+  const primaryActionLabel = isFieldSprintRequest
+    ? 'Request Sprint invoice'
+    : isPilotCloseLoop
+      ? 'Send pilot request'
+      : 'Route activation request';
+  const routingActionLabel = isFieldSprintRequest
+    ? 'Sending invoice request'
+    : isPilotCloseLoop
+      ? 'Sending pilot request'
+      : 'Routing request';
   const routeReceiptItems = useMemo(
     () =>
       [
@@ -793,6 +803,7 @@ export default function ActivationIntakeForm({
 
       setSubmittedId(payload.data?.id || 'received');
       setSubmittedCloseRoomHref(payload.data?.closeRoomHref || null);
+      setSubmittedFieldSprint(isFieldSprintRequest);
       setForm(INITIAL_STATE);
       formStartTrackedRef.current = false;
     } catch (submitError) {
@@ -808,16 +819,22 @@ export default function ActivationIntakeForm({
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-emerald-200/22 bg-emerald-300/[0.12] text-2xl font-black text-emerald-100">
           OK
         </div>
-        <h3 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">Activation signal received.</h3>
+        <h3 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">
+          {submittedFieldSprint ? 'Sprint scope received.' : 'Activation signal received.'}
+        </h3>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/58">
-          {submittedCloseRoomHref
-            ? 'The paid pilot route is ready. Open the close room to approve the venue, perk, payment path, and launch gates.'
-            : 'We routed this into the operator queue. Next step is qualifying the city, venue, creator fit, proof target, and Spark Receipt before any paid campaign moves.'}
+          {submittedFieldSprint
+            ? 'BaseDare will review the attached question, coverage, evidence rules, and quote before sending the invoice route.'
+            : submittedCloseRoomHref
+              ? 'The paid pilot route is ready. Open the close room to approve the venue, perk, payment path, and launch gates.'
+              : 'We routed this into the operator queue. Next step is qualifying the city, venue, creator fit, proof target, and Spark Receipt before any paid campaign moves.'}
         </p>
         <p className="mx-auto mt-3 max-w-md rounded-2xl border border-white/10 bg-black/24 px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-yellow-100/75">
-          {submittedCloseRoomHref
-            ? 'Close room created. Payment and approval stay attached to this request.'
-            : 'BaseDare will reply with the cleanest activation route after review.'}
+          {submittedFieldSprint
+            ? 'No contributors are routed and no payment is taken until the scope is approved.'
+            : submittedCloseRoomHref
+              ? 'Close room created. Payment and approval stay attached to this request.'
+              : 'BaseDare will reply with the cleanest activation route after review.'}
         </p>
         <p className="mx-auto mt-3 max-w-md rounded-2xl border border-emerald-200/12 bg-emerald-300/[0.06] px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/70">
           Reference: {submittedId === 'received' ? 'received' : submittedId}
@@ -837,6 +854,7 @@ export default function ActivationIntakeForm({
             onClick={() => {
               setSubmittedId(null);
               setSubmittedCloseRoomHref(null);
+              setSubmittedFieldSprint(false);
             }}
             className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-5 text-xs font-black uppercase tracking-[0.18em] text-white/68 transition hover:bg-white/[0.08]"
           >
@@ -853,7 +871,9 @@ export default function ActivationIntakeForm({
         <div className="rounded-[28px] border border-yellow-200/16 bg-[radial-gradient(circle_at_14%_0%,rgba(250,204,21,0.16),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.018)_18%,rgba(7,6,14,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_18px_45px_rgba(0,0,0,0.24)] sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/72">Pilot request</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/72">
+                {isFieldSprintRequest ? 'Invoice request' : 'Pilot request'}
+              </p>
               <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">Review and send.</h3>
               <p className="mt-2 max-w-xl text-sm leading-6 text-white/58">
                 Confirm the essentials. The source stays attached in the background.
@@ -878,11 +898,17 @@ export default function ActivationIntakeForm({
 
       {isPilotCloseLoop ? (
         <div className="grid grid-cols-3 gap-2 rounded-[22px] border border-cyan-200/12 bg-cyan-300/[0.045] p-2 sm:p-3">
-          {[
-            ['1', 'Place', form.venue || 'Venue selected'],
-            ['2', 'Goal', GOAL_LABELS[form.goal]],
-            ['3', 'Contact', form.email || 'Reply route'],
-          ].map(([step, title, detail]) => (
+          {(isFieldSprintRequest
+            ? [
+                ['1', 'Coverage', form.venue || form.city || 'Bounded area'],
+                ['2', 'Evidence', form.routedProofRequired || 'Evidence rules attached'],
+                ['3', 'Contact', form.email || 'Invoice reply'],
+              ]
+            : [
+                ['1', 'Place', form.venue || 'Venue selected'],
+                ['2', 'Goal', GOAL_LABELS[form.goal]],
+                ['3', 'Contact', form.email || 'Reply route'],
+              ]).map(([step, title, detail]) => (
             <div key={title} className="min-w-0 rounded-[16px] border border-white/[0.08] bg-black/26 px-2.5 py-2.5 sm:px-3 sm:py-3">
               <p className="text-[8px] font-black uppercase tracking-[0.14em] text-cyan-100/56 sm:text-[9px] sm:tracking-[0.18em]">
                 {step} / {title}
@@ -937,6 +963,31 @@ export default function ActivationIntakeForm({
           <p className="mt-1.5 text-sm font-bold leading-6 text-white/70">
             We set up the route, QR proof, and receipt. Venue approves the plan and provides one perk.
           </p>
+        </div>
+      ) : null}
+
+      {isFieldSprintRequest ? (
+        <div className="grid gap-4 rounded-[28px] border border-yellow-200/14 bg-yellow-300/[0.045] p-4 sm:p-5">
+          <div>
+            <label className={labelClass}>What do you need to know?</label>
+            <textarea
+              required
+              value={form.routedMissionTitle}
+              onChange={(event) => updateField('routedMissionTitle', event.target.value)}
+              className={`${inputClass} min-h-24 resize-none leading-6`}
+              placeholder="Example: Is this beach access easy to find, open, and usable before sunrise?"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>What evidence would answer it?</label>
+            <textarea
+              required
+              value={form.routedProofRequired}
+              onChange={(event) => updateField('routedProofRequired', event.target.value)}
+              className={`${inputClass} min-h-24 resize-none leading-6`}
+              placeholder="Example: Fresh entrance photo, short access clip, opening status, and one field note."
+            />
+          </div>
         </div>
       ) : null}
 
@@ -1010,7 +1061,7 @@ export default function ActivationIntakeForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className={labelClass}>Company / venue</label>
+          <label className={labelClass}>{isFieldSprintRequest ? 'Buyer organization' : 'Company / venue'}</label>
           <input
             required
             value={form.company}
@@ -1067,13 +1118,13 @@ export default function ActivationIntakeForm({
 
       {isPilotCloseLoop ? (
         <div>
-          <label className={labelClass}>City</label>
+          <label className={labelClass}>{isFieldSprintRequest ? 'Coverage area' : 'City'}</label>
           <input
             required
             value={form.city}
             onChange={(event) => updateField('city', event.target.value)}
             className={inputClass}
-            placeholder="Siargao, London, NYC, Sydney"
+            placeholder={isFieldSprintRequest ? 'Siargao, General Luna, or one micro-area' : 'Siargao, London, NYC, Sydney'}
           />
         </div>
       ) : (
@@ -1333,15 +1384,19 @@ export default function ActivationIntakeForm({
       ) : null}
 
       <div>
-        <label className={labelClass}>{isPilotCloseLoop ? 'Anything else?' : 'What should the activation prove?'}</label>
+        <label className={labelClass}>
+          {isFieldSprintRequest ? 'Final scope note' : isPilotCloseLoop ? 'Anything else?' : 'What should the activation prove?'}
+        </label>
         <textarea
           value={form.notes}
           onChange={(event) => updateField('notes', event.target.value)}
           className={`${inputClass} ${isPilotCloseLoop ? 'min-h-24' : 'min-h-32'} resize-none leading-6`}
           placeholder={
-            isPilotCloseLoop
-              ? 'Example: first 25 check-ins unlock a simple perk.'
-              : 'Example: We want creators to visit this week, scan in, post proof, and show whether BaseDare can move real venue activity.'
+            isFieldSprintRequest
+              ? 'Add any constraint the attached Sprint scope does not already cover.'
+              : isPilotCloseLoop
+                ? 'Example: first 25 check-ins unlock a simple perk.'
+                : 'Example: We want creators to visit this week, scan in, post proof, and show whether BaseDare can move real venue activity.'
           }
         />
       </div>

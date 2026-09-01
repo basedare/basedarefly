@@ -7,7 +7,6 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   CheckCircle2,
-  CreditCard,
   MapPin,
   ReceiptText,
   Sparkles,
@@ -16,7 +15,7 @@ import ParticleNetwork from '@/components/ParticleNetwork';
 import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
 
 // ============================================================================
-// CONTROL MODE - BUYER PORTAL
+// CONTROL MODE - BUYER WORKSPACE
 // Fund useful real-world questions, verify the answers, keep the receipt.
 // ============================================================================
 
@@ -32,7 +31,6 @@ import {
   type ReportAttribution,
   type PlaceSearchResult,
   type ActivationPackageId,
-  ACTIVATION_PACKAGES,
   DEFAULT_ACTIVATION_PACKAGE_ID,
   getActivationPackage,
   getActivationPackageForTier,
@@ -157,34 +155,6 @@ export default function BrandPortalPage() {
       payoutQueuedCount > 0 ||
       campaigns.length > 0
   );
-
-  const selectActivationPackage = useCallback((packageId: ActivationPackageId) => {
-    const activationPackage = getActivationPackage(packageId);
-    const venueName = selectedPlace?.name ?? selectedVenueRadar?.name ?? null;
-
-    setSelectedActivationPackageId(packageId);
-    setFormData((current) => ({
-      ...current,
-      type: 'PLACE',
-      tier: activationPackage.tier,
-      // A template can shape proof, but it must never substitute for the
-      // buyer's actual real-world question.
-      title: current.title,
-      description:
-        !current.description.trim() ||
-        ACTIVATION_PACKAGES.some(
-          (template) => current.description.trim() === buildActivationPackageDescription(template, venueName),
-        )
-          ? buildActivationPackageDescription(activationPackage, venueName)
-          : current.description,
-      creatorCountTarget: MANAGED_FIELD_SPRINT.assignedContributorCount,
-      payoutPerCreator: activationPackage.payout,
-      targetingCriteria: {
-        ...current.targetingCriteria,
-        location: 'near-venue',
-      },
-    }));
-  }, [selectedPlace?.name, selectedVenueRadar?.name]);
 
   const openCampaignComposerForVenue = useCallback((venue: BrandVenueRadarItem, prefillInput?: string | null | ComposerPrefill) => {
     const prefill =
@@ -386,6 +356,13 @@ export default function BrandPortalPage() {
           });
         }
       }
+    }
+
+    if (compose === '1' && !venueSlug) {
+      setShowCreateCampaign(true);
+      setTimeout(() => {
+        checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
     }
 
     if (campaignId) {
@@ -631,18 +608,23 @@ export default function BrandPortalPage() {
       complete: Boolean(formData.title.trim()),
     },
     {
-      label: 'Place',
-      detail: selectedPlace?.name ?? 'Choose place',
+      label: 'Coverage',
+      detail: selectedPlace?.name ?? 'Choose place or micro-area',
       complete: Boolean(selectedPlace),
     },
     {
-      label: 'Economics',
-      detail: `$${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} fixed invoice`,
+      label: 'Evidence',
+      detail: selectedActivationPackage.name,
       complete: true,
     },
     {
-      label: 'Invoice',
-      detail: 'Confirmed before launch',
+      label: 'Budget',
+      detail: 'Fixed quote shown before request',
+      complete: true,
+    },
+    {
+      label: 'Review',
+      detail: 'Request invoice when ready',
       complete: false,
     },
   ];
@@ -884,7 +866,7 @@ export default function BrandPortalPage() {
             </Link>
             <div>
               <div className="text-[1.05rem] font-black leading-none tracking-[-0.03em] text-white antialiased md:text-2xl">
-                BUYER PORTAL
+                BUYER WORKSPACE
               </div>
               <div className="mt-1 hidden text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200/70 md:block">
                 Scope fieldwork · confirm invoice · keep receipts
@@ -934,7 +916,7 @@ export default function BrandPortalPage() {
                   Send one useful question into the real world.
                 </h1>
                 <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/72">
-                  Define one bounded question and place. The ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} managed Sprint routes four contributors and returns verified evidence, timestamped place memory, and a receipt.
+                  Define one bounded question and place. BaseDare routes {MANAGED_FIELD_SPRINT.assignedContributorCount} independent contributors and returns verified evidence, timestamped place memory, and a receipt.
                 </p>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                   <button
@@ -963,18 +945,18 @@ export default function BrandPortalPage() {
                   },
                   {
                     icon: <MapPin className="h-4 w-4" />,
-                    label: '2. Place',
-                    detail: 'Attach it to somewhere real.',
-                  },
-                  {
-                    icon: <CreditCard className="h-4 w-4" />,
-                    label: '3. Invoice',
-                    detail: `$${MANAGED_FIELD_SPRINT.serviceFeeUsd.toLocaleString()} service + $${MANAGED_FIELD_SPRINT.grossRewardPoolUsd} reward pool.`,
+                    label: '2. Coverage',
+                    detail: 'Choose one place or micro-area.',
                   },
                   {
                     icon: <CheckCircle2 className="h-4 w-4" />,
+                    label: '3. Evidence',
+                    detail: 'Define what each answer must show.',
+                  },
+                  {
+                    icon: <ReceiptText className="h-4 w-4" />,
                     label: '4. Receipt',
-                    detail: 'Verified proof and place memory.',
+                    detail: 'Review the quote, then receive verified results.',
                   },
                 ].map((item) => (
                   <div
@@ -999,7 +981,7 @@ export default function BrandPortalPage() {
                 Own the venue itself?
               </div>
               <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-white/64">
-                This portal is for funding missions. Your place profile, corrections and venue console live on the map. Open{' '}
+                This workspace is for commissioning and tracking fieldwork. Your place profile, corrections and venue console live on the map. Open{' '}
                 <Link
                   href="/map"
                   className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
@@ -1020,7 +1002,7 @@ export default function BrandPortalPage() {
             Send a verified mission into the real world
           </h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-white/70">
-            Ask one useful place question. The fixed ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} managed Sprint covers delivery plus a separately funded creator pool; BaseDare handles routing, verification, and the receipt.
+            Ask one useful place question. BaseDare handles contributor routing, verification, payout tracking, and the receipt; the fixed quote appears during scoping before you request an invoice.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <button
@@ -1053,9 +1035,7 @@ export default function BrandPortalPage() {
           placeQuery={placeQuery}
           placeResults={placeResults}
           reportAttribution={reportAttribution}
-          selectActivationPackage={selectActivationPackage}
           selectedActivationPackage={selectedActivationPackage}
-          selectedActivationPackageId={selectedActivationPackageId}
           selectedPlace={selectedPlace}
           setFormData={setFormData}
           setPlaceQuery={setPlaceQuery}

@@ -114,19 +114,19 @@ const FAQ_ITEMS = [
   },
   {
     q: "What's the CHAOS / CONTROL switch?",
-    a: "The switch is the separator. **CHAOS** is for casual users, fans, and creators: create dares, complete dares, browse the map, and verify proof. **CONTROL** is for venues, brands, and operators: plan activations, open the Brand Portal, route creators, and review proof receipts."
+    a: "The switch separates everyday play from commissioned fieldwork. **CHAOS** is for exploring the map, joining plans, playing Sparks, and completing Dares. **CONTROL** is for buyers: scope a Verified Field Sprint and track verified results and receipts in the Buyer Workspace."
   },
   {
     q: "Can brands or venues use this too?",
-    a: "Yes. Brands and venues should use **CONTROL mode**. That is where the nitty-gritty lives: activation planning, Brand Portal, creator routing, QR/check-in logic, and analytics. The public map still stays shared because everyone needs to see the grid."
+    a: "Yes. Buyers use **CONTROL mode** to commission a Verified Field Sprint and open the Buyer Workspace. BaseDare handles contributor routing. Venue owners manage their place profile and venue tools from the map."
   },
   {
     q: "Is Pilot Qualification a real feature or just a contact form?",
     a: "It is a real intake route. Your brief goes straight to a human who scopes the pilot with you — venue, window, budget, proof rules. Nothing auto-approves and no money moves until both sides confirm."
   },
   {
-    q: "What is Creator Radar?",
-    a: "Creator Radar is a CONTROL-side shortlist for brands and venues. It ranks creators by trust, proof history, reviews, venue reach, first marks, completed dares, and earnings so buyers do not have to dig through the public creator page."
+    q: "Do buyers choose the contributors?",
+    a: "Usually, no. Tell BaseDare the question, coverage and evidence required. BaseDare routes independent contributors using local fit and verified work history. A recommended shortlist can appear later as an advanced override."
   },
   {
     q: "Can I collab or report a bug?",

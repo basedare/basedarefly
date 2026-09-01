@@ -54,13 +54,13 @@ export default function PortalGates({
           <section className="activation-shell w-full max-w-3xl rounded-[30px] border p-5 text-center md:p-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300/[0.09] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-yellow-100">
               <Sparkles className="h-4 w-4" />
-              Buyer Portal
+              Buyer Workspace
             </div>
             <h1 className="mx-auto mt-5 max-w-2xl text-4xl font-black uppercase italic leading-[0.94] tracking-[-0.055em] text-white sm:text-6xl">
               Send a verified mission into the real world.
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/72 md:text-lg">
-              One bounded question, four independent contributors, verified evidence, place memory, and a receipt. The managed Sprint is ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} by invoice.
+              One bounded question, {MANAGED_FIELD_SPRINT.assignedContributorCount} independent contributors, verified evidence, place memory, and a receipt. Review the fixed quote before requesting an invoice.
             </p>
 
             <div className="mx-auto mt-7 grid max-w-xl gap-3 sm:grid-cols-2">
@@ -69,14 +69,14 @@ export default function PortalGates({
                 className="activation-raised-gold inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-black uppercase tracking-[0.1em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70"
               >
                 <CreditCard className="h-4 w-4" />
-                Request Sprint invoice
+                Scope a Field Sprint
               </Link>
               <button
                 type="button"
                 onClick={connectWallet}
                 className="activation-soft-button inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-white/14 px-5 text-sm font-black text-white/82 transition hover:border-white/26 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                Manage commissioned work
+                Open Buyer Workspace
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
@@ -116,7 +116,7 @@ export default function PortalGates({
 
       {showLoading ? (
         <div className="relative z-10 flex min-h-dvh items-center justify-center">
-          <div className="animate-pulse text-base font-semibold text-white/65">Loading buyer portal…</div>
+          <div className="animate-pulse text-base font-semibold text-white/65">Loading Buyer Workspace…</div>
         </div>
       ) : null}
 

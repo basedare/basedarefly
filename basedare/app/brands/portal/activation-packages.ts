@@ -1,4 +1,4 @@
-// Types, mission-template catalog, and pure helpers for the Buyer Portal.
+// Types, mission-template catalog, and pure helpers for the Buyer Workspace.
 // Extracted verbatim from page.tsx (Phase A structural split — no behavior changes).
 
 export interface Brand {
@@ -340,7 +340,7 @@ export const ACTIVATION_PACKAGES: ActivationPackage[] = [
   {
     id: 'verified-field-sprint',
     name: 'Verified Field Sprint',
-    eyebrow: '$2,500 managed fieldwork',
+    eyebrow: 'Managed real-world verification',
     tier: 'SIP_MENTION',
     payout: 125,
     bestFor: 'One bounded buyer question in one real micro-area',

@@ -67,6 +67,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
   const isFirstSparkOffer = routedOfferId === 'first-spark';
   const isVenueGuestMissionRoute =
     routedSource === 'venue-guest-mission' || resolvedSearchParams.missionType === 'guest';
+  const isVerifiedFieldSprintRoute = resolvedSearchParams.missionType === 'field-mission';
   const hasRoutedContext = Boolean(
     routedCreator ||
       routedVenue ||
@@ -86,21 +87,29 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
     ? 'Guest Mission'
     : isFirstSparkOffer
       ? 'First Spark Pilot'
+      : isVerifiedFieldSprintRoute
+        ? 'Verified Field Sprint'
       : 'Activation Route';
   const heroTitle = isVenueGuestMissionRoute
     ? 'Launch a guest loop.'
     : isFirstSparkOffer
       ? 'Run First Spark.'
+      : isVerifiedFieldSprintRoute
+        ? 'Request your Sprint invoice.'
       : 'Start an activation.';
   const heroDetail = isVenueGuestMissionRoute
     ? 'Confirm the venue, guest action, perk, and reply path. Keep the loop light enough that people can join fast.'
     : isFirstSparkOffer
       ? 'One venue, one night, one proof path, one recap. BaseDare handles setup; the venue gives one simple perk.'
+      : isVerifiedFieldSprintRoute
+        ? 'Confirm who is buying and where to reply. Your question, coverage, evidence rules, and fixed quote stay attached from the Buyer Workspace.'
       : 'Tell BaseDare where the mission should happen, what should be proved, and where to reply.';
   const primaryLabel = isVenueGuestMissionRoute
     ? 'Confirm Guest Mission'
     : isFirstSparkOffer
       ? 'Run First Spark'
+      : isVerifiedFieldSprintRoute
+        ? 'Review invoice request'
       : 'Start Activation';
   const intakeHeading = hasRoutedContext ? 'Confirm the route.' : 'Give us the basics.';
   const intakeDetail = hasRoutedContext
@@ -118,11 +127,17 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
           ['2', 'Perk', resolvedSearchParams.perkLabel || 'Simple reward'],
           ['3', 'Launch', 'Proof + recap'],
         ]
-    : [
-        ['1', 'Place', routedVenue || routedCity || 'Venue or city'],
-        ['2', 'Proof', resolvedSearchParams.proofRequired || 'What gets verified'],
-        ['3', 'Reply', 'BaseDare reviews it'],
-      ];
+    : isVerifiedFieldSprintRoute
+      ? [
+          ['1', 'Coverage', routedVenue || routedCity || 'One bounded area'],
+          ['2', 'Evidence', resolvedSearchParams.proofRequired || 'What gets verified'],
+          ['3', 'Invoice', 'Scope attached for review'],
+        ]
+      : [
+          ['1', 'Place', routedVenue || routedCity || 'Venue or city'],
+          ['2', 'Proof', resolvedSearchParams.proofRequired || 'What gets verified'],
+          ['3', 'Reply', 'BaseDare reviews it'],
+        ];
 
   return (
     <main className="fixed inset-0 z-[100] overflow-y-auto bg-[#030305] px-4 py-8 sm:px-6 lg:py-10">
@@ -148,7 +163,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
             data-activation-channel="header"
             className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white/52 transition hover:text-white sm:inline-flex"
           >
-            {routedVenueSlug ? 'Venue Page' : 'Brand Portal'}
+            {routedVenueSlug ? 'Venue Page' : 'Buyer Workspace'}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

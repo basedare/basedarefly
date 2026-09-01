@@ -454,7 +454,60 @@ function HomeContent() {
               </p>
             </div>
 
-            <div className="relative z-10 mx-auto mb-6 max-w-3xl px-6 text-center">
+            <div className="relative z-10 mx-auto max-w-6xl px-6">
+              <section className="control-card-shell relative overflow-hidden rounded-[30px] border border-yellow-200/20 bg-[radial-gradient(circle_at_12%_0%,rgba(245,197,24,0.18),transparent_34%),linear-gradient(145deg,rgba(15,15,18,0.98),rgba(4,4,6,0.99))] p-6 text-left shadow-[0_34px_90px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] sm:p-8 lg:p-10">
+                <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-yellow-100/55 to-transparent" />
+                <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+                  <div>
+                    <div className="inline-flex rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100">
+                      Verified Field Sprint · Managed offer
+                    </div>
+                    <h2 className="mt-5 max-w-3xl text-3xl font-black leading-[0.98] tracking-[-0.05em] text-white sm:text-4xl lg:text-5xl">
+                      Get verified answers from the real world.
+                    </h2>
+                    <p className="mt-4 max-w-2xl text-sm font-bold leading-6 text-white/62 sm:text-base sm:leading-7">
+                      Tell BaseDare what you need to know and where. We route independent contributors, verify the evidence, and return timestamped results with a receipt.
+                    </p>
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                      <Link
+                        href="/brands/portal?from=home&compose=1"
+                        className="inline-flex min-h-12 items-center justify-center rounded-full border border-yellow-100/30 bg-yellow-300 px-6 text-xs font-black uppercase tracking-[0.16em] text-[#171207] shadow-[0_8px_0_rgba(126,79,0,0.72)] transition hover:-translate-y-0.5"
+                      >
+                        Scope a Field Sprint →
+                      </Link>
+                      <Link
+                        href="/field-sprints/example"
+                        className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/12 bg-white/[0.05] px-6 text-xs font-black uppercase tracking-[0.16em] text-white/75 transition hover:bg-white/[0.09] hover:text-white"
+                      >
+                        See an example receipt
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      ['Answers', `${MANAGED_FIELD_SPRINT.assignedContributorCount} independent checks`],
+                      ['Coverage', 'One bounded place or micro-area'],
+                      ['Turnaround', `${MANAGED_FIELD_SPRINT.durationDaysMin}–${MANAGED_FIELD_SPRINT.durationDaysMax} days`],
+                      ['Delivery', 'Evidence, decisions and receipt'],
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-[20px] border border-white/[0.08] bg-black/28 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-yellow-100/60">{label}</p>
+                        <p className="mt-2 text-sm font-black leading-5 text-white/82">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="relative mt-7 border-t border-white/[0.08] pt-5 text-center sm:text-left">
+                  <Link href="/brands/portal?from=home" className="text-[11px] font-black uppercase tracking-[0.17em] text-cyan-100/72 transition hover:text-cyan-100">
+                    Already running missions? Open your Buyer Workspace →
+                  </Link>
+                </div>
+              </section>
+            </div>
+
+            <div aria-hidden="true" className="hidden relative z-10 mx-auto mb-6 max-w-3xl px-6 text-center">
               <div className="inline-flex rounded-full border border-zinc-400/70 bg-white/80 px-4 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-zinc-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
                 Start with one move
               </div>
@@ -463,7 +516,7 @@ function HomeContent() {
               </p>
             </div>
 
-            <div className="grid max-w-7xl items-stretch gap-5 px-6 md:grid-cols-2 lg:grid-cols-3 mx-auto relative z-10">
+            <div aria-hidden="true" className="hidden max-w-7xl items-stretch gap-5 px-6 md:grid-cols-2 lg:grid-cols-3 mx-auto relative z-10">
               {/* The canonical managed SKU leads the grid. */}
               <div
                 onClick={() => router.push('/first-spark?from=home')}

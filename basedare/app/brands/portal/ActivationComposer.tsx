@@ -18,7 +18,6 @@ import {
   buildActivationPackageDescription,
   formatUsdAmount,
   type ActivationPackage,
-  type ActivationPackageId,
   type CampaignFormData,
   type PlaceSearchResult,
   type ReportAttribution,
@@ -33,9 +32,7 @@ type MissionComposerProps = {
   placeQuery: string;
   placeResults: PlaceSearchResult[];
   reportAttribution: ReportAttribution | null;
-  selectActivationPackage: (packageId: ActivationPackageId) => void;
   selectedActivationPackage: ActivationPackage;
-  selectedActivationPackageId: ActivationPackageId;
   selectedPlace: PlaceSearchResult | null;
   setFormData: Dispatch<SetStateAction<CampaignFormData>>;
   setPlaceQuery: Dispatch<SetStateAction<string>>;
@@ -60,9 +57,7 @@ export default function ActivationComposer({
   placeQuery,
   placeResults,
   reportAttribution,
-  selectActivationPackage,
   selectedActivationPackage,
-  selectedActivationPackageId,
   selectedPlace,
   setFormData,
   setPlaceQuery,
@@ -93,7 +88,7 @@ export default function ActivationComposer({
         description: replaceDescription
           ? buildActivationPackageDescription(selectedActivationPackage, place.name)
           : current.description,
-        creatorCountTarget: 1,
+        creatorCountTarget: MANAGED_FIELD_SPRINT.assignedContributorCount,
         targetingCriteria: { ...current.targetingCriteria, location: 'near-venue' },
       };
     });
@@ -157,14 +152,14 @@ export default function ActivationComposer({
           </button>
         </div>
 
-        <ol className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Mission setup progress">
+        <ol className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-5" aria-label="Mission setup progress">
           {checkoutSteps.map((step, index) => (
             <li
               key={step.label}
               className={`rounded-2xl border px-3 py-3 ${
                 step.complete
                   ? 'border-emerald-300/30 bg-emerald-400/10'
-                  : index === 3
+                  : index === checkoutSteps.length - 1
                     ? 'border-yellow-300/30 bg-yellow-300/[0.08]'
                     : 'border-white/10 bg-white/[0.04]'
               }`}
@@ -195,30 +190,15 @@ export default function ActivationComposer({
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3">
-            {ACTIVATION_PACKAGES.map((template) => {
-              const selected = selectedActivationPackageId === template.id;
-              return (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => selectActivationPackage(template.id)}
-                  aria-pressed={selected}
-                  className={`min-h-[168px] rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-200/60 ${
-                    selected
-                      ? 'border-yellow-200/55 bg-[linear-gradient(180deg,rgba(245,197,24,0.18),rgba(8,7,12,0.88))] shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_16px_34px_rgba(0,0,0,0.28)]'
-                      : 'border-white/10 bg-black/25 hover:border-white/22 hover:bg-white/[0.055]'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="text-xs font-black uppercase tracking-[0.14em] text-yellow-100/80">{template.eyebrow}</div>
-                    {selected ? <CheckCircle2 className="h-5 w-5 text-yellow-200" /> : null}
-                  </div>
-                  <div className="mt-3 text-lg font-black text-white">{template.name}</div>
-                  <p className="mt-2 text-sm leading-6 text-white/65">{template.outcome}</p>
-                </button>
-              );
-            })}
+          <div className="mt-5 rounded-2xl border border-yellow-200/40 bg-[linear-gradient(180deg,rgba(245,197,24,0.14),rgba(8,7,12,0.88))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_16px_34px_rgba(0,0,0,0.24)]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="text-xs font-black uppercase tracking-[0.14em] text-yellow-100/80">{selectedActivationPackage.eyebrow}</div>
+              <span className="rounded-full border border-yellow-100/20 bg-black/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100/75">
+                Managed package
+              </span>
+            </div>
+            <div className="mt-3 text-lg font-black text-white">{selectedActivationPackage.name}</div>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/65">{selectedActivationPackage.outcome}</p>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -313,27 +293,38 @@ export default function ActivationComposer({
               <CreditCard className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-100/75">Step 3</p>
-              <h3 id="mission-reward-heading" className="text-xl font-black text-white">Fixed Sprint economics</h3>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-100/75">Step 4</p>
+              <h3 id="mission-reward-heading" className="text-xl font-black text-white">Budget and delivery</h3>
             </div>
           </div>
 
           <div className="mt-5">
-            <div className="activation-inset grid grid-cols-3 gap-2 rounded-2xl border border-white/10 p-3">
-              {[
-                ['Managed service', MANAGED_FIELD_SPRINT.serviceFeeUsd],
-                ['Creator pool', MANAGED_FIELD_SPRINT.grossRewardPoolUsd],
-                ['Invoice total', MANAGED_FIELD_SPRINT.invoiceTotalUsd],
-              ].map(([label, value]) => (
-                <div key={String(label)} className="rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-center">
-                  <div className="text-lg font-black tabular-nums text-white">${formatUsdAmount(Number(value))}</div>
-                  <div className="mt-1 text-xs font-semibold text-white/58">{label}</div>
-                </div>
-              ))}
+            <div className="activation-inset grid gap-3 rounded-2xl border border-white/10 p-3 sm:grid-cols-[0.72fr_1.28fr]">
+              <div className="rounded-xl border border-yellow-200/20 bg-yellow-300/[0.07] px-4 py-4">
+                <div className="text-xs font-black uppercase tracking-[0.14em] text-yellow-100/65">Fixed quote</div>
+                <div className="mt-2 text-3xl font-black tabular-nums text-white">${formatUsdAmount(MANAGED_FIELD_SPRINT.invoiceTotalUsd)}</div>
+                <div className="mt-1 text-sm font-semibold text-white/58">Confirmed before launch</div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  ['Answers', `${MANAGED_FIELD_SPRINT.assignedContributorCount} independent checks`],
+                  ['Turnaround', `${MANAGED_FIELD_SPRINT.durationDaysMin}–${MANAGED_FIELD_SPRINT.durationDaysMax} days`],
+                  ['Evidence', 'Media, field notes and decisions'],
+                  ['Receipt', 'Accepted, rejected and inconclusive results'],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl border border-white/10 bg-black/25 px-3 py-3">
+                    <div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100/55">{label}</div>
+                    <div className="mt-1 text-sm font-black leading-5 text-white">{value}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p className="mt-3 text-sm leading-6 text-white/58">
-              Four assigned contributors are funded at ${MANAGED_FIELD_SPRINT.grossRewardPerContributorUsd} each. After the 4% settlement fee, each accepted answer pays ${MANAGED_FIELD_SPRINT.netRewardPerContributorUsd} net. Unused reward funding is refunded or credited.
-            </p>
+            <details className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/62">
+              <summary className="cursor-pointer font-black text-white/72">See cost breakdown</summary>
+              <p className="mt-3 leading-6">
+                ${MANAGED_FIELD_SPRINT.serviceFeeUsd.toLocaleString()} managed service plus a ${MANAGED_FIELD_SPRINT.grossRewardPoolUsd} contributor pool. Each accepted answer pays ${MANAGED_FIELD_SPRINT.netRewardPerContributorUsd} net after the 4% settlement fee. Unused reward funding is refunded or credited.
+              </p>
+            </details>
           </div>
         </section>
 
@@ -343,7 +334,7 @@ export default function ActivationComposer({
               <Route className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-100/75">Step 4</p>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-100/75">Step 5</p>
               <h3 id="mission-review-heading" className="text-xl font-black text-white">Review and fund</h3>
             </div>
           </div>
