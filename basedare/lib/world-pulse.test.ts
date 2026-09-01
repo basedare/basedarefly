@@ -4,8 +4,10 @@ import test from 'node:test';
 import type { LivePlan } from './live-plans.ts';
 import {
   filterWorldPulsePlans,
+  getWorldPulseDecision,
   getWorldPulseMapHref,
   getWorldPulseMapViewHref,
+  getWorldPulseSideQuest,
   getWorldPulseSignal,
   getWorldPulseViewHref,
   normalizeWorldPulseCenter,
@@ -94,7 +96,7 @@ test('pulse labels separate real crew reports, source-checked events and stale p
   assert.equal(getWorldPulseSignal(plan('old', { endsAt: '2026-08-29T23:59:59.000Z' }), now).state, 'OUTDATED');
 });
 
-test('PeeBear vibe choices only select matching real visible inventory', () => {
+test('PeeBear lanes only select matching real visible inventory', () => {
   const workout = plan('workout', {
     title: 'Make a mini workout',
     type: 'community_spark',
@@ -115,9 +117,54 @@ test('PeeBear vibe choices only select matching real visible inventory', () => {
   });
 
   assert.equal(pickWorldPulsePlan([workout, surf, social], 'SURF')?.id, 'surf');
-  assert.equal(pickWorldPulsePlan([workout, surf, social], 'SOCIAL')?.id, 'social');
+  assert.equal(pickWorldPulsePlan([workout, surf, social], 'MEET')?.id, 'social');
+  assert.equal(pickWorldPulsePlan([workout, surf, social], 'PLAY')?.id, 'workout');
   assert.equal(pickWorldPulsePlan([workout, surf, social], 'SURPRISE')?.id, 'workout');
   assert.equal(pickWorldPulsePlan([workout], 'SURF'), null);
+});
+
+test('PeeBear showdown compares at most two real plans and resolves one winner', () => {
+  const surf = plan('surf', {
+    title: 'Choose today’s surf plan',
+    type: 'community_spark',
+    people: null,
+    status: { key: 'OPEN', label: 'Open', forming: false },
+  });
+  const boat = plan('boat', {
+    type: 'boat',
+    title: 'Rock Island surf boat',
+  });
+  const trivia = plan('trivia', {
+    type: 'venue_event',
+    title: 'Trivia tonight',
+    people: null,
+    status: { key: 'PUBLISHED', label: 'Source checked', forming: false },
+  });
+  const sequence = [0.99, 0];
+  const decision = getWorldPulseDecision([boat, surf, trivia], 'SURF', () => sequence.shift() ?? 0);
+
+  assert.ok(decision);
+  assert.deepEqual(decision.candidates.map((candidate) => candidate.id), ['boat', 'surf']);
+  assert.equal(decision.winner.id, 'surf');
+  assert.equal(decision.runnerUp?.id, 'boat');
+  assert.match(decision.sideQuest ?? '', /combo|mate|easy version/i);
+  assert.equal(decision.candidates.every((candidate) => [boat, surf, trivia].includes(candidate)), true);
+});
+
+test('PeeBear showdown degrades honestly to one candidate and never adds a paid-mission side quest', () => {
+  const paid = plan('paid', {
+    type: 'paid_dare',
+    people: null,
+    status: { key: 'PENDING', label: 'Open', forming: false },
+  });
+  const decision = getWorldPulseDecision([paid], 'SURPRISE', () => 0);
+
+  assert.ok(decision);
+  assert.equal(decision.candidates.length, 1);
+  assert.equal(decision.winner, paid);
+  assert.equal(decision.runnerUp, null);
+  assert.equal(decision.sideQuest, null);
+  assert.equal(getWorldPulseSideQuest(paid, () => 0), null);
 });
 
 test('shared pulse links preserve public map context without precise device coordinates', () => {

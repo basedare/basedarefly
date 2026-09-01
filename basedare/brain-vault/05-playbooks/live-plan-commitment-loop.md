@@ -2,7 +2,7 @@
 type: product_playbook
 status: SOFTWARE_READY
 created_at: 2026-08-24
-updated_at: 2026-08-30
+updated_at: 2026-09-01
 owner: BaseDare
 ---
 
@@ -35,8 +35,9 @@ Close the gap between **I’m in** and a real plan without creating another prod
    - **NEXT 2H** includes now plus plans beginning within two hours.
    - **TONIGHT** ends at 04:00 in the destination timezone, not the viewer's device timezone.
 14. A shared World Pulse link may preserve the time mode, selected plan, radius and rounded public map centre. It must never contain device-precision coordinates.
-15. **Poke PeeBear** narrows the currently visible real inventory by **Surf**, **Social**, or **Surprise me**, then prioritizes the viewer's joined plan and plans that genuinely need people. It presents one answer before asking the user to act. Food/drink modes stay gated until opening hours and venue suitability are trustworthy.
+15. **Poke PeeBear** narrows the currently visible real inventory by **Surf**, **Meet people**, **Play**, or **Something random**. When two honest matches exist, it compares only those two and makes one playful choice; when only one exists, it says so. The result exposes the canonical plan action, exact invite, directions, and **Flip again** without creating a second plan record. Food/drink modes stay gated until opening hours and venue suitability are trustworthy.
 16. Crew Rooms may publish declarative **10 min away** or **20 min away** states. These are expiring crew messages, never continuous location sharing.
+17. PeeBear may attach one lightweight optional side quest to free/social plans. Side quests are prompts, not attendance, proof, points, or place memory, and paid missions never receive a distracting side quest.
 
 ## Truth boundaries
 
@@ -49,6 +50,8 @@ Close the gap between **I’m in** and a real plan without creating another prod
 - Crew Room membership is coordination access, not verified identity, attendance, safety clearance or payment authority.
 - World Pulse labels describe source and freshness honestly: open missions may be **LIVE**, crew state is **REPORTED**, and imported venue events remain **SOURCE CHECKED**. A forecast must never be presented as an observed condition.
 - Public view links use place-level coordinates only. BaseDare does not expose permanent precise participant location; future exact ETA sharing must be voluntary, temporary and crew-bound.
+- PeeBear chooses only from the already-filtered World Pulse read model. It never invents venue hours, destinations, attendance, operator confirmation, or safety conditions.
+- Optional side quests require no upload and create no verified record. Only the underlying canonical plan may change real plan state.
 - Paid Dare threads remain durable commercial records. Place rooms remain place-bound and proximity-aware. Crew Rooms remain temporary and plan-bound; there is no global public chat.
 
 ## UX rule

@@ -16,6 +16,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex PeeBear social decision layer (2026-09-01 — SHIPPED)
+- Codex is completing the pasted social-decision-engine proposal without duplicating the already-shipped Boat Share, Meet Me Here, Crew Room, surf-card, or Island Pulse systems.
+- `/now` Poke PeeBear will compare at most two real time-filtered Live Plans, resolve one playful choice, and keep the canonical action, exact invite, directions, flip-again, and optional no-proof side quest together.
+- Scope is limited to `components/live-plans/*`, `lib/world-pulse*`, one namespaced motion rule in `app/global.css`, this coordination note, and the matching Live Plan playbook. No schema, map renderer, `app/map/*`, paid Dare lifecycle, proof, payout, venue-hour claim, or settlement behavior changes.
+
 ### Codex Live Around You mobile rail polish (2026-09-01 — SHIPPED)
 - The mobile Live Around You rail now snaps to one card at a time with a restrained detent haptic where supported, a visible continuation arrow/fade, and `1 / N` progress.
 - The interaction respects reduced motion and keeps the existing 390px no-overflow layout. iPhone Safari receives the visual detent because web vibration is not available there.

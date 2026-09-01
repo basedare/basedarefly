@@ -150,6 +150,29 @@
   }
 }
 
+@keyframes peebear-decision-flip {
+  0% {
+    transform: translateY(0) rotateY(0deg) scale(0.92);
+  }
+  46% {
+    transform: translateY(-0.65rem) rotateY(540deg) scale(1.08);
+  }
+  100% {
+    transform: translateY(0) rotateY(900deg) scale(1);
+  }
+}
+
+.peebear-decision-coin {
+  transform-style: preserve-3d;
+  animation: peebear-decision-flip 680ms cubic-bezier(0.2, 0.82, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peebear-decision-coin {
+    animation: none;
+  }
+}
+
 /* 3D Card Flip Utilities */
 .backface-hidden { 
   backface-visibility: hidden; 

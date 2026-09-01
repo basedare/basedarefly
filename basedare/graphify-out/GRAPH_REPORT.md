@@ -1,11 +1,11 @@
 # Graph Report - .  (2026-09-01)
 
 ## Corpus Check
-- 1024 files · ~1,528,899 words
+- 1025 files · ~1,530,127 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3796 nodes · 4762 edges · 793 communities detected
+- 3803 nodes · 4774 edges · 794 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -803,6 +803,7 @@
 - [[_COMMUNITY_Community 790|Community 790]]
 - [[_COMMUNITY_Community 791|Community 791]]
 - [[_COMMUNITY_Community 792|Community 792]]
+- [[_COMMUNITY_Community 793|Community 793]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `POST()` - 219 edges
@@ -817,6 +818,8 @@
 10. `escapeHtml()` - 18 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `GET()` --calls--> `statusFilter()`  [EXTRACTED]
+  app/api/p/[pack]/board/route.ts → app/api/admin/local-signals/route.ts
 - `GET()` --calls--> `buildActionResults()`  [EXTRACTED]
   app/api/p/[pack]/board/route.ts → app/api/search/route.ts
 - `GET()` --calls--> `fetchThreadsForWallet()`  [EXTRACTED]
@@ -825,14 +828,12 @@
   app/api/p/[pack]/board/route.ts → app/api/inbox/route.ts
 - `GET()` --calls--> `searchKnownPlaces()`  [EXTRACTED]
   app/api/p/[pack]/board/route.ts → app/api/places/search/route.ts
-- `GET()` --calls--> `searchNominatim()`  [EXTRACTED]
-  app/api/p/[pack]/board/route.ts → app/api/places/search/route.ts
 
 ## Communities
 
 ### Community 0 - "Community 0"
 Cohesion: 0.01
-Nodes (173): applyReviewRateLimit(), applyReviewReportRateLimit(), appUrl(), asJsonRecord(), asMetadataRecord(), assertParticipantCanConfirm(), assertTargetExists(), authorize() (+165 more)
+Nodes (172): applyReviewRateLimit(), applyReviewReportRateLimit(), appUrl(), asJsonRecord(), asMetadataRecord(), assertParticipantCanConfirm(), assertTargetExists(), authorize() (+164 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.02
@@ -843,8 +844,8 @@ Cohesion: 0.03
 Nodes (23): buildLaunchHandoffMemo(), buildMissionRouteMemoLines(), buildPatch(), count(), draftNumber(), exportCsv(), formatDate(), formatDateTime() (+15 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.08
-Nodes (47): asRecord(), awardVotersOnOverride(), buildActivationReceipt(), buildCaptainProofMissionPacket(), buildCreateHref(), buildCreatorRecommendations(), buildInviteDraft(), buildInvoiceMemo() (+39 more)
+Cohesion: 0.06
+Nodes (48): asRecord(), awardVotersOnOverride(), buildActivationReceipt(), buildCaptainProofMissionPacket(), buildCreateHref(), buildCreatorRecommendations(), buildInviteDraft(), buildInvoiceMemo() (+40 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.05
@@ -923,48 +924,48 @@ Cohesion: 0.21
 Nodes (15): buildProofSubmitStorageKey(), getProofAuthHeaders(), getUnknownErrorMessage(), handleAppeal(), handleCameraCapture(), handleDrop(), handleFileInputChange(), handleFileSelect() (+7 more)
 
 ### Community 23 - "Community 23"
+Cohesion: 0.16
+Nodes (13): getIntentPlans(), getWorldPulseDecision(), getWorldPulseMapHref(), getWorldPulseMapViewHref(), getWorldPulseSideQuest(), getWorldPulseSignal(), getWorldPulseViewHref(), isWorldPulseNowPlan() (+5 more)
+
+### Community 24 - "Community 24"
 Cohesion: 0.18
 Nodes (12): asRecord(), buildActivationFunnelSummary(), checkAndSendActivationIntakeFollowUpAlert(), cleanString(), countBy(), eventTitle(), findStuckActivationIntakes(), markActivationIntakeLaunchedFromCampaign() (+4 more)
 
-### Community 24 - "Community 24"
+### Community 25 - "Community 25"
 Cohesion: 0.19
 Nodes (15): adminHref(), asRecord(), buildActivationIntakePriority(), buildDailyCommandLoopReport(), buildMetric(), buildPlaceTagReviewPressure(), buildVenueLeadPriority(), command() (+7 more)
 
-### Community 25 - "Community 25"
+### Community 26 - "Community 26"
 Cohesion: 0.13
 Nodes (4): buildVenueCreatorChatHref(), formatVenueRadarLocation(), getActivationPackage(), getActivationPackageForTier()
 
-### Community 26 - "Community 26"
+### Community 27 - "Community 27"
 Cohesion: 0.26
 Nodes (10): buildCaptainInvitePath(), buildCaptainMissionActivationHref(), buildCaptainMissionPacket(), buildScoutReferralCode(), buildVenuePitchPacket(), normalizeLeadUrl(), normalizeScoutCode(), normalizeScoutHandle() (+2 more)
 
-### Community 27 - "Community 27"
+### Community 28 - "Community 28"
 Cohesion: 0.13
 Nodes (2): formatCompactVenueMetric(), formatMetricDelta()
 
-### Community 28 - "Community 28"
+### Community 29 - "Community 29"
 Cohesion: 0.22
 Nodes (12): approveDareWithPayout(), calculatePayouts(), enforceRefereeBalanceCap(), ensureApprovedPlaceTagForVerifiedDare(), ensureCampaignWritebackForVerifiedDare(), finalizeVerifiedDare(), getCompletionWalletAddress(), getDareReceiptActor() (+4 more)
 
-### Community 29 - "Community 29"
+### Community 30 - "Community 30"
 Cohesion: 0.23
 Nodes (10): boundingBox(), buildInventory(), communitySparkCandidates(), evaluateStationInventory(), localSignalCandidates(), meetupCandidates(), nightGuideCandidates(), rewardCandidates() (+2 more)
 
-### Community 30 - "Community 30"
+### Community 31 - "Community 31"
 Cohesion: 0.2
 Nodes (9): buildActionResults(), getCategorySearchTokens(), getCategoryTokens(), getIntentLabelsForCategories(), getPlaceName(), getSearchIntents(), normalizeResult(), searchKnownPlaces() (+1 more)
 
-### Community 31 - "Community 31"
+### Community 32 - "Community 32"
 Cohesion: 0.16
 Nodes (5): inferTitle(), inferVenueEventDraft(), isLikelyVenueEventPost(), parseVenueLocalDateTime(), timeZoneOffsetMs()
 
-### Community 32 - "Community 32"
+### Community 33 - "Community 33"
 Cohesion: 0.19
 Nodes (6): appendFieldStationContextToHref(), normalizeDensityRadiusKm(), normalizeFieldStationAttention(), normalizeFieldStationFallback(), normalizeLocalTargetHref(), normalizeMinimumDensity()
-
-### Community 33 - "Community 33"
-Cohesion: 0.21
-Nodes (8): getWorldPulseMapHref(), getWorldPulseMapViewHref(), getWorldPulseSignal(), getWorldPulseViewHref(), isWorldPulseNowPlan(), normalizeWorldPulseRadius(), parsePlanTime(), worldPulseModeQuery()
 
 ### Community 34 - "Community 34"
 Cohesion: 0.32
@@ -1320,27 +1321,27 @@ Nodes (0):
 
 ### Community 122 - "Community 122"
 Cohesion: 0.33
-Nodes (1): ChatSidebar()
-
-### Community 123 - "Community 123"
-Cohesion: 0.33
 Nodes (0):
 
-### Community 124 - "Community 124"
+### Community 123 - "Community 123"
 Cohesion: 0.67
 Nodes (5): createBrowserSession(), navigateTo(), scrapeBasescan(), simulateWalletConnect(), takeScreenshot()
 
-### Community 125 - "Community 125"
+### Community 124 - "Community 124"
 Cohesion: 0.33
 Nodes (0):
 
-### Community 126 - "Community 126"
+### Community 125 - "Community 125"
 Cohesion: 0.33
 Nodes (2): App, Media
 
-### Community 127 - "Community 127"
+### Community 126 - "Community 126"
 Cohesion: 0.33
 Nodes (0):
+
+### Community 127 - "Community 127"
+Cohesion: 0.33
+Nodes (1): ChatSidebar()
 
 ### Community 128 - "Community 128"
 Cohesion: 0.33
@@ -1455,8 +1456,8 @@ Cohesion: 0.4
 Nodes (0):
 
 ### Community 156 - "Community 156"
-Cohesion: 0.4
-Nodes (0):
+Cohesion: 0.5
+Nodes (2): flipPeebearAgain(), letPeebearPick()
 
 ### Community 157 - "Community 157"
 Cohesion: 0.4
@@ -1599,24 +1600,24 @@ Cohesion: 0.4
 Nodes (0):
 
 ### Community 192 - "Community 192"
-Cohesion: 0.5
-Nodes (0):
+Cohesion: 0.67
+Nodes (2): PeebareConfetti(), triggerPeebareConfetti()
 
 ### Community 193 - "Community 193"
 Cohesion: 0.5
 Nodes (0):
 
 ### Community 194 - "Community 194"
-Cohesion: 0.67
-Nodes (2): _getCurrentPage(), PagesContent()
+Cohesion: 0.5
+Nodes (0):
 
 ### Community 195 - "Community 195"
 Cohesion: 0.67
-Nodes (2): buildAuditPlan(), clean()
+Nodes (2): _getCurrentPage(), PagesContent()
 
 ### Community 196 - "Community 196"
-Cohesion: 0.5
-Nodes (0):
+Cohesion: 0.67
+Nodes (2): buildAuditPlan(), clean()
 
 ### Community 197 - "Community 197"
 Cohesion: 0.5
@@ -1631,40 +1632,40 @@ Cohesion: 0.5
 Nodes (0):
 
 ### Community 200 - "Community 200"
+Cohesion: 0.5
+Nodes (0):
+
+### Community 201 - "Community 201"
 Cohesion: 0.67
 Nodes (2): absoluteUrl(), createDrop()
 
-### Community 201 - "Community 201"
+### Community 202 - "Community 202"
 Cohesion: 0.5
 Nodes (0):
-
-### Community 202 - "Community 202"
-Cohesion: 0.67
-Nodes (2): trackStart(), updateField()
 
 ### Community 203 - "Community 203"
-Cohesion: 0.5
-Nodes (0):
+Cohesion: 0.67
+Nodes (2): trackStart(), updateField()
 
 ### Community 204 - "Community 204"
 Cohesion: 0.5
 Nodes (0):
 
 ### Community 205 - "Community 205"
-Cohesion: 0.67
-Nodes (2): buildInitialForm(), handleSubmit()
-
-### Community 206 - "Community 206"
-Cohesion: 0.83
-Nodes (3): complete(), save(), start()
-
-### Community 207 - "Community 207"
 Cohesion: 0.5
 Nodes (0):
 
-### Community 208 - "Community 208"
+### Community 206 - "Community 206"
 Cohesion: 0.67
-Nodes (2): PeebareConfetti(), triggerPeebareConfetti()
+Nodes (2): buildInitialForm(), handleSubmit()
+
+### Community 207 - "Community 207"
+Cohesion: 0.83
+Nodes (3): complete(), save(), start()
+
+### Community 208 - "Community 208"
+Cohesion: 0.5
+Nodes (0):
 
 ### Community 209 - "Community 209"
 Cohesion: 0.67
@@ -4002,6 +4003,10 @@ Nodes (0):
 Cohesion: 1.0
 Nodes (0):
 
+### Community 793 - "Community 793"
+Cohesion: 1.0
+Nodes (0):
+
 ## Knowledge Gaps
 - **Thin community `Community 360`** (2 nodes): `ensureVercelParentAlias()`, `next.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -4757,123 +4762,125 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 736`** (1 nodes): `SignalPointsBadge.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 737`** (1 nodes): `VenueEventRail.tsx`
+- **Thin community `Community 737`** (1 nodes): `PeeBearDecisionCard.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 738`** (1 nodes): `creator-mission-action.test.ts`
+- **Thin community `Community 738`** (1 nodes): `VenueEventRail.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 739`** (1 nodes): `local-rituals.test.ts`
+- **Thin community `Community 739`** (1 nodes): `creator-mission-action.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 740`** (1 nodes): `prisma.ts`
+- **Thin community `Community 740`** (1 nodes): `local-rituals.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 741`** (1 nodes): `plan-calendar.test.ts`
+- **Thin community `Community 741`** (1 nodes): `prisma.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 742`** (1 nodes): `financial-canon.test.ts`
+- **Thin community `Community 742`** (1 nodes): `plan-calendar.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 743`** (1 nodes): `venue-contact-routes.test.ts`
+- **Thin community `Community 743`** (1 nodes): `financial-canon.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 744`** (1 nodes): `creator-drop-assignments.test.ts`
+- **Thin community `Community 744`** (1 nodes): `venue-contact-routes.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 745`** (1 nodes): `creator-mission-alerts.test.ts`
+- **Thin community `Community 745`** (1 nodes): `creator-drop-assignments.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 746`** (1 nodes): `community-spark-map-policy.test.ts`
+- **Thin community `Community 746`** (1 nodes): `creator-mission-alerts.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 747`** (1 nodes): `creator-loop-actions.test.ts`
+- **Thin community `Community 747`** (1 nodes): `community-spark-map-policy.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 748`** (1 nodes): `venue-types.ts`
+- **Thin community `Community 748`** (1 nodes): `creator-loop-actions.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 749`** (1 nodes): `live-plan-retention.test.ts`
+- **Thin community `Community 749`** (1 nodes): `venue-types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 750`** (1 nodes): `place-resolution-policy.test.ts`
+- **Thin community `Community 750`** (1 nodes): `live-plan-retention.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 751`** (1 nodes): `siargao-tide-signal.test.ts`
+- **Thin community `Community 751`** (1 nodes): `place-resolution-policy.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 752`** (1 nodes): `field-station-policy.test.ts`
+- **Thin community `Community 752`** (1 nodes): `siargao-tide-signal.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 753`** (1 nodes): `siargao-nightlife.test.ts`
+- **Thin community `Community 753`** (1 nodes): `field-station-policy.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 754`** (1 nodes): `meetup-plan.test.ts`
+- **Thin community `Community 754`** (1 nodes): `siargao-nightlife.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 755`** (1 nodes): `social-webview.test.ts`
+- **Thin community `Community 755`** (1 nodes): `meetup-plan.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 756`** (1 nodes): `siargao-surf-signal.test.ts`
+- **Thin community `Community 756`** (1 nodes): `social-webview.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 757`** (1 nodes): `first-spark-mission-control-types.ts`
+- **Thin community `Community 757`** (1 nodes): `siargao-surf-signal.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 758`** (1 nodes): `map-relic-system.test.ts`
+- **Thin community `Community 758`** (1 nodes): `first-spark-mission-control-types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 759`** (1 nodes): `settlement-transition.test.ts`
+- **Thin community `Community 759`** (1 nodes): `map-relic-system.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 760`** (1 nodes): `creator-drops.test.ts`
+- **Thin community `Community 760`** (1 nodes): `settlement-transition.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 761`** (1 nodes): `surf-boat-board.test.ts`
+- **Thin community `Community 761`** (1 nodes): `creator-drops.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 762`** (1 nodes): `venue-profile.test.ts`
+- **Thin community `Community 762`** (1 nodes): `surf-boat-board.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 763`** (1 nodes): `mission-kits.test.ts`
+- **Thin community `Community 763`** (1 nodes): `venue-profile.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 764`** (1 nodes): `venue-scout-command-types.ts`
+- **Thin community `Community 764`** (1 nodes): `mission-kits.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 765`** (1 nodes): `action-sports-community-sparks.test.ts`
+- **Thin community `Community 765`** (1 nodes): `venue-scout-command-types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 766`** (1 nodes): `markets.test.ts`
+- **Thin community `Community 766`** (1 nodes): `action-sports-community-sparks.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 767`** (1 nodes): `first-node-conversion.test.ts`
+- **Thin community `Community 767`** (1 nodes): `markets.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 768`** (1 nodes): `mission-pass-crypto.test.ts`
+- **Thin community `Community 768`** (1 nodes): `first-node-conversion.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 769`** (1 nodes): `community-around-policy.test.ts`
+- **Thin community `Community 769`** (1 nodes): `mission-pass-crypto.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 770`** (1 nodes): `outcome-contract-schema.ts`
+- **Thin community `Community 770`** (1 nodes): `community-around-policy.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 771`** (1 nodes): `venue-event-feed-crypto.test.ts`
+- **Thin community `Community 771`** (1 nodes): `outcome-contract-schema.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 772`** (1 nodes): `siargao-surf-breaks.ts`
+- **Thin community `Community 772`** (1 nodes): `venue-event-feed-crypto.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 773`** (1 nodes): `place-action-policy.test.ts`
+- **Thin community `Community 773`** (1 nodes): `siargao-surf-breaks.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 774`** (1 nodes): `place-directions.test.ts`
+- **Thin community `Community 774`** (1 nodes): `place-action-policy.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 775`** (1 nodes): `founder-scoreboard-types.ts`
+- **Thin community `Community 775`** (1 nodes): `place-directions.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 776`** (1 nodes): `creator-attribution-policy.test.ts`
+- **Thin community `Community 776`** (1 nodes): `founder-scoreboard-types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 777`** (1 nodes): `daily-command-loop-types.ts`
+- **Thin community `Community 777`** (1 nodes): `creator-attribution-policy.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 778`** (1 nodes): `venue-events.test.ts`
+- **Thin community `Community 778`** (1 nodes): `daily-command-loop-types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 779`** (1 nodes): `growth-os-policy.test.ts`
+- **Thin community `Community 779`** (1 nodes): `venue-events.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 780`** (1 nodes): `growth-os-types.ts`
+- **Thin community `Community 780`** (1 nodes): `growth-os-policy.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 781`** (1 nodes): `venue-check-in-rewards.test.ts`
+- **Thin community `Community 781`** (1 nodes): `growth-os-types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 782`** (1 nodes): `map-adventure-policy.test.ts`
+- **Thin community `Community 782`** (1 nodes): `venue-check-in-rewards.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 783`** (1 nodes): `community-identity.test.ts`
+- **Thin community `Community 783`** (1 nodes): `map-adventure-policy.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 784`** (1 nodes): `base44Client.ts`
+- **Thin community `Community 784`** (1 nodes): `community-identity.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 785`** (1 nodes): `live-plan-room.test.ts`
+- **Thin community `Community 785`** (1 nodes): `base44Client.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 786`** (1 nodes): `sprint-launch-pack.test.ts`
+- **Thin community `Community 786`** (1 nodes): `live-plan-room.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 787`** (1 nodes): `dare-lifecycle.test.ts`
+- **Thin community `Community 787`** (1 nodes): `sprint-launch-pack.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 788`** (1 nodes): `mockData.ts`
+- **Thin community `Community 788`** (1 nodes): `dare-lifecycle.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 789`** (1 nodes): `place-endorsement-policy.test.ts`
+- **Thin community `Community 789`** (1 nodes): `mockData.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 790`** (1 nodes): `siargao-surf-breaks.test.ts`
+- **Thin community `Community 790`** (1 nodes): `place-endorsement-policy.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 791`** (1 nodes): `contracts.ts`
+- **Thin community `Community 791`** (1 nodes): `siargao-surf-breaks.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 792`** (1 nodes): `types.ts`
+- **Thin community `Community 792`** (1 nodes): `contracts.ts`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 793`** (1 nodes): `types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `GET()` connect `Community 0` to `Community 3`, `Community 30`?**
+- **Why does `GET()` connect `Community 0` to `Community 3`, `Community 31`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **Why does `POST()` connect `Community 0` to `Community 3`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
@@ -4884,6 +4891,6 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.03 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
   _Cohesion score 0.05 - nodes in this community are weakly interconnected._

@@ -7,7 +7,6 @@ import {
   Dices,
   Loader2,
   Map,
-  Navigation,
   Plus,
   Radio,
   RefreshCw,
@@ -19,6 +18,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
 import MyNextMoveTray from '@/components/live-plans/MyNextMoveTray';
+import PeeBearDecisionCard from '@/components/live-plans/PeeBearDecisionCard';
 import {
   LIVE_PLANS_INTRO_KEY,
   LivePlansFirstChoice,
@@ -31,9 +31,10 @@ import {
   filterWorldPulsePlans,
   getWorldPulseMapHref,
   getWorldPulseMapViewHref,
+  getWorldPulseDecision,
   getWorldPulseSignal,
   getWorldPulseViewHref,
-  pickWorldPulsePlan,
+  type WorldPulseDecision,
   type WorldPulseIntent,
   type WorldPulseMode,
 } from '@/lib/world-pulse';
@@ -48,9 +49,15 @@ const FILTERS = [
 
 const PEEBEAR_VIBES: Array<{ id: WorldPulseIntent; label: string }> = [
   { id: 'SURF', label: 'Surf' },
-  { id: 'SOCIAL', label: 'Social' },
-  { id: 'SURPRISE', label: 'Surprise me' },
+  { id: 'MEET', label: 'Meet people' },
+  { id: 'PLAY', label: 'Play' },
+  { id: 'SURPRISE', label: 'Something random' },
 ];
+
+type PeeBearDecisionState = Pick<WorldPulseDecision, 'intent' | 'sideQuest'> & {
+  runnerUpId: string | null;
+  nonce: number;
+};
 
 type LivePlansClientProps = {
   initialCenter?: { latitude: number; longitude: number };
@@ -78,6 +85,7 @@ export default function LivePlansClient({
   const [needsPeopleOnly, setNeedsPeopleOnly] = useState(initialNeedsPeople);
   const [pickedPlanId, setPickedPlanId] = useState<string | null>(initialSelectedPlanId);
   const [peebearOpen, setPeebearOpen] = useState(false);
+  const [peebearDecision, setPeebearDecision] = useState<PeeBearDecisionState | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [firstChoiceOpen, setFirstChoiceOpen] = useState(false);
   const [guideStep, setGuideStep] = useState<LivePlansGuideStep | null>(null);
@@ -155,6 +163,7 @@ export default function LivePlansClient({
           longitude: Math.round(position.coords.longitude * 1000) / 1000,
         });
         setPickedPlanId(null);
+        setPeebearDecision(null);
         setUsingDeviceLocation(true);
         setLocating(false);
       },
@@ -177,29 +186,56 @@ export default function LivePlansClient({
     [pickedPlanId, snapshot?.plans],
   );
   const pickedSignal = pickedPlan ? getWorldPulseSignal(pickedPlan) : null;
+  const pickedRunnerUp = useMemo(
+    () => (snapshot?.plans ?? []).find((plan) => plan.id === peebearDecision?.runnerUpId) ?? null,
+    [peebearDecision?.runnerUpId, snapshot?.plans],
+  );
 
   const letPeebearPick = (intent: WorldPulseIntent) => {
-    const peebearPick = pickWorldPulsePlan(plans, intent);
-    if (!peebearPick) {
-      setError(intent === 'SURF'
-        ? 'No surf plan matches this time window yet. Try Surprise me.'
-        : 'Nothing matching that vibe is live in this time window yet.');
+    const decision = getWorldPulseDecision(plans, intent);
+    if (!decision) {
+      const emptyMessage = intent === 'SURF'
+        ? 'No surf plan matches this time window yet. Try Something random.'
+        : intent === 'PLAY'
+          ? 'No free Spark matches this time window yet. Try Something random.'
+          : intent === 'MEET' || intent === 'SOCIAL'
+            ? 'No social plan matches this time window yet. Try Something random.'
+            : 'Nothing live matches this time window yet.';
+      setError(emptyMessage);
       return;
     }
     trackClientEvent('peebear_live_plan_picked', {
-      plan_id: peebearPick.id,
-      plan_type: peebearPick.type,
-      already_joined: peebearPick.viewer.isNextMove,
-      needs_people: peebearPick.status.forming,
+      plan_id: decision.winner.id,
+      plan_type: decision.winner.type,
+      already_joined: decision.winner.viewer.isNextMove,
+      needs_people: decision.winner.status.forming,
       pulse_mode: mode,
       pulse_intent: intent,
+      candidate_count: decision.candidates.length,
+      runner_up_id: decision.runnerUp?.id ?? null,
     });
     setError(null);
     setPeebearOpen(false);
-    setPickedPlanId(peebearPick.id);
+    setPickedPlanId(decision.winner.id);
+    setPeebearDecision((current) => ({
+      intent: decision.intent,
+      runnerUpId: decision.runnerUp?.id ?? null,
+      sideQuest: decision.sideQuest,
+      nonce: (current?.nonce ?? 0) + 1,
+    }));
     window.requestAnimationFrame(() => {
       document.getElementById('peebear-pick')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
+  };
+
+  const flipPeebearAgain = () => {
+    if (!peebearDecision) return;
+    trackClientEvent('peebear_decision_flipped_again', {
+      previous_plan_id: pickedPlan?.id ?? null,
+      pulse_mode: mode,
+      pulse_intent: peebearDecision.intent,
+    });
+    letPeebearPick(peebearDecision.intent);
   };
 
   const sharePulse = async () => {
@@ -262,6 +298,7 @@ export default function LivePlansClient({
     setNeedsPeopleOnly(false);
     setPickedPlanId(null);
     setPeebearOpen(false);
+    setPeebearDecision(null);
     setFirstChoiceOpen(false);
     setGuideStep(0);
     scrollToGuideTarget(0);
@@ -319,7 +356,7 @@ export default function LivePlansClient({
                   </button>
                 ))}
               </div>
-              <p className="mt-2 px-1 text-[9px] font-bold leading-4 text-white/30">PeeBear only picks from real plans in this time window.</p>
+              <p className="mt-2 px-1 text-[9px] font-bold leading-4 text-white/30">PeeBear only compares real plans in this time window. Food and drink stay out until venue hours are trustworthy.</p>
             </div>
           ) : null}
           {shareStatus ? <p role="status" className="mt-4 text-right text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100/60">{shareStatus}</p> : null}
@@ -329,11 +366,11 @@ export default function LivePlansClient({
 
         <div id="live-plan-filters" className={`scrollbar-hide scroll-mt-32 mt-5 flex items-center gap-2 overflow-x-auto rounded-2xl pb-1 transition ${guideStep === 0 ? 'ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70' : ''}`} role="group" aria-label="Filter live plans">
           {FILTERS.map((item) => (
-            <button key={item.id} type="button" onClick={() => { setMode(item.id); setPickedPlanId(null); setPeebearOpen(false); }} aria-pressed={mode === item.id} className={`min-h-10 shrink-0 rounded-full border px-4 text-[9px] font-black uppercase tracking-[0.13em] ${mode === item.id ? 'border-[#f5c518]/36 bg-[#f5c518]/[0.11] text-[#fff0a8]' : 'border-white/10 bg-white/[0.035] text-white/44'}`}>
+            <button key={item.id} type="button" onClick={() => { setMode(item.id); setPickedPlanId(null); setPeebearOpen(false); setPeebearDecision(null); }} aria-pressed={mode === item.id} className={`min-h-10 shrink-0 rounded-full border px-4 text-[9px] font-black uppercase tracking-[0.13em] ${mode === item.id ? 'border-[#f5c518]/36 bg-[#f5c518]/[0.11] text-[#fff0a8]' : 'border-white/10 bg-white/[0.035] text-white/44'}`}>
               {item.label}
             </button>
           ))}
-          <button type="button" onClick={() => { setNeedsPeopleOnly((current) => !current); setPickedPlanId(null); setPeebearOpen(false); }} aria-pressed={needsPeopleOnly} className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-[9px] font-black uppercase tracking-[0.13em] ${needsPeopleOnly ? 'border-cyan-200/32 bg-cyan-300/[0.1] text-cyan-100' : 'border-white/10 bg-white/[0.035] text-white/44'}`}>
+          <button type="button" onClick={() => { setNeedsPeopleOnly((current) => !current); setPickedPlanId(null); setPeebearOpen(false); setPeebearDecision(null); }} aria-pressed={needsPeopleOnly} className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-[9px] font-black uppercase tracking-[0.13em] ${needsPeopleOnly ? 'border-cyan-200/32 bg-cyan-300/[0.1] text-cyan-100' : 'border-white/10 bg-white/[0.035] text-white/44'}`}>
             <Users className="h-3.5 w-3.5" /> Needs people
           </button>
           <button type="button" onClick={() => void load()} aria-label="Refresh live plans" className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.035] text-white/46">
@@ -354,26 +391,15 @@ export default function LivePlansClient({
         {error ? <p role="status" className="mt-5 rounded-2xl border border-rose-200/18 bg-rose-300/[0.07] p-4 text-sm font-bold text-rose-100">{error}</p> : null}
 
         {pickedPlan && pickedSignal ? (
-          <section id="peebear-pick" className="scroll-mt-28 mt-6 overflow-hidden rounded-[1.75rem] border border-yellow-200/18 bg-[linear-gradient(135deg,rgba(46,33,7,0.9),rgba(10,16,24,0.96)_48%,rgba(15,9,27,0.96))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] sm:p-6">
-            <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-              <div className="min-w-0">
-                <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-yellow-100/62"><Dices className="h-4 w-4" /> PeeBear picked one</p>
-                <h2 className="mt-2 text-2xl font-black leading-tight text-white sm:text-3xl">{pickedPlan.title}</h2>
-                <p className="mt-2 text-sm font-bold text-white/52">{pickedPlan.place.label}{pickedPlan.people ? ` · ${pickedPlan.people.going} going${pickedPlan.people.spotsNeeded ? ` · needs ${pickedPlan.people.spotsNeeded}` : ''}` : ''}</p>
-                <p className="mt-3 text-[9px] font-black uppercase tracking-[0.15em] text-cyan-100/52">
-                  {pickedSignal.label}{pickedSignal.sourceLabel ? ` · ${pickedSignal.sourceLabel}` : ''}
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-                <Link href={pickedPlan.action.href} prefetch={false} className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#f5c518] px-7 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006]">
-                  {pickedPlan.action.label}
-                </Link>
-                <Link href={getWorldPulseMapHref(pickedPlan, mode)} prefetch={false} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.065] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-cyan-100">
-                  <Navigation className="h-4 w-4" /> Show on map
-                </Link>
-              </div>
-            </div>
-          </section>
+          <PeeBearDecisionCard
+            key={`${pickedPlan.id}:${peebearDecision?.nonce ?? 0}`}
+            plan={pickedPlan}
+            runnerUp={pickedRunnerUp}
+            signal={pickedSignal}
+            intent={peebearDecision?.intent ?? null}
+            sideQuest={peebearDecision?.sideQuest ?? null}
+            onFlipAgain={peebearDecision && pickedRunnerUp ? flipPeebearAgain : undefined}
+          />
         ) : null}
 
         <div id="live-plan-list" className={`scroll-mt-32 rounded-[1.75rem] transition ${guideStep === 1 ? 'ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70' : ''}`}>

@@ -7,8 +7,16 @@ export const WORLD_PULSE_RADIUS_KM = 12;
 export const WORLD_PULSE_MODES = ['NOW', 'NEXT_2H', 'TONIGHT', 'ALL'] as const;
 export type WorldPulseMode = (typeof WORLD_PULSE_MODES)[number];
 
-export const WORLD_PULSE_INTENTS = ['SURF', 'SOCIAL', 'SURPRISE'] as const;
+export const WORLD_PULSE_INTENTS = ['SURF', 'MEET', 'PLAY', 'SOCIAL', 'SURPRISE'] as const;
 export type WorldPulseIntent = (typeof WORLD_PULSE_INTENTS)[number];
+
+export type WorldPulseDecision = {
+  intent: WorldPulseIntent;
+  candidates: [LivePlan] | [LivePlan, LivePlan];
+  winner: LivePlan;
+  runnerUp: LivePlan | null;
+  sideQuest: string | null;
+};
 
 const MODE_QUERY: Record<WorldPulseMode, string> = {
   NOW: 'now',
@@ -99,6 +107,7 @@ export function filterWorldPulsePlans(
 }
 
 const SURF_INTENT_PATTERN = /\b(surf|wave|reef|paddle|board|boat|island|wake)\b/i;
+const MEET_INTENT_PATTERN = /\b(meet|crew|social|trivia|hang|together|party|night)\b/i;
 
 function isSurfPlan(plan: LivePlan) {
   if (plan.type === 'boat') return true;
@@ -109,19 +118,99 @@ function isSurfPlan(plan: LivePlan) {
   ].join(' '));
 }
 
+function isMeetPlan(plan: LivePlan) {
+  if (plan.type === 'boat' || plan.type === 'meetup' || plan.type === 'venue_event') return true;
+  if (plan.people?.minimum != null) return true;
+  return MEET_INTENT_PATTERN.test([
+    plan.title,
+    plan.summary ?? '',
+    plan.place.label,
+  ].join(' '));
+}
+
+function isPlayPlan(plan: LivePlan) {
+  return plan.type === 'community_spark';
+}
+
+function getIntentPlans(plans: LivePlan[], intent: WorldPulseIntent) {
+  if (intent === 'SURPRISE') return plans;
+  if (intent === 'SURF') return plans.filter(isSurfPlan);
+  if (intent === 'PLAY') return plans.filter(isPlayPlan);
+  return plans.filter(isMeetPlan);
+}
+
+function randomIndex(size: number, random: () => number) {
+  if (size <= 1) return 0;
+  const value = random();
+  const bounded = Number.isFinite(value) ? Math.min(0.999999, Math.max(0, value)) : 0;
+  return Math.floor(bounded * size);
+}
+
+const SIDE_QUESTS: Partial<Record<LivePlan['type'], readonly string[]>> = {
+  boat: [
+    'Ask one person what the break is doing before anyone paddles out.',
+    'Find out who needs a board before the crew reaches the launch.',
+  ],
+  meetup: [
+    'Let the least decisive person choose the first move.',
+    'Ask one person for a nearby place the group should try next time.',
+  ],
+  venue_event: [
+    'Find one detail worth telling the next mate who joins.',
+    'Let someone else choose where the crew stands or sits first.',
+  ],
+  community_spark: [
+    'Bring one mate and try the easy version first.',
+    'Give the combo a name before you finish.',
+  ],
+};
+
+export function getWorldPulseSideQuest(plan: LivePlan, random: () => number = Math.random) {
+  const options = SIDE_QUESTS[plan.type];
+  if (!options?.length) return null;
+  return options[randomIndex(options.length, random)] ?? options[0] ?? null;
+}
+
 /**
  * PeeBear narrows real visible inventory; it never invents a destination.
  * Food/drink lanes stay out until venue hours and suitability are trustworthy.
  */
 export function pickWorldPulsePlan(plans: LivePlan[], intent: WorldPulseIntent) {
-  if (intent === 'SURPRISE') return pickLivePlan(plans);
-  const matching = intent === 'SURF'
-    ? plans.filter(isSurfPlan)
-    : plans.filter((plan) => plan.type === 'boat'
-      || plan.type === 'meetup'
-      || plan.type === 'venue_event'
-      || plan.people?.minimum != null);
-  return pickLivePlan(matching);
+  return pickLivePlan(getIntentPlans(plans, intent));
+}
+
+/**
+ * Poke PeeBear is a decision layer over real World Pulse inventory. It puts
+ * one joined/needs-people plan into the showdown when available, draws one
+ * other eligible plan, then makes a fair one-of-two choice. It never creates
+ * a venue, schedule, attendance claim, or proof state.
+ */
+export function getWorldPulseDecision(
+  plans: LivePlan[],
+  intent: WorldPulseIntent,
+  random: () => number = Math.random,
+): WorldPulseDecision | null {
+  const matching = getIntentPlans(plans, intent);
+  const priority = pickLivePlan(matching);
+  if (!priority) return null;
+
+  const remaining = matching.filter((plan) => plan.id !== priority.id);
+  const opponent = remaining.length
+    ? remaining[randomIndex(remaining.length, random)] ?? null
+    : null;
+  const candidates: [LivePlan] | [LivePlan, LivePlan] = opponent
+    ? [priority, opponent]
+    : [priority];
+  const winner = candidates[randomIndex(candidates.length, random)] ?? priority;
+  const runnerUp = candidates.find((plan) => plan.id !== winner.id) ?? null;
+
+  return {
+    intent,
+    candidates,
+    winner,
+    runnerUp,
+    sideQuest: getWorldPulseSideQuest(winner, random),
+  };
 }
 
 export type WorldPulseSignal = {
