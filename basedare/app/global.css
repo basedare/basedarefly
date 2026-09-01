@@ -3135,6 +3135,245 @@ button[data-testid='ockConnectWalletButton']:hover {
   }
 }
 
+/* Desktop map instruments
+   -----------------------
+   Give the floating map controls the same dark, physical console language as
+   BaseDare's primary buttons. This is deliberately desktop-only: the mobile
+   map keeps its compact touch-first treatment and none of the map behavior or
+   renderer is changed here. */
+@media (min-width: 1024px) {
+  .bd-map-route-active .basedare-maplibre-map {
+    --map-instrument-edge: rgba(199, 244, 255, 0.16);
+  }
+
+  /* Adventure / Tonight / Secrets / Trail become one mounted control bank. */
+  .bd-map-route-active .basedare-maplibre-map div:has(> button[aria-label^='Turn Adventure mode']) {
+    position: relative;
+    isolation: isolate;
+    gap: 0.42rem !important;
+    padding: 0.42rem;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-top-color: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at 16% -20%, rgba(245, 197, 24, 0.1), transparent 38%),
+      linear-gradient(180deg, rgba(20, 21, 34, 0.96), rgba(5, 7, 14, 0.98));
+    box-shadow:
+      0 18px 36px rgba(0, 0, 0, 0.46),
+      0 2px 0 rgba(0, 0, 0, 0.86),
+      inset 0 2px 5px rgba(0, 0, 0, 0.72),
+      inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+    backdrop-filter: blur(20px) saturate(118%);
+    -webkit-backdrop-filter: blur(20px) saturate(118%);
+  }
+
+  .bd-map-route-active .basedare-maplibre-map div:has(> button[aria-label^='Turn Adventure mode'])::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.035);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map div:has(> button[aria-label^='Turn Adventure mode']) > button {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-top-color: rgba(255, 255, 255, 0.2) !important;
+    box-shadow:
+      0 8px 14px rgba(0, 0, 0, 0.58),
+      0 2px 0 rgba(0, 0, 0, 0.72),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      inset 0 -10px 16px rgba(0, 0, 0, 0.3) !important;
+    transform: translateY(-1px);
+    transition:
+      transform 140ms ease,
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      filter 160ms ease !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map div:has(> button[aria-label^='Turn Adventure mode']) > button::after {
+    content: '';
+    position: absolute;
+    inset: 1px 12% auto;
+    height: 1px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map div:has(> button[aria-label^='Turn Adventure mode']) > button:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.09) saturate(1.06);
+    box-shadow:
+      0 11px 18px rgba(0, 0, 0, 0.64),
+      0 2px 0 rgba(0, 0, 0, 0.76),
+      0 0 18px rgba(103, 232, 249, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.17),
+      inset 0 -10px 16px rgba(0, 0, 0, 0.28) !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map div:has(> button[aria-label^='Turn Adventure mode']) > button:active {
+    transform: translateY(1px) scale(0.985);
+    box-shadow:
+      0 2px 5px rgba(0, 0, 0, 0.54),
+      inset 0 3px 8px rgba(0, 0, 0, 0.66),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.06) !important;
+  }
+
+  /* PeeBear's field card reads as an inset instrument screen inside a frame. */
+  .bd-map-route-active .basedare-maplibre-map .map-attention-card {
+    border-color: rgba(245, 197, 24, 0.25) !important;
+    border-top-color: rgba(255, 235, 142, 0.38) !important;
+    background:
+      radial-gradient(circle at 93% 0%, rgba(34, 211, 238, 0.14), transparent 30%),
+      radial-gradient(circle at 8% -5%, rgba(245, 197, 24, 0.15), transparent 34%),
+      linear-gradient(155deg, rgba(22, 27, 40, 0.985), rgba(5, 7, 14, 0.99)) !important;
+    box-shadow:
+      0 28px 64px rgba(0, 0, 0, 0.58),
+      0 4px 0 rgba(0, 0, 0, 0.72),
+      0 0 28px rgba(245, 197, 24, 0.055),
+      inset 0 1px 0 rgba(255, 255, 255, 0.17),
+      inset 0 -18px 28px rgba(0, 0, 0, 0.24),
+      inset 0 0 0 3px rgba(0, 0, 0, 0.18) !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .map-attention-choice {
+    border-color: rgba(255, 255, 255, 0.075) !important;
+    border-top-color: rgba(255, 255, 255, 0.13) !important;
+    background:
+      radial-gradient(circle at 14% 0%, rgba(255, 255, 255, 0.075), transparent 32%),
+      linear-gradient(180deg, rgba(28, 31, 43, 0.9), rgba(8, 10, 18, 0.94)) !important;
+    box-shadow:
+      0 10px 18px rgba(0, 0, 0, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.09),
+      inset 0 -10px 16px rgba(0, 0, 0, 0.22) !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .map-attention-choice:hover {
+    border-color: rgba(103, 232, 249, 0.26) !important;
+    box-shadow:
+      0 13px 22px rgba(0, 0, 0, 0.46),
+      0 0 18px rgba(34, 211, 238, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -10px 16px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .map-attention-choice:active {
+    transform: translateY(1px) scale(0.99) !important;
+    box-shadow:
+      0 3px 7px rgba(0, 0, 0, 0.4),
+      inset 0 3px 8px rgba(0, 0, 0, 0.58) !important;
+  }
+
+  /* Locate and zoom sit in a small machined pedestal rather than loose glass. */
+  .bd-map-route-active .basedare-maplibre-map .map-navigation-controls {
+    gap: 0.52rem !important;
+    padding: 0.42rem;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-top-color: rgba(255, 255, 255, 0.13);
+    border-radius: 1.65rem;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.08), transparent 34%),
+      linear-gradient(180deg, rgba(17, 21, 32, 0.96), rgba(5, 7, 14, 0.985));
+    box-shadow:
+      0 18px 34px rgba(0, 0, 0, 0.48),
+      inset 0 2px 5px rgba(0, 0, 0, 0.72),
+      inset 0 0 0 1px rgba(0, 0, 0, 0.3),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .map-navigation-controls > button,
+  .bd-map-route-active .basedare-maplibre-map .map-navigation-controls > div {
+    border-top-color: rgba(255, 255, 255, 0.2) !important;
+    box-shadow:
+      0 8px 14px rgba(0, 0, 0, 0.56),
+      0 2px 0 rgba(0, 0, 0, 0.68),
+      inset 0 1px 0 rgba(255, 255, 255, 0.13),
+      inset 0 -10px 16px rgba(0, 0, 0, 0.27) !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .map-navigation-controls button:active {
+    transform: translateY(1px) scale(0.96) !important;
+    background: rgba(34, 211, 238, 0.09) !important;
+    box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.62) !important;
+  }
+
+  /* The orbit pad becomes a compact 3D camera controller with a recessed
+     readout and individually pressable directional keys. */
+  .bd-map-route-active .basedare-maplibre-map > div:has(> div > button[aria-label='Orbit map left']) {
+    overflow: hidden;
+    border-color: var(--map-instrument-edge) !important;
+    border-top-color: rgba(225, 250, 255, 0.25) !important;
+    border-radius: 1.35rem !important;
+    background:
+      radial-gradient(circle at 50% -10%, rgba(34, 211, 238, 0.13), transparent 36%),
+      linear-gradient(155deg, rgba(23, 30, 43, 0.97), rgba(5, 7, 14, 0.99)) !important;
+    box-shadow:
+      0 24px 48px rgba(0, 0, 0, 0.56),
+      0 4px 0 rgba(0, 0, 0, 0.74),
+      0 0 24px rgba(34, 211, 238, 0.065),
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      inset 0 -14px 22px rgba(0, 0, 0, 0.24),
+      inset 0 0 0 3px rgba(0, 0, 0, 0.18) !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map > div:has(> div > button[aria-label='Orbit map left']) > div:first-child {
+    background: rgba(0, 0, 0, 0.2);
+    box-shadow:
+      inset 0 2px 5px rgba(0, 0, 0, 0.7),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+    text-shadow: 0 0 10px rgba(103, 232, 249, 0.28);
+  }
+
+  .bd-map-route-active .basedare-maplibre-map button[aria-label^='Orbit map'],
+  .bd-map-route-active .basedare-maplibre-map button[aria-label^='Tilt map'] {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(3, 6, 12, 0.38));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      inset 0 -8px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .bd-map-route-active .basedare-maplibre-map button[aria-label^='Orbit map']:hover,
+  .bd-map-route-active .basedare-maplibre-map button[aria-label^='Tilt map']:hover {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(103, 232, 249, 0.16), transparent 55%),
+      linear-gradient(180deg, rgba(34, 211, 238, 0.09), rgba(4, 8, 14, 0.42)) !important;
+    color: #e8fdff !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -8px 12px rgba(0, 0, 0, 0.18),
+      0 0 14px rgba(34, 211, 238, 0.08);
+  }
+
+  .bd-map-route-active .basedare-maplibre-map button[aria-label^='Orbit map']:active,
+  .bd-map-route-active .basedare-maplibre-map button[aria-label^='Tilt map']:active,
+  .bd-map-route-active .basedare-maplibre-map button[aria-label='Reset map camera north']:active {
+    transform: translateY(1px) scale(0.96);
+    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.68) !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map button:focus-visible {
+    outline: 2px solid rgba(103, 232, 249, 0.72);
+    outline-offset: 3px;
+  }
+}
+
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+  .bd-map-route-active .basedare-maplibre-map .map-navigation-controls button,
+  .bd-map-route-active .basedare-maplibre-map .map-attention-choice,
+  .bd-map-route-active .basedare-maplibre-map div:has(> button[aria-label^='Turn Adventure mode']) > button,
+  .bd-map-route-active .basedare-maplibre-map button[aria-label^='Orbit map'],
+  .bd-map-route-active .basedare-maplibre-map button[aria-label^='Tilt map'] {
+    transition: none !important;
+  }
+}
+
 /* Map place filters use the same recessed segmented-control language as
    Live Around You. These late overrides intentionally refine the broader
    command-deck treatment above without changing map behavior. */
