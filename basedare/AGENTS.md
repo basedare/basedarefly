@@ -16,7 +16,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
-### Codex Buyer Workspace simplification (2026-09-01 — COMPLETE LOCALLY)
+### Codex Live Around You mobile rail polish (2026-09-01 — SHIPPED)
+- The mobile Live Around You rail now snaps to one card at a time with a restrained detent haptic where supported, a visible continuation arrow/fade, and `1 / N` progress.
+- The interaction respects reduced motion and keeps the existing 390px no-overflow layout. iPhone Safari receives the visual detent because web vibration is not available there.
+- Scope is limited to `components/PremiumBentoGrid.tsx` and its CSS. No Dare lifecycle, proof, payout, schema, map, or renderer behavior changed.
+
+### Codex Buyer Workspace simplification (2026-09-01 — SHIPPED)
 - Codex collapsed the public Control Mode chooser into one managed offer: Verified Field Sprint. New buyers scope one bounded question; returning buyers open the Buyer Workspace.
 - Creator Radar remains an optional routing capability inside the workspace and is no longer presented as a separate first-click product. First Spark remains a venue-specific template rather than the default commercial wedge.
 - Files owned in this pass: the Control section in `app/page.tsx`, `app/brands/portal/*`, the Field Sprint handoff in `app/activations/*`, narrow public buyer-language surfaces, and the matching Brain playbook. No paid-mission proof, claim, payout, schema, contract, map renderer, or settlement behavior changes.

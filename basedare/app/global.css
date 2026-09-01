@@ -3135,6 +3135,152 @@ button[data-testid='ockConnectWalletButton']:hover {
   }
 }
 
+/* Mobile map activity drawer
+   --------------------------
+   Nearby Now is a right-side instrument drawer rather than a third bottom
+   sheet. This keeps the map, PeeBear and The Board independently reachable. */
+@media (max-width: 767px) {
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray {
+    right: 0 !important;
+    left: auto !important;
+    width: min(21.5rem, calc(100% - 4.35rem)) !important;
+    max-width: none !important;
+    transform-origin: 100% 50% !important;
+    touch-action: manipulation;
+    transition:
+      top 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      bottom 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 160ms ease !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--expanded {
+    top: 0.75rem !important;
+    right: 0 !important;
+    bottom: calc(5.8rem + env(safe-area-inset-bottom)) !important;
+    left: auto !important;
+    max-height: none !important;
+    border-radius: 1.45rem 0 0 1.45rem !important;
+    transform: translate3d(0, 0, 0) !important;
+    box-shadow:
+      -18px 20px 46px rgba(0, 0, 0, 0.52),
+      -1px 0 0 rgba(245, 197, 24, 0.14),
+      inset 1px 0 0 rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--expanded > div:first-child {
+    position: relative;
+    padding-left: 2.55rem;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--expanded > div:first-child > .map-sheet-drag-handle {
+    position: absolute;
+    top: 50%;
+    left: 0.28rem;
+    width: 2rem;
+    height: 3.6rem;
+    margin: 0 !important;
+    transform: translateY(-50%);
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--expanded > div:first-child > .map-sheet-drag-handle .map-sheet-drag-bar {
+    width: 0.22rem;
+    height: 2rem;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray-list {
+    min-height: 0;
+    max-height: none !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--collapsed {
+    top: 50% !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: auto !important;
+    height: 4.5rem;
+    border-radius: 1.25rem 0 0 1.25rem !important;
+    transform: translate3d(calc(100% - 4.15rem), -50%, 0) !important;
+    box-shadow:
+      -12px 12px 30px rgba(0, 0, 0, 0.42),
+      -1px 0 0 rgba(245, 197, 24, 0.16),
+      inset 1px 0 0 rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--collapsed > button[aria-label='Expand nearby dare tray'] {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 4.5rem;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--collapsed > button[aria-label='Expand nearby dare tray'] > * {
+    visibility: hidden;
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--collapsed > button[aria-label='Expand nearby dare tray']::before {
+    content: 'NOW';
+    position: absolute;
+    top: 50%;
+    left: 0.72rem;
+    visibility: visible;
+    color: #f8dd72;
+    font-size: 0.55rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    transform: translateY(-50%) rotate(-90deg);
+    text-shadow: 0 0 12px rgba(245, 197, 24, 0.34);
+  }
+
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--collapsed > button[aria-label='Expand nearby dare tray']::after {
+    content: '\2039';
+    position: absolute;
+    top: 50%;
+    left: 3.05rem;
+    visibility: visible;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.3rem;
+    line-height: 1;
+    transform: translateY(-52%);
+  }
+
+  /* The active mission pill sits above The Board. Lift the guide above it so
+     the Ask button remains a distinct target instead of hiding underneath. */
+  body.bd-map-route-active:has(.creator-mission-tray-map-compact)
+    .basedare-maplibre-map
+    div:has(> button > .adventure-guide-orb) {
+    bottom: calc(8.3rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* When Nearby Now opens, PeeBear moves into the drawer's left gutter. The
+     text button yields temporarily; the familiar mascot remains actionable. */
+  body.bd-map-route-active:has(.nearby-dare-tray--expanded)
+    .basedare-maplibre-map
+    div:has(> button > .adventure-guide-orb) {
+    right: auto !important;
+    bottom: calc(5.9rem + env(safe-area-inset-bottom)) !important;
+    left: 0.1rem !important;
+    z-index: 18 !important;
+    max-width: 4.2rem !important;
+  }
+
+  body.bd-map-route-active:has(.nearby-dare-tray--expanded)
+    .basedare-maplibre-map
+    div:has(> button > .adventure-guide-orb)
+    > button:first-child {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray {
+    transition: none !important;
+  }
+}
+
 /* Desktop map instruments
    -----------------------
    Give the floating map controls the same dark, physical console language as

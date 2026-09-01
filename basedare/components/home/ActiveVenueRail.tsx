@@ -142,7 +142,7 @@ export default function ActiveVenueRail() {
                   <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.035] px-3 py-2">
                     <QrCode className="h-3.5 w-3.5 text-[#f9e27a]/80" />
                     <p className="mt-2 text-lg font-black text-white tabular-nums">{venue.proofCount}</p>
-                    <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/32">Proofs</p>
+                    <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/32">Updates</p>
                   </div>
                 </div>
 

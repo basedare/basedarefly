@@ -760,7 +760,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
             <MapPin className="w-10 h-10 text-gray-500" />
             <p className="text-lg font-bold text-white">No nearby bounty yet</p>
             <p className="text-sm text-gray-400 text-center">
-              Open the venue map and mark the first proof route in your area.
+              Open the venue map and add the first useful update in your area.
             </p>
           </div>
         </div>
@@ -772,7 +772,7 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
             <MapPin className="h-10 w-10 text-white/40" />
             <p className="text-lg font-black text-white">First dares are forming in Siargao</p>
             <p className="max-w-md text-sm text-white/50">
-              Run a venue dare or join as a founding creator — verified arrivals, real proof, paid out.
+              Fund a useful mission or join as a contributor — real arrivals, useful updates, and paid work.
             </p>
             <div className="mt-2 flex flex-wrap justify-center gap-2">
               <Link href="/first-spark" prefetch={false} className="inline-flex min-h-10 items-center rounded-full border border-yellow-300/30 bg-yellow-300 px-4 text-[11px] font-black uppercase tracking-[0.14em] text-black transition hover:bg-yellow-200">

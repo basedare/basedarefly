@@ -276,24 +276,21 @@ function HomeContent() {
 
               <div className="relative z-30 mb-8 flex w-full max-w-[100vw] flex-col items-center justify-center overflow-hidden px-4 text-center">
                 <GlitchText glowColor="#FFD700" className="z-20 text-[9.5vw] font-black italic leading-[0.92] tracking-tighter text-white md:text-7xl lg:text-8xl">
-                  PICK A MISSION.
+                  FIND SOMETHING
                 </GlitchText>
                 <h2 className="mt-1 text-[10vw] font-black italic uppercase leading-none tracking-tighter text-white md:text-7xl lg:text-8xl">
-                  MAKE IT REAL.
+                  WORTH DOING.
                 </h2>
                 <p className="mt-2 text-[9vw] font-black italic uppercase leading-none tracking-tighter text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.26)] md:text-6xl lg:text-7xl">
-                  GET PAID.
+                  RIGHT NOW.
                 </p>
               </div>
 
-              {/* First-touch clarity: one honest promise, then the two useful entry paths. */}
-              <div className="relative z-30 mb-12 w-full max-w-3xl px-6 text-center">
+              {/* Consumer first: understand the live map before seeing its earning and funding rails. */}
+              <div className="relative z-30 mb-8 w-full max-w-3xl px-6 text-center">
                 <p className="mx-auto max-w-2xl text-sm font-bold leading-6 text-white/64 sm:text-base">
-                  Check a place, capture a moment, or create something for a venue or brand. Once your work is approved, you get paid.
+                  See what&apos;s happening. Join in. Go together.
                 </p>
-                <div className="mt-7">
-                  <RoleChoiceCards />
-                </div>
                 <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] font-black uppercase tracking-[0.14em]">
                   <Link
                     href="/map?source=home-grid"
@@ -309,6 +306,40 @@ function HomeContent() {
                   >
                     See the Board →
                   </Link>
+                </div>
+              </div>
+
+              <div id="active-bounties" className="z-30 flex w-full justify-center px-4 pb-12 pt-8 md:px-6 md:pb-14 md:pt-12">
+                <div className="relative w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_16%_8%,rgba(184,127,255,0.11),transparent_32%),radial-gradient(circle_at_86%_92%,rgba(34,211,238,0.08),transparent_34%),linear-gradient(160deg,rgba(30,22,52,0.42),rgba(8,9,18,0.94))] px-4 py-10 shadow-[16px_22px_58px_rgba(0,0,0,0.48),-9px_-9px_24px_rgba(255,255,255,0.034),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-28px_42px_rgba(0,0,0,0.28)] backdrop-blur-xl md:px-6 md:py-12">
+                  <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-8 bottom-[17rem] hidden h-px bg-gradient-to-r from-transparent via-[#b87fff]/22 to-transparent lg:block" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-[linear-gradient(180deg,rgba(184,127,255,0)_0%,rgba(34,211,238,0.045)_34%,rgba(245,197,24,0.035)_100%)]" />
+                  <HoneyGooAccent className="absolute right-6 top-[-2px] z-20 hidden xl:block 2xl:right-10" size="md" />
+                  <div className="relative z-10 mb-12 flex flex-col items-center">
+                    <h3
+                      className="active-bounties-neon text-lg font-black italic uppercase tracking-[0.2em] md:text-xl"
+                      style={{
+                        color: '#c084fc',
+                        textShadow: '0 0 10px rgba(168,85,247,0.6), 0 0 30px rgba(168,85,247,0.3), 0 0 60px rgba(168,85,247,0.15)',
+                      }}
+                    >
+                      Live Around You
+                    </h3>
+                    <div className="bd-purple-pulse-line mt-3 h-px w-32" />
+                  </div>
+
+                  <div className="relative z-10">
+                    <PremiumBentoGrid dares={dares} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative z-30 mb-12 w-full max-w-3xl px-6 text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/42">
+                  Want to earn or fund something?
+                </p>
+                <div className="mt-5">
+                  <RoleChoiceCards />
                 </div>
               </div>
 
@@ -347,32 +378,6 @@ function HomeContent() {
 
               <div id="markets" className="scroll-mt-24">
                 <MarketsSection />
-              </div>
-
-              <div id="active-bounties" className="w-full flex justify-center px-4 pb-12 pt-20 z-30 md:px-6 md:pb-14">
-                <div className="relative w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_16%_8%,rgba(184,127,255,0.11),transparent_32%),radial-gradient(circle_at_86%_92%,rgba(34,211,238,0.08),transparent_34%),linear-gradient(160deg,rgba(30,22,52,0.42),rgba(8,9,18,0.94))] px-4 py-10 shadow-[16px_22px_58px_rgba(0,0,0,0.48),-9px_-9px_24px_rgba(255,255,255,0.034),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-28px_42px_rgba(0,0,0,0.28)] backdrop-blur-xl md:px-6 md:py-12">
-                  <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
-                  <div className="pointer-events-none absolute inset-x-8 bottom-[17rem] hidden h-px bg-gradient-to-r from-transparent via-[#b87fff]/22 to-transparent lg:block" />
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-[linear-gradient(180deg,rgba(184,127,255,0)_0%,rgba(34,211,238,0.045)_34%,rgba(245,197,24,0.035)_100%)]" />
-                  <HoneyGooAccent className="absolute right-6 top-[-2px] z-20 hidden xl:block 2xl:right-10" size="md" />
-                  <div className="relative z-10 mb-12 flex flex-col items-center">
-                    <h3
-                      className="active-bounties-neon font-black italic text-lg md:text-xl tracking-[0.2em] uppercase"
-                      style={{
-                        color: '#c084fc',
-                        textShadow: '0 0 10px rgba(168,85,247,0.6), 0 0 30px rgba(168,85,247,0.3), 0 0 60px rgba(168,85,247,0.15)',
-                      }}
-                    >
-                      Live Around You
-                    </h3>
-                    <div className="bd-purple-pulse-line mt-3 h-px w-32" />
-                  </div>
-
-                  <div className="relative z-10">
-                    <PremiumBentoGrid dares={dares} />
-                  </div>
-
-          </div>
               </div>
 
               {showBelowFoldSections ? (
