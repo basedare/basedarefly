@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useRecommendationClock } from '@/hooks/useRecommendationClock';
+import { assessRecommendation } from '@/lib/recommendation-policy';
 import {
   CircleHelp,
   Crosshair,
@@ -29,6 +31,8 @@ import type { LivePlanSnapshot } from '@/lib/live-plans';
 import { trackClientEvent } from '@/lib/analytics';
 import {
   filterWorldPulsePlans,
+  worldPulseRecommendationInput,
+  worldPulseRecommendationWindow,
   getWorldPulseMapHref,
   getWorldPulseMapViewHref,
   getWorldPulseDecision,
@@ -74,6 +78,7 @@ export default function LivePlansClient({
   initialSelectedPlanId = null,
   initialNeedsPeople = false,
 }: LivePlansClientProps) {
+  const now = useRecommendationClock();
   const [center, setCenter] = useState(initialCenter);
   const [radiusKm] = useState(initialRadiusKm);
   const [usingDeviceLocation, setUsingDeviceLocation] = useState(false);
@@ -177,25 +182,29 @@ export default function LivePlansClient({
 
   const plans = useMemo(() => {
     const source = snapshot?.plans ?? [];
-    const timed = filterWorldPulsePlans(source, mode);
+    const timed = filterWorldPulsePlans(source, mode, now, snapshot?.window.tz);
     return needsPeopleOnly ? timed.filter((plan) => plan.status.forming) : timed;
-  }, [mode, needsPeopleOnly, snapshot?.plans]);
+  }, [mode, needsPeopleOnly, now, snapshot?.plans, snapshot?.window.tz]);
   const nextMoves = snapshot?.myNextMoves ?? [];
   const pickedPlan = useMemo(
-    () => (snapshot?.plans ?? []).find((plan) => plan.id === pickedPlanId) ?? null,
-    [pickedPlanId, snapshot?.plans],
+    () => plans.find((plan) => plan.id === pickedPlanId) ?? null,
+    [pickedPlanId, plans],
   );
-  const pickedSignal = pickedPlan ? getWorldPulseSignal(pickedPlan) : null;
+  const pickedSignal = pickedPlan ? getWorldPulseSignal(pickedPlan, now) : null;
   const pickedRunnerUp = useMemo(
-    () => (snapshot?.plans ?? []).find((plan) => plan.id === peebearDecision?.runnerUpId) ?? null,
-    [peebearDecision?.runnerUpId, snapshot?.plans],
+    () => plans.find((plan) => plan.id === peebearDecision?.runnerUpId) ?? null,
+    [peebearDecision?.runnerUpId, plans],
   );
 
   const letPeebearPick = (intent: WorldPulseIntent) => {
-    const decision = getWorldPulseDecision(plans, intent);
+    if (!snapshot) {
+      setError('Plans have not loaded yet. Refresh to check this area.');
+      return;
+    }
+    const decision = getWorldPulseDecision(plans, intent, Math.random, { now, window: worldPulseRecommendationWindow(mode), timeZone: snapshot?.window.tz });
     if (!decision) {
       const emptyMessage = intent === 'SURF'
-        ? 'No surf plan matches this time window yet. Try Something random.'
+        ? 'No surf plan fits this time window and daylight. Browse All for later, or try Something random.'
         : intent === 'PLAY'
           ? 'No free Spark matches this time window yet. Try Something random.'
           : intent === 'MEET' || intent === 'SOCIAL'
@@ -381,7 +390,7 @@ export default function LivePlansClient({
 
         {snapshot ? (
           <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-[0.12em] text-white/42">
-            <span className="rounded-full border border-white/9 bg-black/22 px-3 py-1.5">{plans.length} live</span>
+            <span className="rounded-full border border-white/9 bg-black/22 px-3 py-1.5">{plans.length} matches</span>
             <span className="rounded-full border border-white/9 bg-black/22 px-3 py-1.5">{plans.filter((plan) => plan.status.forming).length} need people</span>
             <span className="rounded-full border border-white/9 bg-black/22 px-3 py-1.5">{plans.reduce((sum, plan) => sum + (plan.people?.going ?? 0), 0)} going</span>
             {snapshot.totals.completedTogether7d > 0 ? <span className="rounded-full border border-emerald-200/14 bg-emerald-300/[0.055] px-3 py-1.5 text-emerald-100/65">{snapshot.totals.completedTogether7d} completed together this week</span> : null}
@@ -396,6 +405,7 @@ export default function LivePlansClient({
             plan={pickedPlan}
             runnerUp={pickedRunnerUp}
             signal={pickedSignal}
+            reason={assessRecommendation(worldPulseRecommendationInput(pickedPlan), { now, window: worldPulseRecommendationWindow(mode), timeZone: snapshot?.window.tz }).reason}
             intent={peebearDecision?.intent ?? null}
             sideQuest={peebearDecision?.sideQuest ?? null}
             onFlipAgain={peebearDecision && pickedRunnerUp ? flipPeebearAgain : undefined}
@@ -414,8 +424,9 @@ export default function LivePlansClient({
           ) : (
             <section className="mt-6 rounded-[1.75rem] border border-dashed border-white/14 bg-black/24 p-10 text-center">
               <UsersIcon />
-              <h2 className="mt-4 text-2xl font-black">Nothing is forming here yet.</h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-white/44">Start something people already want to do, then share the link to fill it.</p>
+              <h2 className="mt-4 text-2xl font-black">{snapshot ? "No suitable plans in this window." : "Plans couldn’t load."}</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-white/44">{snapshot ? "Try another time window, browse plans for later, or start a public plan nearby." : "Refresh to check what is available in this area."}</p>
+              {!snapshot ? <button type="button" onClick={() => void load()} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Try again</button> : mode !== 'ALL' ? <button type="button" onClick={() => setMode('ALL')} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Browse all plans</button> : null}
               <Link href="/community/rally/new" className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006]">Start the first Rally</Link>
             </section>
           )}

@@ -6,7 +6,7 @@ import {
 } from './siargao-nightlife.ts';
 
 test('uses the Siargao timezone rather than the viewer timezone', () => {
-  const guide = getSiargaoNightGuide(new Date('2026-07-12T16:30:00.000Z'));
+  const guide = getSiargaoNightGuide(new Date('2026-07-12T20:30:00.000Z'));
 
   assert.equal(guide.weekday, 'Monday');
   assert.equal(guide.headline, 'Mama Coco');

@@ -20,9 +20,13 @@ import type {
 } from "@/components/maps/useTonightActivity";
 import type { AdventureSpriteKind } from "@/lib/map-adventure-policy";
 import type { SiargaoSurfSignal } from "@/lib/siargao-surf-signal";
+import { rankTonightActivities } from "@/lib/tonight-recommendations";
+import { formatRecommendationTime, solarElevation } from "@/lib/recommendation-policy";
 import { getSiargaoNightGuide } from "@/lib/siargao-nightlife";
 
 type AdventureMapOverlayProps = {
+  now: Date;
+  timeZone?: string;
   enabled: boolean;
   panelOpen: boolean;
   loading: boolean;
@@ -49,10 +53,12 @@ type AdventureMapOverlayProps = {
 export type MapAttentionIntent = "meet" | "discover" | "now" | "tonight";
 
 export type MapAttentionPlaceSuggestion = {
+  venueId: string;
   slug: string;
   name: string;
   description: string;
   meta: string;
+  reason: string;
   sprite: AdventureSpriteKind;
 };
 
@@ -105,35 +111,19 @@ function formatTideTime(value: string) {
   }).format(new Date(value));
 }
 
-function formatActivityTiming(activity: TonightActivity) {
-  if (!activity.startsAt) {
-    if (!activity.endsAt) return "Open now";
-    const remainingMs = new Date(activity.endsAt).getTime() - Date.now();
-    if (remainingMs <= 0) return "Ending now";
-    const remainingMinutes = Math.max(1, Math.round(remainingMs / 60_000));
-    if (remainingMinutes < 60) return `${remainingMinutes} min left`;
-    return `${Math.round(remainingMinutes / 60)} hr left`;
-  }
-
-  const startsAt = new Date(activity.startsAt);
-  const deltaMinutes = Math.round((startsAt.getTime() - Date.now()) / 60_000);
-  if (deltaMinutes <= 0) return "Happening now";
-  if (deltaMinutes < 60) return `Starts in ${deltaMinutes} min`;
-  return startsAt.toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function getActivityMeta(activity: TonightActivity) {
-  const parts = [formatActivityTiming(activity)];
-  if (activity.reward?.amountUsdc)
-    parts.unshift(`${activity.reward.amountUsdc} USDC`);
-  if (activity.goingCount) parts.push(`${activity.goingCount} going`);
+function getActivityMeta(activity: TonightActivity, now: Date, timeZone?: string) {
+  const start = activity.startsAt ? new Date(activity.startsAt).getTime() : null;
+  const timing = start == null ? "Available brief" : start > now.getTime()
+    ? `Scheduled ${formatRecommendationTime(activity.startsAt!, timeZone)}` : "Recently started · host reported";
+  const parts = [timing];
+  if (activity.reward?.amountUsdc) parts.unshift(`${activity.reward.amountUsdc} USDC`);
+  if (activity.goingCount) parts.push(`${activity.goingCount} RSVP${activity.goingCount === 1 ? "" : "s"}`);
   return parts.join(" · ");
 }
 
 export default function AdventureMapOverlay({
+  now,
+  timeZone,
   enabled,
   panelOpen,
   loading,
@@ -158,38 +148,26 @@ export default function AdventureMapOverlay({
 }: AdventureMapOverlayProps) {
   const [guideLineIndex, setGuideLineIndex] = useState(0);
   const [guideSpeechOpen, setGuideSpeechOpen] = useState(false);
-  const nightGuide = getSiargaoNightGuide();
-  const confirmedTonightActivities = useMemo(
-    () =>
-      [...(snapshot?.activities ?? [])]
-        .filter((activity) => activity.type === "meetup")
-        .sort((a, b) => {
-          const aTime = a.startsAt ? new Date(a.startsAt).getTime() : 0;
-          const bTime = b.startsAt ? new Date(b.startsAt).getTime() : 0;
-          return aTime - bTime;
-        }),
-    [snapshot?.activities]
-  );
+  const nightGuide = getSiargaoNightGuide(now);
+  const destinationTimeZone = timeZone ?? snapshot?.window.tz;
+  const scheduledTonightActivities = useMemo(() => rankTonightActivities(
+    (snapshot?.activities ?? []).filter((activity) => activity.type === "meetup"),
+    { now, window: "tonight", timeZone: destinationTimeZone }
+  ).map(({ item }) => item), [now, snapshot?.activities, destinationTimeZone]);
   const rankedActivities = useMemo(() => {
-    const activities = [...(snapshot?.activities ?? [])];
-    if (intent === "meet") {
-      return activities.filter((activity) => activity.type === "meetup");
-    }
-    if (intent === "tonight") {
-      return confirmedTonightActivities;
-    }
-    if (intent === "now") {
-      return activities.sort((a, b) => {
-        const aTime = a.startsAt ? new Date(a.startsAt).getTime() : 0;
-        const bTime = b.startsAt ? new Date(b.startsAt).getTime() : 0;
-        return aTime - bTime;
-      });
-    }
-    return [];
-  }, [confirmedTonightActivities, intent, snapshot?.activities]);
-  const focalActivity = rankedActivities[0] ?? null;
-  const confirmedTonightCount = confirmedTonightActivities.length;
-  const goingCount = snapshot?.totals.going ?? 0;
+    if (!intent || intent === "discover") return [];
+    const source = intent === "meet" || intent === "tonight"
+      ? (snapshot?.activities ?? []).filter((activity) => activity.type === "meetup") : snapshot?.activities ?? [];
+    return rankTonightActivities(source, { now, window: intent === "tonight" ? "tonight" : "now", timeZone: destinationTimeZone });
+  }, [intent, now, snapshot?.activities, destinationTimeZone]);
+  const focalActivity = rankedActivities[0]?.item ?? null;
+  const focalReason = rankedActivities[0]?.assessment.reason ?? null;
+  const scheduledTonightCount = scheduledTonightActivities.length;
+  const goingCount = scheduledTonightActivities.reduce((total, activity) => total + (activity.goingCount ?? 0), 0);
+  const showSurfSignal = Boolean(surfSignal) && (intent === "discover" || (
+    (solarElevation(now, 9.803, 126.159) ?? -90) > 0 &&
+    (solarElevation(new Date(now.getTime() + 45 * 60_000), 9.803, 126.159) ?? -90) > 0
+  ));
   const showPanel = enabled && panelOpen && !obscured;
   const showIntentCard = !obscured && !intent && guideOpen;
   const showRecommendationCard = !obscured && Boolean(intent) && guideOpen;
@@ -198,22 +176,22 @@ export default function AdventureMapOverlay({
     const personalLine =
       intent === "meet"
         ? goingCount > 0
-          ? `${goingCount} people are joining public activities nearby.`
+          ? `${goingCount} RSVPs across scheduled public activities nearby.`
           : "I’ll show public activities when people opt in."
         : intent === "now"
         ? focalActivity
-          ? `${focalActivity.title} is your strongest live option.`
-          : "No fake urgency. I’m looking for a useful move now."
+          ? `${focalActivity.title} fits this time window.`
+          : "I’m checking nearby options that fit the time of day."
         : intent === "tonight"
         ? focalActivity
-          ? `${focalActivity.title} is confirmed for tonight.`
+          ? `${focalActivity.title} is scheduled for tonight.`
           : `${nightGuide.headline} is the usual ${nightGuide.weekday} rhythm.`
         : intent === "discover"
         ? "Purple stones mark reviewed clues, not random pins."
         : "Tell me what would make your next two hours better.";
 
     return [
-      ...(surfSignal
+      ...(surfSignal && showSurfSignal
         ? [`Offshore model: ${surfSignal.headline} ${surfSignal.guidance}`]
         : []),
       personalLine,
@@ -231,6 +209,7 @@ export default function AdventureMapOverlay({
     nightGuide.headline,
     nightGuide.weekday,
     surfSignal,
+    showSurfSignal,
     trailCount,
   ]);
 
@@ -290,8 +269,8 @@ export default function AdventureMapOverlay({
                 <Map className="h-3.5 w-3.5" />
               )}
               <span>
-                {confirmedTonightCount > 0
-                  ? `Tonight · ${confirmedTonightCount}`
+                {scheduledTonightCount > 0
+                  ? `Tonight · ${scheduledTonightCount}`
                   : "Tonight"}
               </span>
               {goingCount > 0 ? (
@@ -329,7 +308,7 @@ export default function AdventureMapOverlay({
         </div>
 
         {showIntentCard ? (
-          <section className="map-attention-card pointer-events-auto relative mt-1 max-h-[min(24rem,55dvh)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-[26px] border border-[#f5c518]/24 bg-[radial-gradient(circle_at_92%_0%,rgba(34,211,238,0.13),transparent_34%),radial-gradient(circle_at_5%_0%,rgba(245,197,24,0.16),transparent_36%),linear-gradient(180deg,rgba(18,20,31,0.97),rgba(5,7,14,0.985))] p-3 shadow-[0_28px_64px_rgba(0,0,0,0.56),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl sm:p-4">
+          <section className="map-attention-card pointer-events-auto relative mt-1 max-h-[min(24rem,55dvh)] w-[min(24rem,calc(100vw-4rem))] overflow-y-auto rounded-[26px] border border-[#f5c518]/24 bg-[radial-gradient(circle_at_92%_0%,rgba(34,211,238,0.13),transparent_34%),radial-gradient(circle_at_5%_0%,rgba(245,197,24,0.16),transparent_36%),linear-gradient(180deg,rgba(18,20,31,0.97),rgba(5,7,14,0.985))] p-3 shadow-[0_28px_64px_rgba(0,0,0,0.56),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl sm:p-4">
             <button
               type="button"
               onClick={() => onGuideOpenChange(false)}
@@ -352,7 +331,7 @@ export default function AdventureMapOverlay({
                 That specific layer is quiet nearby right now, so I’m starting with useful choices instead.
               </p>
             ) : null}
-            {surfSignal ? (
+            {surfSignal && showSurfSignal ? (
               <div className="mt-3 block w-full rounded-[18px] border border-cyan-200/18 bg-[radial-gradient(circle_at_100%_0%,rgba(34,211,238,0.14),transparent_40%),rgba(34,211,238,0.055)] px-3 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
                 <span className="flex items-start gap-2.5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cyan-100/16 bg-black/25">
@@ -466,12 +445,12 @@ export default function AdventureMapOverlay({
                     See what’s on tonight
                   </span>
                   <span className="mt-0.5 line-clamp-1 block text-[9px] font-semibold text-white/44">
-                    Usual island rhythm + confirmed events
+                    Usual island rhythm + scheduled plans
                   </span>
                 </span>
-                {confirmedTonightCount > 0 ? (
+                {scheduledTonightCount > 0 ? (
                   <span className="shrink-0 rounded-full border border-[#f5c518]/16 bg-[#f5c518]/[0.07] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-[#f8dd72]/72">
-                    {confirmedTonightCount} confirmed
+                    {scheduledTonightCount} scheduled
                   </span>
                 ) : null}
                 <ChevronRight className="h-4 w-4 shrink-0 text-white/28 transition group-hover:text-[#f8dd72]" />
@@ -499,7 +478,7 @@ export default function AdventureMapOverlay({
         ) : null}
 
         {showRecommendationCard ? (
-          <section className="map-attention-card pointer-events-auto relative mt-1 max-h-[min(21rem,45dvh)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-[24px] border border-cyan-100/15 bg-[linear-gradient(180deg,rgba(13,21,32,0.95),rgba(5,7,14,0.975))] p-3.5 shadow-[0_24px_54px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl">
+          <section className="map-attention-card pointer-events-auto relative mt-1 max-h-[min(21rem,45dvh)] w-[min(24rem,calc(100vw-4rem))] overflow-y-auto rounded-[24px] border border-cyan-100/15 bg-[linear-gradient(180deg,rgba(13,21,32,0.95),rgba(5,7,14,0.975))] p-3.5 shadow-[0_24px_54px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl">
             <button
               type="button"
               onClick={() => onGuideOpenChange(false)}
@@ -547,21 +526,41 @@ export default function AdventureMapOverlay({
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-[#f8dd72]/72">
-                      Best match
+                      Best match for this window
                     </span>
                     <span className="mt-1 line-clamp-1 block text-sm font-black text-white">
                       {focalActivity.title}
                     </span>
                     <span className="mt-1 block text-[10px] font-bold text-white/50">
-                      {getActivityMeta(focalActivity)}
+                      {getActivityMeta(focalActivity, now, timeZone ?? snapshot?.window.tz)}
                     </span>
+                    <span className="mt-1 block text-[10px] leading-4 text-cyan-100/70">{focalReason}</span>
                   </span>
                   <ChevronRight className="h-4 w-4 text-[#f8dd72]" />
                 </button>
               ) : null}
 
+              {rankedActivities.slice(1, 3).map(({ item: activity, assessment }) => (
+                <button
+                  key={`${activity.type}:${activity.id}`}
+                  type="button"
+                  onClick={() => onSelectActivity(activity)}
+                  className="flex min-h-14 items-center gap-3 rounded-[17px] border border-white/9 bg-white/[0.035] px-3 py-2 text-left transition hover:border-cyan-100/22"
+                >
+                  <span className={`adventure-sprite adventure-sprite--${activity.type === "dare" ? "flag" : "gathering"}`} aria-hidden="true" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[8px] font-black uppercase tracking-[0.15em] text-cyan-100/48">Another plan</span>
+                    <span className="mt-1 block text-xs font-black text-white">{activity.title}</span>
+                    <span className="mt-1 block text-[9px] text-white/48">{getActivityMeta(activity, now, destinationTimeZone)}</span>
+                    <span className="mt-1 block text-[10px] leading-4 text-cyan-100/70">{assessment.reason}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-cyan-100/48" />
+                </button>
+              ))}
+
               {placeSuggestions
-                .slice(0, focalActivity ? 2 : 3)
+                .filter((place) => !rankedActivities.slice(0, 3).some(({ item }) => item.place.venueId === place.venueId))
+                .slice(0, Math.max(0, 3 - rankedActivities.length))
                 .map((place, index) => (
                   <button
                     key={place.slug}
@@ -580,17 +579,18 @@ export default function AdventureMapOverlay({
                           : (!focalActivity && index === 1) ||
                             (focalActivity && index === 0)
                           ? "Easy alternative"
-                          : "Mystery choice"}
+                          : "Another option"}
                       </span>
-                      <span className="mt-0.5 line-clamp-1 block text-xs font-black text-white">
+                      <span className="mt-0.5 line-clamp-1 text-xs font-black text-white">
                         {place.name}
                       </span>
-                      <span className="mt-1 line-clamp-1 block text-[9px] font-semibold text-white/46">
+                      <span className="mt-1 line-clamp-2 text-[9px] font-semibold text-white/46">
                         {place.description}
                       </span>
-                      <span className="mt-1 line-clamp-1 block text-[9px] font-semibold text-white/42">
+                      <span className="mt-1 line-clamp-1 text-[9px] font-semibold text-white/42">
                         {place.meta}
                       </span>
+                      <span className="my-1 block text-[10px] leading-4 text-cyan-100/70">{place.reason}</span>
                     </span>
                     <ChevronRight className="h-4 w-4 text-white/24 transition group-hover:text-violet-100" />
                   </button>
@@ -599,16 +599,16 @@ export default function AdventureMapOverlay({
               {!focalActivity && placeSuggestions.length === 0 ? (
                 <button
                   type="button"
-                  onClick={onExploreSecrets}
+                  onClick={() => onIntentChange("discover")}
                   className="flex min-h-14 items-center gap-3 rounded-[17px] border border-violet-200/18 bg-violet-300/[0.055] px-3 text-left"
                 >
                   <Compass className="h-5 w-5 text-violet-100" />
                   <span>
                     <span className="block text-xs font-black text-white">
-                      Widen the search
+                      Explore for later
                     </span>
                     <span className="mt-1 block text-[9px] text-white/44">
-                      No fake recommendations. Scan a larger area.
+                      Nothing suitable right now. Explore places for later.
                     </span>
                   </span>
                 </button>
@@ -640,7 +640,7 @@ export default function AdventureMapOverlay({
               </p>
               <p className="mt-1.5 text-xs leading-5 text-white/48">
                 {nightGuide.lateVenue} is the late option every night, usually {nightGuide.lateHoursLabel}.
-                Monthly raves and pop-ups appear below only when they are confirmed.
+                Published one-off plans appear below. Check the host for changes.
               </p>
               {nightGuide.warmUpHeadline ? (
                 <p className="mt-2 rounded-xl border border-violet-200/12 bg-violet-300/[0.05] px-3 py-2 text-[10px] font-semibold leading-4 text-violet-50/62">
@@ -652,12 +652,12 @@ export default function AdventureMapOverlay({
               </p>
             </div>
 
-            {confirmedTonightActivities.length > 0 ? (
+            {scheduledTonightActivities.length > 0 ? (
               <div className="mt-2.5 grid gap-2">
                 <p className="px-1 text-[8px] font-black uppercase tracking-[0.18em] text-cyan-100/48">
-                  Confirmed additions
+                  Scheduled additions
                 </p>
-                {confirmedTonightActivities.slice(0, 2).map((activity) => (
+                {scheduledTonightActivities.slice(0, 2).map((activity) => (
                   <button
                     key={`${activity.type}:${activity.id}`}
                     type="button"
@@ -670,7 +670,7 @@ export default function AdventureMapOverlay({
                           {activity.title}
                         </span>
                         <span className="mt-1 block text-[9px] font-bold text-white/48">
-                          {activity.place.label} · {getActivityMeta(activity)}
+                          {activity.place.label} · {getActivityMeta(activity, now, timeZone ?? snapshot?.window.tz)}
                         </span>
                       </span>
                       <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-cyan-100/62" />
@@ -681,10 +681,10 @@ export default function AdventureMapOverlay({
             ) : (
               <p className="mt-2.5 rounded-[14px] border border-white/8 bg-black/20 px-3 py-2 text-[9px] font-semibold leading-4 text-white/38">
                 {loading
-                  ? "Checking confirmed one-offs now."
+                  ? "Checking scheduled plans now."
                   : error
-                  ? `Confirmed events could not refresh: ${error}`
-                  : "No confirmed one-off event is published nearby yet."}
+                  ? `Scheduled plans could not refresh: ${error}`
+                  : "No suitable scheduled plan is published nearby yet."}
               </p>
             )}
           </div>

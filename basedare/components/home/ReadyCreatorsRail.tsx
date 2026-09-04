@@ -133,20 +133,20 @@ export default function ReadyCreatorsRail() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/24 bg-emerald-400/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100">
               <ShieldCheck className="h-3.5 w-3.5" />
-              Creator Supply
+              Contributors
             </div>
             <h3 className="mt-4 text-2xl font-black italic tracking-tight text-white md:text-3xl">
-              Founding creators ready for paid missions.
+              Real-world work. Clear paid missions.
             </h3>
             <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-white/56">
-              Claim your tag, tune your mission radar, and get routed when venues fund real-world proof.
+              Browse a funded brief, request the mission, and get paid for approved work. No public profile is required to start.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
-                href="/creators/onboard?source=home-founding-creator"
+                href="/earn?source=home-founding-creator"
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-yellow-300/30 bg-yellow-300 px-5 text-xs font-black uppercase tracking-[0.14em] text-black transition hover:bg-yellow-200"
               >
-                Join as founding creator
+                Find paid missions
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link

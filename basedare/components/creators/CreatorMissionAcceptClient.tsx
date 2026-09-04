@@ -13,6 +13,7 @@ import SubmitEvidence from '@/components/SubmitEvidence';
 import CosmicButton from '@/components/ui/CosmicButton';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { trackClientEvent } from '@/lib/analytics';
+import { PostMissionIdentity } from '@/components/creator-entry/PostMissionIdentity';
 import { getCreatorMissionActionState } from '@/lib/creator-mission-action';
 import { isProximityGatedDare } from '@/lib/proof-proximity-policy';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
@@ -167,6 +168,7 @@ export function CreatorMissionAcceptClient({
         <StateIcon className="mx-auto h-7 w-7 text-cyan-100" aria-hidden="true" />
         <p className="mt-3 text-lg font-black text-white">{stateCopy.title}</p>
         <p className="mt-1 text-sm leading-6 text-white/52">{stateCopy.detail}</p>
+        {actionState === 'PAID' ? <PostMissionIdentity /> : null}
       </div>
     );
   }
@@ -179,6 +181,7 @@ export function CreatorMissionAcceptClient({
         <p className="mt-1 text-sm leading-6 text-white/52">
           BaseDare is reviewing it. You can start and upload your work after approval.
         </p>
+        <PostMissionIdentity />
       </div>
     );
   }

@@ -1808,6 +1808,7 @@ export async function getNearbyVenues(input: {
       country: true,
       latitude: true,
       longitude: true,
+      timezone: true,
       categories: true,
       status: true,
       isPartner: true,
@@ -1935,6 +1936,7 @@ export async function getNearbyVenues(input: {
         country: venue.country,
         latitude: venue.latitude,
         longitude: venue.longitude,
+        timezone: venue.timezone,
         navigation: resolvePlaceNavigationSummary({
           latitude: venue.latitude,
           longitude: venue.longitude,

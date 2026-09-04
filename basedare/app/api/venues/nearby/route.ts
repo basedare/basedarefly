@@ -105,6 +105,7 @@ function getCuratedFallbackVenues(query: NearbyVenueQuery | null): NearbyVenueIt
       country: venue.country,
       latitude: venue.latitude,
       longitude: venue.longitude,
+      timezone: venue.timezone,
       navigation: resolvePlaceNavigationSummary({
         latitude: venue.latitude,
         longitude: venue.longitude,

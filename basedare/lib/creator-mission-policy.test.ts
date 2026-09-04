@@ -40,13 +40,14 @@ test('only genuine open paid missions enter the creator feed', () => {
 });
 
 test('sponsor-reuse missions stay in the clear mission view but cannot receive requests', () => {
+  const now = new Date('2026-08-23T00:00:00.000Z');
   const mission = openMission({
     outcomeContractSnapshot: {
       rights: { sponsorCommercialReuseRequired: true },
     },
   });
-  assert.equal(isCreatorMissionFunnelCandidate(mission), true);
-  assert.equal(isCreatorMissionAvailable(mission), false);
+  assert.equal(isCreatorMissionFunnelCandidate(mission, now), true);
+  assert.equal(isCreatorMissionAvailable(mission, now), false);
 });
 
 test('QA and smoke rows stay off public creator surfaces', () => {

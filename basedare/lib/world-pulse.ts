@@ -1,5 +1,5 @@
 import { pickLivePlan, roundLivePlanCoord, type LivePlan } from './live-plans';
-import { GRACE_STARTED_MS, tonightWindow } from './tonight';
+import { assessRecommendation, rankRecommendations, requiresDaylight, type RecommendationContext, type RecommendationWindow } from './recommendation-policy';
 
 export const WORLD_PULSE_TZ = 'Asia/Manila';
 export const WORLD_PULSE_RADIUS_KM = 12;
@@ -26,7 +26,6 @@ const MODE_QUERY: Record<WorldPulseMode, string> = {
 };
 
 const NOW_LOOKAHEAD_MS = 30 * 60 * 1000;
-const NEXT_TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
 function parsePlanTime(value: string | null) {
   if (!value) return null;
@@ -65,14 +64,24 @@ export function normalizeWorldPulseRadius(value: unknown) {
   return Math.min(25, Math.max(0.1, Math.round(radius * 10) / 10));
 }
 
-export function isWorldPulseNowPlan(plan: Pick<LivePlan, 'startsAt' | 'endsAt'>, now = new Date()) {
-  const nowMs = now.getTime();
-  const startMs = parsePlanTime(plan.startsAt);
-  const endMs = parsePlanTime(plan.endsAt);
-  if (endMs != null && endMs < nowMs) return false;
-  if (startMs == null) return true;
-  if (startMs > nowMs + NOW_LOOKAHEAD_MS) return false;
-  return endMs != null ? endMs >= nowMs : startMs >= nowMs - GRACE_STARTED_MS;
+export function worldPulseRecommendationInput(plan: LivePlan) {
+  return {
+    title: plan.title,
+    kind: plan.type === 'boat' ? 'boat' as const : 'activity' as const,
+    latitude: plan.place.lat,
+    longitude: plan.place.lng,
+    startsAt: plan.startsAt,
+    endsAt: plan.endsAt,
+    distanceKm: plan.distanceKm,
+  };
+}
+
+export function worldPulseRecommendationWindow(mode: WorldPulseMode): RecommendationWindow {
+  return mode === 'ALL' ? 'browse' : mode === 'NEXT_2H' ? 'next2h' : mode === 'TONIGHT' ? 'tonight' : 'now';
+}
+
+export function isWorldPulseNowPlan(plan: LivePlan, now = new Date()) {
+  return assessRecommendation(worldPulseRecommendationInput(plan), { now, window: 'now' }).eligible;
 }
 
 export function filterWorldPulsePlans(
@@ -81,41 +90,17 @@ export function filterWorldPulsePlans(
   now = new Date(),
   timeZone = WORLD_PULSE_TZ,
 ) {
-  if (mode === 'ALL') return plans;
-  const nowMs = now.getTime();
-
-  if (mode === 'NOW') {
-    return plans.filter((plan) => isWorldPulseNowPlan(plan, now));
-  }
-
-  if (mode === 'NEXT_2H') {
-    return plans.filter((plan) => {
-      if (isWorldPulseNowPlan(plan, now)) return true;
-      const startMs = parsePlanTime(plan.startsAt);
-      return startMs != null && startMs > nowMs && startMs <= nowMs + NEXT_TWO_HOURS_MS;
-    });
-  }
-
-  const window = tonightWindow(now, timeZone);
-  return plans.filter((plan) => {
-    const startMs = parsePlanTime(plan.startsAt);
-    if (startMs == null) return false;
-    const endMs = parsePlanTime(plan.endsAt);
-    if (endMs != null && endMs < nowMs) return false;
-    return startMs >= nowMs - GRACE_STARTED_MS && startMs <= window.endUtc.getTime();
-  });
+  const context = { now, timeZone, window: worldPulseRecommendationWindow(mode) };
+  return plans.filter((plan) => assessRecommendation(worldPulseRecommendationInput(plan), context).eligible);
 }
 
-const SURF_INTENT_PATTERN = /\b(surf|wave|reef|paddle|board|boat|island|wake)\b/i;
+const SURF_INTENT_PATTERN = /\b(surf|surfing|wave|reef|paddle)\b/i;
 const MEET_INTENT_PATTERN = /\b(meet|crew|social|trivia|hang|together|party|night)\b/i;
 
 function isSurfPlan(plan: LivePlan) {
   if (plan.type === 'boat') return true;
-  return SURF_INTENT_PATTERN.test([
-    plan.title,
-    plan.summary ?? '',
-    plan.place.label,
-  ].join(' '));
+  // A venue named Surf School must not put its trivia night in the Surf lane.
+  return SURF_INTENT_PATTERN.test(plan.title) && requiresDaylight(worldPulseRecommendationInput(plan));
 }
 
 function isMeetPlan(plan: LivePlan) {
@@ -175,8 +160,9 @@ export function getWorldPulseSideQuest(plan: LivePlan, random: () => number = Ma
  * PeeBear narrows real visible inventory; it never invents a destination.
  * Food/drink lanes stay out until venue hours and suitability are trustworthy.
  */
-export function pickWorldPulsePlan(plans: LivePlan[], intent: WorldPulseIntent) {
-  return pickLivePlan(getIntentPlans(plans, intent));
+export function pickWorldPulsePlan(plans: LivePlan[], intent: WorldPulseIntent, context: RecommendationContext = { now: new Date(), window: 'now' }) {
+  const eligible = rankRecommendations(getIntentPlans(plans, intent), worldPulseRecommendationInput, context);
+  return pickLivePlan(eligible.map(({ item }) => item));
 }
 
 /**
@@ -189,8 +175,9 @@ export function getWorldPulseDecision(
   plans: LivePlan[],
   intent: WorldPulseIntent,
   random: () => number = Math.random,
+  context: RecommendationContext = { now: new Date(), window: 'now' },
 ): WorldPulseDecision | null {
-  const matching = getIntentPlans(plans, intent);
+  const matching = rankRecommendations(getIntentPlans(plans, intent), worldPulseRecommendationInput, context).map(({ item }) => item);
   const priority = pickLivePlan(matching);
   if (!priority) return null;
 
@@ -224,7 +211,7 @@ export function getWorldPulseSignal(plan: LivePlan, now = new Date()): WorldPuls
   const startMs = parsePlanTime(plan.startsAt);
   const endMs = parsePlanTime(plan.endsAt);
 
-  if (endMs != null && endMs < nowMs) {
+  if (endMs != null && endMs <= nowMs) {
     return { state: 'OUTDATED', label: 'Outdated', sourceLabel: plan.trust.sourceLabel };
   }
   if (plan.status.forming && plan.people?.spotsNeeded) {

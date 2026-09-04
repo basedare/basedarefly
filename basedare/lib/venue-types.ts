@@ -317,6 +317,7 @@ export type NearbyVenueItem = {
   country: string | null;
   latitude: number;
   longitude: number;
+  timezone: string;
   navigation: import('./place-directions').PlaceNavigationSummary;
   categories: string[];
   status: string;

@@ -1192,11 +1192,11 @@ export default function Dashboard() {
       id: 'map-scout-primary',
       eyebrow: 'Clear state',
       label: 'Find paid missions',
-      detail: 'Nothing urgent is waiting. Open the map, scout live places, or create the next useful mission.',
-      cta: 'Open map',
+      detail: 'Nothing urgent is waiting. Browse funded briefs and request work that suits you.',
+      cta: 'Browse paid missions',
       tone: 'cyan',
       icon: Compass,
-      onSelect: () => router.push('/map'),
+      onSelect: () => router.push('/earn?source=dashboard'),
     };
   }
 

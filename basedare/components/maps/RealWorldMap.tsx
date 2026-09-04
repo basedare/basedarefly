@@ -2,6 +2,9 @@
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 import Image from 'next/image';
+import { useRecommendationClock } from '@/hooks/useRecommendationClock';
+import { assessRecommendation, destinationHour, solarElevation, type RecommendationInput } from '@/lib/recommendation-policy';
+import { rankTonightActivities } from '@/lib/tonight-recommendations';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -92,7 +95,7 @@ import {
   resolveMapRelicSignal,
 } from '@/lib/map-relic-system';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
-import { isSiargaoVenueFeaturedTonight } from '@/lib/siargao-nightlife';
+import { getSiargaoNightGuide, isSiargaoVenueFeaturedTonight } from '@/lib/siargao-nightlife';
 import {
   BOAT_LAUNCHES,
   KANAWAY_BOAT_VENUE_SLUG,
@@ -220,6 +223,7 @@ type NearbyPlace = {
   country: string | null;
   latitude: number;
   longitude: number;
+  timezone?: string;
   navigation?: PlaceNavigationSummary;
   categories: string[];
   distanceDisplay: string;
@@ -2573,15 +2577,22 @@ function formatMapUsd(amount: number) {
   });
 }
 
-function getHappeningWindow(date: Date): HappeningWindow {
-  const hour = date.getHours();
+function getPlaceRecommendationInput(place: NearbyPlace): RecommendationInput {
+  return {
+    title: place.name, kind: 'place', categories: place.categories,
+    latitude: place.latitude, longitude: place.longitude,
+    lastVerifiedAt: place.tagSummary.lastTaggedAt,
+  };
+}
+
+function getHappeningWindow(date: Date, latitude: number, longitude: number, timeZone?: string): HappeningWindow {
+  const hour = destinationHour(date, longitude, timeZone);
+  const daylight = (solarElevation(date, latitude, longitude) ?? -90) > 0;
   const dateLabel = date.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
+    timeZone: timeZone ?? 'UTC', weekday: 'short', month: 'short', day: 'numeric',
   });
 
-  if (hour >= 5 && hour < 11) {
+  if (daylight && hour < 11) {
     return {
       key: 'morning',
       label: 'Morning',
@@ -2590,7 +2601,7 @@ function getHappeningWindow(date: Date): HappeningWindow {
     };
   }
 
-  if (hour >= 11 && hour < 17) {
+  if (daylight && hour < 17) {
     return {
       key: 'day',
       label: 'Today',
@@ -2599,7 +2610,7 @@ function getHappeningWindow(date: Date): HappeningWindow {
     };
   }
 
-  if (hour >= 17 && hour < 21) {
+  if (daylight && hour >= 17) {
     return {
       key: 'sunset',
       label: 'Sunset',
@@ -3681,9 +3692,17 @@ export default function RealWorldMap() {
       },
     [userLocation, viewportCenter]
   );
+  const recommendationNow = useRecommendationClock();
   const tonightActivity = useTonightActivity(adventureCenter, mapReady);
+  const recommendationTimeZone = useMemo(() => {
+    const nearest = [...nearbyPlaces].filter((place) => place.timezone).sort((a, b) =>
+      calculateDistance(adventureCenter.latitude, adventureCenter.longitude, a.latitude, a.longitude) -
+      calculateDistance(adventureCenter.latitude, adventureCenter.longitude, b.latitude, b.longitude)
+    )[0];
+    return nearest?.timezone ?? tonightActivity.snapshot?.window.tz;
+  }, [adventureCenter, nearbyPlaces, tonightActivity.snapshot?.window.tz]);
   const surfSignal = useSiargaoSurfSignal(mapReady);
-  const focalAdventureActivity = tonightActivity.snapshot?.activities[0] ?? null;
+  const focalAdventureActivity = useMemo(() => rankTonightActivities(tonightActivity.snapshot?.activities ?? [], { now: recommendationNow, window: 'now', timeZone: recommendationTimeZone })[0]?.item ?? null, [recommendationNow, recommendationTimeZone, tonightActivity.snapshot?.activities]);
   const deepLinkedLocation = useMemo(() => {
     const latitude = Number(searchParams.get('lat'));
     const longitude = Number(searchParams.get('lng'));
@@ -7005,58 +7024,45 @@ export default function RealWorldMap() {
   }, [footprintVenueIndex, liveVenueSlugSet, mapVenueFocus, matchedVenueIndex, nearbyPlaces, pulseFilter]);
   const mapAttentionPlaceSuggestions = useMemo<MapAttentionPlaceSuggestion[]>(() => {
     if (!mapAttentionIntent) return [];
-
-    const scorePlace = (place: NearbyPlace) => {
-      const categories = place.categories.join(' ').toLowerCase();
-      const hasStory = Boolean(place.description?.trim());
-      const isSocial = /bar|night|music|club|community|gather|hostel|market|event/.test(categories);
-      const isDiscovery = /surf|beach|island|coast|water|lagoon|river|cave|pool|view|nature|trail/.test(categories);
-      const proofCount = place.tagSummary.approvedCount;
-      const liveScore = place.activeDareCount * 35 + Math.min(24, place.tagSummary.heatScore / 4);
-      const socialScore = (isSocial ? 30 : 0) + Math.min(18, place.checkInCount * 2);
-      const discoveryScore = (isDiscovery ? 28 : 0) + (hasStory ? 16 : 0) + (proofCount === 0 ? 12 : 0);
-
-      if (mapAttentionIntent === 'meet') return socialScore + liveScore + proofCount;
-      if (mapAttentionIntent === 'now') return liveScore + socialScore / 2 + (proofCount > 0 ? 8 : 0);
-      if (mapAttentionIntent === 'tonight') {
-        return (
-          (isVenueNightTonight(place.name, place.slug) ? 120 : 0) +
-          liveScore +
-          socialScore +
-          proofCount
-        );
-      }
-      return discoveryScore + Math.min(14, proofCount * 2) + liveScore / 3;
-    };
-
-    return [...nearbyPlaces]
-      .sort((a, b) => scorePlace(b) - scorePlace(a))
-      .slice(0, 3)
-      .map((place) => {
-        const proofCount = place.tagSummary.approvedCount;
-        const meta =
-          place.activeDareCount > 0
-            ? `${place.activeDareCount} live ${place.activeDareCount === 1 ? 'Dare' : 'Dares'}`
-            : place.checkInCount > 0
-              ? `${place.checkInCount} verified ${place.checkInCount === 1 ? 'visit' : 'visits'}`
-              : proofCount > 0
-                ? `${proofCount} verified ${proofCount === 1 ? 'Spark' : 'Sparks'}`
-                : 'Be first to verify';
-
-        return {
-          slug: place.slug,
-          name: place.name,
-          description: place.description ?? (place.categories.slice(0, 2).join(' · ') || 'Nearby place'),
-          meta,
-          sprite: getAdventurePlaceSprite({
-            challengeLiveCount: place.activeDareCount,
-            categories: place.categories,
-            venueName: place.name,
-            venueSlug: place.slug,
-          }),
-        };
+    const origin = userLocation ?? adventureCenter;
+    return nearbyPlaces.map((place) => {
+      const categories = place.categories.join(' ');
+      const social = /bar|night|music|club|community|gather|hostel|market|event/.test(categories);
+      const assessment = assessRecommendation({
+        ...getPlaceRecommendationInput(place),
+        distanceKm: calculateDistance(origin.latitude, origin.longitude, place.latitude, place.longitude),
+      }, {
+        now: recommendationNow,
+        window: mapAttentionIntent === 'discover' ? 'browse' : mapAttentionIntent === 'tonight' ? 'tonight' : 'now',
+        timeZone: place.timezone ?? recommendationTimeZone,
       });
-  }, [mapAttentionIntent, nearbyPlaces]);
+      const usualNight = mapAttentionIntent !== 'discover' &&
+        (mapAttentionIntent === 'tonight' || (solarElevation(recommendationNow, place.latitude, place.longitude) ?? 0) <= 0) &&
+        isSiargaoVenueFeaturedTonight({ name: place.name, slug: place.slug, now: recommendationNow });
+      const preference = mapAttentionIntent === 'discover'
+        ? (/surf|beach|island|coast|water|lagoon|river|cave|pool|view|nature|trail/.test(categories) ? 28 : 0) +
+          (place.description ? 16 : 0) + (place.tagSummary.approvedCount === 0 ? 12 : 0) + Math.min(14, place.tagSummary.approvedCount * 2)
+        : (social ? 8 : 0) + Math.min(8, place.tagSummary.approvedCount) + (usualNight ? 12 : 0);
+      if (usualNight) {
+        assessment.reason = assessment.reason.replace('Night-time option', `Usual ${getSiargaoNightGuide(recommendationNow).weekday} stop`);
+      }
+      return { place, assessment, score: assessment.score + preference, social };
+    })
+      .filter(({ assessment, social }) => assessment.eligible && (mapAttentionIntent !== 'meet' || social))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map(({ place, assessment }) => ({
+        venueId: place.id,
+        slug: place.slug,
+        name: place.name,
+        description: place.description ?? (place.categories.slice(0, 2).join(' · ') || 'Nearby place'),
+        reason: assessment.reason,
+        meta: place.tagSummary.approvedCount > 0
+          ? `${place.tagSummary.approvedCount} verified ${place.tagSummary.approvedCount === 1 ? 'Spark' : 'Sparks'} in its history`
+          : 'No verified Sparks yet',
+        sprite: getAdventurePlaceSprite({ challengeLiveCount: place.activeDareCount, categories: place.categories, venueName: place.name, venueSlug: place.slug }),
+      }));
+  }, [adventureCenter, mapAttentionIntent, nearbyPlaces, recommendationNow, recommendationTimeZone, userLocation]);
   const mapAttentionSuggestedSlugSet = useMemo(
     () => new Set(mapAttentionPlaceSuggestions.map((place) => place.slug)),
     [mapAttentionPlaceSuggestions]
@@ -7317,13 +7323,25 @@ export default function RealWorldMap() {
     }),
     [nearbyDaresInRange]
   );
-  const happeningWindow = useMemo(() => getHappeningWindow(new Date()), []);
+  const happeningWindow = useMemo(
+    () => getHappeningWindow(recommendationNow, adventureCenter.latitude, adventureCenter.longitude, recommendationTimeZone),
+    [adventureCenter, recommendationNow, recommendationTimeZone]
+  );
+  const suitableNowPlaces = useMemo(() => nearbyPlaces.filter((place) => assessRecommendation(
+    getPlaceRecommendationInput(place), { now: recommendationNow, window: 'now', timeZone: place.timezone ?? recommendationTimeZone }
+  ).eligible), [nearbyPlaces, recommendationNow, recommendationTimeZone]);
   const mapHappenings = useMemo<MapHappening[]>(() => {
     const items: MapHappening[] = [];
     const liveVenueSlugs = new Set<string>();
     const origin = userLocation ?? viewportCenter;
 
-    nearbyDareFeed.slice(0, 3).forEach((dare) => {
+    nearbyDareFeed.filter((dare) => {
+      const place = dare.venueSlug ? nearbyPlaceBySlug.get(dare.venueSlug) : null;
+      return assessRecommendation({
+        title: dare.title, kind: 'activity', endsAt: dare.expiresAt,
+        latitude: place?.latitude ?? NaN, longitude: place?.longitude ?? NaN,
+      }, { now: recommendationNow, window: 'now', timeZone: place?.timezone ?? recommendationTimeZone }).eligible;
+    }).slice(0, 3).forEach((dare) => {
       if (dare.venueSlug) {
         liveVenueSlugs.add(dare.venueSlug);
       }
@@ -7359,7 +7377,10 @@ export default function RealWorldMap() {
       });
     });
 
-    localSignals.slice(0, 3).forEach((signal) => {
+    localSignals.filter((signal) => assessRecommendation({
+      title: signal.title, kind: 'activity', startsAt: signal.startsAt, endsAt: signal.endsAt,
+      latitude: signal.latitude ?? NaN, longitude: signal.longitude ?? NaN,
+    }, { now: recommendationNow, window: 'now', timeZone: recommendationTimeZone }).eligible).slice(0, 3).forEach((signal) => {
       if (items.length >= 5) return;
 
       const isAsk = signal.postType === 'ask';
@@ -7386,7 +7407,7 @@ export default function RealWorldMap() {
     });
 
     getLocalEventHappenings({
-      places: nearbyPlaces,
+      places: suitableNowPlaces,
       window: happeningWindow,
       origin,
       excludedSlugs: liveVenueSlugs,
@@ -7398,7 +7419,7 @@ export default function RealWorldMap() {
       items.push(event);
     });
 
-    const scoredPlaces = nearbyPlaces
+    const scoredPlaces = suitableNowPlaces
       .filter((place) => !liveVenueSlugs.has(place.slug))
       .map((place) => {
         const distanceKm = origin
@@ -7424,7 +7445,7 @@ export default function RealWorldMap() {
         kind: copy.kind,
         eyebrow: copy.eyebrow,
         title: copy.title,
-        detail: copy.detail,
+        detail: `${copy.detail} ${assessRecommendation(getPlaceRecommendationInput(place), { now: recommendationNow, window: 'now', timeZone: place.timezone ?? recommendationTimeZone }).reason}.`,
         timingLabel: happeningWindow.label,
         distanceLabel:
           distanceKm !== null
@@ -7444,7 +7465,7 @@ export default function RealWorldMap() {
     });
 
     return items.slice(0, 5);
-  }, [happeningWindow, localSignals, nearbyDareFeed, nearbyPlaceBySlug, nearbyPlaces, userLocation, viewportCenter]);
+  }, [happeningWindow, recommendationNow, recommendationTimeZone, localSignals, nearbyDareFeed, nearbyPlaceBySlug, suitableNowPlaces, userLocation, viewportCenter]);
   const featuredMapHappening = mapHappenings[0] ?? null;
   // Snap-style spike surfacing: a venue is "popping" when a dare is live or
   // verified proof landed in the last 6h — ranked by recency-weighted chaos.
@@ -11373,6 +11394,8 @@ export default function RealWorldMap() {
               fieldStationLabel={fieldStationLabel}
               fieldStationFallback={fieldStationFallback}
               surfSignal={surfSignal}
+              now={recommendationNow}
+              timeZone={recommendationTimeZone}
             />
 
             {/* Free meetup layer (Stage 3) — layer filter + legend. Only mounts

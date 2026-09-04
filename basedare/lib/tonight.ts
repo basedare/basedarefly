@@ -60,7 +60,12 @@ export function tonightWindow(now: Date, tz: string): TonightWindow {
   );
   const endLocalMs =
     local.getUTCHours() >= TONIGHT_END_HOUR ? endLocalBase + 86_400_000 : endLocalBase;
-  return { startUtc: now, endUtc: new Date(endLocalMs - offsetMs), tz };
+  // Resolve the offset at the endpoint too: clocks can change before 04:00.
+  let endUtc = new Date(endLocalMs - offsetMs);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    endUtc = new Date(endLocalMs - parseUtcOffsetMinutes(endUtc, tz) * 60_000);
+  }
+  return { startUtc: now, endUtc, tz };
 }
 
 export interface TonightMeetupInput {

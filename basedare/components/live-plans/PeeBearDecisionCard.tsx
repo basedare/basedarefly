@@ -20,6 +20,7 @@ export default function PeeBearDecisionCard({
   plan,
   runnerUp,
   signal,
+  reason,
   intent,
   sideQuest,
   onFlipAgain,
@@ -27,6 +28,7 @@ export default function PeeBearDecisionCard({
   plan: LivePlan;
   runnerUp: LivePlan | null;
   signal: WorldPulseSignal;
+  reason: string;
   intent: WorldPulseIntent | null;
   sideQuest: string | null;
   onFlipAgain?: () => void;
@@ -69,6 +71,8 @@ export default function PeeBearDecisionCard({
           <p className="mt-3 text-[9px] font-black uppercase tracking-[0.15em] text-cyan-100/54">
             {signal.label}{signal.sourceLabel ? ` · ${signal.sourceLabel}` : ''}
           </p>
+
+          <p className="mt-2 text-xs leading-5 text-white/58">{reason}</p>
 
           {sideQuest ? (
             <div className="mt-4 rounded-2xl border border-violet-200/14 bg-violet-300/[0.055] px-4 py-3">

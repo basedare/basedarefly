@@ -11,7 +11,7 @@ import type { LivePlanSnapshot } from '@/lib/live-plans';
 const SIARGAO_QUERY = 'lat=9.803&lng=126.159&radiusKm=25&horizonHours=168&limit=100';
 
 function isVisibleRoute(pathname: string) {
-  return pathname === '/map' || pathname === '/board' || pathname === '/now' || pathname.startsWith('/earn');
+  return pathname === '/map' || pathname === '/board' || pathname === '/now' || pathname === '/dashboard' || pathname.startsWith('/earn');
 }
 
 function isCreatorMissionItem(value: unknown): value is CreatorMissionTrayItem {
@@ -86,5 +86,5 @@ export default function GlobalMyNextMove() {
       />
     );
   }
-  return <MyNextMoveTray plans={snapshot?.myNextMoves ?? []} className={className} />;
+  return pathname === '/dashboard' ? null : <MyNextMoveTray plans={snapshot?.myNextMoves ?? []} className={className} />;
 }

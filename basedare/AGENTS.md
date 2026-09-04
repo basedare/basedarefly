@@ -16,6 +16,15 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 
+### Codex contributor entry and time-appropriate recommendations (2026-09-05 — MAIN RELEASE)
+- User explicitly authorized pushing the completed recommendation and contributor cleanup to main. Base commit is `90d6eb76`; the subsequent homepage positioning discussion remains a proposal and is not included.
+- `/earn` shows a three-field mission-alert form for empty inventory or an explicit alerts request. Optional Baretag prompts follow the requested/paid mission state. Earn CTAs lead to `/earn`; the creator-work tray persists on Dashboard. Existing `/action-center` and `/missions` destinations are preserved.
+- Map/PeeBear/World Pulse apply `lib/recommendation-policy.ts` before ranking: destination daylight with a 45-minute margin, start/expiry windows, plausible place dayparts and honest unknown hours. Discovery/All keeps future and daytime inventory browseable. Cards show one lead option and at most two alternatives.
+- Recommendations refresh every minute and on tab return. Nearby responses carry the existing stored timezone; nightlife stays with the prior evening until 04:00 and tonight windows account for endpoint DST. Failed live-plan loads show a retry state rather than an empty-inventory claim.
+- Historical proof/visit totals must not be presented as current crowds. The policy does not provide routing ETA, verified opening hours or a weather/water-safety guarantee. No schema, contract, paid-claim, proof-review, settlement or payout behavior changed; no renderer/camera redesign is included.
+- Release verification: 53 focused tests, app/test typechecks, full lint with zero errors, static production safety checks, production Next build and patch/whitespace checks. Graphify outputs are included. Prior desktop/390px mobile browser checks covered night suggestions, discovery, place opening, mission entry and unavailable-data fallback.
+- Local browser checks used curated fallback data; live wallet/proof/payment flows were not exercised. Prior mainnet availability concerns remain a separate audit item. Shared-file ownership is released with this main release.
+
 ### Codex PeeBear social decision layer (2026-09-01 — SHIPPED)
 - Codex is completing the pasted social-decision-engine proposal without duplicating the already-shipped Boat Share, Meet Me Here, Crew Room, surf-card, or Island Pulse systems.
 - `/now` Poke PeeBear will compare at most two real time-filtered Live Plans, resolve one playful choice, and keep the canonical action, exact invite, directions, flip-again, and optional no-proof side quest together.

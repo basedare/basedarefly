@@ -15,6 +15,8 @@ import {
   pickWorldPulsePlan,
 } from './world-pulse.ts';
 
+const daytime = { now: new Date('2026-09-04T02:00:00Z'), window: 'now' as const, timeZone: 'Asia/Manila' };
+
 function plan(id: string, input: Partial<LivePlan> = {}): LivePlan {
   return {
     id,
@@ -116,11 +118,11 @@ test('PeeBear lanes only select matching real visible inventory', () => {
     status: { key: 'PUBLISHED', label: 'Source checked', forming: false },
   });
 
-  assert.equal(pickWorldPulsePlan([workout, surf, social], 'SURF')?.id, 'surf');
-  assert.equal(pickWorldPulsePlan([workout, surf, social], 'MEET')?.id, 'social');
-  assert.equal(pickWorldPulsePlan([workout, surf, social], 'PLAY')?.id, 'workout');
-  assert.equal(pickWorldPulsePlan([workout, surf, social], 'SURPRISE')?.id, 'workout');
-  assert.equal(pickWorldPulsePlan([workout], 'SURF'), null);
+  assert.equal(pickWorldPulsePlan([workout, surf, social], 'SURF', daytime)?.id, 'surf');
+  assert.equal(pickWorldPulsePlan([workout, surf, social], 'MEET', daytime)?.id, 'social');
+  assert.equal(pickWorldPulsePlan([workout, surf, social], 'PLAY', daytime)?.id, 'workout');
+  assert.equal(pickWorldPulsePlan([workout, surf, social], 'SURPRISE', daytime)?.id, 'workout');
+  assert.equal(pickWorldPulsePlan([workout], 'SURF', daytime), null);
 });
 
 test('PeeBear showdown compares at most two real plans and resolves one winner', () => {
@@ -141,7 +143,7 @@ test('PeeBear showdown compares at most two real plans and resolves one winner',
     status: { key: 'PUBLISHED', label: 'Source checked', forming: false },
   });
   const sequence = [0.99, 0];
-  const decision = getWorldPulseDecision([boat, surf, trivia], 'SURF', () => sequence.shift() ?? 0);
+  const decision = getWorldPulseDecision([boat, surf, trivia], 'SURF', () => sequence.shift() ?? 0, daytime);
 
   assert.ok(decision);
   assert.deepEqual(decision.candidates.map((candidate) => candidate.id), ['boat', 'surf']);
@@ -157,7 +159,7 @@ test('PeeBear showdown degrades honestly to one candidate and never adds a paid-
     people: null,
     status: { key: 'PENDING', label: 'Open', forming: false },
   });
-  const decision = getWorldPulseDecision([paid], 'SURPRISE', () => 0);
+  const decision = getWorldPulseDecision([paid], 'SURPRISE', () => 0, daytime);
 
   assert.ok(decision);
   assert.equal(decision.candidates.length, 1);

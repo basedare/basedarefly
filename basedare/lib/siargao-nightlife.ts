@@ -78,7 +78,8 @@ const weekdayFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 function getSiargaoWeekday(now: Date): SiargaoWeekday {
-  return weekdayFormatter.format(now) as SiargaoWeekday;
+  // The night belongs to the previous evening until 04:00 in Siargao.
+  return weekdayFormatter.format(new Date(now.getTime() - 4 * 60 * 60 * 1000)) as SiargaoWeekday;
 }
 
 function venueMatches(
@@ -109,7 +110,7 @@ export function getSiargaoNightGuide(now = new Date()) {
       ? 'A calmer pre-drink option. Ask the venue to confirm the current sangria offer before ordering.'
       : null,
     disclaimer:
-      'Typical weekly rhythm, not a live guarantee. Confirmed one-offs appear in Tonight.',
+      'Typical weekly rhythm, not a live guarantee. Published plans appear in Tonight; check with the host for changes.',
   };
 }
 

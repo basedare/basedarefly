@@ -4,11 +4,7 @@ import { ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { trackClientEvent } from '@/lib/analytics';
-import {
-  CREATOR_MISSION_ALERT_LANES,
-  CREATOR_MISSION_ALERT_LANE_LABELS,
-  type CreatorMissionAlertLane,
-} from '@/lib/creator-mission-alerts';
+import type { CreatorMissionAlertLane } from '@/lib/creator-mission-alerts';
 
 type FormState = {
   handleOrName: string;
@@ -131,21 +127,6 @@ export function MissionAlertForm({
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <label className="grid gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/42">
-          Work you prefer <span className="font-semibold normal-case tracking-normal text-white/28">optional</span>
-          <select
-            value={form.workLane}
-            onChange={(event) => update('workLane', event.target.value as CreatorMissionAlertLane)}
-            className={`${inputClass} min-w-56 appearance-none`}
-          >
-            {CREATOR_MISSION_ALERT_LANES.map((lane) => (
-              <option key={lane} value={lane} className="bg-[#090a10]">
-                {CREATOR_MISSION_ALERT_LANE_LABELS[lane]}
-              </option>
-            ))}
-          </select>
-        </label>
-
         <label className="hidden" aria-hidden="true">
           Company website
           <input
