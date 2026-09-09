@@ -8,11 +8,18 @@ Rules:
 - After modifying code files in this session, run `npm run graphify:rebuild` to keep the graph current. The script resolves the shared Python 3.11 Graphify runtime across Git worktrees and bootstraps it when missing.
 
 ## Product philosophy (read before building features / writing copy)
-Build *from the single aligned canon* in `docs/PHILOSOPHY.md` and `brain-vault/00-control/vision.md`. BaseDare is a remote, bounty-funded discovery network: safe dares pay contributors to create verified place intelligence; the map is the feed; place memory and verification are the assets being built; every batch must create a durable receipt; events are optional local-partner products; reputation now / token later; working beats perfect. If these two files ever conflict, reconcile them in the same change before continuing. Market evidence lives in `brain-vault/03-insights/`.
+Build *from the single aligned canon* in `docs/PHILOSOPHY.md` and `brain-vault/00-control/vision.md`. BaseDare is a community built around doing things at real places: explore, play, meet and optionally earn. Its commercial engine coordinates paid action, content and promotion with explicit evidence, reward and reuse rules. The map is the feed; place memory and verification record what happened; every paid batch must create a durable receipt; events are optional local-partner products; reputation now / token later; working beats perfect. If these two files ever conflict, reconcile them in the same change before continuing. Market evidence lives in `brain-vault/03-insights/`.
 
 Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib/financial-canon.ts`: self-serve V2 settlement is 96% completer / 4% BaseDare / 0% referral / no Live Pot entitlement; the first managed Verified Field Sprint is a separate $2,500 invoice ($2,000 service + $500 creator pool). Do not let a product surface, dashboard, helper, or old document invent a different split or treat reward funding as revenue.
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
+
+### Codex product clarity release (2026-09-10 — MAIN RELEASE)
+- User explicitly authorized implementing the reviewed clarity changes and pushing main. This supersedes the earlier hold for this bounded release. Branch `codex/product-clarity-main` starts at `6832d1c9`; the two older community/onboarding worktrees remain separate and are not merged wholesale.
+- Preserve the existing hero, orbit, mobile orb/lightning, radar, Live Around You, Chaos/Control and funding controls. Scope: literal public copy, shared labelled example activities, direct Play/Meet discovery filters, optional guide, community navigation with directory in footer, and truthful reward summary. No map renderer, paid lifecycle, schema, settlement or sponsor-rights mutation.
+- Both philosophy documents record the user’s community + paid-orchestration direction. Existing Field Sprint pricing/delivery and gated rights remain unchanged.
+- Release verification: 23 focused tests, app/test typechecks, full lint (zero errors; existing warnings), static production safety checks, production Next build, Graphify rebuild and patch/whitespace checks. Desktop and 390px browser checks covered the preserved hero, mobile orb, direct Play/Meet entry, URL filters, optional guidance, example disclosure links and unavailable reward data.
+- Local live inventory and wallet/payment flows were not verified; the local app had no production credentials. This is a presentation/discovery-filter release. Roll back this release if production entry links or homepage rendering regress; do not change paid lifecycle or settlement to resolve a copy issue. The authorized main push uses the existing Vercel Git deployment path.
 
 Two agents work this repo at once. Check this section before starting, and update it after you ship, so we don't edit the same files.
 

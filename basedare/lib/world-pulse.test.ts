@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { LivePlan } from './live-plans.ts';
+import { filterParticipation, parseParticipationFilter } from './participation-filter.ts';
 import {
   filterWorldPulsePlans,
   getWorldPulseDecision,
@@ -16,6 +17,28 @@ import {
 } from './world-pulse.ts';
 
 const daytime = { now: new Date('2026-09-04T02:00:00Z'), window: 'now' as const, timeZone: 'Asia/Manila' };
+
+test('participation links select free challenges, social plans and rewarded work independently', () => {
+  const inventory = [
+    plan('free', { type: 'community_spark' }),
+    plan('meet'),
+    plan('boat', { type: 'boat' }),
+    plan('event', { type: 'venue_event' }),
+    plan('paid', { type: 'paid_dare', value: { rewardUsdc: 25, indicativePerPersonPhp: null } }),
+    plan('unfunded', { type: 'paid_dare' }),
+  ];
+  assert.deepEqual(filterParticipation(inventory, 'play').map((item) => item.id), ['free']);
+  assert.deepEqual(filterParticipation(inventory, 'meet').map((item) => item.id), ['meet', 'boat', 'event']);
+  assert.deepEqual(filterParticipation(inventory, 'earn').map((item) => item.id), ['paid']);
+  assert.equal(filterParticipation(inventory, parseParticipationFilter('unknown')).length, inventory.length);
+});
+
+test('shared participation views keep the area, time and activity type', () => {
+  const query = new URL(getWorldPulseViewHref({ mode: 'ALL', center: { latitude: 9.803, longitude: 126.159 }, radiusKm: 12, participation: 'play' }), 'https://example.test').searchParams;
+  assert.equal(query.get('participation'), 'play');
+  assert.equal(query.get('mode'), 'all');
+  assert.equal(query.get('lat'), '9.803');
+});
 
 function plan(id: string, input: Partial<LivePlan> = {}): LivePlan {
   return {

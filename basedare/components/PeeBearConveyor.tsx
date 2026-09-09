@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { HOME_ACTIVITY_EXAMPLES } from '@/lib/home-activity-examples';
 
 interface Dare {
   id: string;
@@ -18,18 +19,6 @@ interface PeeBearConveyorProps {
   dares?: Dare[];
 }
 
-// Sample dares - EXACT MATCH with HeroEllipticalStream FEATURED_DARES.
-// On-thesis IRL missions (venue/experience proof, never streamer stunts).
-// Fictional Peebear-universe handles only: never real people on fake bounties.
-const SAMPLE_DARES = [
-  { id: '1', description: "FIRST PROOF THE ROOFTOP", stake_amount: 50, streamer_name: "@peebear", status: "active", expiry_timer: "⚡ FIRST" },
-  { id: '2', description: "BRING 5 VERIFIED MATES", stake_amount: 100, streamer_name: "@gridghost", status: "active", expiry_timer: "🌅 LIVE" },
-  { id: '3', description: "VENUE WALKTHROUGH REEL", stake_amount: 25, streamer_name: "@permabear", status: "active", expiry_timer: "🎥 OPEN" },
-  { id: '4', description: "HOST A BEACH CLEANUP", stake_amount: 75, streamer_name: "@whiskerz", status: "active", expiry_timer: "🤙 CREW" },
-  { id: '5', description: "3-BAR BOARDWALK CRAWL", stake_amount: 60, streamer_name: "@heartbroke", status: "active", expiry_timer: "🌙 NIGHT" },
-  { id: '6', description: "REVIEW THE NIGHT MARKET", stake_amount: 40, streamer_name: "@baldwin", status: "active", expiry_timer: "🍜 TASTY" },
-];
-
 // Helper function to format bounty
 const formatBounty = (amount: number): string => {
   if (amount >= 1000) {
@@ -39,19 +28,17 @@ const formatBounty = (amount: number): string => {
 };
 
 export default function PeeBearConveyor({ dares = [] }: PeeBearConveyorProps = {}) {
-  // Use sample dares when API returns empty
-  const activeDares = dares.length > 0 ? dares : SAMPLE_DARES;
-
   // Map dares to display format
   const displayItems = useMemo(() => {
-    return activeDares.map((dare) => {
+    if (!dares.length) return HOME_ACTIVITY_EXAMPLES.map((item) => `${item.expiry_timer} · ${item.description} · ${item.valueLabel}`);
+    return dares.map((dare) => {
       const title = dare.description?.toUpperCase() || "UNKNOWN DARE";
       const bounty = formatBounty(dare.stake_amount || 0);
       const streamer = dare.streamer_name || "@Anon";
       const tag = dare.expiry_timer || "";
       return tag ? `${title} ${tag} (${bounty}) ${streamer}` : `${title} (${bounty}) ${streamer}`;
     });
-  }, [activeDares]);
+  }, [dares]);
 
   // Create infinite scroll effect by duplicating items
   const infiniteItems = useMemo(() => {
@@ -94,6 +81,5 @@ export default function PeeBearConveyor({ dares = [] }: PeeBearConveyorProps = {
     </div>
   );
 }
-
 
 

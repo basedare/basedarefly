@@ -5,13 +5,11 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import ElectricCard from "./ElectricCard";
 import PortalVortex from "./PortalVortex";
+import { HOME_ACTIVITY_EXAMPLES } from '@/lib/home-activity-examples';
 
 const ORBIT_DURATION_MS = 60_000;
 
-// Featured dares — on-thesis IRL missions (venue/experience proof, never
-// streamer stunts) with believable bounties. Fictional handles only:
-// never put real people's names on fake funded bounties.
-// EXACT MATCH with PeeBearConveyor SAMPLE_DARES.
+// The curated orbit explains participation; real inventory lives in Live Around You.
 interface HeroDare {
   id: string;
   short_id?: string;
@@ -20,16 +18,11 @@ interface HeroDare {
   stake_amount: number;
   streamer_name?: string | null;
   expiry_timer?: string;
+  example?: boolean;
+  valueLabel?: string;
+  participationLabel?: string;
+  href?: string;
 }
-
-const FEATURED_DARES: HeroDare[] = [
-  { id: '1', description: "FIRST PROOF THE ROOFTOP", stake_amount: 50, streamer_name: "@peebear", expiry_timer: "⚡ FIRST" },
-  { id: '2', description: "BRING 5 VERIFIED MATES", stake_amount: 100, streamer_name: "@gridghost", expiry_timer: "🌅 LIVE" },
-  { id: '3', description: "VENUE WALKTHROUGH REEL", stake_amount: 25, streamer_name: "@permabear", expiry_timer: "🎥 OPEN" },
-  { id: '4', description: "HOST A BEACH CLEANUP", stake_amount: 75, streamer_name: "@whiskerz", expiry_timer: "🤙 CREW" },
-  { id: '5', description: "3-BAR BOARDWALK CRAWL", stake_amount: 60, streamer_name: "@heartbroke", expiry_timer: "🌙 NIGHT" },
-  { id: '6', description: "REVIEW THE NIGHT MARKET", stake_amount: 40, streamer_name: "@baldwin", expiry_timer: "🍜 TASTY" },
-];
 
 interface HeroProps {
   dares?: HeroDare[];
@@ -37,7 +30,7 @@ interface HeroProps {
 }
 
 export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroProps) {
-  const items = (dares.length > 0 ? dares : FEATURED_DARES).slice(0, 6);
+  const items: HeroDare[] = (dares.length > 0 ? dares : HOME_ACTIVITY_EXAMPLES).slice(0, 6);
   const itemCount = items.length;
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const timeRef = useRef(0);
@@ -128,17 +121,18 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
             }}
           >
             <Link
-              href={dares.length > 0 && dare.short_id
+              href={dare.example ? dare.href ?? '/how-it-works' : dares.length > 0 && dare.short_id
                 ? `/dare/${encodeURIComponent(dare.short_id)}`
                 : '/map?source=home-orbit'}
               className="block -translate-x-1/2 -translate-y-1/2 cursor-pointer"
               onClick={() => onCardClick && onCardClick(dare)}
-              aria-label={dares.length > 0 ? `Open ${dare.description || dare.title}` : 'Open the live map'}
+              aria-label={dare.example ? `Example: ${dare.description}. See how it works` : `Open ${dare.description || dare.title}`}
             >
               <ElectricCard
                 badge={dare.expiry_timer || "24H"}
                 title={dare.description || dare.title || "OPEN MISSION"}
-                description={`${dare.stake_amount} USDC | ${dare.streamer_name || "@Anon"}`}
+                description={dare.example ? `${dare.valueLabel} | ${dare.participationLabel}` : `${dare.stake_amount} USDC | ${dare.streamer_name || "@Anon"}`}
+                rewardLabel={dare.example ? 'HOW YOU TAKE PART' : undefined}
               />
             </Link>
           </div>

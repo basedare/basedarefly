@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import LivePlansClient from '@/components/live-plans/LivePlansClient';
+import { parseParticipationFilter } from '@/lib/participation-filter';
 import {
   normalizeWorldPulseCenter,
   normalizeWorldPulseRadius,
@@ -23,6 +24,7 @@ export default async function LivePlansPage({
     radiusKm?: string;
     plan?: string;
     needs?: string;
+    participation?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -37,6 +39,7 @@ export default async function LivePlansPage({
       initialRadiusKm={normalizeWorldPulseRadius(params.radiusKm)}
       initialSelectedPlanId={selectedPlanId}
       initialNeedsPeople={params.needs === '1'}
+      initialParticipation={parseParticipationFilter(params.participation)}
     />
   );
 }

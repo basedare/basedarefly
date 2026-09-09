@@ -1,4 +1,5 @@
 import { pickLivePlan, roundLivePlanCoord, type LivePlan } from './live-plans';
+import type { ParticipationFilter } from './participation-filter';
 import { assessRecommendation, rankRecommendations, requiresDaylight, type RecommendationContext, type RecommendationWindow } from './recommendation-policy';
 
 export const WORLD_PULSE_TZ = 'Asia/Manila';
@@ -270,6 +271,7 @@ export function getWorldPulseViewHref(input: {
   radiusKm: number;
   selectedPlanId?: string | null;
   needsPeople?: boolean;
+  participation?: ParticipationFilter;
 }) {
   const query = new URLSearchParams({
     mode: worldPulseModeQuery(input.mode),
@@ -279,5 +281,6 @@ export function getWorldPulseViewHref(input: {
   });
   if (input.selectedPlanId) query.set('plan', input.selectedPlanId);
   if (input.needsPeople) query.set('needs', '1');
+  if (input.participation && input.participation !== 'all') query.set('participation', input.participation);
   return `/now?${query.toString()}`;
 }

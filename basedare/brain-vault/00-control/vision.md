@@ -11,6 +11,10 @@ owner: BaseDare
 
 ## The consumer destination
 
+**Consumer and commercial direction — 2026-09-07.** BaseDare is a community built around doing things at real places: explore, play, meet and optionally earn. Businesses and individuals fund real-world action, content and promotion through paid dares. Proof, attribution, reputation and place memory record what happened. Selling ordinary place facts is not the commercial purpose. Older field-research and freshness plans below describe a bounded use case, not a requirement to turn the product into a fact subscription. The existing Field Sprint price and deliverable remain unchanged; content reuse and promotion require their own explicit brief and permissions.
+
+**Preserve the game identity.** Keep PeeBear, the black hole and orbit, mobile orb and lightning, Live Around You, Chaos/Control, radar and dare-funding controls. Improve comprehension through literal copy, clearly labelled examples and direct activity links. Community participation needs no permanent creator role. Approved place marks count toward contribution history; casual social participation does not require filming and must not be misrepresented as verified proof.
+
 **BaseDare is the playable social layer on the real-world map.** Anyone can open it to discover places, find something to do, join safe public activities, complete challenges, meet people by mutual opt-in, build local reputation, and sometimes earn points or money.
 
 The consumer promise is simple: **explore, play, meet, earn.** People do not need to identify as creators, understand crypto, or apply to a program before browsing and joining. They can explore first; wallet identity appears only when an action needs persistent progress, proof, creation, or payment.
@@ -37,7 +41,7 @@ Pilot this with three claimed venues, one verified contact set, one authorized a
 
 ## The decision
 
-**BaseDare is a remote, bounty-funded local discovery network that pays people to create verified place intelligence.**
+**BaseDare orchestrates real-world action through paid dares, creators, influencers and players.** A funder sets a safe objective → BaseDare routes participants → they complete the agreed task → evidence is reviewed → approved work is paid → the result adds to place memory and reputation → a receipt invites the next action.
 
 The company must be able to operate without the founder living in, visiting, or personally running any target market. A city is an interchangeable deployment zone, not the business. Siargao can be tested, skipped, paused, or revisited without changing the thesis.
 

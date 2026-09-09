@@ -4,7 +4,11 @@
 
 ## ⭐ THE SETTLED CORE MODEL — read first; we keep drifting from this
 
-**BaseDare is a remote, bounty-funded local discovery network that pays people to create verified place intelligence.** The unit is still a *dare* — a safe, structured real-world question with a payout. A buyer or treasury funds the question → a local contributor performs it → BaseDare verifies the evidence → the contributor is paid → the answer becomes timestamped place memory → the receipt sells or recruits the next action.
+**Consumer and commercial direction — 2026-09-07.** BaseDare is a community built around doing things at real places: explore, play, meet and optionally earn. Businesses and individuals fund real-world action, content and promotion through paid dares. Proof, attribution, reputation and place memory record what happened. Selling ordinary place facts is not the commercial purpose. Older field-research and freshness plans below describe a bounded use case, not a requirement to turn the product into a fact subscription. The existing Field Sprint price and deliverable remain unchanged; content reuse and promotion require their own explicit brief and permissions.
+
+**Preserve the game identity.** Keep PeeBear, the black hole and orbit, mobile orb and lightning, Live Around You, Chaos/Control, radar and dare-funding controls. Improve comprehension through literal copy, clearly labelled examples and direct activity links. Community participation needs no permanent creator role. Approved place marks count toward contribution history; casual social participation does not require filming and must not be misrepresented as verified proof.
+
+**BaseDare orchestrates real-world action through paid dares, creators, influencers and players.** A funder sets a safe objective → BaseDare routes participants → they complete the agreed task → evidence is reviewed → approved work is paid → the result adds to place memory and reputation → a receipt invites the next action.
 
 The company must work without the founder living in, visiting, or personally operating any target market. A city is an interchangeable deployment zone, not the business. Events and hosted routes are optional higher-proof products delivered only through properly authorized local partners.
 
@@ -40,7 +44,7 @@ BaseDare proofs outcomes; it does not insure or guarantee them. Funds may be esc
 
 ## What BaseDare is (one sentence)
 
-**Proof-backed discovery for the physical world:** fund useful real-world questions, reward verified answers, attach them to places, and let the resulting memory compound.
+**A community where people turn real places into challenges, plans and opportunities to earn.** Its commercial engine coordinates paid action, content and promotion with explicit evidence and reward rules.
 
 ## The category we're in
 
@@ -66,7 +70,7 @@ BaseDare sits between distributed field research, local discovery, creator work,
 
 ## The machine
 
-**Someone funds a useful real-world question. A contributor shows up. BaseDare verifies the answer. The contributor gets paid. The place remembers. Everyone gets a receipt.**
+**Someone funds a real-world objective. A contributor shows up and performs the agreed action. BaseDare verifies the result. Approved work is paid. The place remembers. The receipt supports the next action.**
 
 The founder governs the mechanism and treasury; the founder does not host the experience. The app is the discovery and receipt surface. The verification system and place-memory graph are the infrastructure being built.
 

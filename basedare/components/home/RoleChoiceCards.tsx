@@ -11,7 +11,7 @@ export default function RoleChoiceCards() {
   return (
     <div className="w-full">
       <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#f5c518]/70">
-        Start on BaseDare
+        Paid dares
       </p>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -36,7 +36,7 @@ export default function RoleChoiceCards() {
               I want paid work
             </h3>
             <p className="mt-2 text-sm font-bold leading-6 text-white/64">
-              Pick a mission. Do the work. Submit it. Get paid when approved.
+              Create content, document a place, or complete another paid task. See the brief and reward before you request it.
             </p>
           </div>
           <span className="relative mt-auto inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#f5c518]">
@@ -62,7 +62,7 @@ export default function RoleChoiceCards() {
               I want to fund a mission
             </h3>
             <p className="mt-2 text-sm font-bold leading-6 text-white/64">
-              Ask for a place check, local content, or another clear real-world task.
+              Fund content creation, a promotional post, or another clear real-world task. Set the requirements and reward first.
             </p>
           </div>
           <span className="relative mt-auto inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-cyan-100/90">

@@ -102,7 +102,7 @@ try {
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.basedare.xyz"),
   title: "BaseDare — Own the Grid",
-  description: "Get paid to complete IRL dares at real venues near you. Real payouts. On-chain proof. Every pin is a legend.",
+  description: "Discover local challenges and meetups. Join for fun, bring your friends, or earn from paid dares on BaseDare.",
   applicationName: "BaseDare",
   manifest: "/manifest.webmanifest",
   formatDetection: {
@@ -115,7 +115,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "BaseDare — Own the Grid",
-    description: "Get paid to complete IRL dares at real venues near you. Real payouts. On-chain proof. Every pin is a legend.",
+    description: "Discover local challenges and meetups. Join for fun, bring your friends, or earn from paid dares on BaseDare.",
     url: "https://www.basedare.xyz",
     siteName: "BaseDare",
     images: [
@@ -129,7 +129,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "BaseDare — Own the Grid",
-    description: "Get paid to complete IRL dares at real venues near you. Real payouts. On-chain proof. Every pin is a legend.",
+    description: "Discover local challenges and meetups. Join for fun, bring your friends, or earn from paid dares on BaseDare.",
     images: ["/assets/basedarenew.png"],
   },
 };

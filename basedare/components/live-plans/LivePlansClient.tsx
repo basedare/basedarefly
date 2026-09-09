@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRecommendationClock } from '@/hooks/useRecommendationClock';
 import { assessRecommendation } from '@/lib/recommendation-policy';
+import { PARTICIPATION_FILTERS, filterParticipation, type ParticipationFilter } from '@/lib/participation-filter';
 import {
   CircleHelp,
   Crosshair,
@@ -23,7 +24,6 @@ import MyNextMoveTray from '@/components/live-plans/MyNextMoveTray';
 import PeeBearDecisionCard from '@/components/live-plans/PeeBearDecisionCard';
 import {
   LIVE_PLANS_INTRO_KEY,
-  LivePlansFirstChoice,
   LivePlansGuideCue,
   type LivePlansGuideStep,
 } from '@/components/onboarding/LivePlansGuide';
@@ -69,6 +69,7 @@ type LivePlansClientProps = {
   initialRadiusKm?: number;
   initialSelectedPlanId?: string | null;
   initialNeedsPeople?: boolean;
+  initialParticipation?: ParticipationFilter;
 };
 
 export default function LivePlansClient({
@@ -77,6 +78,7 @@ export default function LivePlansClient({
   initialRadiusKm = 12,
   initialSelectedPlanId = null,
   initialNeedsPeople = false,
+  initialParticipation = 'all',
 }: LivePlansClientProps) {
   const now = useRecommendationClock();
   const [center, setCenter] = useState(initialCenter);
@@ -88,23 +90,12 @@ export default function LivePlansClient({
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<WorldPulseMode>(initialMode);
   const [needsPeopleOnly, setNeedsPeopleOnly] = useState(initialNeedsPeople);
+  const [participation, setParticipation] = useState(initialParticipation);
   const [pickedPlanId, setPickedPlanId] = useState<string | null>(initialSelectedPlanId);
   const [peebearOpen, setPeebearOpen] = useState(false);
   const [peebearDecision, setPeebearDecision] = useState<PeeBearDecisionState | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
-  const [firstChoiceOpen, setFirstChoiceOpen] = useState(false);
   const [guideStep, setGuideStep] = useState<LivePlansGuideStep | null>(null);
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      try {
-        if (!window.localStorage.getItem(LIVE_PLANS_INTRO_KEY)) setFirstChoiceOpen(true);
-      } catch {
-        setFirstChoiceOpen(true);
-      }
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -151,9 +142,10 @@ export default function LivePlansClient({
       radiusKm,
       selectedPlanId: pickedPlanId,
       needsPeople: needsPeopleOnly,
+      participation,
     });
     window.history.replaceState(window.history.state, '', href);
-  }, [center, mode, needsPeopleOnly, pickedPlanId, radiusKm]);
+  }, [center, mode, needsPeopleOnly, pickedPlanId, radiusKm, participation]);
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -181,10 +173,10 @@ export default function LivePlansClient({
   };
 
   const plans = useMemo(() => {
-    const source = snapshot?.plans ?? [];
+    const source = filterParticipation(snapshot?.plans ?? [], participation);
     const timed = filterWorldPulsePlans(source, mode, now, snapshot?.window.tz);
     return needsPeopleOnly ? timed.filter((plan) => plan.status.forming) : timed;
-  }, [mode, needsPeopleOnly, now, snapshot?.plans, snapshot?.window.tz]);
+  }, [mode, needsPeopleOnly, now, snapshot?.plans, snapshot?.window.tz, participation]);
   const nextMoves = snapshot?.myNextMoves ?? [];
   const pickedPlan = useMemo(
     () => plans.find((plan) => plan.id === pickedPlanId) ?? null,
@@ -254,6 +246,7 @@ export default function LivePlansClient({
       radiusKm,
       selectedPlanId: pickedPlan?.id,
       needsPeople: needsPeopleOnly,
+      participation,
     });
     const url = new URL(relativeHref, window.location.origin).toString();
     const shareData = {
@@ -297,7 +290,6 @@ export default function LivePlansClient({
 
   const closeIntro = useCallback(() => {
     rememberIntro();
-    setFirstChoiceOpen(false);
     setGuideStep(null);
   }, [rememberIntro]);
 
@@ -308,7 +300,6 @@ export default function LivePlansClient({
     setPickedPlanId(null);
     setPeebearOpen(false);
     setPeebearDecision(null);
-    setFirstChoiceOpen(false);
     setGuideStep(0);
     scrollToGuideTarget(0);
   }, [rememberIntro, scrollToGuideTarget]);
@@ -334,7 +325,7 @@ export default function LivePlansClient({
             <div>
               <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200/72"><Radio className="h-4 w-4" /> World Pulse</p>
               <h1 className="mt-3 max-w-4xl text-4xl font-black leading-[0.96] sm:text-6xl">See the island move. Join what happens next.</h1>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/52">Real boats, crews, events, Sparks and paid missions—filtered by what you can actually do.</p>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/52">Free challenges, community plans and paid dares. Pick what you want to do, then choose a time.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => setPeebearOpen((current) => !current)} aria-expanded={peebearOpen} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-200/22 bg-yellow-300/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-yellow-100 hover:bg-yellow-300/[0.13]">
@@ -371,7 +362,11 @@ export default function LivePlansClient({
           {shareStatus ? <p role="status" className="mt-4 text-right text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100/60">{shareStatus}</p> : null}
         </section>
 
-        {firstChoiceOpen ? <LivePlansFirstChoice onDoSomethingNow={startGuide} onLeave={closeIntro} /> : null}
+        <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Choose an activity type">
+          {PARTICIPATION_FILTERS.map((filter) => (
+            <button key={filter.id} type="button" aria-pressed={participation === filter.id} onClick={() => { setParticipation(filter.id); setPickedPlanId(null); setPeebearDecision(null); }} className={`min-h-11 rounded-full border px-4 text-[10px] font-black ${participation === filter.id ? 'border-cyan-200/32 bg-cyan-300/[0.1] text-cyan-100' : 'border-white/10 bg-white/[0.035] text-white/55'}`}>{filter.label}</button>
+          ))}
+        </div>
 
         <div id="live-plan-filters" className={`scrollbar-hide scroll-mt-32 mt-5 flex items-center gap-2 overflow-x-auto rounded-2xl pb-1 transition ${guideStep === 0 ? 'ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70' : ''}`} role="group" aria-label="Filter live plans">
           {FILTERS.map((item) => (
@@ -424,9 +419,10 @@ export default function LivePlansClient({
           ) : (
             <section className="mt-6 rounded-[1.75rem] border border-dashed border-white/14 bg-black/24 p-10 text-center">
               <UsersIcon />
-              <h2 className="mt-4 text-2xl font-black">{snapshot ? "No suitable plans in this window." : "Plans couldn’t load."}</h2>
+              <h2 className="mt-4 text-2xl font-black">{snapshot ? participation === 'earn' ? 'No paid dares in this window.' : participation === 'play' ? 'No free challenges in this window.' : 'No suitable plans in this window.' : 'Plans couldn’t load.'}</h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-white/44">{snapshot ? "Try another time window, browse plans for later, or start a public plan nearby." : "Refresh to check what is available in this area."}</p>
               {!snapshot ? <button type="button" onClick={() => void load()} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Try again</button> : mode !== 'ALL' ? <button type="button" onClick={() => setMode('ALL')} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Browse all plans</button> : null}
+              {snapshot && participation !== 'all' ? <button type="button" onClick={() => setParticipation('all')} className="mx-auto mt-4 block min-h-11 text-sm font-bold text-cyan-100">See other activity types</button> : null}
               <Link href="/community/rally/new" className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006]">Start the first Rally</Link>
             </section>
           )}

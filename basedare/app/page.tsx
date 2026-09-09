@@ -236,13 +236,17 @@ function HomeContent() {
           >
             <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
               <div className="w-full relative">
+                <div className="relative z-[60] mx-auto max-w-lg px-4 pt-4 text-center" aria-label="Discover BaseDare">
+                  <p className="text-sm font-bold leading-6 text-white/80">Discover local challenges and meetups. Join for fun, bring your friends, or earn from paid dares.</p>
+                  <Link href="/now?source=home-intro" prefetch={false} className="mt-3 inline-flex min-h-11 items-center rounded-full border border-yellow-300/35 bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.12em] text-[#171006] shadow-[0_0_18px_rgba(245,197,24,0.14)] transition hover:bg-yellow-200">Find something nearby →</Link>
+                </div>
                 {/* Desktop: Full 3D Hero with orbiting cards */}
                 <div className="hidden lg:block">
                   <HeroEllipticalStream />
                 </div>
 
                 {/* Mobile/tablet: simplified hero avoids iPad WebKit overload */}
-                <div className="block pt-24 pb-8 lg:hidden">
+                <div className="block pt-8 pb-8 lg:hidden">
                   {/* Lightning background - behind orb, triggers every 2-3 roars */}
                   <AnimatePresence>
                     {isLightningRoar && (
@@ -289,22 +293,22 @@ function HomeContent() {
               {/* Consumer first: understand the live map before seeing its earning and funding rails. */}
               <div className="relative z-30 mb-8 w-full max-w-3xl px-6 text-center">
                 <p className="mx-auto max-w-2xl text-sm font-bold leading-6 text-white/64 sm:text-base">
-                  See what&apos;s happening. Join in. Go together.
+                  Play a free challenge, meet people, or take a paid brief. It starts with a real place.
                 </p>
                 <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] font-black uppercase tracking-[0.14em]">
                   <Link
-                    href="/map?source=home-grid"
+                    href="/now?source=home"
                     prefetch={false}
                     className="inline-flex items-center gap-1.5 text-cyan-100/76 transition hover:text-white"
                   >
-                    Explore the grid →
+                    Find something nearby →
                   </Link>
                   <Link
-                    href="/board?source=home"
+                    href="/map?source=home"
                     prefetch={false}
                     className="inline-flex items-center gap-1.5 text-[#f8dd72] transition hover:text-white"
                   >
-                    See the Board →
+                    Open the map →
                   </Link>
                 </div>
               </div>

@@ -24,7 +24,7 @@ const NAV_LINKS = [
     activePrefixes: ["/start", "/create", "/community/rally/new"],
   },
   { name: "PROFILE", href: "/dashboard", activePrefixes: ["/dashboard"] },
-  { name: "PEOPLE", href: "/creators", activePrefixes: ["/creators"] },
+  { name: "COMMUNITY", href: "/community", activePrefixes: ["/community"] },
 ];
 
 const NAV_LINK_PREFETCH = false;

@@ -30,6 +30,7 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
             !isControl ? 'text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]' : 'text-zinc-600'
           }`}>
             CHAOS
+            <span className="mt-1 block text-[9px] font-semibold normal-case tracking-normal text-white/50">Community</span>
           </span>
 
           {/* The Switch Track */}
@@ -44,7 +45,7 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
                 0 0 20px rgba(0, 0, 0, 0.5)
               `
             }}
-            aria-label={isControl ? 'Switch to Chaos mode' : 'Switch to Control mode'}
+            aria-label={isControl ? 'Switch to Chaos: community' : 'Switch to Control: for businesses'}
           >
             {/* Left Indicator (CHAOS/Purple) */}
             <div
@@ -122,6 +123,7 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
             isControl ? 'text-zinc-900' : 'text-zinc-600'
           }`}>
             CONTROL
+            <span className="mt-1 block text-[9px] font-semibold normal-case tracking-normal text-white/50">For businesses</span>
           </span>
         </div>
       </div>
@@ -167,11 +169,11 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
           {isControl ? (
             <>
               <span style={{ color: '#A855F7' }}>◀</span>
-              <span>CHAOS</span>
+              <span>CHAOS<span className="block text-[8px] font-semibold normal-case tracking-normal">Community</span></span>
             </>
           ) : (
             <>
-              <span>CONTROL</span>
+              <span>CONTROL<span className="block text-[8px] font-semibold normal-case tracking-normal">For businesses</span></span>
               <span style={{ color: '#FACC15' }}>▶</span>
             </>
           )}

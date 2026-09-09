@@ -189,6 +189,9 @@ export default function Footer() {
               <Link href="/community" className="inline-flex min-h-9 items-center rounded-lg px-2 transition hover:text-emerald-300 active:text-emerald-300 touch-manipulation">
                 Community
               </Link>
+              <Link href="/creators" className="inline-flex min-h-9 items-center rounded-lg px-2 transition hover:text-yellow-400 active:text-yellow-400 touch-manipulation">
+                Contributor directory
+              </Link>
               <span className="text-white/20 hidden sm:inline">•</span>
               <Link href="/contact" className="inline-flex min-h-9 items-center rounded-lg px-2 transition hover:text-yellow-400 active:text-yellow-400 touch-manipulation">
                 Contact

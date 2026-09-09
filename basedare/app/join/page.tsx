@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, BriefcaseBusiness, Coins, Map, Radio, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Coins, Sparkles, Users } from 'lucide-react';
 
 import { OnboardingLink } from '@/components/onboarding/OnboardingLink';
 import {
@@ -19,21 +19,21 @@ export const metadata: Metadata = {
 
 const START_PATHS = [
   {
-    title: 'Do something now',
-    description: 'See boats, meetups, events, free Sparks and paid Dares in one place.',
-    href: '/now',
+    title: 'Play a free challenge',
+    description: 'Find a small adventure at a real place. See what to do before you join.',
+    href: '/now?participation=play&mode=all&source=join',
     intent: 'join' as const,
-    cta: 'See live plans',
-    icon: Radio,
+    cta: 'Find free challenges',
+    icon: Sparkles,
     accent: 'border-cyan-300/24 bg-cyan-400/[0.08] text-cyan-100',
   },
   {
-    title: 'Explore places',
-    description: 'Free-roam the map and open anything that looks interesting.',
-    href: '/map?source=join',
+    title: 'Meet people',
+    description: 'Join a local plan or get your friends together. Any entry cost is shown in the plan.',
+    href: '/now?participation=meet&mode=all&source=join',
     intent: 'explore' as const,
-    cta: 'Open the map',
-    icon: Map,
+    cta: 'Find local plans',
+    icon: Users,
     accent: 'border-violet-300/24 bg-violet-400/[0.08] text-violet-100',
   },
   {
@@ -47,7 +47,7 @@ const START_PATHS = [
   },
   {
     title: 'Start something',
-    description: 'Create a Rally, free Spark or paid Dare without learning every tool first.',
+    description: 'Start a meetup, a free challenge, or a paid dare at a real place.',
     href: '/start',
     intent: 'create' as const,
     cta: 'Choose what to start',
@@ -73,11 +73,12 @@ export default function JoinBaseDarePage() {
             What do you want to do?
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/60 md:text-lg">
-            You do not need to understand BaseDare first. Pick one next move.
+            A community built around doing things at real places. Play, meet people, or earn from a paid dare.
           </p>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/40">
             Browse freely. Sign in only when joining, creating, saving progress or getting paid requires it.
           </p>
+          <Link href="/map?source=join" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-100">Just exploring? Open the map →</Link>
         </section>
 
         <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Choose your next move">
@@ -104,7 +105,7 @@ export default function JoinBaseDarePage() {
 
         <section className={`${controlPanel} mt-5 p-6 sm:p-8`} aria-labelledby="three-moves">
           <div className={controlHairline} />
-          <h2 id="three-moves" className="text-xl font-black text-white sm:text-2xl">Three moves. That is the whole loop.</h2>
+          <h2 id="three-moves" className="text-xl font-black text-white sm:text-2xl">Start with one thing you want to do.</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             {STEPS.map((step, index) => (
               <div key={step.title} className={`${controlInset} flex items-start gap-3 p-4`}>

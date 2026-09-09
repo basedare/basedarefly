@@ -778,8 +778,8 @@ export default function PremiumBentoGrid({ dares }: PremiumBentoGridProps) {
               <Link href="/first-spark" prefetch={false} className="inline-flex min-h-10 items-center rounded-full border border-yellow-300/30 bg-yellow-300 px-4 text-[11px] font-black uppercase tracking-[0.14em] text-black transition hover:bg-yellow-200">
                 Run a venue dare
               </Link>
-              <Link href="/creators/signup" prefetch={false} className="inline-flex min-h-10 items-center rounded-full border border-white/14 bg-white/[0.05] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/76 transition hover:bg-white/[0.09] hover:text-white">
-                Join as a creator
+              <Link href="/earn" prefetch={false} className="inline-flex min-h-10 items-center rounded-full border border-white/14 bg-white/[0.05] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/76 transition hover:bg-white/[0.09] hover:text-white">
+                Find paid dares
               </Link>
             </div>
           </div>

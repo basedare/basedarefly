@@ -36,7 +36,7 @@ const MAIN_STEPS = [
     accent: 'border-cyan-200/22 bg-cyan-300/[0.08] text-cyan-100',
   },
   {
-    title: 'Join with one tap',
+    title: 'Choose your next move',
     description: 'Choose one plan. The main button tells you exactly what to do next.',
     icon: Play,
     accent: 'border-violet-200/22 bg-violet-300/[0.08] text-violet-100',
@@ -54,29 +54,39 @@ const ACTIONS = [
   ["I'm in", 'You are joining a social Rally.'],
   ['Going', 'You are attending an event.'],
   ['Play', 'It is a free Community Spark.'],
-  ['Claim', 'It is a paid Dare with proof rules.'],
+  ['Request this mission', 'Ask for a paid assignment. Wait for acceptance before starting the work.'],
   ['Meet here', 'Turn a place into a shared plan.'],
 ] as const;
 
 const DEEPER_PATHS = [
   {
+    id: 'playing-for-fun',
     title: 'Playing for fun',
-    body: 'Choose a free Spark or social plan. Keep it safe, public and within your ability. Some activities invite a short photo or clip, but fun is the point.',
+    body: 'Choose a free challenge, read what to do, and take part solo or with a friend. Follow its instructions if it asks for a photo or clip. Approved public place contributions appear at the place and in your contribution history; joining alone does not count as an approved mark.',
     icon: Sparkles,
   },
   {
+    id: 'meeting-people',
+    title: 'Meeting people',
+    body: 'Join a plan, agree where and when, and go together. Use the crew room to coordinate, then invite the same crew again. A casual meetup does not require filming or a paid submission. Check the plan for any ticket, transport or venue cost.',
+    icon: Users,
+  },
+  {
+    id: 'starting-something',
     title: 'Starting something',
     body: 'Pick Rally, Spark or paid Dare. BaseDare asks only for the place, time, people and rules that format actually needs.',
     icon: Plus,
   },
   {
+    id: 'earning-from-a-dare',
     title: 'Earning from a Dare',
-    body: 'Paid Dares lock the task, reward and proof rule before anyone claims them. Approved evidence creates a receipt and can release the reward.',
+    body: 'Read the requirements and your reward, request the assignment, and wait for acceptance. Complete the work and submit it for review. Your mission shows approval and payment status. Content creation and posting to your own audience are different tasks: the brief must say what is required. An audience is only needed when the brief requires one.',
     icon: CircleDollarSign,
   },
   {
+    id: 'funding-activity',
     title: 'Funding useful activity',
-    body: 'Places, sponsors and communities can fund one bounded real-world question. BaseDare verifies the result and attaches the receipt to the place.',
+    body: 'Venues, brands and community members can fund a clear real-world task, content creation or promotion. Set the deliverable, reward and evidence requirements. The resulting proof, content and place history record what happened. Sponsor reuse and posting permissions must be agreed explicitly; ordinary community contributions do not automatically become advertising assets.',
     icon: BadgeCheck,
   },
 ] as const;
@@ -96,7 +106,7 @@ export default function HowItWorksPage() {
             See what&apos;s happening.<br /><span className="text-yellow-300">Join in. Go together.</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/58 md:text-lg">
-            The map is the feed. Every useful action stays attached to a real place and time.
+            Find a real place, choose something to do, and take part. Free challenges, social plans and paid dares each explain their own next step.
           </p>
           <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
             <Link href="/now" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-yellow-300 px-6 text-[11px] font-black uppercase tracking-[0.15em] text-black transition hover:bg-yellow-200">
@@ -149,7 +159,7 @@ export default function HowItWorksPage() {
                   <span className="flex-1">{path.title}</span>
                   <Plus className="h-4 w-4 text-white/35 transition group-open:rotate-45" aria-hidden="true" />
                 </summary>
-                <p className="mt-3 pl-7 text-sm leading-6 text-white/46">{path.body}</p>
+                <p id={path.id} className="mt-3 scroll-mt-32 pl-7 text-sm leading-6 text-white/46">{path.body}</p>
               </details>
             ))}
           </div>

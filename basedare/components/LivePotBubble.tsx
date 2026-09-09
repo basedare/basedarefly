@@ -7,34 +7,11 @@ import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useView } from '@/app/context/ViewContext';
 import { getClientPerformanceHints } from '@/lib/client-performance';
+import { readCreatorPoolSummary, type CreatorPoolSummary } from '@/lib/creator-pool-display';
 
 interface LivePotBubbleProps {
   className?: string;
 }
-
-type PoolStat = {
-  amount: number;
-  count: number;
-};
-
-type TopVenue = {
-  name: string;
-  slug: string;
-  city?: string | null;
-  country?: string | null;
-  amount: number;
-  verifiedDares: number;
-};
-
-type CreatorPoolSummary = {
-  total: number;
-  liveDares: PoolStat;
-  venueActivations: PoolStat;
-  paidOut: PoolStat;
-  topEarningVenue: TopVenue | null;
-  fundedBy: string[];
-  updatedAt: string;
-};
 
 function formatCompactUsd(value: number) {
   const options: Intl.NumberFormatOptions = {
@@ -67,6 +44,7 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
   const [isReadyToRender, setIsReadyToRender] = useState(false);
   const [pool, setPool] = useState<CreatorPoolSummary | null>(null);
   const [poolLoadSettled, setPoolLoadSettled] = useState(false);
+  const [poolIsStale, setPoolIsStale] = useState(false);
   const potRef = useRef<HTMLButtonElement>(null);
   const rafRef = useRef<number | null>(null);
   const prevDistance = useRef<number>(0);
@@ -148,10 +126,11 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
       fetch('/api/live-pot', {
         signal: controller.signal,
       })
-        .then((response) => (response.ok ? response.json() : null))
-        .then((payload) => {
-          if (isActive && payload?.success && payload?.data?.creatorPool) {
-            setPool(payload.data.creatorPool);
+        .then(async (response) => ({ payload: response.ok ? await response.json() : null, source: response.headers.get('X-BaseDare-Data-Source') }))
+        .then(({ payload, source }) => {
+          if (isActive) {
+            setPool(readCreatorPoolSummary(payload, source));
+            setPoolIsStale(source === 'stale');
           }
         })
         .catch((error: unknown) => {
@@ -196,39 +175,37 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
     return null;
   }
 
-  const displayTotal = pool && pool.total > 0 ? pool.total : 86227;
+  const displayTotal = pool?.liveDares.amount ?? null;
   const isLoadingPool = !poolLoadSettled && !pool;
-  const topVenue = pool?.topEarningVenue;
   const poolStats = [
     {
-      label: 'Live dares',
-      value: formatUsd(pool?.liveDares.amount ?? 0),
-      meta: `${pool?.liveDares.count ?? 0} active`,
+      label: 'Active dare rewards',
+      value: pool ? formatUsd(pool.liveDares.amount) : 'Unavailable',
+      meta: pool ? `${pool.liveDares.count} recorded dares` : 'Awaiting data',
     },
     {
-      label: 'Venue activations',
-      value: formatUsd(pool?.venueActivations.amount ?? 0),
-      meta: `${pool?.venueActivations.count ?? 0} live`,
+      label: 'Campaign budgets',
+      value: pool ? formatUsd(pool.venueActivations.amount) : 'Unavailable',
+      meta: pool ? `${pool.venueActivations.count} recorded campaigns` : 'Awaiting data',
     },
     {
-      label: 'Paid out',
-      value: formatUsd(pool?.paidOut.amount ?? 0),
-      meta: `${pool?.paidOut.count ?? 0} verified`,
+      label: 'Past settled rewards',
+      value: pool ? formatUsd(pool.paidOut.amount) : 'Unavailable',
+      meta: 'Historical · not available',
     },
     {
-      label: 'Top venue',
-      value: topVenue?.name ?? 'Warming up',
-      meta: topVenue ? `${formatUsd(topVenue.amount)} paid` : 'No winner yet',
+      label: 'Available to request',
+      value: 'See paid dares',
+      meta: 'Each brief shows its reward',
     },
   ];
-  const fundedBy = pool?.fundedBy?.length ? pool.fundedBy : ['Brands', 'Venues', 'Dare creators'];
 
   return (
     <>
       <motion.button
         ref={potRef}
         type="button"
-        aria-label="Open Creator Pool"
+        aria-label="Open dare reward summary"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((value) => !value)}
         className={`
@@ -331,10 +308,10 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
 
         {/* Content */}
         <div className={`absolute inset-0 z-30 flex flex-col justify-center items-center text-center p-2 ${triggerBounce ? 'animate-basketball-bounce' : ''}`}>
-          <div className="text-xs font-semibold text-purple-300 uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">CREATOR POOL</div>
-          <div className="live-pot-value text-3xl font-extrabold drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">{formatCompactUsd(displayTotal)}</div>
+          <div className="text-xs font-semibold text-purple-300 uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">DARE REWARDS</div>
+          <div className="live-pot-value text-3xl font-extrabold drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">{displayTotal === null ? '—' : formatCompactUsd(displayTotal)}</div>
           <div className="mt-1 text-[0.55rem] font-black uppercase tracking-[0.22em] text-white/80 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-            {isLoadingPool ? 'Syncing' : 'Live liquidity'}
+            {isLoadingPool ? 'Checking' : !pool ? 'Data unavailable' : poolIsStale ? 'Last known active' : 'In active dares'}
           </div>
         </div>
       </motion.button>
@@ -356,15 +333,15 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="inline-flex rounded-full border border-yellow-300/35 bg-yellow-300/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.22em] text-yellow-200">
-                    Creator Pool
+                    Dare rewards
                   </div>
                   <h2 className="mt-3 text-2xl font-black uppercase italic leading-none text-white">
-                    Liquidity Layer
+                    Reward summary
                   </h2>
                 </div>
                 <button
                   type="button"
-                  aria-label="Close Creator Pool"
+                  aria-label="Close dare reward summary"
                   onClick={() => setIsOpen(false)}
                   className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/12 bg-white/5 text-xl text-white/70 transition hover:bg-white/10 hover:text-white"
                 >
@@ -373,14 +350,15 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
               </div>
 
               <p className="mt-3 text-sm leading-relaxed text-white/68">
-                Real money available or already routed to creators through live dares, venue activations, and campaign budgets.
+                Recorded USDC rewards, campaign budgets and past settlements are shown separately. Active dares can include assigned work; these totals are not a claimable balance. Open a paid brief for its availability and your net reward.
               </p>
 
               <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/35 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                 <div className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-white/45">
-                  Total live / routed
+                  {poolIsStale ? 'Last known active dare rewards' : 'Recorded active dare rewards'}
                 </div>
-                <div className="mt-1 text-3xl font-black text-yellow-300">{formatUsd(displayTotal)}</div>
+                <div className="mt-1 text-3xl font-black text-yellow-300">{displayTotal === null ? 'Unavailable' : formatUsd(displayTotal)}</div>
+                {pool ? <p className="mt-2 text-xs text-white/50">Recorded {new Date(pool.updatedAt).toLocaleString()}</p> : <p className="mt-2 text-xs text-white/50">Reward data could not be confirmed. Browse paid dares to check individual briefs.</p>}
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2">
@@ -395,17 +373,6 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
                     <div className="mt-2 truncate text-lg font-black text-white">{stat.value}</div>
                     <div className="mt-1 truncate text-xs text-white/48">{stat.meta}</div>
                   </div>
-                ))}
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {fundedBy.map((source) => (
-                  <span
-                    key={source}
-                    className="rounded-full border border-purple-300/18 bg-purple-300/8 px-2.5 py-1 text-[0.56rem] font-black uppercase tracking-[0.18em] text-purple-100/80"
-                  >
-                    {source}
-                  </span>
                 ))}
               </div>
 
