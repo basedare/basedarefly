@@ -1602,7 +1602,7 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
   layers.forEach((layer) => {
     try {
       if (layer.type === 'background') {
-        map.setPaintProperty(layer.id, 'background-color', muted ? '#020203' : '#03030a');
+        map.setPaintProperty(layer.id, 'background-color', muted ? '#101218' : '#131b29');
         return;
       }
 
@@ -1610,15 +1610,15 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
 
       if (layer.type === 'fill') {
         if (layerId.includes('water')) {
-          map.setPaintProperty(layer.id, 'fill-color', muted ? '#050509' : '#06081d');
+          map.setPaintProperty(layer.id, 'fill-color', muted ? '#080e17' : '#091d2b');
           map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.82 : 0.94);
-          map.setPaintProperty(layer.id, 'fill-outline-color', muted ? '#0e0e15' : 'rgba(184,127,255,0.16)');
+          map.setPaintProperty(layer.id, 'fill-outline-color', muted ? '#26303d' : 'rgba(103,174,183,0.3)');
           return;
         }
 
         if (layerId.includes('park') || layerId.includes('landcover') || layerId.includes('wood')) {
-          map.setPaintProperty(layer.id, 'fill-color', muted ? '#070707' : '#0b0b12');
-          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.44 : 0.56);
+          map.setPaintProperty(layer.id, 'fill-color', muted ? '#19201f' : '#19352f');
+          map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.44 : 0.6);
           return;
         }
 
@@ -1628,12 +1628,12 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
           layerId.includes('commercial') ||
           layerId.includes('industrial')
         ) {
-          map.setPaintProperty(layer.id, 'fill-color', muted ? '#08080d' : '#0d0a19');
+          map.setPaintProperty(layer.id, 'fill-color', muted ? '#1b1e27' : '#22283b');
           map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.58 : 0.78);
           return;
         }
 
-        map.setPaintProperty(layer.id, 'fill-color', muted ? '#07080d' : '#090713');
+        map.setPaintProperty(layer.id, 'fill-color', muted ? '#171a22' : '#1b2635');
         map.setPaintProperty(layer.id, 'fill-opacity', muted ? 0.58 : 0.74);
       }
 
@@ -1652,30 +1652,31 @@ function tuneMapLibreBaseStyle(map: MapLibreMap, preset: MapPreset) {
           layerId.includes('stream') ||
           layerId.includes('canal')
         ) {
-          map.setPaintProperty(layer.id, 'line-color', muted ? '#20202a' : '#2a1f62');
+          map.setPaintProperty(layer.id, 'line-color', muted ? '#35414d' : '#3e7888');
           map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.34 : 0.38);
           return;
         }
 
         // Arterials run dim gold so the road network reads as the veins of a
         // city you light up — pins stay the brightest gold on the map.
-        const roadColor = muted ? '#2b2b33' : '#3d3277';
-        const arterialColor = muted ? '#3b3941' : '#c2952c';
+        const roadColor = muted ? '#505260' : '#777391';
+        const arterialColor = muted ? '#68666b' : '#bba26b';
         const isArterial =
           layerId.includes('major') || layerId.includes('primary') || layerId.includes('motorway');
         map.setPaintProperty(layer.id, 'line-color', isArterial ? arterialColor : roadColor);
-        map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.48 : isArterial ? 0.8 : 0.76);
+        map.setPaintProperty(layer.id, 'line-opacity', muted ? 0.48 : isArterial ? 0.72 : 0.48);
       }
 
       if (layer.type === 'symbol') {
         if (layerId.includes('place') || layerId.includes('label') || layerId.includes('name')) {
-          map.setPaintProperty(layer.id, 'text-color', muted ? '#e6e8ee' : '#f6f1ff');
-          map.setPaintProperty(layer.id, 'text-halo-color', muted ? '#020203' : '#05030b');
+          map.setPaintProperty(layer.id, 'text-color', muted ? '#c9ced8' : '#ced6e4');
+          map.setPaintProperty(layer.id, 'text-halo-color', muted ? '#101218' : '#131b29');
           map.setPaintProperty(layer.id, 'text-halo-width', 1.45);
         }
 
         if (layerId.includes('poi')) {
-          map.setPaintProperty(layer.id, 'text-opacity', muted ? 0.32 : 0.38);
+          // BaseDare place labels carry identity; duplicate basemap POIs add clutter.
+          map.setPaintProperty(layer.id, 'text-opacity', 0);
           map.setPaintProperty(layer.id, 'icon-opacity', 0);
         }
       }
@@ -1780,7 +1781,7 @@ function ensureMapLibreDareLayers(
     for (const layer of map.getStyle().layers ?? []) {
       const sourceLayer = (layer as { 'source-layer'?: string })['source-layer'];
       if (layer.type === 'fill' && (sourceLayer === 'water' || layer.id.toLowerCase().includes('water'))) {
-        map.setPaintProperty(layer.id, 'fill-color', preset === 'noir' ? '#070d16' : '#081019');
+        map.setPaintProperty(layer.id, 'fill-color', preset === 'noir' ? '#080e17' : '#091d2b');
       }
     }
     const coastSourceId = getMapLibreVectorSourceId(map);
@@ -1793,8 +1794,8 @@ function ensureMapLibreDareLayers(
           source: coastSourceId,
           'source-layer': 'water',
           paint: {
-            'line-color': 'rgba(148, 170, 200, 0.2)',
-            'line-width': 1,
+            'line-color': preset === 'noir' ? 'rgba(133,151,170,0.3)' : 'rgba(109,177,190,0.38)',
+            'line-width': 1.2,
           },
         },
         firstSymbolLayerId

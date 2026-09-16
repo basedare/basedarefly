@@ -2993,6 +2993,50 @@ button[data-testid='ockConnectWalletButton']:hover {
   padding-top: 0.12rem;
 }
 
+/* A single desktop control row gives the geography more room. Keep the
+   established stacked layout on tablets and phones. */
+@media (min-width: 1280px) {
+  .bd-map-route-active .map-command-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    padding-right: 10rem;
+  }
+
+  .bd-map-route-active .map-command-header > div:first-child {
+    flex: 1 1 20rem;
+    min-width: 15rem;
+  }
+
+  .bd-map-route-active .map-command-header .map-top-control-stack {
+    width: auto;
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .bd-map-route-active .map-command-header:has(.map-advanced-filter-panel) {
+    align-items: flex-start;
+  }
+}
+
+/* Preserve the illustrated choices while reducing the card's map coverage. */
+.bd-map-route-active .map-attention-card .map-attention-choice .adventure-sprite {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-basis: 2.5rem;
+  margin: 0;
+}
+
+.bd-map-route-active .map-attention-card .map-attention-choice {
+  min-height: 3.25rem;
+  padding-block: 0.25rem;
+}
+
+.bd-map-route-active .map-attention-card {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 197, 24, 0.3) transparent;
+}
+
 .bd-map-route-active .map-status-rail {
   gap: 0.42rem !important;
 }

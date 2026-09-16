@@ -14,6 +14,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex map visual polish (2026-09-16 — MAIN RELEASE)
+- The user requested and approved pushing the map visual improvement. Branch `codex/map-visual-polish` starts at `94f4649d`. Scope: basemap land/water/road/label palette, desktop toolbar spacing and compact PeeBear suggestions. Preserve markers, camera, discovery and paid lifecycle behavior.
+- Verified with app typecheck, full lint (zero errors; existing warnings), static production safety checks, production Next build, Graphify rebuild and whitespace checks. Browser checks cover 1440px/1280px desktop, 390px mobile, expanded tools, guide dismissal, zoom and compact/expanded place details.
+- Local map checks use curated fallback inventory; no paid or presence action was submitted. Roll back this release if geography or markers lose contrast, toolbar controls clip, or place selection regresses.
+
 ### Codex product clarity release (2026-09-10 — MAIN RELEASE)
 - User explicitly authorized implementing the reviewed clarity changes and pushing main. This supersedes the earlier hold for this bounded release. Branch `codex/product-clarity-main` starts at `6832d1c9`; the two older community/onboarding worktrees remain separate and are not merged wholesale.
 - Preserve the existing hero, orbit, mobile orb/lightning, radar, Live Around You, Chaos/Control and funding controls. Scope: literal public copy, shared labelled example activities, direct Play/Meet discovery filters, optional guide, community navigation with directory in footer, and truthful reward summary. No map renderer, paid lifecycle, schema, settlement or sponsor-rights mutation.

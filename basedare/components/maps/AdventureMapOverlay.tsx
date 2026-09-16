@@ -308,7 +308,7 @@ export default function AdventureMapOverlay({
         </div>
 
         {showIntentCard ? (
-          <section className="map-attention-card pointer-events-auto relative mt-1 max-h-[min(24rem,55dvh)] w-[min(24rem,calc(100vw-4rem))] overflow-y-auto rounded-[26px] border border-[#f5c518]/24 bg-[radial-gradient(circle_at_92%_0%,rgba(34,211,238,0.13),transparent_34%),radial-gradient(circle_at_5%_0%,rgba(245,197,24,0.16),transparent_36%),linear-gradient(180deg,rgba(18,20,31,0.97),rgba(5,7,14,0.985))] p-3 shadow-[0_28px_64px_rgba(0,0,0,0.56),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl sm:p-4">
+          <section className="map-attention-card pointer-events-auto relative mt-1 max-h-[min(26rem,55dvh)] w-[min(24rem,calc(100vw-4rem))] overflow-y-auto rounded-[26px] border border-[#f5c518]/24 bg-[radial-gradient(circle_at_92%_0%,rgba(34,211,238,0.13),transparent_34%),radial-gradient(circle_at_5%_0%,rgba(245,197,24,0.16),transparent_36%),linear-gradient(180deg,rgba(18,20,31,0.97),rgba(5,7,14,0.985))] p-3 shadow-[0_28px_64px_rgba(0,0,0,0.56),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl sm:p-4">
             <button
               type="button"
               onClick={() => onGuideOpenChange(false)}
@@ -321,10 +321,10 @@ export default function AdventureMapOverlay({
               {fieldStationLabel ? `${fieldStationLabel} · Field Station` : "PeeBear reads the field"}
             </p>
             <h2 className="mt-2 max-w-[18rem] pr-7 text-lg font-black leading-5 text-white sm:text-xl sm:leading-6">
-              What would make your next two hours better?
+              Where to next?
             </h2>
             <p className="mt-2 hidden text-xs leading-5 text-white/52 sm:block">
-              Pick a mood. I’ll narrow the map to three useful possibilities.
+              Pick a mood. PeeBear will suggest a few places.
             </p>
             {fieldStationFallback ? (
               <p className="mt-2 rounded-xl border border-cyan-200/12 bg-cyan-300/[0.05] px-3 py-2 text-[10px] leading-4 text-cyan-50/62">
