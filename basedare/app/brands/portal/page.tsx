@@ -603,24 +603,19 @@ export default function BrandPortalPage() {
 
   const checkoutSteps = [
     {
-      label: 'Question',
+      label: 'Brief',
       detail: formData.title.trim() || selectedActivationPackage.name,
       complete: Boolean(formData.title.trim()),
     },
     {
-      label: 'Coverage',
+      label: 'Place',
       detail: selectedPlace?.name ?? 'Choose place or micro-area',
       complete: Boolean(selectedPlace),
     },
     {
-      label: 'Evidence',
-      detail: selectedActivationPackage.name,
-      complete: true,
-    },
-    {
       label: 'Budget',
       detail: 'Fixed quote shown before request',
-      complete: true,
+      complete: false,
     },
     {
       label: 'Review',
@@ -642,18 +637,16 @@ export default function BrandPortalPage() {
       <style>{`
         .control-glass-room {
           background:
-            radial-gradient(circle at 1px 1px, rgba(185,127,255,0.12) 1px, transparent 0) 0 0 / 112px 112px,
-            radial-gradient(circle at 14% 8%, rgba(255,213,74,0.16), transparent 34%),
-            radial-gradient(circle at 82% 8%, rgba(154,82,255,0.2), transparent 30%),
-            radial-gradient(circle at 50% 100%, rgba(31,220,255,0.11), transparent 36%),
-            linear-gradient(180deg, #05040a 0%, #07020f 48%, #000 100%);
+            radial-gradient(ellipse at 85% 0%, rgba(120,70,205,0.10), transparent 48%),
+            radial-gradient(ellipse at 0% 42%, rgba(28,116,142,0.07), transparent 45%),
+            #060810;
         }
 
         .control-glass-room header,
         .control-glass-room [class*="bg-white"],
         .control-glass-room [class*="bg-zinc-50"],
         .control-glass-room [class*="bg-zinc-100"] {
-          background: linear-gradient(180deg, rgba(255,255,255,0.105), rgba(154,82,255,0.04) 28%, rgba(4,4,10,0.9) 100%) !important;
+          background: linear-gradient(165deg, rgba(22,26,40,0.97), rgba(9,12,21,0.98)) !important;
           border-color: rgba(255,255,255,0.12) !important;
           box-shadow:
             0 22px 58px rgba(0,0,0,0.34),
@@ -736,9 +729,8 @@ export default function BrandPortalPage() {
 
         .activation-shell {
           background:
-            radial-gradient(circle at 12% 18%, rgba(255,216,82,0.14), transparent 30%),
-            radial-gradient(circle at 88% 8%, rgba(172,92,255,0.24), transparent 31%),
-            linear-gradient(135deg, rgba(12,17,30,0.92), rgba(11,4,19,0.94) 48%, rgba(4,5,10,0.96));
+            radial-gradient(ellipse at 100% 0%, rgba(126,77,205,0.09), transparent 55%),
+            linear-gradient(155deg, #101522, #090c15 70%);
           border-color: rgba(255,255,255,0.14);
           box-shadow:
             0 30px 90px rgba(0,0,0,0.44),
@@ -820,7 +812,7 @@ export default function BrandPortalPage() {
 
       {/* Keep mobile quiet and legible; the animated layer is desktop ambience only. */}
       <div className="fixed inset-0 z-0 hidden md:block">
-        <ParticleNetwork particleCount={48} minDist={132} particleColor="rgba(194, 133, 255, 0.4)" lineColor="rgba(255, 211, 86, 0.14)" speed={0.18} />
+        <ParticleNetwork particleCount={48} minDist={132} particleColor="rgba(165, 155, 215, 0.22)" lineColor="rgba(125, 149, 195, 0.06)" speed={0.18} />
       </div>
 
       {/* Pre-hydration skeleton */}
@@ -869,7 +861,7 @@ export default function BrandPortalPage() {
                 BUYER WORKSPACE
               </div>
               <div className="mt-1 hidden text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200/70 md:block">
-                Scope fieldwork · confirm invoice · keep receipts
+                Your briefs · evidence · receipts
               </div>
             </div>
           </div>
@@ -905,7 +897,7 @@ export default function BrandPortalPage() {
       <main className="relative z-10 mx-auto max-w-7xl px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-5 md:px-6 md:py-8">
         {showFirstRunOnRamp ? (
           <section className="activation-shell relative overflow-hidden rounded-[30px] border p-5 backdrop-blur-xl md:p-7">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(245,197,24,0.12),transparent_32%),radial-gradient(circle_at_84%_8%,rgba(168,85,247,0.14),transparent_34%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(34,211,238,0.035),transparent_32%),radial-gradient(circle_at_84%_8%,rgba(168,85,247,0.07),transparent_34%)]" />
             <div className="relative grid gap-7 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
@@ -913,7 +905,7 @@ export default function BrandPortalPage() {
                   Start here
                 </div>
                 <h1 className="mt-5 max-w-3xl text-3xl font-black uppercase italic leading-[0.94] tracking-[-0.055em] text-white sm:text-5xl">
-                  Send one useful question into the real world.
+                  Get answers from people on the ground.
                 </h1>
                 <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/72">
                   Define one bounded question and place. BaseDare routes {MANAGED_FIELD_SPRINT.assignedContributorCount} independent contributors and returns verified evidence, timestamped place memory, and a receipt.
@@ -925,7 +917,7 @@ export default function BrandPortalPage() {
                     className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
                   >
                     <Sparkles className="h-4 w-4" />
-                    Scope a Sprint
+                    Start a brief
                   </button>
                   <Link
                     href="/field-sprints/example"
@@ -994,15 +986,15 @@ export default function BrandPortalPage() {
           </section>
         ) : (
           <>
-        <div className="activation-shell mb-6 overflow-hidden rounded-[28px] border p-4 backdrop-blur-xl md:mb-8 md:p-6">
+        {!showCreateCampaign ? <div className="activation-shell mb-6 overflow-hidden rounded-[28px] border p-4 backdrop-blur-xl md:mb-8 md:p-6">
           <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">
-            Proof-backed fieldwork
+            Managed fieldwork · Verified Field Sprint
           </div>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-white md:text-5xl">
-            Send a verified mission into the real world
+            Get answers from people on the ground
           </h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-white/70">
-            Ask one useful place question. BaseDare handles contributor routing, verification, payout tracking, and the receipt; the fixed quote appears during scoping before you request an invoice.
+            Choose a place and tell us what you need checked. BaseDare coordinates {MANAGED_FIELD_SPRINT.assignedContributorCount} independent contributors, reviews their evidence and delivers a receipt in {MANAGED_FIELD_SPRINT.durationDaysMin}–{MANAGED_FIELD_SPRINT.durationDaysMax} days. The managed package costs ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()}.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <button
@@ -1011,20 +1003,20 @@ export default function BrandPortalPage() {
               className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
             >
               <Sparkles className="h-4 w-4" />
-              Scope a Sprint
+              Start a brief
             </button>
             <Link
               href={brand?.latestCompletedSprintReceiptHref ?? '/field-sprints/example'}
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-cyan-300/[0.24] bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_28px_rgba(0,0,0,0.2)] transition hover:border-cyan-200/40 hover:bg-cyan-400/[0.14]"
             >
               <ReceiptText className="h-4 w-4" />
-              See verified results
+              {brand?.latestCompletedSprintReceiptHref ? 'See your results' : 'See an example result'}
             </Link>
           </div>
           <p className="mt-4 text-sm font-semibold leading-6 text-white/58">
             Managing a venue? Claim it from its page on the map; buyer missions stay here.
           </p>
-        </div>
+        </div> : null}
 
         <ActivationComposer
           buyerWalletAddress={address?.toLowerCase() ?? null}
@@ -1044,6 +1036,12 @@ export default function BrandPortalPage() {
           setShowCreateCampaign={setShowCreateCampaign}
           showCreateCampaign={showCreateCampaign}
         />
+
+        <p className="mb-6 flex flex-wrap gap-x-2 gap-y-1 px-1 text-sm leading-6 text-white/60">
+          Need content or promotion for a place?
+          <Link href="/create" className="font-bold text-[#f8dd72] underline decoration-[#f8dd72]/30 underline-offset-4">Create a paid dare →</Link>
+          <span>Define the work, reward and media permissions in the brief.</span>
+        </p>
 
         {hasBrandActivity ? (
           <>

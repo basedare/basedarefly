@@ -92,7 +92,11 @@ function venueMatches(
 }
 
 export function getSiargaoNightGuide(now = new Date()) {
-  const weekday = getSiargaoWeekday(now);
+  return getSiargaoNightGuideForWeekday(getSiargaoWeekday(now));
+}
+
+// Browsing a weekly pattern does not change the date of live Tonight inventory.
+export function getSiargaoNightGuideForWeekday(weekday: SiargaoWeekday) {
   const rotation = NIGHT_ROTATION[weekday];
 
   return {

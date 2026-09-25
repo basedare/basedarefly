@@ -1,3 +1,5 @@
+import { readContentDelivery, contentDeliverySummary, validPublicationUrl, type ContentDeliveryBrief } from './content-delivery';
+
 export const OUTCOME_CONTRACT_VERSION = 1 as const;
 export const OUTCOME_CONTRACT_SETTLEMENT_FEE_PERCENT = 4 as const;
 
@@ -47,6 +49,7 @@ export type ReportedOutcome = {
   summary: string;
   observedAt: string;
   maintenanceOutcome: PlaceMaintenanceOutcome;
+  publicationUrl?: string;
 };
 
 export function defaultPlaceMaintenanceOutcome(kind: ReportedOutcomeKind): PlaceMaintenanceOutcome {
@@ -65,6 +68,7 @@ export type MissionCompilerOutput = {
 };
 
 export type OutcomeContractSnapshot = {
+  contentDelivery?: ContentDeliveryBrief;
   contractId: string;
   family: ActiveOutcomeContractFamily;
   version: typeof OUTCOME_CONTRACT_VERSION;
@@ -111,6 +115,7 @@ export type OutcomeContractSnapshot = {
 };
 
 export type OutcomeContractRequest = {
+  contentDelivery?: ContentDeliveryBrief;
   family?: OutcomeContractFamily | null;
   buyerQuestion?: string | null;
   maximumObservationAgeHours?: number | null;
@@ -287,7 +292,9 @@ export function inferOutcomeContractFamily(input: {
 }
 
 export function buildOutcomeContractSnapshot(input: BuildOutcomeContractInput): OutcomeContractSnapshot {
-  const requestedFamily = input.family ?? inferOutcomeContractFamily(input);
+  const contentDelivery = input.contentDelivery ? readContentDelivery({ contentDelivery: input.contentDelivery }) : null;
+  if (input.contentDelivery && !contentDelivery) throw new Error('Complete the content delivery brief.');
+  const requestedFamily = contentDelivery ? (contentDelivery.posting === 'PUBLIC_POST' ? 'PUBLICATION' : 'EXPERIENCE_EXECUTION') : input.family ?? inferOutcomeContractFamily(input);
   if (!OUTCOME_CONTRACT_FAMILIES.includes(requestedFamily)) {
     throw new Error('Unknown outcome contract family.');
   }
@@ -335,7 +342,12 @@ export function buildOutcomeContractSnapshot(input: BuildOutcomeContractInput): 
       : `${completerPayout.toFixed(2)} USDC after ${reviewExpectation} (${grossReward.toFixed(2)} USDC gross reward less the ${OUTCOME_CONTRACT_SETTLEMENT_FEE_PERCENT}% settlement fee).`,
   };
 
+  if (contentDelivery) {
+    mission.prove = contentDeliverySummary(contentDelivery).join(' ');
+    mission.win = 'The delivered asset meets the funded brief and passes human review. Reach and positive reviews are not required.';
+  }
   return {
+    ...(contentDelivery ? { contentDelivery } : {}),
     contractId: `${requestedFamily}:v${OUTCOME_CONTRACT_VERSION}`,
     family: requestedFamily,
     version: OUTCOME_CONTRACT_VERSION,
@@ -357,7 +369,7 @@ export function buildOutcomeContractSnapshot(input: BuildOutcomeContractInput): 
     retryPolicy: policy.retryPolicy,
     appealPolicy: policy.appealPolicy,
     safetyRestrictions: [...policy.safetyRestrictions],
-    rights: { ...policy.rights },
+    rights: { ...policy.rights, ...(contentDelivery ? { sponsorCommercialReuseRequired: true } : {}) },
     permittedReceiptWording: policy.permittedReceiptWording,
     mission,
   };
@@ -427,7 +439,10 @@ export function validateReportedOutcome(
   if (!PLACE_MAINTENANCE_OUTCOMES.includes(maintenanceOutcome)) {
     return { ok: false, error: 'Choose a valid place-maintenance result.' };
   }
-  return { ok: true, value: { kind: candidate.kind, summary, observedAt, maintenanceOutcome } };
+  const content = readContentDelivery(snapshot);
+  const publicationUrl = validPublicationUrl(candidate.publicationUrl);
+  if (content?.posting === 'PUBLIC_POST' && !publicationUrl) return { ok: false, error: 'Add the public post URL from the agreed social platform.' };
+  return { ok: true, value: { kind: candidate.kind, summary, observedAt, maintenanceOutcome, ...(publicationUrl ? { publicationUrl } : {}) } };
 }
 
 export function formatAcceptedOutcomeReceipt(input: {

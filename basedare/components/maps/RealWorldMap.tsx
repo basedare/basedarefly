@@ -95,7 +95,7 @@ import {
   resolveMapRelicSignal,
 } from '@/lib/map-relic-system';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
-import { getSiargaoNightGuide, isSiargaoVenueFeaturedTonight } from '@/lib/siargao-nightlife';
+import { getSiargaoNightGuide, isSiargaoVenueFeaturedTonight, type SiargaoWeekday } from '@/lib/siargao-nightlife';
 import {
   BOAT_LAUNCHES,
   KANAWAY_BOAT_VENUE_SLUG,
@@ -3654,6 +3654,7 @@ export default function RealWorldMap() {
   const [startProofDockDismissed, setStartProofDockDismissed] = useState(false);
   const [adventureMode, setAdventureMode] = useState(false);
   const [adventurePanelOpen, setAdventurePanelOpen] = useState(false);
+  const [selectedGuideNight, setSelectedGuideNight] = useState<SiargaoWeekday | null>(null);
   const [mapAttentionIntent, setMapAttentionIntent] = useState<MapAttentionIntent | null>(null);
   const [mapAttentionGuideOpen, setMapAttentionGuideOpen] = useState(true);
   const isImmersiveMobile = isMobileViewport && isMapFullscreenMobile;
@@ -4017,6 +4018,13 @@ export default function RealWorldMap() {
 
   const handleAdventurePanelOpenChange = useCallback(
     (open: boolean) => {
+      if (open) {
+        setSelectedGuideNight(null);
+        setSelectedPlace(null);
+        setSelectedMeetup(null);
+        setSelectedPlacePanelExpanded(false);
+        setMapAttentionGuideOpen(false);
+      }
       if (open && mapAttentionIntent !== 'tonight') {
         handleMapAttentionIntentChange('tonight');
       }
@@ -11376,10 +11384,17 @@ export default function RealWorldMap() {
             <AdventureMapOverlay
               enabled={adventureMode}
               panelOpen={adventurePanelOpen}
+              selectedNight={selectedGuideNight}
+              onSelectedNightChange={setSelectedGuideNight}
               loading={tonightActivity.loading}
               error={tonightActivity.error}
               snapshot={tonightActivity.snapshot}
               obscured={Boolean(selectedPlace || selectedMeetup)}
+              onDismissSelection={() => {
+                setSelectedPlace(null);
+                setSelectedMeetup(null);
+                setSelectedPlacePanelExpanded(false);
+              }}
               onToggle={handleAdventureModeToggle}
               onPanelOpenChange={handleAdventurePanelOpenChange}
               onSelectActivity={handleAdventureActivitySelect}
@@ -13518,10 +13533,25 @@ export default function RealWorldMap() {
           .selected-place-panel-wrap {
             top: 16px;
             right: 16px;
-            bottom: 16px;
+            bottom: auto;
             left: auto;
+            display: flex;
+            flex-direction: column;
             width: min(472px, calc(100% - 88px));
             max-height: calc(100% - 32px);
+          }
+
+          .selected-place-panel-wrap .place-panel-popup {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            height: auto;
+          }
+
+          .selected-place-panel-stack {
+            flex: 1 1 auto;
+            min-height: 0;
+            height: auto;
           }
         }
 

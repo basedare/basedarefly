@@ -34,7 +34,9 @@ export function useSiargaoSurfSignal(enabled = true) {
           signal: requestController.signal,
         });
         const payload = (await response.json()) as SurfSignalResponse;
-        if (!response.ok || !payload.success || !payload.data) return;
+        if (!response.ok || !payload.success || !payload.data) {
+          throw new Error('Surf signal unavailable');
+        }
         if (!cancelled) setSignal(payload.data);
       } catch {
         // Surf signal is optional context. The map and PeeBear stay useful when

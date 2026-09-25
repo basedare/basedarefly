@@ -237,7 +237,8 @@ async function sendToStoredSubscription(
           auth: subscription.auth,
         },
       },
-      payload
+      payload,
+      { timeout: 10000 }
     );
 
     await recordPushDelivery({

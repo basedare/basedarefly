@@ -1,3 +1,4 @@
+import { contentRightsReleaseEnabled } from '@/lib/content-rights-server';
 import { NextResponse } from 'next/server';
 import { getPublicAppSettings } from '@/lib/app-settings';
 
@@ -24,7 +25,7 @@ export async function GET() {
   if (Date.now() < publicSettingsFallbackUntil) {
     const response = NextResponse.json({
       success: true,
-      data: PUBLIC_SETTINGS_FALLBACK,
+      data: { ...PUBLIC_SETTINGS_FALLBACK, contentRightsReleased: contentRightsReleaseEnabled() },
       source: 'fallback',
       warning: 'Default public settings served while live settings recover.',
     });
@@ -37,7 +38,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: settings,
+      data: { ...settings, contentRightsReleased: contentRightsReleaseEnabled() },
       source: 'database',
     });
   } catch (error) {
@@ -46,7 +47,7 @@ export async function GET() {
     publicSettingsFallbackUntil = Date.now() + PUBLIC_SETTINGS_FALLBACK_COOLDOWN_MS;
     const response = NextResponse.json({
       success: true,
-      data: PUBLIC_SETTINGS_FALLBACK,
+      data: { ...PUBLIC_SETTINGS_FALLBACK, contentRightsReleased: contentRightsReleaseEnabled() },
       source: 'fallback',
       warning: 'Default public settings shown while live settings warm up.',
     });

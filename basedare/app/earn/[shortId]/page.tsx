@@ -1,3 +1,4 @@
+import { readContentDelivery, contentDeliverySummary } from '@/lib/content-delivery';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -49,6 +50,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
   const { shortId } = await params;
   const mission = await getCreatorMissionByShortId(shortId);
   if (!mission) notFound();
+  const contentBrief = readContentDelivery(mission.outcomeContractSnapshot);
   const estimatedPhp = mission.creatorPayout * getBaseCashPhpPerUsdc();
 
   return (
@@ -95,6 +97,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
                 </div>
               </div>
 
+              {contentBrief ? <section className={`${controlInset} mt-4 p-5`} aria-label="Purchased deliverable"><p className={controlMicroLabel}>Deliverable &amp; usage</p><ul className="mt-3 space-y-3 text-sm leading-6 text-white/65">{contentDeliverySummary(contentBrief).map((line) => <li key={line}>{line}</li>)}</ul></section> : null}
               <details className="mt-4 rounded-[22px] border border-white/9 bg-black/24 px-5 py-4 text-sm text-white/52">
                 <summary className="cursor-pointer list-none font-black text-white/76">Details, safety &amp; rights</summary>
                 <div className="mt-4 space-y-4 leading-6">
@@ -110,7 +113,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
                     {mission.baseDareCanDisplay
                       ? 'BaseDare may display the submitted work as part of the mission and its receipt.'
                       : 'The mission record does not grant BaseDare display rights.'}{' '}
-                    Sponsor commercial reuse is not granted by accepting this mission; it requires a separate explicit opt-in.
+                    {contentBrief ? 'The separate usage agreement below applies to this content mission.' : 'Sponsor commercial reuse is not granted by accepting this mission; it requires a separate explicit opt-in.'}
                   </p>
                 </div>
               </details>
@@ -135,9 +138,11 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
                   title={mission.title}
                   isAvailable={mission.isAvailable}
                   sponsorReuseNeedsOptIn={mission.sponsorReuseNeedsOptIn}
+                  contentRightsFingerprint={mission.contentRightsFingerprint}
                   initialClaimRequestWallet={mission.claimRequestWallet}
                   initialClaimRequestStatus={mission.claimRequestStatus}
                   missionStatus={mission.status}
+                  missionAppealStatus={mission.appealStatus}
                   assignedWallet={mission.assignedWallet}
                   existingProofUrl={mission.existingProofUrl}
                   bountyAmount={mission.grossReward}

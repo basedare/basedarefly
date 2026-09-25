@@ -1,3 +1,4 @@
+import { contentRightsReleaseEnabled } from '@/lib/content-rights-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Livepeer } from 'livepeer';
@@ -351,7 +352,7 @@ export async function POST(request: NextRequest) {
     } = validation.data;
     const isCommunitySpark = sparkType === 'COMMUNITY';
     const normalizedMissionMode = missionMode === 'STREAM' ? 'STREAM' : 'IRL';
-    const normalizedMissionTag = missionTag?.trim() || null;
+    const normalizedMissionTag = validation.data.outcomeContract?.contentDelivery ? 'brand-campaign' : missionTag?.trim() || null;
     const effectiveAmount = isCommunitySpark ? 0 : amount;
     const effectiveMissionMode = isCommunitySpark ? 'IRL' : normalizedMissionMode;
     const effectiveMissionTag = isCommunitySpark ? 'community' : normalizedMissionTag;
@@ -381,6 +382,18 @@ export async function POST(request: NextRequest) {
           { success: false, error: 'UNAUTHORIZED', code: 'UNAUTHORIZED' },
           { status: 401 }
         );
+      }
+    }
+
+    const contentDelivery = validation.data.outcomeContract?.contentDelivery;
+    if (contentDelivery) {
+      if (!contentRightsReleaseEnabled()) return NextResponse.json({ success: false, error: 'Content missions are waiting for reviewed usage terms. No reward has been funded.', code: 'CONTENT_TERMS_NOT_RELEASED' }, { status: 409 });
+      if (isCommunitySpark || (streamerTag && !['@open', '@everyone'].includes(streamerTag.toLowerCase())) || normalizedMissionMode !== 'IRL' || !effectiveRawIsNearbyDare) {
+        return NextResponse.json({ success: false, error: 'Content delivery currently supports open, paid, place-bound IRL missions only.' }, { status: 400 });
+      }
+      const deadline = Date.parse(contentDelivery.deadline);
+      if (deadline < Date.now() + 60 * 60 * 1000 || deadline > Date.now() + 7 * 24 * 60 * 60 * 1000) {
+        return NextResponse.json({ success: false, error: 'Set the delivery deadline between one hour and seven days from now.' }, { status: 400 });
       }
     }
 
@@ -795,7 +808,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const expiresAtOnChain = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const expiresAtOnChain = contentDelivery ? new Date(contentDelivery.deadline) : new Date(Date.now() + 24 * 60 * 60 * 1000);
     const shortIdOnChain = generateShortId();
     const isAwaitingClaimOnChain = !isOpenBounty && !tagVerified;
     const inviteTokenOnChain = isAwaitingClaimOnChain ? generateInviteToken() : null;

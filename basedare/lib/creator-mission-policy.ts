@@ -1,3 +1,5 @@
+import { readContentDelivery } from './content-delivery';
+
 export type CreatorMissionFamily = 'FIELD_TRUTH' | 'EXPERIENCE_EXECUTION' | 'PUBLICATION';
 
 export type CreatorMissionSnapshot = {
@@ -95,7 +97,7 @@ export function isCreatorMissionAvailable(
   return (
     isCreatorMissionFunnelCandidate(mission, now) &&
     isVacantCreatorMissionRequest(mission.claimRequestStatus) &&
-    !requiresSponsorCommercialReuseConsent(mission.outcomeContractSnapshot)
+    (!requiresSponsorCommercialReuseConsent(mission.outcomeContractSnapshot) || Boolean(readContentDelivery(mission.outcomeContractSnapshot)))
   );
 }
 

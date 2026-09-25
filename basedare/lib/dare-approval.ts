@@ -1,3 +1,5 @@
+import { missionReturnPath } from '@/lib/mission-return-path';
+import { hasContentRightsAcceptance, contentSubmissionProblem } from '@/lib/content-rights-server';
 import 'server-only';
 
 import { Prisma, type Dare } from '@prisma/client';
@@ -597,16 +599,16 @@ export async function finalizeVerifiedDare(
 
     await ensureCampaignWritebackForVerifiedDare(tx, nextDare, verifiedAt);
 
-    if (nextDare.targetWalletAddress) {
+    if (nextDare.claimedBy || nextDare.targetWalletAddress) {
       await tx.notification.create({
         data: {
-          wallet: nextDare.targetWalletAddress.toLowerCase(),
+          wallet: (nextDare.claimedBy || nextDare.targetWalletAddress)!.toLowerCase(),
           type: 'DARE_VERIFIED',
           title: 'Dare Verified & Paid!',
           message:
             input.notificationMessage ??
             `Your proof for "${nextDare.title}" was approved. ${payout.streamer.toFixed(2)} USDC has been sent to your wallet.`,
-          link: '/dashboard',
+          link: missionReturnPath(nextDare),
         },
       });
     }
@@ -698,15 +700,15 @@ export async function finalizeVerifiedDare(
     }).catch((err) => console.error('[TELEGRAM] Payout alert failed:', err));
   }
 
-  if (updatedDare.targetWalletAddress) {
-    void sendWalletPush({
-      wallet: updatedDare.targetWalletAddress,
+  if (updatedDare.claimedBy || updatedDare.targetWalletAddress) {
+    await sendWalletPush({
+      wallet: (updatedDare.claimedBy || updatedDare.targetWalletAddress)!,
       topic: 'wallet',
       title: 'Dare Verified & Paid!',
       body:
         input.notificationMessage ??
         `Your proof for "${updatedDare.title}" was approved. ${payout.streamer.toFixed(2)} USDC has been sent to your wallet.`,
-      url: '/dashboard',
+      url: missionReturnPath(updatedDare),
     }).catch((err) => {
       const message = err instanceof Error ? err.message : 'Unknown push send error';
       console.error('[WEB_PUSH] Verified dare push failed:', message);
@@ -754,6 +756,10 @@ export async function approveDareWithPayout(
       payout: finalized.payout,
     };
   }
+
+  if (!(await hasContentRightsAcceptance(dare))) throw new Error('Content usage consent is missing for the assigned contributor.');
+  const submissionProblem = contentSubmissionProblem(dare, true);
+  if (submissionProblem) throw new Error(submissionProblem);
 
   const payout = calculatePayouts(dare);
   const needsOnChainPayout = isContractDeployed && !dare.isSimulated && !FORCE_SIMULATION;

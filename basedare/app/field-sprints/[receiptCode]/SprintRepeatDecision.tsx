@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { buildSprintReorderHref } from '@/lib/sprint-reorder';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
@@ -15,7 +17,7 @@ const DECISIONS: Array<{ id: FieldSprintRepeatDecision; label: string; detail: s
   { id: 'STOP', label: 'Stop', detail: 'Record that no follow-up is wanted.' },
 ];
 
-export default function SprintRepeatDecision({ receiptCode, originalQuestion }: { receiptCode: string; originalQuestion: string }) {
+export default function SprintRepeatDecision({ receiptCode, originalQuestion, area, freshnessWindowHours }: { receiptCode: string; originalQuestion: string; area: string; freshnessWindowHours: number }) {
   const [decision, setDecision] = useState<FieldSprintRepeatDecision>('REPEAT');
   const [contactName, setContactName] = useState('');
   const [email, setEmail] = useState('');
@@ -54,7 +56,9 @@ export default function SprintRepeatDecision({ receiptCode, originalQuestion }: 
     }
   }
 
-  if (saved) return <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.07] p-5"><CheckCircle2 className="h-6 w-6 text-emerald-200" /><h3 className="mt-3 text-xl font-black">Decision recorded.</h3><p className="mt-2 text-sm text-white/50">This does not confirm funding or launch another Sprint. BaseDare will reply if you requested a follow-up.</p></div>;
+  const reorderHref = buildSprintReorderHref({ receiptCode, question: decision === 'ADJUST' ? nextQuestion.trim() : originalQuestion, area, freshnessWindowHours });
+
+  if (saved) return <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.07] p-5"><CheckCircle2 className="h-6 w-6 text-emerald-200" /><h3 className="mt-3 text-xl font-black">Decision recorded.</h3><p className="mt-2 text-sm text-white/50">This does not confirm funding or launch another Sprint. BaseDare will reply if you requested a follow-up.</p>{['REPEAT', 'ADJUST'].includes(decision) ? <><Link href={reorderHref} className="mt-4 inline-flex rounded-xl bg-[#f5c518] px-4 py-3 text-sm font-bold text-black">Review next Sprint request</Link><p className="mt-2 text-xs leading-5 text-white/45">Your question and area are carried forward. Review the new scope and $2,500 invoice before deciding to pay.</p></> : null}</div>;
 
   const needsReply = decision !== 'STOP';
   return <form onSubmit={submit} className="space-y-4">

@@ -13,6 +13,8 @@ import {
   resolveCommunitySparkPlayAccess,
 } from '@/lib/community-spark-map-policy';
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
+import { contentRightsFingerprint, recordContentRightsAcceptance, contentRightsReleaseEnabled } from '@/lib/content-rights-server';
+import { readContentDelivery } from '@/lib/content-delivery';
 import { requiresSponsorCommercialReuseConsent } from '@/lib/creator-mission-policy';
 
 // ============================================================================
@@ -28,6 +30,7 @@ import { requiresSponsorCommercialReuseConsent } from '@/lib/creator-mission-pol
 
 const ClaimSchema = z.object({
   walletAddress: z.string().optional(),
+  contentRights: z.object({ accepted: z.literal(true), fingerprint: z.string().regex(/^[a-f0-9]{64}$/) }).optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
 }).refine(
@@ -111,15 +114,12 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Dare not found' }, { status: 404 });
     }
 
-    if (requiresSponsorCommercialReuseConsent(dare.outcomeContractSnapshot)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'This mission needs an explicit sponsor-use consent step before requests can open.',
-          code: 'SPONSOR_REUSE_CONSENT_REQUIRED',
-        },
-        { status: 409 },
-      );
+    const needsContentRights = requiresSponsorCommercialReuseConsent(dare.outcomeContractSnapshot);
+    if (needsContentRights && (!readContentDelivery(dare.outcomeContractSnapshot) || !contentRightsReleaseEnabled())) {
+      return NextResponse.json({ success: false, error: 'Content requests are waiting for reviewed usage terms.', code: 'SPONSOR_REUSE_CONSENT_REQUIRED' }, { status: 409 });
+    }
+    if (needsContentRights && (!validation.data.contentRights?.accepted || validation.data.contentRights.fingerprint !== contentRightsFingerprint(dare.outcomeContractSnapshot))) {
+      return NextResponse.json({ success: false, error: 'Read and accept the current content usage terms before requesting this mission.', code: 'SPONSOR_REUSE_CONSENT_REQUIRED' }, { status: 409 });
     }
 
     if (isCommunitySparkRecord({ bounty: dare.bounty, missionTag: dare.tag })) {
@@ -247,7 +247,8 @@ export async function POST(
             ...unexpired,
           };
 
-    const cas = await prisma.dare.updateMany({
+    const cas = await prisma.$transaction(async (tx) => {
+      const result = await tx.dare.updateMany({
       where: casWhere,
       data: {
         claimRequestWallet: lowerWallet,
@@ -255,6 +256,12 @@ export async function POST(
         claimRequestedAt: now,
         claimRequestStatus: 'PENDING',
       },
+      });
+      if (result.count === 1 && needsContentRights) {
+        await recordContentRightsAcceptance(tx, { dareId, wallet: lowerWallet, snapshot: dare.outcomeContractSnapshot,
+          accepted: validation.data.contentRights?.accepted, fingerprint: validation.data.contentRights?.fingerprint });
+      }
+      return result;
     });
 
     if (cas.count === 0) {

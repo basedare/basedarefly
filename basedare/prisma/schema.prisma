@@ -33,6 +33,7 @@ model Dare {
   videoUrl                String?
   imageUrl                String?
   proofHash               String?
+  contentSubmittedAt      DateTime? // Server receipt time for a commissioned content asset.
   proofCid                String? // Store the IPFS CID from Pinata
   imageCid                String?
   requireSentinel         Boolean                          @default(false)
@@ -108,6 +109,7 @@ model Dare {
   comments                Comment[]
   creatorReview           CreatorReview?
   inboxThreads            InboxThread[]
+  contentRightsAcceptances ContentRightsAcceptance[]
   proofAttempts           DareProofAttempt[]
   fieldSprintMission      VerifiedFieldSprintMission?
   fieldSprintMissionLinks VerifiedFieldSprintMissionLink[]
@@ -1843,4 +1845,18 @@ model PlaceMemoryObservation {
   @@index([venueId, refreshAt])
   @@index([areaLabel, refreshAt])
   @@index([sprintId, createdAt])
+}
+
+// Immutable, wallet-specific opt-in to the exact funded content brief.
+model ContentRightsAcceptance {
+  id String @id @default(cuid())
+  dareId String
+  wallet String
+  fingerprint String
+  termsVersion String
+  termsSnapshot Json
+  acceptedAt DateTime @default(now())
+  dare Dare @relation(fields: [dareId], references: [id], onDelete: Restrict)
+  @@unique([dareId, wallet, fingerprint])
+  @@index([wallet, acceptedAt])
 }

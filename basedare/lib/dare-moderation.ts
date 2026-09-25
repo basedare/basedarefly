@@ -2,6 +2,7 @@ import 'server-only';
 
 import { type Dare } from '@prisma/client';
 
+import { missionReturnPath } from '@/lib/mission-return-path';
 import { createWalletNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
 import { approveDareWithPayout, syncLinkedCampaignForDareState, type DareApprovalResult } from '@/lib/dare-approval';
@@ -126,8 +127,8 @@ export async function moderateDareDecision(input: ModerateDareInput): Promise<Mo
     });
   }
 
-  const updatedDare = await prisma.dare.update({
-    where: { id: dare.id },
+  const rejected = await prisma.dare.updateMany({
+    where: { id: dare.id, status: { in: ['PENDING', 'PENDING_REVIEW', 'FAILED'] }, moderatorDecision: null },
     data: {
       status: 'FAILED',
       manualReviewNeeded: false,
@@ -147,18 +148,21 @@ export async function moderateDareDecision(input: ModerateDareInput): Promise<Mo
     },
   });
 
+  if (rejected.count !== 1) throw new Error('The mission changed during review. Refresh before deciding again.');
+  const updatedDare = await prisma.dare.findUniqueOrThrow({ where: { id: dare.id } });
+
   await syncLinkedCampaignForDareState({
     dareId: dare.id,
     status: 'FAILED',
   });
 
-  if (dare.targetWalletAddress) {
+  if (dare.claimedBy || dare.targetWalletAddress) {
     await createWalletNotification({
-      wallet: dare.targetWalletAddress,
+      wallet: dare.claimedBy || dare.targetWalletAddress,
       type: 'DARE_FAILED',
       title: 'Dare Rejected by Admin',
-      message: `Your proof for "${dare.title}" was rejected by moderators.`,
-      link: '/dashboard',
+      message: `Your proof for "${dare.title}" was rejected by moderators. Open your mission to appeal the decision.`,
+      link: missionReturnPath(dare),
       pushTopic: 'wallet',
     });
   }

@@ -1,3 +1,4 @@
+import { missionReturnPath } from '@/lib/mission-return-path';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -140,7 +141,7 @@ export async function PUT(request: NextRequest) {
     const claimDisplay =
       dare.claimRequestTag ?? `${dare.claimRequestWallet.slice(0, 6)}…${dare.claimRequestWallet.slice(-4)}`;
     const now = new Date();
-    const notifyLink = `/dare/${dare.shortId || dare.id}`;
+    const notifyLink = missionReturnPath(dare);
 
     if (decision === 'APPROVE') {
       // Revalidate at decision time: not expired/claimed/terminal, no
@@ -197,7 +198,7 @@ export async function PUT(request: NextRequest) {
         wallet: dare.claimRequestWallet,
         type: 'CLAIM_APPROVED',
         title: 'Claim Approved',
-        message: `You now control "${dare.title}". Submit proof when you are ready.`,
+        message: `Your request was approved for "${dare.title}". Submit proof when you are ready.`,
         link: notifyLink,
         pushTopic: 'wallet',
       }).catch(() => {});

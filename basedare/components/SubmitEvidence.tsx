@@ -1,5 +1,6 @@
 'use client';
 
+import { readContentDelivery } from '@/lib/content-delivery';
 import React, { useMemo, useState, useRef } from 'react';
 import { Upload, X, AlertCircle, Loader2, ShieldCheck, ShieldX, RefreshCw, Camera, Video } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -46,6 +47,7 @@ interface SubmitEvidenceProps {
   gatesLocation?: boolean;
   outcomeContract?: unknown;
   reportedOutcome?: unknown;
+  initialFailure?: { appealStatus: string | null };
   onVerificationComplete?: (result: { status: string; confidence?: number }) => void;
 }
 
@@ -70,21 +72,24 @@ export default function SubmitEvidence({
   outcomeContract: outcomeContractValue,
   reportedOutcome: existingReportedOutcome,
   onVerificationComplete,
+  initialFailure,
 }: SubmitEvidenceProps) {
   const { data: session } = useSession();
   const { address } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [status, setStatus] = useState<VerificationStatus>('idle');
+  const [status, setStatus] = useState<VerificationStatus>(initialFailure ? 'failed' : 'idle');
   const [error, setError] = useState<string | null>(null);
   const [verificationResult, setVerificationResult] = useState<{
     confidence?: number;
     reason?: string;
     appealable?: boolean;
-  } | null>(null);
+  } | null>(initialFailure ? { appealable: true, reason: 'This submission was not approved. You can ask a reviewer to reconsider the original evidence.' } : null);
   const [appealText, setAppealText] = useState('');
-  const [appealSubmitted, setAppealSubmitted] = useState(false);
+  const [appealSubmitted, setAppealSubmitted] = useState(initialFailure?.appealStatus === 'PENDING');
+  const [appealBusy, setAppealBusy] = useState(false);
+  const isContentDelivery = Boolean(readContentDelivery(outcomeContractValue));
   const [proofWaiverAccepted, setProofWaiverAccepted] = useState(false);
   const [cameraMode, setCameraMode] = useState<CameraCaptureMode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -100,6 +105,7 @@ export default function SubmitEvidence({
   }, [existingReportedOutcome]);
   const allowedOutcomes = outcomeContract ? getAllowedReportedOutcomes(outcomeContract) : [];
   const [outcomeKind, setOutcomeKind] = useState<ReportedOutcomeKind | ''>(initialOutcome?.kind ?? '');
+  const [publicationUrl, setPublicationUrl] = useState(initialOutcome?.publicationUrl ?? '');
   const [outcomeSummary, setOutcomeSummary] = useState(initialOutcome?.summary ?? '');
   const [maintenanceOutcome, setMaintenanceOutcome] = useState<PlaceMaintenanceOutcome>(
     initialOutcome?.maintenanceOutcome
@@ -243,6 +249,7 @@ export default function SubmitEvidence({
                 summary: outcomeSummary.trim(),
                 observedAt: initialOutcome?.observedAt ?? new Date().toISOString(),
                 maintenanceOutcome,
+                ...(outcomeContract.contentDelivery?.posting === 'PUBLIC_POST' ? { publicationUrl } : {}),
               },
             }
           : {}),
@@ -508,11 +515,13 @@ export default function SubmitEvidence({
   };
 
   const handleAppeal = async () => {
+    if (appealBusy || appealSubmitted) return;
     if (!appealText || appealText.length < 10) {
       setError('Please provide a detailed reason for your appeal (at least 10 characters).');
       return;
     }
 
+    setAppealBusy(true);
     try {
       const proofAuthHeaders = await getProofAuthHeaders();
       const response = await fetch('/api/verify-proof', {
@@ -534,6 +543,7 @@ export default function SubmitEvidence({
       }
 
       setAppealSubmitted(true);
+      onVerificationComplete?.({ status: 'APPEAL_PENDING' });
       setError(null);
 
       // Show appeal submitted toast
@@ -553,7 +563,7 @@ export default function SubmitEvidence({
         description: errorMessage,
         duration: 6000,
       });
-    }
+    } finally { setAppealBusy(false); }
   };
 
   const handleRemove = () => {
@@ -674,12 +684,12 @@ export default function SubmitEvidence({
             stats={payoutLabel ? [{ label: 'payout', value: payoutLabel }] : []}
             className="w-full max-w-[340px]"
           />
-          <button
+          {!isContentDelivery ? <button
             onClick={handleRemove}
             className="text-[10px] font-mono text-gray-400 hover:text-white uppercase tracking-wider transition-colors"
           >
             Replace Proof
-          </button>
+          </button> : null}
         </div>
       </div>
     );
@@ -687,27 +697,28 @@ export default function SubmitEvidence({
 
   if (status === 'failed') {
     return (
-      <div className="group relative h-full bg-red-500/5 border-2 border-red-500/50 rounded-3xl overflow-hidden">
-        <div className="relative z-10 flex flex-col items-center justify-center h-full gap-4 p-6 text-center">
+      <div className="group relative bg-red-500/5 border-2 border-red-500/50 rounded-3xl overflow-hidden">
+        <div className="relative z-10 flex flex-col items-center justify-center gap-4 p-6 text-center">
           <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/50">
             <ShieldX className="w-7 h-7 text-red-400" />
           </div>
           <div>
-            <h3 className="text-lg font-black text-red-400 uppercase tracking-wider mb-1">Verification Failed</h3>
+            <h3 className="text-lg font-black text-red-400 uppercase tracking-wider mb-1">{appealSubmitted ? 'Appeal under review' : 'Work not approved'}</h3>
             <p className="text-xs font-mono text-gray-300 max-w-[240px]">
-              {verificationResult?.reason || `We could not verify ${activationLabel} from this proof.`}
+              {appealSubmitted ? 'Your original evidence and appeal are saved. Return to this mission for the reviewer’s decision.' : verificationResult?.reason || `We could not verify ${activationLabel} from this proof.`}
             </p>
           </div>
           <div className="w-full max-w-[260px] rounded-2xl border border-red-400/14 bg-red-500/[0.06] px-4 py-3 text-left">
-            <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-red-200">Best Retry</p>
+            <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-red-200">{isContentDelivery || initialFailure ? 'Original submission kept' : 'Best Retry'}</p>
             <p className="mt-2 text-xs text-gray-200">
-              Retake the proof with the venue and the completed challenge action clearly visible in one shot. Shorter, cleaner clips usually verify faster.
+              {isContentDelivery || initialFailure ? 'An appeal asks a human to reconsider the saved evidence. It does not replace the file or change the funded brief.' : 'Retake the proof with the venue and the completed challenge action clearly visible in one shot. Shorter, cleaner clips usually verify faster.'}
             </p>
           </div>
 
           {verificationResult?.appealable && !appealSubmitted && (
             <div className="w-full max-w-[240px] space-y-2">
               <textarea
+                aria-label="Reason for appeal"
                 value={appealText}
                 onChange={(e) => setAppealText(e.target.value)}
                 placeholder="Explain why this proof should be reconsidered, or what the referee missed."
@@ -716,11 +727,12 @@ export default function SubmitEvidence({
               />
               <CosmicButton
                 onClick={handleAppeal}
+                disabled={appealBusy || appealText.trim().length < 10}
                 variant="gold"
                 size="sm"
                 fullWidth
               >
-                Submit Appeal
+                {appealBusy ? 'Submitting…' : 'Submit Appeal'}
               </CosmicButton>
               {error && (
                 <p className="text-[10px] text-red-400">{error}</p>
@@ -734,12 +746,12 @@ export default function SubmitEvidence({
             </div>
           )}
 
-          <button
+          {!isContentDelivery && !initialFailure ? <button
             onClick={handleRemove}
             className="text-[10px] font-mono text-gray-500 hover:text-white uppercase tracking-wider transition-colors"
           >
             Try Again
-          </button>
+          </button> : null}
         </div>
       </div>
     );
@@ -821,6 +833,8 @@ export default function SubmitEvidence({
             </div>
             <div className="w-full space-y-3">
               {outcomeContract ? (
+                <>
+                {outcomeContract.contentDelivery?.posting === 'PUBLIC_POST' ? <label className="mb-3 block text-left text-xs text-white/70">Public post URL<input type="url" value={publicationUrl} onChange={(event) => setPublicationUrl(event.target.value)} placeholder="https://www.instagram.com/reel/…" className="mt-2 w-full rounded-xl border border-white/15 bg-black/40 p-3 text-sm" /></label> : null}
                 <OutcomeReportFields
                   allowedOutcomes={allowedOutcomes}
                   kind={outcomeKind}
@@ -833,6 +847,7 @@ export default function SubmitEvidence({
                   onSummaryChange={setOutcomeSummary}
                   onMaintenanceOutcomeChange={setMaintenanceOutcome}
                 />
+                </>
               ) : null}
               <div className="text-left">
                 <p className="text-xs font-mono text-gray-400 mb-1">File: {file?.name}</p>
@@ -902,6 +917,7 @@ export default function SubmitEvidence({
             </div>
             {outcomeContract ? (
               <div className="w-full max-w-[420px]">
+                {outcomeContract.contentDelivery?.posting === 'PUBLIC_POST' ? <label className="mb-3 block text-left text-xs text-white/70">Public post URL<input type="url" value={publicationUrl} onChange={(event) => setPublicationUrl(event.target.value)} placeholder="https://www.instagram.com/reel/…" className="mt-2 w-full rounded-xl border border-white/15 bg-black/40 p-3 text-sm" /></label> : null}
                 <OutcomeReportFields
                   allowedOutcomes={allowedOutcomes}
                   kind={outcomeKind}

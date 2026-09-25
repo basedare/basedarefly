@@ -29,7 +29,7 @@ export async function createWalletNotification(input: CreateWalletNotificationIn
     },
   });
 
-  void sendWalletPush({
+  await sendWalletPush({
     wallet,
     topic: input.pushTopic ?? 'wallet',
     title: input.title,

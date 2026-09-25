@@ -1,3 +1,5 @@
+import { createWalletNotification } from '@/lib/notifications';
+import { missionReturnPath } from '@/lib/mission-return-path';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -221,9 +223,10 @@ export async function PUT(request: NextRequest) {
         });
       }
 
-      await prisma.dare.update({
-        where: { id: dareId },
+      const rejected = await prisma.dare.updateMany({
+        where: { id: dareId, appealStatus: 'PENDING', status: { in: ['FAILED', 'PENDING_REVIEW'] } },
         data: {
+          status: 'FAILED',
           appealStatus: 'REJECTED',
           manualReviewNeeded: false,
           evidenceDecision: 'REJECTED',
@@ -234,6 +237,9 @@ export async function PUT(request: NextRequest) {
           },
         },
       });
+
+      if (rejected.count !== 1) return NextResponse.json({ success: false, error: 'This appeal or payout was just updated. Refresh before deciding again.' }, { status: 409 });
+      await createWalletNotification({ wallet: dare.claimedBy || dare.targetWalletAddress, type: 'DARE_FAILED', title: 'Appeal reviewed', message: `The appeal for "${dare.title}" was not approved. Return to your mission to see its status.`, link: missionReturnPath(dare), pushTopic: 'wallet' });
 
       // If overriding votes, award points to REJECT voters
       if (overrideVotes) {

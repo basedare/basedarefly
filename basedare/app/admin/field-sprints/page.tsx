@@ -1,5 +1,7 @@
 'use client';
 
+import DeliveryEconomicsPanel from '@/components/DeliveryEconomicsPanel';
+
 import { CheckCircle2, ExternalLink, Loader2, MapPin, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -213,6 +215,13 @@ function FieldSprintsAdminContent() {
             })}</div>
             {sprint.status === 'ROUTING' && sprint.missions.every((mission) => mission.dareId) ? <Action onClick={() => void act({ action: 'START_COLLECTING', sprintId: sprint.id })}>Begin collection</Action> : null}
             {['COLLECTING','REVIEW'].includes(sprint.status) ? <div className="mt-4 flex gap-2"><Action onClick={() => void act({ action: 'SYNC', sprintId: sprint.id })}>Sync authoritative rails</Action>{sprint.status === 'REVIEW' ? <Action onClick={() => void act({ action: 'COMPLETE', sprintId: sprint.id })}>Close receipt</Action> : null}</div> : null}
+            <DeliveryEconomicsPanel sprintId={sprint.id} request={async (method, body) => {
+              if (!(await authenticate())) throw new Error('Sign in as an operator to continue.');
+              const response = await fetch(`/api/admin/field-sprints?sprintId=${encodeURIComponent(sprint.id)}&view=economics`, { method, headers: { ...headers, 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
+              const payload = await response.json();
+              if (!response.ok || !payload.success) throw new Error(payload.error || 'Unable to update economics.');
+              return payload.data;
+            }} />
             <div className="mt-4 flex items-center gap-2 text-xs text-white/35"><ShieldCheck className="h-4 w-4" /> Runner cannot fund, approve evidence, or pay contributors.</div>
           </article>;
         })}</section>

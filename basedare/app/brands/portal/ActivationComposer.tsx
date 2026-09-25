@@ -43,7 +43,7 @@ type MissionComposerProps = {
 };
 
 const sectionClass =
-  'rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(4,5,10,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_44px_rgba(0,0,0,0.24)] sm:p-5';
+  'rounded-[24px] border border-white/10 bg-[linear-gradient(145deg,rgba(18,23,36,0.95),rgba(8,11,19,0.98))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_44px_rgba(0,0,0,0.24)] sm:p-5';
 const labelClass = 'mb-2 block text-sm font-black text-white/78';
 const inputClass =
   'min-h-12 w-full rounded-2xl border border-white/12 bg-black/35 px-4 py-3 text-base font-semibold text-white outline-none transition placeholder:text-white/34 focus:border-yellow-300/55 focus:ring-2 focus:ring-yellow-300/15';
@@ -108,7 +108,10 @@ export default function ActivationComposer({
     creatorSlots: String(MANAGED_FIELD_SPRINT.assignedContributorCount),
     payout: `$${MANAGED_FIELD_SPRINT.netRewardPerContributorUsd} net per accepted answer`,
     timeWindow: `${MANAGED_FIELD_SPRINT.durationDaysMin}-${MANAGED_FIELD_SPRINT.durationDaysMax} days`,
-    proofRequired: 'Presence, freshness, trusted media, uniqueness, and bounded manual review',
+    proofRequired: [
+      formData.description.trim(),
+      'Verification: presence, freshness, trusted media, uniqueness, and bounded manual review.',
+    ].filter(Boolean).join('\n\n'),
   });
   if (formData.title.trim()) invoiceParams.set('missionTitle', formData.title.trim());
   if (selectedPlace?.name) invoiceParams.set('venueName', selectedPlace.name);
@@ -133,13 +136,13 @@ export default function ActivationComposer({
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300/[0.09] px-3 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-yellow-100">
               <Sparkles className="h-4 w-4" />
-              New field mission
+              New brief · Managed fieldwork
             </div>
-            <h2 id="mission-builder-title" className="mt-4 text-3xl font-black tracking-tight text-white md:text-4xl">
-              Send one useful question into the real world.
-            </h2>
+            <h1 id="mission-builder-title" className="mt-4 text-3xl font-black tracking-tight text-white md:text-4xl">
+              What do you need checked?
+            </h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-white/70">
-              Define the question and place. BaseDare scopes the contributor cell, confirms payment by invoice, checks the proof, and returns a receipt.
+              Tell us what to check and where. We coordinate the contributors, review the evidence and return one report. You review the scope before requesting an invoice.
             </p>
           </div>
           <button
@@ -152,7 +155,13 @@ export default function ActivationComposer({
           </button>
         </div>
 
-        <ol className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-5" aria-label="Mission setup progress">
+        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-[#f5c518]/20 bg-[#f5c518]/[0.04] px-4 py-3 text-sm text-white/70">
+          <span><b className="text-lg text-[#fff0a8]">${formatUsdAmount(MANAGED_FIELD_SPRINT.invoiceTotalUsd)}</b> fixed package</span>
+          <span>{MANAGED_FIELD_SPRINT.assignedContributorCount} independent checks</span>
+          <span>{MANAGED_FIELD_SPRINT.durationDaysMin}–{MANAGED_FIELD_SPRINT.durationDaysMax} days</span>
+          <span>Evidence + one receipt</span>
+        </div>
+        <ol className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Mission setup progress">
           {checkoutSteps.map((step, index) => (
             <li
               key={step.label}
@@ -186,19 +195,17 @@ export default function ActivationComposer({
             </span>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-purple-100/75">Step 1</p>
-              <h3 id="mission-question-heading" className="text-xl font-black text-white">What do you want verified?</h3>
+              <h3 id="mission-question-heading" className="text-xl font-black text-white">Describe the work</h3>
             </div>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-yellow-200/40 bg-[linear-gradient(180deg,rgba(245,197,24,0.14),rgba(8,7,12,0.88))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_16px_34px_rgba(0,0,0,0.24)]">
-            <div className="flex items-start justify-between gap-3">
-              <div className="text-xs font-black uppercase tracking-[0.14em] text-yellow-100/80">{selectedActivationPackage.eyebrow}</div>
-              <span className="rounded-full border border-yellow-100/20 bg-black/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100/75">
-                Managed package
-              </span>
-            </div>
-            <div className="mt-3 text-lg font-black text-white">{selectedActivationPackage.name}</div>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/65">{selectedActivationPackage.outcome}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Brief examples">
+            <span className="mr-1 text-xs text-white/50">Start with an example:</span>
+            {[
+              { label: 'Check a listing', title: 'Are the published opening hours accurate?', description: 'Record the posted hours and whether the place was open during the agreed visit window. Include a clear photo of the public sign.' },
+              { label: 'Document a place', title: 'What does the entrance and public space look like today?', description: 'Capture current photos of the entrance and public area, with a short note on what has changed. Avoid identifiable bystanders.' },
+              { label: 'Check a service', title: 'Is the advertised service available at this place?', description: 'Check availability during the agreed window. Record what you observed and include supporting evidence; an unavailable or inconclusive result is valid.' },
+            ].map((example) => <button key={example.label} type="button" onClick={() => setFormData((current) => ({ ...current, title: example.title, description: example.description }))} className="min-h-10 rounded-full border border-white/15 bg-white/[0.025] px-3 text-xs font-bold text-cyan-50 transition hover:border-cyan-200/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">{example.label}</button>)}
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -208,7 +215,7 @@ export default function ActivationComposer({
                 id="mission-title"
                 value={formData.title}
                 onChange={(event) => setFormData({ ...formData, title: event.target.value })}
-                placeholder="e.g. What is the best quiet-work café near Cloud 9 right now?"
+                placeholder="e.g. Are this café’s published opening hours accurate?"
                 className={inputClass}
               />
               <p className="mt-2 text-sm leading-6 text-white/55">Keep it bounded enough that one person can answer it honestly.</p>
@@ -293,7 +300,7 @@ export default function ActivationComposer({
               <CreditCard className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-100/75">Step 4</p>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-100/75">Step 3</p>
               <h3 id="mission-reward-heading" className="text-xl font-black text-white">Budget and delivery</h3>
             </div>
           </div>
@@ -334,8 +341,8 @@ export default function ActivationComposer({
               <Route className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-100/75">Step 5</p>
-              <h3 id="mission-review-heading" className="text-xl font-black text-white">Review and fund</h3>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-100/75">Step 4</p>
+              <h3 id="mission-review-heading" className="text-xl font-black text-white">Review your request</h3>
             </div>
           </div>
 
@@ -363,7 +370,7 @@ export default function ActivationComposer({
               What comes back
             </div>
             <p className="mt-2 text-sm leading-6 text-white/68">
-              Verified execution, supporting media or field notes, a timestamped place record, payout status, and a durable receipt. GPS proves presence—not a purchase or guaranteed business result.
+              Verified execution, supporting media or field notes, a timestamped place record, payout status, and a durable receipt. Location supports presence checks; it does not prove a purchase or guarantee a business result. Commercial reuse of contributor media needs separate explicit permission.
             </p>
           </div>
 

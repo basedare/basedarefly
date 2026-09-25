@@ -57,10 +57,10 @@ export default function PortalGates({
               Buyer Workspace
             </div>
             <h1 className="mx-auto mt-5 max-w-2xl text-4xl font-black uppercase italic leading-[0.94] tracking-[-0.055em] text-white sm:text-6xl">
-              Send a verified mission into the real world.
+              Get answers from people on the ground.
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/72 md:text-lg">
-              One bounded question, {MANAGED_FIELD_SPRINT.assignedContributorCount} independent contributors, verified evidence, place memory, and a receipt. Review the fixed quote before requesting an invoice.
+              Choose a place and tell us what you need checked. The managed Field Sprint includes {MANAGED_FIELD_SPRINT.assignedContributorCount} independent checks, reviewed evidence and one receipt. ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} · {MANAGED_FIELD_SPRINT.durationDaysMin}–{MANAGED_FIELD_SPRINT.durationDaysMax} days.
             </p>
 
             <div className="mx-auto mt-7 grid max-w-xl gap-3 sm:grid-cols-2">
@@ -69,14 +69,14 @@ export default function PortalGates({
                 className="activation-raised-gold inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-black uppercase tracking-[0.1em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70"
               >
                 <CreditCard className="h-4 w-4" />
-                Scope a Field Sprint
+                Start a brief
               </Link>
               <button
                 type="button"
                 onClick={connectWallet}
                 className="activation-soft-button inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-white/14 px-5 text-sm font-black text-white/82 transition hover:border-white/26 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                Open Buyer Workspace
+                Open existing workspace
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
@@ -87,6 +87,12 @@ export default function PortalGates({
             >
               See an example receipt
             </Link>
+
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-white/65">
+              Need content or promotion?{' '}
+              <Link href="/create" className="font-bold text-[#f8dd72] underline decoration-[#f8dd72]/30 underline-offset-4">Create a paid dare</Link>
+              {' '}with its own brief, reward and media permissions.
+            </p>
 
             <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/58">
               No venue claim is required. Buyers can commission fieldwork about any eligible place; claiming is only for an authorized owner or manager who wants to maintain that place profile.

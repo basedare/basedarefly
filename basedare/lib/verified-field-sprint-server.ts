@@ -3,7 +3,6 @@ import { createHash, randomBytes } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { isAddress } from 'viem';
 
-import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
 import type { MissionKitKey } from '@/lib/mission-kits';
 import { prisma } from '@/lib/prisma';
 import {
@@ -491,7 +490,7 @@ export async function recordVerifiedFieldSprintReviewCost(input: {
   sprintId: string; ordinal: number; reviewMinutes: number; reviewCostUsd: number;
 }) {
   if (!Number.isInteger(input.reviewMinutes) || input.reviewMinutes < 0 || input.reviewMinutes > 600) throw new Error('Review minutes must be 0–600.');
-  if (!Number.isFinite(input.reviewCostUsd) || input.reviewCostUsd < 0 || input.reviewCostUsd > MANAGED_FIELD_SPRINT.directDeliveryCostCeilingUsd) throw new Error('Review cost is outside the bounded Sprint cost ceiling.');
+  if (!Number.isFinite(input.reviewCostUsd) || input.reviewCostUsd < 0 || input.reviewCostUsd > 1000000) throw new Error('Review cost must be a finite non-negative amount below $1,000,000.');
   const mission = await prisma.verifiedFieldSprintMission.findUnique({ where: { sprintId_ordinal: { sprintId: input.sprintId, ordinal: input.ordinal } } });
   if (!mission) throw new Error('Sprint mission not found.');
   if (mission.status === 'ACCEPTED') throw new Error('Completed mission costs are immutable.');
@@ -588,8 +587,7 @@ export async function completeVerifiedFieldSprint(sprintId: string) {
         throw new Error(`Mission ${mission.ordinal} replacement must be completed by a different contributor than its rejected or abandoned first escrow.`);
       }
     }
-    const totalReviewCost = sprint.missions.reduce((sum, mission) => sum + mission.reviewCostUsd, 0);
-    if (totalReviewCost > MANAGED_FIELD_SPRINT.directDeliveryCostCeilingUsd) throw new Error('Recorded review costs exceed the Sprint direct-delivery ceiling.');
+    // Cost overruns must remain measurable and must not prevent delivery of an already-paid receipt.
     for (const mission of sprint.missions) {
       const outcome = parseAcceptedFieldTruthOutcome(mission.reportedOutcome);
       if (!outcome) throw new Error(`Mission ${mission.ordinal} has no receipt-safe Field Truth outcome.`);

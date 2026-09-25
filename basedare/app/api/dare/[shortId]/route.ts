@@ -69,6 +69,8 @@ export async function GET(
       claimRequestedAt: reconciledDare.claimRequestedAt?.toISOString() || null,
       claimRequestStatus: reconciledDare.claimRequestStatus,
       stakerAddress: reconciledDare.stakerAddress,
+      venueId: reconciledDare.venueId,
+      locationLabel: reconciledDare.locationLabel,
       requireSentinel: reconciledDare.requireSentinel,
       sentinelVerified: reconciledDare.sentinelVerified,
       outcomeContractFamily: reconciledDare.outcomeContractFamily,

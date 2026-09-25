@@ -10,9 +10,9 @@ export default async function FieldSprintReceiptPage({ params }: { params: Promi
   const receipt = await buildVerifiedFieldSprintReceipt(receiptCode);
   if (!receipt) notFound();
 
-  return <main className="min-h-screen bg-[#07070b] px-4 py-16 text-white sm:px-6">
+  return <main className="field-receipt-surface relative isolate z-10 min-h-screen px-4 py-10 text-white sm:px-6 sm:py-14">
     <div className="mx-auto max-w-5xl">
-      <header className="rounded-3xl border border-[#ffe36a]/20 bg-gradient-to-br from-[#251d09]/70 to-[#101018] p-7">
+      <header className="buyer-evidence-hero rounded-[28px] border border-[#ffe36a]/20 p-5 sm:p-7">
         <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#ffe36a]">Verified Field Sprint · Receipt</p>
         <h1 className="mt-3 text-3xl font-black sm:text-5xl">{receipt.question}</h1>
         <p className="mt-4 text-sm text-white/50">{receipt.buyer.organization || receipt.buyer.name} · {receipt.area} · completed {receipt.completedAt ? new Date(receipt.completedAt).toLocaleDateString() : '—'}</p>
@@ -26,7 +26,7 @@ export default async function FieldSprintReceiptPage({ params }: { params: Promi
 
       {receipt.summary ? <Panel title="Recommended next move" className="mt-6"><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#62efff]">{receipt.summary.nextAction.kind.replaceAll('_', ' ')}</p><h2 className="mt-2 text-2xl font-black">{receipt.summary.nextAction.label}</h2><p className="mt-2 text-sm leading-6 text-white/58">{receipt.summary.nextAction.reason}</p><p className="mt-3 text-xs font-bold text-[#ffe36a]/75">Timing: {receipt.summary.nextAction.timing}</p><p className="mt-3 text-[10px] leading-5 text-white/35">This is a conservative recommendation from the receipt—not an automatic campaign, funding instruction, or venue claim.</p></Panel> : null}
 
-      <section className="mt-6 grid gap-3 md:grid-cols-2">{receipt.missions.map((mission) => <article key={mission.ordinal} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
+      <section className="mt-6 grid gap-3 md:grid-cols-2">{receipt.missions.map((mission) => <article key={mission.ordinal} className="buyer-evidence-panel rounded-[22px] border border-white/10 p-5">
         <div className="flex items-center justify-between"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#62efff]">Independent check {mission.ordinal}</p><b>{mission.outcome?.kind ?? mission.status}</b></div>
         <h2 className="mt-3 text-xl font-black">{mission.place}</h2>
         <p className="mt-3 text-sm leading-6 text-white/60">{mission.outcome?.summary ?? 'No accepted observation.'}</p>
@@ -44,12 +44,12 @@ export default async function FieldSprintReceiptPage({ params }: { params: Promi
 
       <Panel title="What this receipt does not claim" className="mt-6"><ul className="space-y-2 text-xs leading-5 text-white/50">{receipt.limitations.map((limitation) => <li key={limitation}>— {limitation}</li>)}</ul></Panel>
 
-      <Panel title="What should happen next?" className="mt-6"><div id="repeat-decision"><SprintRepeatDecision receiptCode={receipt.receiptCode} originalQuestion={receipt.question} /></div></Panel>
+      <Panel title="What should happen next?" className="mt-6"><div id="repeat-decision"><SprintRepeatDecision receiptCode={receipt.receiptCode} originalQuestion={receipt.question} area={receipt.area} freshnessWindowHours={receipt.freshnessWindowHours} /></div></Panel>
       <p className="mt-5 text-center text-[10px] uppercase tracking-[0.16em] text-white/25">{receipt.receiptCode} · Four accepted observations, preserved disagreement, disclosed replacements.</p>
     </div>
   </main>;
 }
 
-function Panel({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) { return <section className={`rounded-2xl border border-white/10 bg-white/[0.035] p-5 ${className}`}><h2 className="mb-4 text-lg font-black">{title}</h2>{children}</section>; }
+function Panel({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) { return <section className={`buyer-evidence-panel rounded-[22px] border border-white/10 p-5 ${className}`}><h2 className="mb-4 text-lg font-black">{title}</h2>{children}</section>; }
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-white/8 bg-black/30 p-3"><b className="text-xl">{value}</b><p className="mt-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/35">{label}</p></div>; }
 function Item({ label, value }: { label: string; value: string }) { return <div><dt className="text-[9px] font-black uppercase tracking-[0.12em] text-white/35">{label}</dt><dd className="mt-1 font-bold">{value}</dd></div>; }

@@ -1,3 +1,5 @@
+import { DELIVERY_ENTRY_KINDS } from '@/lib/delivery-economics';
+import { getSprintEconomics, recordSprintEconomics } from '@/lib/delivery-economics-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -40,6 +42,7 @@ const StartSchema = z.object({
 });
 
 const ActionSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('RECORD_ECONOMICS'), sprintId: z.string().min(1), requestId: z.string().uuid(), kind: z.enum(DELIVERY_ENTRY_KINDS), amountUsd: z.number().finite().min(0).max(1000000).refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 0.00001, 'Use at most two decimal places.'), minutes: z.number().int().min(0).max(100000), note: z.string().trim().min(8).max(1000) }),
   z.object({ action: z.literal('CONFIRM_FUNDS'), sprintId: z.string(), serviceFeeConfirmedUsd: z.number().min(0).max(2000), rewardPoolConfirmedUsd: z.number(), designPartnerException: z.boolean().default(false), fundingReference: z.string().min(3).max(191) }),
   z.object({ action: z.literal('START_ROUTING'), sprintId: z.string() }),
   z.object({ action: z.literal('LINK_MISSION'), sprintId: z.string(), ordinal: z.number().int().min(1).max(4), dareId: z.string().min(1) }),
@@ -58,6 +61,9 @@ export async function GET(request: NextRequest) {
   const auth = await authorizeAdminRequest(request);
   if (!auth.authorized) return unauthorizedAdminResponse(auth);
   const sprintId = request.nextUrl.searchParams.get('sprintId');
+  if (sprintId && request.nextUrl.searchParams.get('view') === 'economics') {
+    return NextResponse.json({ success: true, data: await getSprintEconomics(sprintId) }, { headers: { 'Cache-Control': 'no-store' } });
+  }
   const data = sprintId ? await getVerifiedFieldSprint(sprintId) : await listVerifiedFieldSprints();
   return NextResponse.json({ success: true, data }, { headers: { 'Cache-Control': 'no-store' } });
 }
@@ -81,6 +87,11 @@ export async function PATCH(request: NextRequest) {
     const input = ActionSchema.parse(await request.json());
     let data;
     switch (input.action) {
+      case 'RECORD_ECONOMICS':
+        if (input.kind === 'RECONCILED' && (input.amountUsd !== 0 || input.minutes !== 0)) throw new Error('Reconciliation is a confirmation, not a money or time entry.');
+        if (!['DELIVERY_COST', 'ACQUISITION_COST', 'REVISION'].includes(input.kind) && input.minutes !== 0) throw new Error('Only cost and revision entries can include labour time.');
+        data = await recordSprintEconomics({ ...input, actor: auth.walletAddress });
+        break;
       case 'CONFIRM_FUNDS':
         data = await confirmVerifiedFieldSprintFunding({ ...input, actor: auth.walletAddress });
         break;

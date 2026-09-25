@@ -16,6 +16,7 @@ declare module 'web-push' {
   export function sendNotification(
     subscription: PushSubscription,
     payload?: string,
+    options?: { timeout?: number },
   ): Promise<void>;
 
   const webpush: {

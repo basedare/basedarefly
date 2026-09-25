@@ -55,7 +55,7 @@ export async function createDatabaseBackedBounty(input: CreateDatabaseBackedBoun
   const isAwaitingClaim = !isOpenBounty && !input.tagVerified;
   const inviteToken = isAwaitingClaim ? generateInviteToken() : null;
   const claimDeadline = isAwaitingClaim ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
-  const expiresAt = input.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const expiresAt = input.outcomeContract?.contentDelivery ? new Date(input.outcomeContract.contentDelivery.deadline) : input.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
   const shortId = generateShortId();
   const dareStatus = getPostFundingDareStatus({
     isAwaitingClaim,

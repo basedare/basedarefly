@@ -6,11 +6,8 @@ import {
   ChevronRight,
   Compass,
   Footprints,
-  Loader2,
-  Map,
   MoonStar,
   Sparkles,
-  Users,
   Waves,
   X,
 } from "lucide-react";
@@ -22,17 +19,21 @@ import type { AdventureSpriteKind } from "@/lib/map-adventure-policy";
 import type { SiargaoSurfSignal } from "@/lib/siargao-surf-signal";
 import { rankTonightActivities } from "@/lib/tonight-recommendations";
 import { formatRecommendationTime, solarElevation } from "@/lib/recommendation-policy";
-import { getSiargaoNightGuide } from "@/lib/siargao-nightlife";
+import MapSurfGuide from "./MapSurfGuide";
+import { getSiargaoNightGuide, getSiargaoNightGuideForWeekday, type SiargaoWeekday } from "@/lib/siargao-nightlife";
 
 type AdventureMapOverlayProps = {
   now: Date;
   timeZone?: string;
   enabled: boolean;
   panelOpen: boolean;
+  selectedNight: SiargaoWeekday | null;
+  onSelectedNightChange: (night: SiargaoWeekday | null) => void;
   loading: boolean;
   error: string | null;
   snapshot: TonightSnapshot | null;
   obscured: boolean;
+  onDismissSelection: () => void;
   onToggle: () => void;
   onPanelOpenChange: (open: boolean) => void;
   onSelectActivity: (activity: TonightActivity) => void;
@@ -95,22 +96,6 @@ const PEEBEAR_FIELD_LINES = [
   "Zoom closer and the hidden details come into focus.",
 ];
 
-function formatSurfModelTime(modelTime: string) {
-  return new Intl.DateTimeFormat("en", {
-    timeZone: "Asia/Manila",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(modelTime));
-}
-
-function formatTideTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    timeZone: "Asia/Manila",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
 function getActivityMeta(activity: TonightActivity, now: Date, timeZone?: string) {
   const start = activity.startsAt ? new Date(activity.startsAt).getTime() : null;
   const timing = start == null ? "Available brief" : start > now.getTime()
@@ -126,10 +111,13 @@ export default function AdventureMapOverlay({
   timeZone,
   enabled,
   panelOpen,
+  selectedNight,
+  onSelectedNightChange: setSelectedNight,
   loading,
   error,
   snapshot,
   obscured,
+  onDismissSelection,
   onToggle,
   onPanelOpenChange,
   onSelectActivity,
@@ -148,7 +136,10 @@ export default function AdventureMapOverlay({
 }: AdventureMapOverlayProps) {
   const [guideLineIndex, setGuideLineIndex] = useState(0);
   const [guideSpeechOpen, setGuideSpeechOpen] = useState(false);
-  const nightGuide = getSiargaoNightGuide(now);
+  const [surfPanelOpen, setSurfPanelOpen] = useState(false);
+  const currentNight = getSiargaoNightGuide(now);
+  const nightGuide = selectedNight ? getSiargaoNightGuideForWeekday(selectedNight) : currentNight;
+  const browsingAnotherNight = nightGuide.weekday !== currentNight.weekday;
   const destinationTimeZone = timeZone ?? snapshot?.window.tz;
   const scheduledTonightActivities = useMemo(() => rankTonightActivities(
     (snapshot?.activities ?? []).filter((activity) => activity.type === "meetup"),
@@ -164,17 +155,23 @@ export default function AdventureMapOverlay({
   const focalReason = rankedActivities[0]?.assessment.reason ?? null;
   const scheduledTonightCount = scheduledTonightActivities.length;
   const goingCount = scheduledTonightActivities.reduce((total, activity) => total + (activity.goingCount ?? 0), 0);
-  const showSurfSignal = Boolean(surfSignal) && (intent === "discover" || (
+  const surfDaylight = (
     (solarElevation(now, 9.803, 126.159) ?? -90) > 0 &&
     (solarElevation(new Date(now.getTime() + 45 * 60_000), 9.803, 126.159) ?? -90) > 0
-  ));
+  );
+  const showSurfPanel = surfPanelOpen && !panelOpen && !guideOpen;
+  const showSurfSignal = Boolean(surfSignal) && (showSurfPanel || (intent === "discover" && surfDaylight));
   const showPanel = enabled && panelOpen && !obscured;
-  const showIntentCard = !obscured && !intent && guideOpen;
-  const showRecommendationCard = !obscured && Boolean(intent) && guideOpen;
-  const showGuideDock = enabled && !obscured;
+  const showIntentCard = !obscured && !panelOpen && !intent && guideOpen;
+  const showRecommendationCard = !obscured && !panelOpen && Boolean(intent) && guideOpen;
+  const showGuideDock = (enabled || guideSpeechOpen) && !obscured && !showSurfPanel;
   const guideLines = useMemo(() => {
     const personalLine =
-      intent === "meet"
+      showSurfPanel
+        ? surfDaylight
+          ? "Check the surf model, then open a break or Kanaway for boat access. Confirm conditions locally."
+          : "Let’s plan a daylight session. You can still browse the breaks and tides tonight."
+        : intent === "meet"
         ? goingCount > 0
           ? `${goingCount} RSVPs across scheduled public activities nearby.`
           : "I’ll show public activities when people opt in."
@@ -183,7 +180,7 @@ export default function AdventureMapOverlay({
           ? `${focalActivity.title} fits this time window.`
           : "I’m checking nearby options that fit the time of day."
         : intent === "tonight"
-        ? focalActivity
+        ? focalActivity && !browsingAnotherNight
           ? `${focalActivity.title} is scheduled for tonight.`
           : `${nightGuide.headline} is the usual ${nightGuide.weekday} rhythm.`
         : intent === "discover"
@@ -191,10 +188,11 @@ export default function AdventureMapOverlay({
         : "Tell me what would make your next two hours better.";
 
     return [
+      personalLine,
+      ...((!showSurfPanel && (panelOpen || intent === "tonight")) ? [`${nightGuide.lateVenue} is usually the late option, ${nightGuide.lateHoursLabel}. Check with the host; this is a weekly pattern, not a confirmed event.`] : []),
       ...(surfSignal && showSurfSignal
         ? [`Offshore model: ${surfSignal.headline} ${surfSignal.guidance}`]
         : []),
-      personalLine,
       trailCount > 0
         ? `Your trail remembers ${trailCount} verified ${
             trailCount === 1 ? "place" : "places"
@@ -204,12 +202,18 @@ export default function AdventureMapOverlay({
     ];
   }, [
     focalActivity,
+    browsingAnotherNight,
+    panelOpen,
+    nightGuide.lateVenue,
+    nightGuide.lateHoursLabel,
     goingCount,
     intent,
     nightGuide.headline,
     nightGuide.weekday,
     surfSignal,
     showSurfSignal,
+    showSurfPanel,
+    surfDaylight,
     trailCount,
   ]);
 
@@ -259,32 +263,6 @@ export default function AdventureMapOverlay({
           {enabled ? (
             <button
               type="button"
-              aria-expanded={showPanel}
-              onClick={() => onPanelOpenChange(!panelOpen)}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-cyan-200/22 bg-[linear-gradient(180deg,rgba(20,38,48,0.92),rgba(6,9,16,0.94))] px-3.5 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-50 shadow-[0_14px_30px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl transition hover:border-cyan-100/34"
-            >
-              {loading && !snapshot ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Map className="h-3.5 w-3.5" />
-              )}
-              <span>
-                {scheduledTonightCount > 0
-                  ? `Tonight · ${scheduledTonightCount}`
-                  : "Tonight"}
-              </span>
-              {goingCount > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/18 bg-emerald-300/[0.09] px-2 py-0.5 text-emerald-100">
-                  <Users className="h-3 w-3" />
-                  {goingCount}
-                </span>
-              ) : null}
-            </button>
-          ) : null}
-
-          {enabled ? (
-            <button
-              type="button"
               onClick={onExploreSecrets}
               className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-violet-200/22 bg-[linear-gradient(180deg,rgba(41,24,64,0.92),rgba(8,7,17,0.95))] px-3 text-[9px] font-black uppercase tracking-[0.11em] text-violet-50 shadow-[0_10px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl transition hover:border-violet-100/36"
             >
@@ -306,6 +284,36 @@ export default function AdventureMapOverlay({
             Trail · {trailCount}
           </button>
         </div>
+
+        <div className="pointer-events-auto flex items-center gap-1.5" aria-label="Map guides">
+          <button type="button" aria-expanded={showSurfPanel && !obscured} onClick={() => {
+            onDismissSelection();
+            onPanelOpenChange(false);
+            onGuideOpenChange(false);
+            setGuideSpeechOpen(false);
+            setSurfPanelOpen(!showSurfPanel || obscured);
+          }} className="min-h-11 rounded-full border border-cyan-200/25 bg-[#091822]/95 px-3 text-[10px] font-black text-cyan-50 shadow-lg"><Waves className="mr-1.5 inline h-3.5 w-3.5" />Surf</button>
+          <button type="button" aria-expanded={showPanel} onClick={() => {
+            onDismissSelection();
+            setSurfPanelOpen(false);
+            onGuideOpenChange(false);
+            if (!enabled) onToggle();
+            setSelectedNight(null);
+            setGuideLineIndex(0);
+            setGuideSpeechOpen(true);
+            onPanelOpenChange(!showPanel);
+          }} className="min-h-11 rounded-full border border-cyan-200/25 bg-[#091822]/95 px-3 text-[10px] font-black text-cyan-50 shadow-lg"><MoonStar className="mr-1.5 inline h-3.5 w-3.5" />Tonight{scheduledTonightCount > 0 ? ` · ${scheduledTonightCount}` : ""}</button>
+          <button type="button" aria-label="Open PeeBear suggestions" onClick={() => {
+            onDismissSelection();
+            setSurfPanelOpen(false);
+            onPanelOpenChange(false);
+            onIntentChange(null);
+            onGuideOpenChange(true);
+            if (!enabled) onToggle();
+            setGuideSpeechOpen(false);
+          }} className="min-h-11 rounded-full border border-[#f5c518]/25 bg-[#211b0d]/95 px-3 text-[10px] font-black text-[#fff0a8] shadow-lg">Ask PeeBear</button>
+        </div>
+        {showSurfPanel && !obscured ? <MapSurfGuide surfSignal={surfSignal} daylight={surfDaylight} onSelectPlace={onSelectPlace} onClose={() => setSurfPanelOpen(false)} /> : null}
 
         {showIntentCard ? (
           <section className="map-attention-card pointer-events-auto relative mt-1 max-h-[min(26rem,55dvh)] w-[min(24rem,calc(100vw-4rem))] overflow-y-auto rounded-[26px] border border-[#f5c518]/24 bg-[radial-gradient(circle_at_92%_0%,rgba(34,211,238,0.13),transparent_34%),radial-gradient(circle_at_5%_0%,rgba(245,197,24,0.16),transparent_36%),linear-gradient(180deg,rgba(18,20,31,0.97),rgba(5,7,14,0.985))] p-3 shadow-[0_28px_64px_rgba(0,0,0,0.56),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl sm:p-4">
@@ -330,79 +338,6 @@ export default function AdventureMapOverlay({
               <p className="mt-2 rounded-xl border border-cyan-200/12 bg-cyan-300/[0.05] px-3 py-2 text-[10px] leading-4 text-cyan-50/62">
                 That specific layer is quiet nearby right now, so I’m starting with useful choices instead.
               </p>
-            ) : null}
-            {surfSignal && showSurfSignal ? (
-              <div className="mt-3 block w-full rounded-[18px] border border-cyan-200/18 bg-[radial-gradient(circle_at_100%_0%,rgba(34,211,238,0.14),transparent_40%),rgba(34,211,238,0.055)] px-3 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
-                <span className="flex items-start gap-2.5">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cyan-100/16 bg-black/25">
-                    <Waves className="h-4 w-4 text-cyan-100" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-cyan-100/58">
-                      Offshore model · {formatSurfModelTime(surfSignal.modelTime)}
-                    </span>
-                    <span className="mt-1 block text-xs font-black leading-4 text-white">
-                      {surfSignal.headline}
-                    </span>
-                    {surfSignal.tide ? (
-                      <span className="mt-1.5 block text-[10px] font-black text-[#f8dd72]/82">
-                        Low {formatTideTime(surfSignal.tide.lowTime)} · High {formatTideTime(surfSignal.tide.highTime)}
-                      </span>
-                    ) : null}
-                    <span className="mt-1.5 block text-[10px] font-semibold leading-4 text-white/52">
-                      {surfSignal.guidance}
-                    </span>
-                    <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <button
-                        type="button"
-                        onClick={() => onSelectPlace(surfSignal.launchPlace.slug)}
-                        className="text-[9px] font-bold text-[#f8dd72]/72 transition hover:text-[#fff0a8]"
-                      >
-                        Open Kanaway launch pin →
-                      </button>
-                      <a
-                        href={surfSignal.source.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[8px] font-semibold text-cyan-100/48 underline decoration-cyan-100/18 underline-offset-2 transition hover:text-cyan-100/72"
-                      >
-                        {surfSignal.source.attribution}
-                      </a>
-                      <a
-                        href={surfSignal.crossCheck.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[8px] font-semibold text-cyan-100/48 underline decoration-cyan-100/18 underline-offset-2 transition hover:text-cyan-100/72"
-                      >
-                        {surfSignal.crossCheck.label}
-                      </a>
-                      {surfSignal.tide ? (
-                        <>
-                          <a
-                            href={surfSignal.tide.source.href}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[8px] font-semibold text-[#f8dd72]/48 underline decoration-[#f8dd72]/18 underline-offset-2 transition hover:text-[#fff0a8]/72"
-                          >
-                            {surfSignal.tide.station} tides
-                          </a>
-                          <a
-                            href={surfSignal.tide.source.crossCheckHref}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[8px] font-semibold text-cyan-100/48 underline decoration-cyan-100/18 underline-offset-2 transition hover:text-cyan-100/72"
-                          >
-                            Surfline tide check
-                          </a>
-                        </>
-                      ) : null}
-                    </span>
-                    <span className="mt-1.5 block border-t border-white/8 pt-1.5 text-[8px] font-medium leading-3 text-white/34">
-                      {surfSignal.caveat}
-                    </span>
-                  </span>
-                </span>
-              </div>
             ) : null}
             <div className="mt-3 grid gap-2">
               {INTENT_OPTIONS.map((option) => (
@@ -431,6 +366,10 @@ export default function AdventureMapOverlay({
                 type="button"
                 onClick={() => {
                   if (!enabled) onToggle();
+                  setSurfPanelOpen(false);
+                  setSelectedNight(null);
+                  setGuideSpeechOpen(true);
+                  setGuideLineIndex(0);
                   onIntentChange("tonight");
                   onGuideOpenChange(false);
                   onPanelOpenChange(true);
@@ -618,7 +557,7 @@ export default function AdventureMapOverlay({
         ) : null}
 
         {showPanel ? (
-          <div className="pointer-events-auto relative w-full overflow-hidden rounded-[24px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(245,197,24,0.14),transparent_34%),radial-gradient(circle_at_95%_15%,rgba(34,211,238,0.13),transparent_32%),linear-gradient(180deg,rgba(18,20,31,0.96),rgba(5,7,14,0.975))] p-3.5 shadow-[0_24px_54px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.11)] backdrop-blur-xl">
+          <div className="map-attention-card pointer-events-auto relative max-h-[44dvh] md:max-h-[min(30rem,55dvh)] w-[min(24rem,calc(100vw-4rem))] overflow-y-auto rounded-[24px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(245,197,24,0.14),transparent_34%),radial-gradient(circle_at_95%_15%,rgba(34,211,238,0.13),transparent_32%),linear-gradient(180deg,rgba(18,20,31,0.96),rgba(5,7,14,0.975))] p-3.5 shadow-[0_24px_54px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.11)] backdrop-blur-xl">
             <button
               type="button"
               onClick={() => onPanelOpenChange(false)}
@@ -629,8 +568,19 @@ export default function AdventureMapOverlay({
             </button>
 
             <p className="text-[9px] font-black uppercase tracking-[0.24em] text-cyan-100/52">
-              Tonight in Siargao
+              {browsingAnotherNight ? `${nightGuide.weekday} in Siargao` : "Tonight in Siargao"}
             </p>
+            <label className="mt-3 block text-[10px] font-bold text-white/65">
+              Pick a night
+              <select aria-label="Pick a night" value={selectedNight ?? "tonight"} onChange={(event) => {
+                setSelectedNight(event.target.value === "tonight" ? null : event.target.value as SiargaoWeekday);
+                setGuideLineIndex(0);
+                setGuideSpeechOpen(true);
+              }} className="mt-1 block min-h-11 w-full rounded-xl border border-white/15 bg-[#101521] px-3 text-xs text-white">
+                <option value="tonight">Tonight · {currentNight.weekday}</option>
+                {(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as SiargaoWeekday[]).map((day) => <option key={day} value={day}>{day} · usual rhythm</option>)}
+              </select>
+            </label>
             <div className="mt-3 rounded-[18px] border border-[#f5c518]/16 bg-[#f5c518]/[0.045] px-3.5 py-4">
               <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#f8dd72]/64">
                 Usual {nightGuide.weekday} rhythm
@@ -640,7 +590,7 @@ export default function AdventureMapOverlay({
               </p>
               <p className="mt-1.5 text-xs leading-5 text-white/48">
                 {nightGuide.lateVenue} is the late option every night, usually {nightGuide.lateHoursLabel}.
-                Published one-off plans appear below. Check the host for changes.
+                Check the host for changes.
               </p>
               {nightGuide.warmUpHeadline ? (
                 <p className="mt-2 rounded-xl border border-violet-200/12 bg-violet-300/[0.05] px-3 py-2 text-[10px] font-semibold leading-4 text-violet-50/62">
@@ -652,10 +602,10 @@ export default function AdventureMapOverlay({
               </p>
             </div>
 
-            {scheduledTonightActivities.length > 0 ? (
+            {browsingAnotherNight ? <p className="mt-2.5 text-[10px] leading-4 text-white/55">This is the usual weekly pattern. Choose Tonight to see currently published plans; these are not confirmed events for a future date.</p> : scheduledTonightActivities.length > 0 ? (
               <div className="mt-2.5 grid gap-2">
                 <p className="px-1 text-[8px] font-black uppercase tracking-[0.18em] text-cyan-100/48">
-                  Scheduled additions
+                  Published plans for tonight
                 </p>
                 {scheduledTonightActivities.slice(0, 2).map((activity) => (
                   <button
@@ -706,6 +656,7 @@ export default function AdventureMapOverlay({
               type="button"
               onClick={() => {
                 setGuideSpeechOpen(false);
+                setSurfPanelOpen(false);
                 onPanelOpenChange(false);
                 onIntentChange(null);
                 onGuideOpenChange(true);
@@ -733,7 +684,7 @@ export default function AdventureMapOverlay({
             aria-label="Ask PeeBear for another field hint"
             className="flex items-end gap-2 text-left"
           >
-            {guideSpeechOpen && !showIntentCard ? (
+            {(guideSpeechOpen || showPanel) && !showIntentCard ? (
               <span className="mb-2 max-w-[12rem] rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.96),rgba(5,7,14,0.98))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/86 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl sm:max-w-[15rem]">
                 {guideLines[guideLineIndex % guideLines.length]}
               </span>

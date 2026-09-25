@@ -2,12 +2,15 @@
 
 import { CheckCircle2, Clock3, Loader2, ShieldCheck, WalletCards } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSignMessage } from 'wagmi';
 
+import { CONTENT_USAGE_TERMS, readContentDelivery } from '@/lib/content-delivery';
 import { IdentityButton } from '@/components/IdentityButton';
 import { MissionPassSheet } from '@/components/mission-pass/MissionPassSheet';
 import { useSocialWebview } from '@/components/mission-pass/SocialWebviewProvider';
+import PushActivationCard from '@/components/PushActivationCard';
 import SafetyWaiver from '@/components/SafetyWaiver';
 import SubmitEvidence from '@/components/SubmitEvidence';
 import CosmicButton from '@/components/ui/CosmicButton';
@@ -24,9 +27,11 @@ type CreatorMissionAcceptClientProps = {
   title: string;
   isAvailable: boolean;
   sponsorReuseNeedsOptIn: boolean;
+  contentRightsFingerprint?: string | null;
   initialClaimRequestWallet: string | null;
   initialClaimRequestStatus: string | null;
   missionStatus: string;
+  missionAppealStatus: string | null;
   assignedWallet: string | null;
   existingProofUrl: string | null;
   bountyAmount: number;
@@ -43,9 +48,11 @@ export function CreatorMissionAcceptClient({
   title,
   isAvailable,
   sponsorReuseNeedsOptIn,
+  contentRightsFingerprint,
   initialClaimRequestWallet,
   initialClaimRequestStatus,
   missionStatus,
+  missionAppealStatus,
   assignedWallet,
   existingProofUrl,
   bountyAmount,
@@ -55,11 +62,16 @@ export function CreatorMissionAcceptClient({
   outcomeContract,
   reportedOutcome,
 }: CreatorMissionAcceptClientProps) {
+  const router = useRouter();
   const { address, sessionWallet, isConnected, isResolving } = useActiveWallet();
   const { signMessageAsync } = useSignMessage();
   const { data: session } = useSession();
   const { checked: webviewChecked, isSocialWebview, label: socialWebviewLabel } = useSocialWebview();
   const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
+  const contentBrief = readContentDelivery(outcomeContract);
+  const rightsKey = `${missionId}:${address?.toLowerCase() ?? ''}:${contentRightsFingerprint ?? ''}`;
+  const [acceptedRightsKey, setAcceptedRightsKey] = useState<string | null>(null);
+  const rightsAccepted = acceptedRightsKey === rightsKey;
   const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [requestWallet, setRequestWallet] = useState(initialClaimRequestWallet?.toLowerCase() ?? null);
@@ -80,8 +92,21 @@ export function CreatorMissionAcceptClient({
   const isMyPendingRequest = actionState === 'REQUESTED';
   const anotherRequestIsPending = requestStatus === 'PENDING' && !isMyPendingRequest;
 
+  useEffect(() => {
+    if (!['REQUESTED', 'UNDER_REVIEW', 'PAYOUT_QUEUED'].includes(actionState) && !(missionStatus === 'FAILED' && missionAppealStatus === 'PENDING')) return;
+    const refresh = () => { if (document.visibilityState === 'visible') router.refresh(); };
+    const timer = window.setInterval(refresh, 30000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', refresh); };
+  }, [actionState, missionStatus, missionAppealStatus, router]);
+  useEffect(() => {
+    // Server refresh carries moderator decisions back into the local request state.
+    setRequestWallet(initialClaimRequestWallet?.toLowerCase() ?? null);
+    setRequestStatus(initialClaimRequestStatus);
+  }, [initialClaimRequestWallet, initialClaimRequestStatus]);
+
   const requestMission = async () => {
-    if (!address || !waiverAccepted || !isAvailable) return;
+    if (!address || !waiverAccepted || !isAvailable || (sponsorReuseNeedsOptIn && !rightsAccepted)) return;
     setLoading(true);
     setError(null);
     trackClientEvent('creator_mission_request_started', { mission_id: missionId });
@@ -97,7 +122,7 @@ export function CreatorMissionAcceptClient({
       const response = await fetch(`/api/dares/${missionId}/claim`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
-        body: JSON.stringify({ walletAddress: address }),
+        body: JSON.stringify({ walletAddress: address, ...(sponsorReuseNeedsOptIn ? { contentRights: { accepted: rightsAccepted, fingerprint: contentRightsFingerprint } } : {}) }),
       });
       const payload = await response.json();
       if (!response.ok || !payload.success) {
@@ -113,6 +138,10 @@ export function CreatorMissionAcceptClient({
       setLoading(false);
     }
   };
+
+  if (normalizedWallet && normalizedWallet === assignedWallet?.toLowerCase() && missionStatus === 'FAILED') {
+    return <SubmitEvidence key={`${missionId}:${missionAppealStatus}`} dareId={missionId} dareTitle={title} shortId={shortId} bountyAmount={bountyAmount} existingProofUrl={existingProofUrl} outcomeContract={outcomeContract} reportedOutcome={reportedOutcome} initialFailure={{ appealStatus: missionAppealStatus }} onVerificationComplete={() => router.refresh()} />;
+  }
 
   if (actionState === 'READY_TO_SUBMIT' || actionState === 'RESUME_SUBMISSION') {
     return (
@@ -181,6 +210,8 @@ export function CreatorMissionAcceptClient({
         <p className="mt-1 text-sm leading-6 text-white/52">
           BaseDare is reviewing it. You can start and upload your work after approval.
         </p>
+        <PushActivationCard compact className="mt-4 text-left" />
+        <p className="mt-3 text-xs text-white/45">You can also return to My work to check the decision.</p>
         <PostMissionIdentity />
       </div>
     );
@@ -246,6 +277,11 @@ export function CreatorMissionAcceptClient({
 
   return (
     <div>
+      {contentBrief ? <div className="mb-4 rounded-2xl border border-cyan-200/20 bg-cyan-300/[0.05] p-4 text-xs leading-5 text-white/70">
+        <p className="font-bold text-white">Usage agreement · {contentBrief.buyerName}</p>
+        <p className="mt-2">{CONTENT_USAGE_TERMS}</p>
+        <label className="mt-3 flex items-start gap-3"><input type="checkbox" checked={rightsAccepted} onChange={(event) => setAcceptedRightsKey(event.target.checked ? rightsKey : null)} className="mt-1 h-4 w-4 shrink-0" /><span>I have read the deliverable and agree to these usage permissions for this mission.</span></label>
+      </div> : null}
       <SafetyWaiver
         checked={waiverAccepted}
         onChange={setWaiverAccepted}
@@ -255,7 +291,7 @@ export function CreatorMissionAcceptClient({
       {error ? <p className="mt-3 text-sm font-semibold text-red-300">{error}</p> : null}
       <CosmicButton
         onClick={() => void requestMission()}
-        disabled={loading || !waiverAccepted}
+        disabled={loading || !waiverAccepted || (sponsorReuseNeedsOptIn && !rightsAccepted)}
         variant="gold"
         size="lg"
         fullWidth

@@ -30,6 +30,7 @@ DECLARE
     'User',
     'Dare',
     'DareProofAttempt',
+    'ContentRightsAcceptance',
     'CreatorReview',
     'Venue',
     'VenueContactRoute',

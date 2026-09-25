@@ -1,3 +1,5 @@
+import { contentRightsFingerprint, contentRightsReleaseEnabled } from '@/lib/content-rights-server';
+import { readContentDelivery } from '@/lib/content-delivery';
 import 'server-only';
 
 import { cache } from 'react';
@@ -30,9 +32,11 @@ export type CreatorMission = {
   prohibited: string[];
   baseDareCanDisplay: boolean;
   sponsorReuseNeedsOptIn: boolean;
+  contentRightsFingerprint: string | null;
   isAvailable: boolean;
   isFunnelCandidate: boolean;
   status: string;
+  appealStatus: string | null;
   assignedWallet: string | null;
   existingProofUrl: string | null;
   isNearbyDare: boolean;
@@ -53,6 +57,7 @@ const creatorMissionSelect = {
   tag: true,
   streamerHandle: true,
   status: true,
+  appealStatus: true,
   videoUrl: true,
   isNearbyDare: true,
   reportedOutcome: true,
@@ -132,9 +137,11 @@ function shapeCreatorMission(row: CreatorMissionRow, now = new Date()): CreatorM
     prohibited: copy.prohibited,
     baseDareCanDisplay: copy.baseDareCanDisplay,
     sponsorReuseNeedsOptIn: copy.sponsorReuseNeedsOptIn,
-    isAvailable: isCreatorMissionAvailable(row, now),
+    contentRightsFingerprint: readContentDelivery(row.outcomeContractSnapshot) ? contentRightsFingerprint(row.outcomeContractSnapshot) : null,
+    isAvailable: isCreatorMissionAvailable(row, now) && (!copy.sponsorReuseNeedsOptIn || contentRightsReleaseEnabled()),
     isFunnelCandidate: isCreatorMissionFunnelCandidate(row, now),
     status: row.status,
+    appealStatus: row.appealStatus,
     assignedWallet: row.targetWalletAddress ?? row.claimedBy,
     existingProofUrl: row.videoUrl,
     isNearbyDare: row.isNearbyDare,
@@ -151,7 +158,7 @@ export async function getCreatorMissions(): Promise<CreatorMission[]> {
     const now = new Date();
     const rows = await fetchMissionRows();
     return rows
-      .filter((row) => isCreatorMissionAvailable(row, now))
+      .filter((row) => isCreatorMissionAvailable(row, now) && (!readContentDelivery(row.outcomeContractSnapshot) || contentRightsReleaseEnabled()))
       .map((row) => shapeCreatorMission(row, now));
   } catch (error) {
     console.error('[CREATOR MISSIONS] Unable to load open missions:', error);

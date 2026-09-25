@@ -3718,3 +3718,27 @@ button[data-testid='ockConnectWalletButton']:hover {
     font-size: 0.52rem !important;
   }
 }
+/* Buyer receipts share a quiet, continuous backdrop with the workspace. */
+.field-receipt-surface::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 85% 0%, rgba(120, 70, 205, 0.10), transparent 48%),
+    radial-gradient(ellipse at 0% 42%, rgba(28, 116, 142, 0.07), transparent 45%),
+    #060810;
+}
+
+.buyer-evidence-panel {
+  background: linear-gradient(155deg, #111624, #0a0e18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.buyer-evidence-hero {
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(126, 77, 205, 0.09), transparent 55%),
+    linear-gradient(155deg, #141928, #0a0d17 70%);
+  box-shadow: inset 0 1px 0 rgba(255, 235, 155, 0.1), 0 20px 50px rgba(0, 0, 0, 0.25);
+}

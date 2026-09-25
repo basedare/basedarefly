@@ -1,5 +1,8 @@
 'use client';
 
+import { buildContentReorderHref } from '@/lib/content-reorder';
+import { readContentDelivery, validPublicationUrl } from '@/lib/content-delivery';
+
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -61,6 +64,8 @@ interface DareDetail {
   requireSentinel?: boolean | null;
   sentinelVerified?: boolean | null;
   stakerAddress?: string | null;
+  venueId?: string | null;
+  locationLabel?: string | null;
   outcomeContractSnapshot?: unknown;
   reportedOutcome?: unknown;
   evidenceDecision?: string | null;
@@ -561,6 +566,10 @@ export default function DareDetailPage() {
   // ── Claim (preserved) ──────────────────────────────────────────────────
   const handleClaimRequest = useCallback(async () => {
     if (!dare || !address) return;
+    if (readContentDelivery(dare.outcomeContractSnapshot)) {
+      window.location.assign(`/earn/${encodeURIComponent(dare.shortId || dare.id)}`);
+      return;
+    }
     setClaimLoading(true); setClaimError(null);
     try {
       const authHeaders = await buildWalletActionAuthHeaders({
@@ -766,6 +775,7 @@ export default function DareDetailPage() {
     (!isCommunitySpark ||
       !['PENDING_ACCEPTANCE', 'AWAITING_CLAIM'].includes(dare?.status?.toUpperCase() ?? '')),
   );
+  const contentReorderHref = dare ? buildContentReorderHref(dare) : null;
   const outcomeContract = parseOutcomeContractSnapshot(dare?.outcomeContractSnapshot);
   const reportedOutcome = dare?.reportedOutcome && typeof dare.reportedOutcome === 'object'
     ? (dare.reportedOutcome as Partial<ReportedOutcome>)
@@ -1098,6 +1108,7 @@ export default function DareDetailPage() {
           </section>
         ) : null}
 
+        {contentReorderHref && dare.status === 'VERIFIED' && address?.toLowerCase() === dare.stakerAddress?.toLowerCase() ? <section className="rounded-2xl border border-yellow-200/20 bg-yellow-300/[0.05] p-4"><h2 className="font-bold text-white">Want another delivery?</h2><p className="mt-2 text-sm text-white/60">Reuse the brief, then review the new deadline, place and reward. New funding and contributor consent are required.</p><Link href={contentReorderHref} className="mt-3 inline-flex rounded-xl bg-yellow-300 px-4 py-3 text-sm font-bold text-black">Review a new content mission</Link></section> : null}
         {!isCommunitySpark ? <DareStatusTimeline dare={{ ...dare, isCommunitySpark }} size="full" /> : null}
 
         {outcomeContract && !isCommunitySpark ? (
@@ -1113,6 +1124,7 @@ export default function DareDetailPage() {
               <div className="mt-4 rounded-xl border border-white/10 bg-black/25 px-3 py-3">
                 <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/40">Reported outcome · {dare.evidenceDecision ?? 'PENDING'}</p>
                 <p className="mt-1 text-sm text-white"><strong>{reportedOutcome.kind}</strong> — {reportedOutcome.summary}</p>
+                {validPublicationUrl(reportedOutcome.publicationUrl) ? <a href={validPublicationUrl(reportedOutcome.publicationUrl)!} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm text-cyan-200 underline">Open submitted public post</a> : null}
               </div>
             ) : null}
           </section>
@@ -1345,7 +1357,10 @@ export default function DareDetailPage() {
         {/* Video proof */}
         {dare.videoUrl && (
           <div ref={videoRef} className="rounded-2xl overflow-hidden border border-white/[0.08] scroll-mt-28">
-            <video src={dare.videoUrl} controls className="w-full rounded-2xl" />
+            {readContentDelivery(dare.outcomeContractSnapshot)?.assetType === 'PHOTO'
+              ? <img src={dare.videoUrl} alt="Submitted content for this mission" className="w-full rounded-2xl" />
+              : <video src={dare.videoUrl} controls className="w-full rounded-2xl" />}
+            {readContentDelivery(dare.outcomeContractSnapshot) ? <div className="p-4 text-sm text-white/65"><a href={dare.videoUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-cyan-200 underline">Open original file</a><p className="mt-2">{dare.status === 'VERIFIED' ? 'Approved and paid. Usage is limited to the permissions in this mission’s agreed brief.' : 'Submission for review. Commercial usage starts only after approval and payment.'}</p></div> : null}
           </div>
         )}
 

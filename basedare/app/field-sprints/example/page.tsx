@@ -14,9 +14,10 @@ const checks = [
 
 export default function ExampleFieldSprintReceiptPage() {
   return (
-    <main className="min-h-screen bg-[#07070b] px-4 py-16 text-white sm:px-6">
+    <main className="field-receipt-surface relative isolate z-10 min-h-screen px-4 py-10 text-white sm:px-6 sm:py-14">
       <div className="mx-auto max-w-5xl">
-        <header className="rounded-3xl border border-[#ffe36a]/20 bg-gradient-to-br from-[#251d09]/70 to-[#101018] p-7">
+        <Link href="/brands/portal?compose=1" className="mb-5 inline-flex min-h-11 items-center text-sm font-bold text-cyan-100/75 hover:text-cyan-100">← Back to your brief</Link>
+        <header className="buyer-evidence-hero rounded-[28px] border border-[#ffe36a]/20 p-5 sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#ffe36a]">Verified Field Sprint · Example receipt</p>
             <span className="rounded-full border border-amber-200/20 bg-amber-200/[0.08] px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-amber-100">Illustrative · not a live result</span>
@@ -27,13 +28,13 @@ export default function ExampleFieldSprintReceiptPage() {
         </header>
 
         <section className="mt-6 grid gap-4 md:grid-cols-2">
-          <Panel title="Observed answers"><div className="grid grid-cols-4 gap-2">{['YES', 'NO', 'PARTIAL', 'INCONCLUSIVE'].map((kind) => <Metric key={kind} label={kind} value="1" />)}</div><p className="mt-4 text-xs leading-5 text-white/40">The receipt preserves disagreement. It does not manufacture a positive answer for the buyer.</p></Panel>
+          <Panel title="Observed answers"><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{['YES', 'NO', 'PARTIAL', 'INCONCLUSIVE'].map((kind) => <Metric key={kind} label={kind} value="1" />)}</div><p className="mt-4 text-xs leading-5 text-white/40">The receipt preserves disagreement. It does not manufacture a positive answer for the buyer.</p></Panel>
           <Panel title="Evidence and delivery"><dl className="grid grid-cols-2 gap-3 text-sm"><Item label="High / medium / low" value="2 / 2 / 0" /><Item label="Contributor payouts" value="$480" /><Item label="Delivery window" value="7–10 days" /><Item label="Replacement attempts" value="1 disclosed" /></dl></Panel>
         </section>
 
-        <Panel title="Recommended next move"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#62efff]">Investigate conflict</p><h2 className="mt-2 text-xl font-black">Check why the visits disagreed</h2><p className="mt-2 text-xs leading-5 text-white/55">Compare the observation times and conditions before correcting the listing or buying another Sprint. The recommendation never launches or funds work automatically.</p></Panel>
+        <div className="mt-6"><Panel title="Recommended next move"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#62efff]">Investigate conflict</p><h2 className="mt-2 text-xl font-black">Check why the visits disagreed</h2><p className="mt-2 text-xs leading-5 text-white/55">Compare the observation times and conditions before correcting the listing or buying another Sprint. The recommendation never launches or funds work automatically.</p></Panel></div>
 
-        <section className="mt-6 grid gap-3 md:grid-cols-2">{checks.map((check, index) => <article key={check.kind} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
+        <section className="mt-6 grid gap-3 md:grid-cols-2">{checks.map((check, index) => <article key={check.kind} className="buyer-evidence-panel rounded-[22px] border border-white/10 p-5">
           <div className="flex items-center justify-between gap-3"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#62efff]">Independent check {index + 1}</p><b>{check.kind}</b></div>
           <h2 className="mt-3 text-xl font-black">Example venue</h2>
           <p className="mt-3 text-sm leading-6 text-white/60">{check.summary}</p>
@@ -54,6 +55,6 @@ export default function ExampleFieldSprintReceiptPage() {
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) { return <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><h2 className="mb-4 text-lg font-black">{title}</h2>{children}</section>; }
+function Panel({ title, children }: { title: string; children: React.ReactNode }) { return <section className="buyer-evidence-panel rounded-[22px] border border-white/10 p-5"><h2 className="mb-4 text-lg font-black">{title}</h2>{children}</section>; }
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-white/8 bg-black/30 p-3"><b className="text-xl">{value}</b><p className="mt-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/35">{label}</p></div>; }
 function Item({ label, value }: { label: string; value: string }) { return <div><dt className="text-[9px] font-black uppercase tracking-[0.12em] text-white/35">{label}</dt><dd className="mt-1 font-bold">{value}</dd></div>; }

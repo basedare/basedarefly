@@ -1,3 +1,5 @@
+import { hasContentRightsAcceptance } from '@/lib/content-rights-server';
+import { readContentDelivery } from '@/lib/content-delivery';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
@@ -21,6 +23,7 @@ export async function POST(request: NextRequest) {
     const isInternalAuthorized = isInternalApiAuthorized(request);
 
     const formData = await request.formData();
+    const receivedAt = new Date();
     const file = formData.get('file') as File | null;
     const dareId = formData.get('dareId') as string | null;
 
@@ -62,6 +65,7 @@ export async function POST(request: NextRequest) {
         status: true,
         videoUrl: true,
         proofCid: true,
+        outcomeContractSnapshot: true,
         stakerAddress: true,
         targetWalletAddress: true,
         claimedBy: true,
@@ -100,6 +104,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    if (!(await hasContentRightsAcceptance(dare))) {
+      return NextResponse.json({ error: 'The assigned contributor must accept this mission’s content usage terms first.' }, { status: 409 });
+    }
+    const content = readContentDelivery(dare.outcomeContractSnapshot);
+    if (content && !isInternalAuthorized && authorizedWallet !== (dare.claimedBy || dare.targetWalletAddress)?.toLowerCase()) {
+      return NextResponse.json({ error: 'Only the assigned contributor can deliver this content.' }, { status: 403 });
+    }
+    if (content && file && !file.type.startsWith(content.assetType === 'PHOTO' ? 'image/' : 'video/')) {
+      return NextResponse.json({ error: `This brief requires one ${content.assetType.toLowerCase()}.` }, { status: 400 });
+    }
+
     if (!PROOF_UPLOADABLE_STATUSES.has(dare.status)) {
       return NextResponse.json(
         { error: `Proof upload is only allowed while a dare is pending. Current status: ${dare.status}.` },
@@ -125,6 +140,10 @@ export async function POST(request: NextRequest) {
         { error: 'Proof already uploaded for this dare. Review or verification is already in progress.' },
         { status: 409 }
       );
+    }
+
+    if (content && receivedAt.getTime() > Date.parse(content.deadline)) {
+      return NextResponse.json({ error: 'The delivery deadline has passed. Contact BaseDare before submitting new work.' }, { status: 409 });
     }
 
     // Upload to Pinata IPFS
@@ -154,14 +173,17 @@ export async function POST(request: NextRequest) {
 
     // Attach proof media but keep the dare in the community-signal lane until
     // verify-proof or moderator flow escalates it.
-    await prisma.dare.update({
-      where: { id: dareId },
+    const attached = await prisma.dare.updateMany({
+      where: { id: dareId, status: 'PENDING', proofCid: null, videoUrl: null, ...(content ? { claimedBy: dare.claimedBy, targetWalletAddress: dare.targetWalletAddress } : {}) },
       data: {
         proofCid: upload.cid,
         videoUrl: upload.url,
+        ...(content ? { contentSubmittedAt: receivedAt } : {}),
         status: 'PENDING',
       },
     });
+
+    if (attached.count !== 1) return NextResponse.json({ error: 'The mission or its proof changed during upload. Reload the mission to recover the saved submission.' }, { status: 409 });
 
     return NextResponse.json({ success: true, cid: upload.cid, url: upload.url, status: 'PENDING' }, { status: 200 });
   } catch (error: unknown) {

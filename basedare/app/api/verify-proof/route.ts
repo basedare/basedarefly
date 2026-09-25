@@ -1,3 +1,6 @@
+import { readContentDelivery } from '@/lib/content-delivery';
+import { missionReturnPath } from '@/lib/mission-return-path';
+import { hasContentRightsAcceptance, contentSubmissionProblem } from '@/lib/content-rights-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createPublicClient, createWalletClient, formatEther, http, isAddress, parseEther, type Address, keccak256, toBytes } from 'viem';
@@ -114,6 +117,7 @@ const VerifyProofSchema = z.object({
     kind: z.enum(['YES', 'NO', 'PARTIAL', 'INCONCLUSIVE', 'COMPLETED', 'PUBLISHED']),
     summary: z.string().min(3).max(280),
     observedAt: z.string().datetime(),
+    publicationUrl: z.string().max(2048).optional(),
     maintenanceOutcome: z.enum([
       'CONFIRMED',
       'CHANGED',
@@ -625,6 +629,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!(await hasContentRightsAcceptance(dare))) {
+      return NextResponse.json({ success: false, error: 'Content usage consent is missing for the assigned contributor.' }, { status: 409 });
+    }
+    if (readContentDelivery(dare.outcomeContractSnapshot) && !isInternalAuthorized && authorizedWallet !== (dare.claimedBy || dare.targetWalletAddress)?.toLowerCase()) {
+      return NextResponse.json({ success: false, error: 'Only the assigned contributor can submit this content for review.' }, { status: 403 });
+    }
+    const submissionProblem = contentSubmissionProblem(dare);
+    if (submissionProblem) return NextResponse.json({ success: false, error: submissionProblem }, { status: 409 });
     const outcomeContract = parseOutcomeContractSnapshot(dare.outcomeContractSnapshot);
     let validatedReportedOutcome: ReportedOutcome | null = null;
     if (dare.outcomeContractSnapshot && !outcomeContract) {
@@ -933,6 +945,7 @@ export async function POST(req: NextRequest) {
       await syncLinkedCampaignForDareState({ dareId, status: 'FAILED' }).catch((err) =>
         console.error('[CAMPAIGN] out-of-radius reject sync failed:', err),
       );
+      await createWalletNotification({ wallet: dare.claimedBy || dare.targetWalletAddress, type: 'DARE_FAILED', title: 'Location evidence needs review', message: `The location evidence for "${dare.title}" was rejected. Open the mission to submit an appeal.`, link: missionReturnPath(dare), pushTopic: 'wallet' });
       return NextResponse.json(
         {
           success: false,
@@ -997,15 +1010,15 @@ export async function POST(req: NextRequest) {
       }
 
       // Notify User it's under review
-      if (dare.targetWalletAddress) {
+      if (dare.claimedBy || dare.targetWalletAddress) {
         await createWalletNotification({
-          wallet: dare.targetWalletAddress,
+          wallet: dare.claimedBy || dare.targetWalletAddress,
           type: 'DARE_REVIEW',
           title: 'Dare Under Review',
           message: sentinelReviewRequested
             ? `Your proof for "${dare.title}" entered Sentinel review and is waiting on referee approval.`
             : `Your proof for "${dare.title}" is under manual administrative review.`,
-          link: '/dashboard',
+          link: missionReturnPath(dare),
           pushTopic: 'wallet',
         });
       }
@@ -1275,13 +1288,13 @@ export async function POST(req: NextRequest) {
       });
 
       // Notify Creator of Failure
-      if (dare.targetWalletAddress) {
+      if (dare.claimedBy || dare.targetWalletAddress) {
         await createWalletNotification({
-          wallet: dare.targetWalletAddress,
+          wallet: dare.claimedBy || dare.targetWalletAddress,
           type: 'DARE_FAILED',
           title: 'Dare Failed Verification',
           message: `Your proof for "${dare.title}" was rejected. You can submit an appeal.`,
-          link: '/dashboard',
+          link: missionReturnPath(dare),
           pushTopic: 'wallet',
         });
       }
@@ -1413,14 +1426,16 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    await prisma.dare.update({
-      where: { id: dareId },
+    const appealed = await prisma.dare.updateMany({
+      where: { id: dareId, status: 'FAILED', OR: [{ appealStatus: null }, { appealStatus: { not: 'PENDING' } }] },
       data: {
         appealStatus: 'PENDING',
         appealReason: reason,
         appealedAt: new Date(),
       },
     });
+
+    if (appealed.count !== 1) return NextResponse.json({ success: false, error: 'This appeal or mission was just updated. Refresh to see its current state.' }, { status: 409 });
 
     console.log(`[AUDIT] Appeal submitted for dare ${dareId}: "${reason.substring(0, 50)}..."`);
 

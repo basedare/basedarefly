@@ -14,6 +14,25 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex revenue delivery readiness (2026-09-25 — MAIN RELEASE; CONTENT LAUNCH GATED)
+- Scope is purchase/delivery barriers only. Add one-asset paid content briefs, optional public posting, wallet/brief-bound immutable rights acceptance, author/deadline enforcement and original-file delivery. Keep the 96/4 settlement and the $2,500 managed Sprint unchanged. No managed content bundle or automatic commercial-rights grant for older work.
+- Commercial terms are a review draft. `CONTENT_RIGHTS_APPROVED_VERSION=content-organic-v1` is a server release gate, not evidence of legal review. Leave it unset until review required by `docs/FINANCIAL_CANON.md` is recorded. The create screen permits drafting and explains the funding gate before a wallet action.
+- Mission notifications return to the specific `/earn` page; rejected submissions restore the appeal form on the mission, including after refresh. Moderator/appeal rejection notifications preserve the exact destination; late rejection cannot overwrite settled or queued payouts. Operator Sprint economics use FounderEvent entries and existing review costs, preserve overruns, separate reward liability from revenue and require reconciliation before reporting contribution. Repeat drafts copy scope, not funding/consent; content reorders require an exact saved venue.
+- Verification: 75 focused tests; real PostgreSQL claim/upload/consent/cost and rejection/appeal/simulated-approval integration using test auth/storage adapters; full migration replay and existing Sprint rejection/replacement/receipt smoke; typecheck; full lint with zero errors; production build; desktop/390px content-form checks. Production push config reports configured; no physical-phone delivery or funded production transaction was performed. See `docs/revenue-delivery-readiness.md` for evidence and remaining gates. Apply the included migration before enabling the reviewed content-rights version in production.
+
+### Codex venue panel spacing (2026-09-25 — MAIN RELEASE)
+- Size the desktop place panel to its content, capped by the map viewport, so Spot Vault ends with consistent padding rather than an empty full-height tail. Preserve mobile sheet behavior and the pending surf/night guide changes.
+- Verified natural-height desktop layout, capped/scrolling layout at 900px height, and 390px expanded mobile sheet. The desktop vault ends with 24px padding. No map geometry or data changes.
+
+### Codex buyer surface clarity (2026-09-25 — MAIN RELEASE)
+- User requested cleaner backgrounds and a better buyer portal. Keep the managed offer, financial canon, authentication and invoice actions intact. Refine receipt/workspace surfaces, remove the duplicate composer introduction, use consecutive setup steps, expose price/delivery early, and distinguish paid content/promotion from managed fieldwork. Preserve the homepage identity.
+- Evidence instructions now survive the existing invoice URL handoff. No invoice or payment was submitted. Desktop/390px checks cover the receipt, disconnected entry and isolated composer preview (removed after checking examples and handoff parameters). Live authenticated account/payment flows remain unverified. Full lint has no errors and the production build passes.
+
+### Codex map guide recovery (2026-09-25 — MAIN RELEASE)
+- Restore discoverable Surf, night-by-night guidance and PeeBear entry after place selection or guide dismissal. Preserve the current map design and time-appropriate recommendations. Scope: map overlay, selection handoff, existing surf/night helpers and focused verification; no paid lifecycle or schema changes.
+- Surf now has an explicit all-hours planning panel with break/launch links and an unavailable-model state. Tonight lets users browse the existing weekly rotation without presenting another night's rhythm as published events. Persistent guide controls recover from selected venues; both mobile Tonight entrances clear obstructing details.
+- Validation: 22 focused surf/night/recommendation tests, app typecheck, full lint with zero errors, production build, desktop/mobile browser checks and Graphify rebuild. Local live surf response was rejected as stale and live plans did not refresh; fallback rendering was verified, while fresh provider data remains a production follow-up.
+
 ### Codex map visual polish (2026-09-16 — MAIN RELEASE)
 - The user requested and approved pushing the map visual improvement. Branch `codex/map-visual-polish` starts at `94f4649d`. Scope: basemap land/water/road/label palette, desktop toolbar spacing and compact PeeBear suggestions. Preserve markers, camera, discovery and paid lifecycle behavior.
 - Verified with app typecheck, full lint (zero errors; existing warnings), static production safety checks, production Next build, Graphify rebuild and whitespace checks. Browser checks cover 1440px/1280px desktop, 390px mobile, expanded tools, guide dismissal, zoom and compact/expanded place details.

@@ -30,6 +30,9 @@ import {
   getSentinelReasonForSelection,
   type SentinelRecommendationReason,
 } from '@/lib/sentinel';
+import ContentDeliveryFields from '@/components/ContentDeliveryFields';
+import { readContentDelivery, type ContentDeliveryBrief } from '@/lib/content-delivery';
+
 const NEARBY_TOAST_KEY = 'basedare_nearby_toast_seen_v1';
 
 const dentInputClass =
@@ -161,6 +164,8 @@ function CreateDareContent() {
     sprintOrdinal <= 4 &&
     sprintBuyerQuestion
   );
+  const [contentRightsReleased, setContentRightsReleased] = useState(false);
+  const [contentDelivery, setContentDelivery] = useState<ContentDeliveryBrief | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [approvalStatus, setApprovalStatus] = useState<'idle' | 'approving' | 'funding' | 'verifying'>('idle');
@@ -300,7 +305,8 @@ function CreateDareContent() {
   const checkoutRewardLabel = isCommunitySpark
     ? 'Free Spark'
     : `${normalizedWatchAmount.toLocaleString()} USDC`;
-  const checkoutWindowLabel = `${watchTimeValue || 24} ${watchTimeUnit || 'Hours'}`;
+  const activeContentDelivery = !isCommunitySpark && !isSprintMission ? contentDelivery : null;
+  const checkoutWindowLabel = activeContentDelivery ? `${activeContentDelivery.deadline.replace('T', ' ').slice(0, 16)} UTC` : `${watchTimeValue || 24} ${watchTimeUnit || 'Hours'}`;
   const checkoutProofLabel = isCommunitySpark
     ? 'Public proof'
     : watchRequireSentinel
@@ -444,6 +450,13 @@ function CreateDareContent() {
   // Pre-fill form from URL params (coming from home, map, or venue pages)
   useEffect(() => {
     const streamer = searchParams.get('streamer');
+    const copiedBrief = searchParams.get('contentBrief');
+    if (copiedBrief && copiedBrief.length <= 5000) {
+      try {
+        const brief = readContentDelivery({ contentDelivery: JSON.parse(copiedBrief) });
+        if (brief) setContentDelivery(brief);
+      } catch { /* A malformed draft never changes the funded contract. */ }
+    }
     const title = searchParams.get('title');
     const amount = searchParams.get('amount');
     const venueId = searchParams.get('venueId');
@@ -533,6 +546,7 @@ function CreateDareContent() {
           return;
         }
 
+        setContentRightsReleased(payload.data?.contentRightsReleased === true);
         setAppSettings({
           sentinelEnabled: payload.data?.sentinelEnabled !== false,
           sentinelPausedReason: payload.data?.sentinelPausedReason ?? null,
@@ -603,14 +617,16 @@ function CreateDareContent() {
   const missionObjective = String(watchTitle ?? '').trim();
   const hasMissionObjective = missionObjective.length >= 3;
   const hasRewardReady = isCommunitySpark || normalizedWatchAmount >= 5;
-  const hasDeadlineReady = Number.isFinite(Number(watchTimeValue)) && Number(watchTimeValue) >= 1;
+  const hasDeadlineReady = activeContentDelivery ? Boolean(readContentDelivery({ contentDelivery: activeContentDelivery })) : Number.isFinite(Number(watchTimeValue)) && Number(watchTimeValue) >= 1;
   const hasLocationReady = !watchIsNearbyDare || Boolean(watchVenueId) || Boolean(coordinates);
   const hasWalletReady = isConnected && Boolean(address);
   const settlementReady =
     isCommunitySpark ||
     isSimulationMode ||
     (isOnchainContractsReady && hasRewardReady && !hasInsufficientBalance);
-  const launchBlocker = !hasMissionObjective
+  const launchBlocker = activeContentDelivery && !contentRightsReleased
+    ? 'Content commissions are not open yet. You can prepare a draft; funding opens after usage terms are reviewed.'
+    : !hasMissionObjective
     ? 'Add a mission objective before launch.'
     : !hasWalletReady
       ? 'Connect wallet from the top bar to launch.'
@@ -621,13 +637,15 @@ function CreateDareContent() {
         : !hasRewardReady
           ? 'Set a reward of at least 5 USDC.'
           : !hasDeadlineReady
-            ? 'Set a valid time limit.'
+            ? (activeContentDelivery ? 'Complete the content brief and deadline.' : 'Set a valid time limit.')
             : !isCommunitySpark && !isSimulationMode && !isOnchainContractsReady
               ? 'Contract configuration is missing in this environment.'
               : hasInsufficientBalance
                 ? `Add ${watchAmount || 0} USDC or lower the bounty.`
                 : null;
-  const launchGateLabel = !hasMissionObjective
+  const launchGateLabel = activeContentDelivery && !contentRightsReleased
+    ? 'Content Launch Pending'
+    : !hasMissionObjective
     ? 'Add Mission'
     : !hasWalletReady
       ? 'Connect Wallet'
@@ -744,6 +762,9 @@ function CreateDareContent() {
         throw new Error('Choose an exact BaseDare place in the Sprint Runner before funding this mission.');
       }
 
+      if (contentDelivery && !submitAsCommunitySpark && !isSprintMission && !readContentDelivery({ contentDelivery })) {
+        throw new Error('Complete the content format, acceptance criteria and deadline before funding.');
+      }
       let walletAuthHeaders: Record<string, string> | undefined;
       if (!sessionToken || !sessionWallet || sessionWallet !== connectedWallet) {
         const cachedAuth = readStoredBountyCreateAuth(connectedWallet);
@@ -835,6 +856,7 @@ function CreateDareContent() {
           requireSentinel: selectedSentinel,
           stakerAddress: connectedWallet,
           outcomeContract: {
+            ...(!submitAsCommunitySpark && !isSprintMission && contentDelivery ? { contentDelivery } : {}),
             family: isSprintMission ? 'FIELD_TRUTH' : undefined,
             buyerQuestion: isSprintMission ? sprintBuyerQuestion : data.title,
             maximumObservationAgeHours: isSprintMission && Number.isFinite(sprintFreshnessHours)
@@ -1461,6 +1483,8 @@ function CreateDareContent() {
                 )}
               </div>
 
+              {!isCommunitySpark && !isSprintMission ? <ContentDeliveryFields released={contentRightsReleased} value={contentDelivery} onChange={setContentDelivery} /> : null}
+
               {/* 2.5. NEARBY DARE - Location-based discovery */}
               <div className="space-y-4">
                 {/* Toggle */}
@@ -1652,7 +1676,7 @@ function CreateDareContent() {
                   <label className="flex items-center gap-2 text-xs md:text-sm font-bold text-purple-400 uppercase tracking-widest">
                     <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" /> Time Limit
                   </label>
-                  <div className="grid grid-cols-2 gap-3 md:gap-4">
+                  {activeContentDelivery ? <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-white/70">{checkoutWindowLabel}<span className="mt-1 block text-xs text-white/40">Uses the agreed content delivery deadline above.</span></div> : <div className="grid grid-cols-2 gap-3 md:gap-4">
                     <input
                       type="number"
                       {...register('timeValue', { valueAsNumber: true })}
@@ -1667,7 +1691,7 @@ function CreateDareContent() {
                       <option value="Days">Days</option>
                       <option value="Weeks">Weeks</option>
                     </select>
-                  </div>
+                  </div>}
                   {errors.timeValue && (
                     <p className="text-red-400 text-xs md:text-sm">{errors.timeValue.message}</p>
                   )}

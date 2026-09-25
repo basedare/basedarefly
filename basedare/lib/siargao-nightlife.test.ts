@@ -2,8 +2,26 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import {
   getSiargaoNightGuide,
+  getSiargaoNightGuideForWeekday,
   isSiargaoVenueFeaturedTonight,
 } from './siargao-nightlife.ts';
+
+test('browsing a specific night leaves the actual Tonight rotation unchanged', () => {
+  const now = new Date('2026-09-20T12:00:00.000Z');
+  const friday = getSiargaoNightGuideForWeekday('Friday');
+  assert.equal(friday.weekday, 'Friday');
+  assert.equal(friday.headline, 'Mama Coco + Barbosa');
+  assert.match(friday.disclaimer, /not a live guarantee/);
+  assert.equal(getSiargaoNightGuide(now).weekday, 'Sunday');
+  assert.equal(getSiargaoNightGuide(now).headline, 'Happiness');
+});
+
+test('Saturday browsing includes its warm-up and late-night context', () => {
+  const saturday = getSiargaoNightGuideForWeekday('Saturday');
+  assert.equal(saturday.headline, 'Harana');
+  assert.equal(saturday.warmUpHeadline, 'Greenroom opposite Harana');
+  assert.equal(saturday.lateVenue, 'Siargao Beach Club');
+});
 
 test('uses the Siargao timezone rather than the viewer timezone', () => {
   const guide = getSiargaoNightGuide(new Date('2026-07-12T20:30:00.000Z'));

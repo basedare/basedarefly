@@ -1,3 +1,4 @@
+import { hasContentRightsAcceptance, contentSubmissionProblem } from '@/lib/content-rights-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, createWalletClient, formatEther, http, isAddress, parseEther, type Address } from 'viem';
 import { prisma } from '@/lib/prisma';
@@ -172,6 +173,10 @@ async function handleRetryPayouts(req: NextRequest) {
     }
 
     for (const dare of stuckDares) {
+      if (!(await hasContentRightsAcceptance(dare)) || contentSubmissionProblem(dare, true)) {
+        results.push({ dareId: dare.id, status: 'skipped', error: 'Content usage consent missing; operator review required.' });
+        continue;
+      }
       // Atomic per-row lease: only the worker that flips payoutLeaseAt from
       // null/expired to now proceeds. A second concurrent cron invocation that
       // selected the same stale row gets count 0 here and skips it, so the same

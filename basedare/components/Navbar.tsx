@@ -34,6 +34,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const { isControlMode } = useView();
   const isMapRoute = pathname === '/map' || pathname?.startsWith('/map/');
+  const useQuietNavSurface = isMapRoute || pathname?.startsWith('/field-sprints/');
 
   const desktopNavItems = (
     <div className="flex min-w-0 items-center gap-1 p-1.5">
@@ -55,7 +56,7 @@ export default function Navbar() {
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
             )}
-            <span className={`relative z-10 ${isMapRoute ? 'text-white/82' : 'mix-blend-overlay'}`}>
+            <span className={`relative z-10 ${useQuietNavSurface ? 'text-white/82' : 'mix-blend-overlay'}`}>
               {link.name}
             </span>
           </Link>
@@ -138,7 +139,7 @@ export default function Navbar() {
 
           {/* 2. DESKTOP MENU (Hidden on Mobile) - With GlassSurface */}
           <div className="hidden min-w-0 flex-1 justify-center md:flex">
-            {isMapRoute ? (
+            {useQuietNavSurface ? (
               <div className="max-w-full overflow-hidden rounded-full border border-white/[0.08] bg-[linear-gradient(180deg,rgba(12,15,28,0.94)_0%,rgba(5,7,16,0.9)_100%)] shadow-[0_18px_54px_rgba(0,0,0,0.42),0_0_0_1px_rgba(120,150,255,0.05),inset_0_1px_0_rgba(255,255,255,0.1)]">
                 {desktopNavItems}
               </div>
