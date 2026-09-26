@@ -23,6 +23,7 @@ import {
 } from "@/lib/venue-events";
 
 const CreateSignalSchema = z.object({
+  posterUrl: z.string().url().max(2000).refine((value) => value.startsWith('https://'), 'Poster must use HTTPS.').optional().nullable(),
   sourceKind: z.enum(VENUE_EVENT_SOURCE_KINDS),
   sourceUrl: z.string().max(2000).optional().nullable(),
   sourceAccount: z.string().trim().max(80).optional().nullable(),
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const sourceUrl = normalizeVenueEventSourceUrl(parsed.data.sourceUrl);
+  const sourceUrl = normalizeVenueEventSourceUrl(parsed.data.sourceUrl || parsed.data.posterUrl);
   if (parsed.data.sourceUrl?.trim() && !sourceUrl) {
     return NextResponse.json(
       {
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
           : null,
         rawText: parsed.data.rawText,
         fingerprint,
-        extractionJson: draft,
+        extractionJson: { ...draft, ...(parsed.data.posterUrl ? { posterUrl: parsed.data.posterUrl } : {}) },
         confidence: draft.confidence,
         submittedBy: auth.walletAddress,
       },

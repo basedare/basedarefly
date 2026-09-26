@@ -14,6 +14,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex homepage next-move feed (2026-09-26 — MAIN RELEASE)
+- User approved shared homepage activity data, labelled fallback suggestions, poster intake, explicit area/expiry/return refresh, and meaningful participation analytics. Preserve the homepage identity and mobile swipe rail; no fake events, attendance, cash rewards or automatic publishing.
+- Files: new components/home activity feed/rail and lib/home-activities helpers/tests; homepage feed seam; Island Pulse poster intake/upload/draft metadata; additive boat/meetup analytics identifiers. Existing paid lifecycle, map renderer and settlement stay intact.
+- Poster OCR is optional and local to the browser; original public artwork is uploaded only on an authenticated Build draft action. Human venue/date/time review remains required. See docs/home-activity-feed.md for operation, tracking and rollout limitations. Release verification covers focused tests, app/test typechecks, full lint with zero errors, static safety, production build, Graphify rebuild, and desktop/390px browser checks. Production event publishing, live shared-feed credentials and analytics receipt remain post-deploy checks.
+
 ### Codex revenue delivery readiness (2026-09-25 — MAIN RELEASE; CONTENT LAUNCH GATED)
 - Scope is purchase/delivery barriers only. Add one-asset paid content briefs, optional public posting, wallet/brief-bound immutable rights acceptance, author/deadline enforcement and original-file delivery. Keep the 96/4 settlement and the $2,500 managed Sprint unchanged. No managed content bundle or automatic commercial-rights grant for older work.
 - Commercial terms are a review draft. `CONTENT_RIGHTS_APPROVED_VERSION=content-organic-v1` is a server release gate, not evidence of legal review. Leave it unset until review required by `docs/FINANCIAL_CANON.md` is recorded. The create screen permits drafting and explains the funding gate before a wallet action.

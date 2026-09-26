@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { useSessionAdminSecret } from "@/hooks/useSessionAdminSecret";
+import EventPosterIntake from '@/components/admin/EventPosterIntake';
 
 type Venue = {
   id: string;
@@ -22,6 +23,7 @@ type Venue = {
   timezone: string;
 };
 type Draft = {
+  posterUrl?: string;
   title?: string;
   category?: string;
   priceLabel?: string | null;
@@ -99,6 +101,8 @@ export default function IslandPulseAdminClient() {
   const [sourceAccount, setSourceAccount] = useState("");
   const [sourceVenue, setSourceVenue] = useState("");
   const [rawText, setRawText] = useState("");
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [uploadedPoster, setUploadedPoster] = useState<string | null>(null);
   const [feedVenue, setFeedVenue] = useState("");
   const [feedAccountId, setFeedAccountId] = useState("");
   const [feedHandle, setFeedHandle] = useState("");
@@ -176,6 +180,16 @@ export default function IslandPulseAdminClient() {
     setWorking("create");
     setMessage(null);
     try {
+      let posterUrl = uploadedPoster;
+      if (posterFile && !posterUrl) {
+        const form = new FormData();
+        form.set('file', posterFile);
+        const upload = await fetch('/api/admin/venue-events/poster', { method: 'POST', headers, body: form });
+        const result = await upload.json();
+        if (!upload.ok || !result.success) throw new Error(result.error || 'Could not upload poster.');
+        posterUrl = result.data.url;
+        setUploadedPoster(posterUrl);
+      }
       const response = await fetch("/api/admin/venue-events", {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
@@ -185,6 +199,7 @@ export default function IslandPulseAdminClient() {
           sourceAccount: sourceAccount || null,
           rawText,
           venueSlug: sourceVenue || null,
+          posterUrl,
         }),
       });
       const body = await response.json();
@@ -193,6 +208,8 @@ export default function IslandPulseAdminClient() {
       setRawText("");
       setSourceUrl("");
       setSourceAccount("");
+      setPosterFile(null);
+      setUploadedPoster(null);
       setMessage(
         body.data.duplicate
           ? "That source is already in the queue."
@@ -491,7 +508,11 @@ export default function IslandPulseAdminClient() {
             </div>
           </div>
           <div>
+            <EventPosterIntake file={posterFile} disabled={working === 'create'}
+              onFile={(file) => { setPosterFile(file); setUploadedPoster(null); if (file) setSourceKind('FLYER'); }}
+              onText={(text) => setRawText((current) => [current.trim(), text.trim()].filter(Boolean).join('\n\n').slice(0, 10000))} />
             <textarea
+              aria-label="Source text"
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
               placeholder={
@@ -541,6 +562,7 @@ export default function IslandPulseAdminClient() {
                   key={signal.id}
                   className="rounded-[1.6rem] border border-white/10 bg-black/30 p-4 sm:p-5"
                 >
+                  {signal.extractionJson?.posterUrl ? <a href={signal.extractionJson.posterUrl} target="_blank" rel="noopener noreferrer" className="mb-3 inline-flex min-h-11 items-center text-xs font-bold text-cyan-100 underline">Open original poster for comparison</a> : null}
                   <div className="flex flex-wrap justify-between gap-3">
                     <div>
                       <p className="text-[9px] font-black uppercase tracking-[0.16em] text-cyan-100/60">

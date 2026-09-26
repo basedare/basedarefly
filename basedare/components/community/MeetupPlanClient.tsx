@@ -86,6 +86,7 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
       if (payload.data?.joinedNow === true) {
         trackClientEvent('live_plan_joined', {
           plan_type: 'meetup',
+          plan_id: plan.id,
           crew_unlocked: unlockedNow,
         });
       }

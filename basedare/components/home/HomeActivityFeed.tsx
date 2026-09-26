@@ -1,0 +1,188 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowRight, MapPin, RefreshCw, Sparkles } from 'lucide-react';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { trackClientEvent } from '@/lib/analytics';
+import type { LivePlanSnapshot } from '@/lib/live-plans';
+import { ACTIVITY_SUGGESTIONS, SIARGAO_ACTIVITY_AREA, homePlanTime, readSavedActivity, suggestionsForArea, visibleHomePlans, visibleHomePosts, type ActivityArea, type ActivityFilter, type SavedActivity, type HomeLocalPost } from '@/lib/home-activities';
+import '@/components/PremiumBentoGrid.css';
+import ActivityRail from './ActivityRail';
+
+const SAVED_KEY = 'basedare:home-activity:v1';
+const OPEN_KEY = 'basedare:home-activity-open:v1';
+const cardClass = 'flex min-w-0 flex-col rounded-[1.55rem] border border-white/10 bg-[linear-gradient(145deg,rgba(36,26,59,0.8),rgba(6,7,14,0.98))] p-5 shadow-[0_12px_28px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]';
+const actionClass = 'mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 text-xs font-black text-white hover:bg-white/10';
+const labels = { boat: 'Boat crew', meetup: 'Community plan', venue_event: 'Published event', community_spark: 'Free dare', paid_dare: 'Paid dare' };
+
+function recordOpen(id: string, kind: string, planId?: string) {
+  trackClientEvent('home_activity_opened', { activity_id: id, activity_kind: kind, plan_id: planId, plan_type: planId ? kind : undefined, source: 'home' });
+  try { sessionStorage.setItem(OPEN_KEY, JSON.stringify({ id, at: Date.now() })); } catch { /* Optional attribution. */ }
+}
+
+export default function HomeActivityFeed() {
+  const [area, setArea] = useState<ActivityArea>(SIARGAO_ACTIVITY_AREA);
+  const [filter, setFilter] = useState<ActivityFilter>('ALL');
+  const [snapshot, setSnapshot] = useState<{ areaKey: string; data: LivePlanSnapshot } | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [localPosts, setLocalPosts] = useState<{ areaKey: string; posts: HomeLocalPost[] } | null>(null);
+  const [postsFailed, setPostsFailed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refresh, setRefresh] = useState(0);
+  const [now, setNow] = useState(() => new Date());
+  const [rotation, setRotation] = useState(0);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [saved, setSaved] = useState<SavedActivity | null>(null);
+  const [storageUnavailable, setStorageUnavailable] = useState(false);
+  const { coordinates, requestLocation, loading: locating, error: locationError } = useGeolocation();
+  const requestedLocation = useRef(false);
+  const areaKey = `${area.lat}:${area.lng}`;
+  const data = snapshot?.areaKey === areaKey ? snapshot.data : null;
+  const effectiveArea = { ...area, timeZone: data?.window.tz ?? area.timeZone };
+
+  useEffect(() => {
+    if (requestedLocation.current && coordinates) {
+      setArea({ lat: Math.round(coordinates.lat * 1000) / 1000, lng: Math.round(coordinates.lng * 1000) / 1000, label: 'Near my location' });
+      requestedLocation.current = false;
+    }
+  }, [coordinates]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
+    setLoading(true);
+    setFailed(false);
+    setPostsFailed(false);
+    let disposed = false;
+    const query = new URLSearchParams({ lat: String(area.lat), lng: String(area.lng), radiusKm: '25', horizonHours: '72', limit: '40' });
+    const localQuery = new URLSearchParams({ lat: String(area.lat), lng: String(area.lng), radiusKm: '25', limit: '8' });
+    const get = async (url: string) => {
+        const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        const body = await response.json();
+        if (!response.ok || !body.success) throw new Error('Feed unavailable');
+        return body;
+    };
+    void Promise.allSettled([get(`/api/live-plans?${query}`), get(`/api/local-signals?${localQuery}`)])
+      .then(([plans, posts]) => {
+        if (disposed) return;
+        if (plans.status === 'fulfilled' && Array.isArray(plans.value.data?.plans)) setSnapshot({ areaKey, data: plans.value.data });
+        else { setFailed(true); setSnapshot(null); }
+        if (posts.status === 'fulfilled' && Array.isArray(posts.value.data?.signals)) {
+          setLocalPosts({ areaKey, posts: posts.value.data.signals });
+          setPostsFailed(Boolean(posts.value.warning));
+        } else { setPostsFailed(true); setLocalPosts(null); }
+      })
+      .finally(() => { window.clearTimeout(timeout); if (!disposed) setLoading(false); });
+    return () => { disposed = true; window.clearTimeout(timeout); controller.abort(); };
+  }, [area.lat, area.lng, areaKey, refresh]);
+
+  useEffect(() => {
+    const restore = () => {
+      try {
+        setSaved(readSavedActivity(JSON.parse(localStorage.getItem(SAVED_KEY) ?? 'null')));
+        const opened = JSON.parse(sessionStorage.getItem(OPEN_KEY) ?? 'null');
+        if (opened && typeof opened.id === 'string' && Number.isFinite(opened.at) && Date.now() - opened.at < 24 * 3600000) {
+          trackClientEvent('home_activity_returned', { activity_id: opened.id, source: 'home' });
+        }
+        sessionStorage.removeItem(OPEN_KEY);
+      } catch { /* Storage is optional; activities stay usable. */ }
+    };
+    const returnToPage = () => {
+      if (document.visibilityState !== 'visible') return;
+      restore(); setNow(new Date()); setRefresh((value) => value + 1);
+    };
+    restore();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') { setNow(new Date()); setRefresh((value) => value + 1); }
+    }, 60000);
+    document.addEventListener('visibilitychange', returnToPage);
+    window.addEventListener('pageshow', returnToPage);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', returnToPage); window.removeEventListener('pageshow', returnToPage); };
+  }, []);
+
+  const saveProgress = (value: SavedActivity) => {
+    setNow(new Date());
+    setSaved(value);
+    try { localStorage.setItem(SAVED_KEY, JSON.stringify(value)); setStorageUnavailable(false); } catch { setStorageUnavailable(true); }
+  };
+  const live = visibleHomePlans(data?.plans ?? [], effectiveArea, now, filter).slice(0, 6);
+  const posts = filter === 'ALL' || filter === 'MEET' ? visibleHomePosts(localPosts?.areaKey === areaKey ? localPosts.posts : [], now)
+    .filter((post) => !live.some((plan) => plan.title.toLowerCase() === post.title.toLowerCase() && plan.place.venueSlug === post.venueSlug)) : [];
+  const ideas = suggestionsForArea(effectiveArea, now, rotation).slice(0, Math.max(3 - live.length - posts.length, 1));
+  const active = readSavedActivity(saved, now.getTime());
+  const activeIdea = ACTIVITY_SUGGESTIONS.find((item) => item.id === active?.id);
+  const mapHref = `/map?lat=${area.lat}&lng=${area.lng}&source=home-activity`;
+
+  return <section className="mx-auto w-full max-w-[1400px]" aria-label="Find your next move">
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div><p className="text-sm font-bold text-white/80">Open BaseDare and find your next move.</p><p className="mt-1 flex items-center gap-1 text-xs text-cyan-100/60"><MapPin size={13} />{area.label} · within 25 km</p></div>
+      <div className="flex flex-wrap gap-2 text-xs">
+        <button className="min-h-11 rounded-full border border-white/10 px-3 text-white/70" onClick={() => { requestedLocation.current = false; setArea(SIARGAO_ACTIVITY_AREA); }}>Browse Siargao</button>
+        <button className="min-h-11 rounded-full border border-white/10 px-3 text-white/70" disabled={locating} onClick={() => {
+          requestedLocation.current = true;
+          if (coordinates) { setArea({ lat: Math.round(coordinates.lat * 1000) / 1000, lng: Math.round(coordinates.lng * 1000) / 1000, label: 'Near my location' }); requestedLocation.current = false; }
+          else requestLocation();
+        }}>{locating ? 'Locating…' : 'Use my location'}</button>
+      </div>
+    </div>
+    {locationError ? <p role="status" className="mb-3 text-xs text-amber-100/70">{locationError} Still browsing {area.label}.</p> : null}
+    <div className="premium-bounties-controls relative mb-5 flex flex-wrap items-center justify-between gap-2 p-2 md:p-3">
+      <div className="premium-filter-shell flex gap-1 p-1" role="group" aria-label="Activity filters">
+        {(['ALL', 'PLAY', 'MEET', 'EARN'] as const).map((item) => <button key={item} aria-pressed={filter === item} onClick={() => setFilter(item)} className={`premium-filter-chip rounded-full px-3 text-[10px] font-black tracking-widest md:px-4 ${filter === item ? 'premium-filter-chip--active text-yellow-200' : ''}`}>{item}</button>)}
+      </div>
+      <Link href={mapHref} className="inline-flex min-h-11 items-center gap-2 px-3 text-xs font-bold text-cyan-100">Open map <ArrowRight size={14} /></Link>
+    </div>
+    {failed ? <p role="status" className="mb-4 text-xs text-amber-100/70">Live activities couldn’t refresh. These suggestions are still available. <button className="min-h-11 underline" onClick={() => setRefresh((v) => v + 1)}>Try again</button></p>
+      : loading ? <p role="status" className="mb-4 text-xs text-white/50">Checking local activities…</p> : null}
+    {postsFailed ? <p className="mb-3 text-xs text-white/50">Community updates couldn’t refresh. Any published schedule below still needs checking with the venue.</p> : null}
+    {activeIdea && active ? <div className="mb-5 rounded-2xl border border-yellow-200/20 bg-yellow-300/[0.05] p-4">
+      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-100">{active.completedAt ? 'You marked it done' : 'Your next move'}</p>
+      <p className="mt-2 font-bold text-white">{activeIdea.title}</p>
+      <p className="mt-1 text-xs text-white/50">{storageUnavailable ? 'Kept for this visit; browser storage is unavailable.' : 'Saved on this device for 24 hours.'} Personal progress · no payment or verified points.</p>
+      <button className="mt-2 min-h-11 text-xs font-bold text-cyan-100" onClick={() => setExpanded(expanded === active.id ? null : active.id)}>View steps</button>
+      {expanded === active.id ? <ol className="list-inside list-decimal space-y-2 text-sm text-white/70">{activeIdea.steps.map((step) => <li key={step}>{step}</li>)}</ol> : null}
+      {!active.completedAt ? <button className="ml-4 min-h-11 text-xs font-bold text-yellow-100" onClick={() => { saveProgress({ ...active, completedAt: Date.now() }); trackClientEvent('home_suggestion_completed', { activity_id: active.id, completion_kind: 'self_reported' }); }}>I did it</button> : null}
+    </div> : null}
+    {!loading && !failed && !live.length && !posts.length && filter !== 'ALL' && filter !== 'PLAY' ? <p className="mb-4 text-sm text-white/60">{filter === 'EARN' ? 'No available paid missions in this area right now.' : 'No published group plans in this area right now.'} You can still try an activity below.</p> : null}
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <p className="flex items-center gap-2 text-xs text-white/50"><Sparkles size={14} />Suggested dares are free to try · no hosted event or cash reward</p>
+      <button className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-white/70" onClick={() => setRotation((v) => v + 1)}><RefreshCw size={13} />Give me another idea</button>
+    </div>
+    <ActivityRail key={[filter, ...live.map((p) => p.id), ...posts.map((p) => p.id), ...ideas.map((p) => p.id)].join(':')} count={live.length + posts.length + ideas.length}>{live.map((plan) => <article key={plan.id} className={cardClass}>
+      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-100/80">{labels[plan.type]}</p>
+      <h4 className="mt-3 text-xl font-black leading-tight text-white">{plan.title}</h4>
+      <p className="mt-3 text-xs text-cyan-100/75">{plan.place.label}</p>
+      <p className="mt-2 text-xs text-white/60">{homePlanTime(plan, now, effectiveArea.timeZone)}</p>
+      {plan.summary ? <p className="mt-3 line-clamp-3 text-sm text-white/60">{plan.summary}</p> : null}
+      <p className="mt-3 text-[11px] text-white/45">{plan.trust.sourceLabel || plan.trust.label}</p>
+      {plan.type === 'paid_dare' && plan.value?.rewardUsdc != null ? <p className="mt-2 text-sm font-bold text-yellow-100">{plan.value.rewardUsdc} USDC · see payout and requirements</p> : null}
+      <div className="mt-auto"><Link href={plan.action.href} onClick={() => recordOpen(plan.id, plan.type, plan.sourceId)} className={`${actionClass} w-full`}>See {plan.type === 'paid_dare' ? 'mission' : 'details'} <ArrowRight size={14} /></Link></div>
+    </article>)}{posts.map((post) => <article key={`post:${post.id}`} className={cardClass}>
+      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100/80">Community post</p>
+      <h4 className="mt-3 text-xl font-black text-white">{post.title}</h4>
+      <p className="mt-3 text-xs text-cyan-100/70">{post.venueName || post.city}</p>
+      {post.startsAt ? <p className="mt-2 text-xs text-white/60">{new Intl.DateTimeFormat('en', { timeZone: effectiveArea.timeZone ?? 'UTC', weekday: 'short', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).format(new Date(post.startsAt))}</p> : null}
+      <p className="mt-3 line-clamp-3 text-sm text-white/60">{post.notes}</p>
+      <p className="mt-3 text-[11px] text-white/45">{post.sourceAttribution}</p>
+      <Link className={actionClass} href={post.venueSlug ? `/map?place=${encodeURIComponent(post.venueSlug)}&source=home-activity` : '/community'} onClick={() => recordOpen(post.id, 'local_post')}>See place and details <ArrowRight size={14} /></Link>
+    </article>)}{ideas.map((idea) => <article key={idea.id} className={cardClass}>
+      <p className="text-[10px] font-black uppercase tracking-widest text-violet-200/80">Suggested dare · {idea.minutes} min</p>
+      <h4 className="mt-3 text-xl font-black leading-tight text-white">{idea.title}</h4>
+      <p className="mt-3 text-sm text-white/60">{idea.summary}</p>
+      <div className="mt-auto">{expanded === idea.id ? <div className="mt-4">
+        <ol className="list-inside list-decimal space-y-3 text-sm text-white/70">{idea.steps.map((step) => <li key={step}>{step}</li>)}</ol>
+        <Link href={mapHref} onClick={() => recordOpen(idea.id, 'suggestion_map')} className="mt-3 inline-flex min-h-11 items-center text-xs font-bold text-cyan-100">Explore places on the map →</Link>
+        <button disabled={active?.id === idea.id} className={`${actionClass} w-full disabled:opacity-40`} onClick={() => {
+          const startedAt = Date.now(); saveProgress({ id: idea.id, startedAt });
+          trackClientEvent('home_suggestion_started', { activity_id: idea.id, source: 'home' });
+        }}>{active?.id === idea.id ? 'Saved above' : active && !active.completedAt ? 'Make this my next move instead' : 'Make this my next move'}</button>
+      </div> : <button className={`${actionClass} w-full`} onClick={() => { setExpanded(idea.id); recordOpen(idea.id, 'suggestion'); }}>Try this dare <ArrowRight size={14} /></button>}</div>
+    </article>)}</ActivityRail>
+    <div className="mt-5 flex flex-wrap gap-x-5 text-xs font-bold text-white/55">
+      <Link className="min-h-11 py-3" href="/community">Community posts →</Link>
+      <Link className="min-h-11 py-3" href="/earn">All paid missions →</Link>
+      <Link className="min-h-11 py-3" href="/community/rally/new">Start a meetup →</Link>
+    </div>
+  </section>;
+}

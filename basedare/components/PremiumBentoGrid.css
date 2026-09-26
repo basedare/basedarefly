@@ -416,6 +416,19 @@
     scroll-snap-stop: always;
   }
 
+  /* The homepage panel is inset: size cards to the rail, not the viewport. */
+  .home-activity-rail {
+    width: 100%;
+    margin-right: 0;
+    padding-right: 0;
+  }
+
+  .home-activity-rail > * {
+    width: calc(100% - 1.25rem);
+    min-width: 0;
+    flex: 0 0 calc(100% - 1.25rem);
+  }
+
   .live-around-mobile__swipe-hint {
     display: inline-flex;
     min-height: 1.75rem;

@@ -72,6 +72,7 @@
     "react-hook-form": "^7.71.1",
     "simplex-noise": "^4.0.3",
     "tailwind-merge": "^3.4.0",
+    "tesseract.js": "7.0.0",
     "three": "^0.182.0",
     "viem": "^2.44.1",
     "wagmi": "^2.19.5",

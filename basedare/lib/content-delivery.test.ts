@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { CONTENT_RIGHTS_VERSION, readContentDelivery, validPublicationUrl } from './content-delivery.ts';
+import { CONTENT_RIGHTS_VERSION, readContentDelivery, validPublicationUrl, type ContentDeliveryBrief } from './content-delivery.ts';
 import { buildOutcomeContractSnapshot, validateReportedOutcome } from './outcome-contracts.ts';
 import { isCreatorMissionAvailable } from './creator-mission-policy.ts';
 
-const brief = {
+const brief: ContentDeliveryBrief = {
   termsVersion: CONTENT_RIGHTS_VERSION, buyerName: 'Example venue', assetType: 'VIDEO' as const,
   format: 'Vertical 20 second video', acceptanceCriteria: 'Show the entrance and one item with accurate descriptions.',
   posting: 'NONE' as const, postingInstructions: '', deadline: new Date(Date.now() + 86400000).toISOString(), revisionLimit: 0,

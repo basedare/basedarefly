@@ -107,6 +107,7 @@ export default function BoatCrewShareClient({ initialCrew }: { initialCrew: Boat
       if (payload.data?.joinedConfirmedNow === true) {
         trackClientEvent('live_plan_joined', {
           plan_type: 'boat',
+          plan_id: crew.id,
           crew_unlocked: reachedMinimum,
         });
       }

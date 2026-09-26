@@ -84,7 +84,8 @@ export function inferVenueEventDraft(rawText: string): VenueEventDraft {
     "other";
   const free = /\bfree(?: entry| admission)?\b/i.test(normalized);
   const price = normalized.match(/(?:₱|php\s*)[\d,.]+/i)?.[0] ?? null;
-  const dateMention = normalized.match(DATE_MENTION)?.[0]?.trim() ?? null;
+  const dateMention = normalized.match(DATE_MENTION)?.[0]?.trim()
+    ?? normalized.match(/\b(?:\d{4}-\d{1,2}-\d{1,2}|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?|tonight|tomorrow|today)\b/i)?.[0] ?? null;
   const timeMention = normalized.match(TIME_MENTION)?.[0]?.trim() ?? null;
   const title = inferTitle(normalized);
   const confidence = Math.min(

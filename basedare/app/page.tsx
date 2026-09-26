@@ -28,7 +28,7 @@ import { MANAGED_FIELD_SPRINT } from "@/lib/financial-canon";
 const HeroEllipticalStream = dynamic(() => import("@/components/HeroEllipticalStream"), {
   loading: () => <div className="h-[560px] w-full md:h-[680px]" aria-hidden="true" />,
 });
-const PremiumBentoGrid = dynamic(() => import("@/components/PremiumBentoGrid"), {
+const HomeActivityFeed = dynamic(() => import("@/components/home/HomeActivityFeed"), {
   loading: () => <div className="min-h-[24rem] w-full rounded-[28px] border border-white/10 bg-white/[0.025]" aria-hidden="true" />,
 });
 const TruthProtocol = dynamic(() => import("@/components/TruthProtocol"));
@@ -43,25 +43,10 @@ const PeeBearOrb = dynamic(() => import("@/components/PeeBearOrb"));
 const Lightning = dynamic(() => import("@/components/Lightning"));
 const RealityShift = dynamic(() => import("@/components/RealityShift"));
 const MatrixRain = dynamic(() => import("@/components/MatrixRain"));
-interface Dare {
-  id: string;
-  short_id?: string;
-  description: string;
-  stake_amount: number;
-  streamer_name?: string;
-  status: string;
-  video_url?: string;
-  expiry_timer?: string;
-  image_url?: string;
-  require_sentinel?: boolean;
-  sentinel_verified?: boolean;
-}
-
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { view, setView } = useView(); // Use global context
-  const [dares, setDares] = useState<Dare[]>([]);
   // Chat removed for MVP
   const [dareInput, setDareInput] = useState('');
   const [, setSelectedStreamer] = useState('');
@@ -154,39 +139,6 @@ function HomeContent() {
       });
     }, 250);
   };
-
-  useEffect(() => {
-    let cancelled = false;
-    let controller: AbortController | null = null;
-
-    const fetchDares = async () => {
-      controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller?.abort(), 2600);
-      try {
-        const response = await fetch('/api/dares', { signal: controller.signal });
-        if (response.ok && !cancelled) {
-          const data = await response.json();
-          setDares(data);
-        }
-      } catch (error) {
-        if (!cancelled && !controller.signal.aborted) {
-          console.error('Failed to fetch dares:', error);
-        }
-      } finally {
-        window.clearTimeout(timeoutId);
-      }
-    };
-
-    const timeoutId = window.setTimeout(() => {
-      void fetchDares();
-    }, 1200);
-
-    return () => {
-      cancelled = true;
-      controller?.abort();
-      window.clearTimeout(timeoutId);
-    };
-  }, []);
 
   return (
     <main className="flex flex-col items-center min-h-screen bg-transparent font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
@@ -333,7 +285,7 @@ function HomeContent() {
                   </div>
 
                   <div className="relative z-10">
-                    <PremiumBentoGrid dares={dares} />
+                    <HomeActivityFeed />
                   </div>
                 </div>
               </div>
