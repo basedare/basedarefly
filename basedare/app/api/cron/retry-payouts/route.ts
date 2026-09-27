@@ -7,6 +7,7 @@ import { verifyCronSecret } from '@/lib/api-auth';
 import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
 import { findBountySettlementEvent, waitForSuccessfulReceipt } from '@/lib/bounty-chain';
 import { alertError } from '@/lib/telegram';
+import { isDatabaseSchemaError } from '@/lib/database-errors';
 import { finalizeVerifiedDare, syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import { isBountySimulationMode } from '@/lib/bounty-mode';
@@ -376,7 +377,7 @@ async function handleRetryPayouts(req: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[CRON] Retry payouts fatal error:', message);
     await alertError({
-      type: 'CONTRACT_ERROR',
+      type: isDatabaseSchemaError(error) ? 'DATABASE_SCHEMA_ERROR' : 'CRON_FAILED',
       error: message,
       context: 'retry-payouts cron fatal error',
     });

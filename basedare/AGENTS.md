@@ -14,6 +14,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex production database recovery (2026-09-27)
+- Applied the sole pending content-rights migration to production after read-only queue/schema checks. Both production payout/refund cron endpoints subsequently returned 200, success true, processed 0; no transfers were performed.
+- Production build commands now enforce a read-only migration/model-column compatibility gate. No automatic migrations; local/preview builds remain independent of production credentials. Fatal cron alerts distinguish DATABASE_SCHEMA_ERROR from CRON_FAILED. See docs/database-recovery-2026-09-27.md.
+- Verification: 10 focused tests, typecheck, targeted lint, static safety, production build and Graphify rebuild. All 58 migrations/75 models pass the production DB gate. Separate existing blocker: production selects mainnet with the documented Sepolia-only V2 bounty address. Do not claim paid launch readiness or switch/delete historical funding records without chain reconciliation.
+
 ### Codex homepage next-move feed (2026-09-26 — MAIN RELEASE)
 - User approved shared homepage activity data, labelled fallback suggestions, poster intake, explicit area/expiry/return refresh, and meaningful participation analytics. Preserve the homepage identity and mobile swipe rail; no fake events, attendance, cash rewards or automatic publishing.
 - Files: new components/home activity feed/rail and lib/home-activities helpers/tests; homepage feed seam; Island Pulse poster intake/upload/draft metadata; additive boat/meetup analytics identifiers. Existing paid lifecycle, map renderer and settlement stay intact.

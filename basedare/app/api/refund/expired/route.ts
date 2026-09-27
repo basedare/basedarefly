@@ -20,6 +20,7 @@ import { syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 import { recordDareFounderEventSafe } from '@/lib/founder-events';
 import { getRefereeAccount } from '@/lib/referee-wallet';
 import { alertError } from '@/lib/telegram';
+import { isDatabaseSchemaError } from '@/lib/database-errors';
 
 // Network selection based on environment
 const activeChain = getBaseChain();
@@ -483,7 +484,7 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[REFUND] Error processing expired dares:', message);
     await alertError({
-      type: 'REFUND_FAILED',
+      type: isDatabaseSchemaError(error) ? 'DATABASE_SCHEMA_ERROR' : 'CRON_FAILED',
       error: message,
       context: 'refund-expired cron fatal error',
     });

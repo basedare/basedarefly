@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: basedare/package-lock.json
       
@@ -30,6 +30,9 @@ jobs:
 
       - name: Run static production safety checks
         run: npm run safety:static
+
+      - name: Test database release gate
+        run: node --test scripts/database-release-check.test.mjs
       
       - name: Run linter
         run: npm run lint

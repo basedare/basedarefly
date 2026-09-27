@@ -1260,7 +1260,7 @@ Use /approve or /reject to moderate
  * Alert: Error/Issue that needs attention
  */
 export async function alertError(data: {
-  type: 'VERIFICATION_FAILED' | 'PAYOUT_FAILED' | 'REFUND_FAILED' | 'CONTRACT_ERROR';
+  type: 'VERIFICATION_FAILED' | 'PAYOUT_FAILED' | 'REFUND_FAILED' | 'CONTRACT_ERROR' | 'DATABASE_SCHEMA_ERROR' | 'CRON_FAILED';
   dareId?: string;
   shortId?: string;
   error: string;

@@ -100,8 +100,11 @@ reward budget first. Keep one pilot record with mission/receipt IDs, timestamps,
 transaction hashes, review outcome, costs and device evidence. Do not mark the
 following complete from a fixture or simulated dare:
 
-1. Deploy the reviewed application and apply
-   `20260921100000_content_rights_acceptance` before enabling content commissions.
+1. Apply `20260921100000_content_rights_acceptance` before deploying the application
+   that expects it. This is required even while content commissions remain disabled:
+   Prisma's full Dare reads include the new column. Run `npm run safety:database`
+   with the intended deployment database; production Vercel builds enforce this
+   read-only compatibility check. Enable content commissions only after terms review.
    Confirm real mode, correct network/contracts, uploads and reviewed terms.
 2. Buyer reviews the exact brief and funds the agreed reward. Check the mined
    transaction against the database amount and escrow identifier. Abandon a

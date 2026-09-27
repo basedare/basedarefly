@@ -8,8 +8,8 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:turbo": "next dev --turbo",
-    "build": "node scripts/prepare-vercel-nested-output.mjs && next build --webpack && node scripts/ensure-next-build-manifests.mjs",
-    "build:turbo": "next build --turbo",
+    "build": "node scripts/database-release-check.mjs --build && node scripts/prepare-vercel-nested-output.mjs && next build --webpack && node scripts/ensure-next-build-manifests.mjs",
+    "build:turbo": "node scripts/database-release-check.mjs --build && next build --turbo",
     "start": "next start",
     "postinstall": "prisma generate",
     "lint": "eslint",
@@ -20,6 +20,7 @@
     "mainnet:deploy:v2": "hardhat run scripts/deploy_mainnet_v2.js --network base-mainnet",
     "clawdbot": "node scripts/clawdbot-poll.js",
     "safety:production": "node scripts/production-safety-check.mjs",
+    "safety:database": "node scripts/database-release-check.mjs",
     "safety:rls": "node scripts/verify-rls.mjs",
     "safety:endpoints": "node scripts/production-endpoint-smoke.mjs",
     "safety:ux": "node scripts/launch-gauntlet.mjs",
