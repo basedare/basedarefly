@@ -176,7 +176,7 @@ async function checkFinancialCanon() {
   assertContains(
     'app/brands/portal/ActivationComposer.tsx',
     buyerComposer,
-    ['MANAGED_FIELD_SPRINT', 'Request $', 'Sprint invoice'],
+    ['MANAGED_FIELD_SPRINT.invoiceTotalUsd', 'Request a ${formatUsdAmount(MANAGED_FIELD_SPRINT.invoiceTotalUsd)} invoice', "href={disabledReason ? '#' : invoiceHref}"],
     'Buyer portal financial canon',
   );
   if (buyerComposer.includes('submitBountyCreation') || buyerComposer.includes('handleCreateCampaign')) {
