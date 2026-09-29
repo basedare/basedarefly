@@ -18,12 +18,12 @@ import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
 import {
   buildVenuePerkUnlock,
-  getActiveVenuePerk,
   writeVenuePerkSnapshotToMetadata,
 } from '@/lib/venue-perks';
 import { recordStationVerifiedVenueArrival } from '@/lib/field-station-server';
 import { recordDirectionsVerifiedArrival } from '@/lib/place-directions-server';
 import { awardVenueCheckInReward } from '@/lib/venue-check-in-rewards';
+import { availablePerkForWallet } from '@/lib/venue-perk-allocation';
 
 const VenueCheckInSchema = z.object({
   venueId: z.string().min(1),
@@ -188,11 +188,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const now = new Date();
-    const { start: dayStart, end: dayEnd } = getUtcDayWindow(now);
-    const activePerk = getActiveVenuePerk(venue.metadataJson);
-
     const result = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Venue" WHERE id = ${venue.id} FOR UPDATE`;
+      const now = new Date();
+      const { start: dayStart, end: dayEnd } = getUtcDayWindow(now);
+      const latest = await tx.venue.findUniqueOrThrow({ where: { id: venue.id }, select: { metadataJson: true } });
+      const replay = await tx.venueCheckIn.findFirst({ where: {
+        venueId: venue.id, venueSessionId: handshake.session.id, walletAddress,
+        status: 'CONFIRMED', windowStartAt: handshake.windowStartedAt,
+      }, select: { id: true } });
+      if (replay) throw new Error('CHECK_IN_REPLAY');
+      const activePerk = await availablePerkForWallet(tx, venue.id, latest.metadataJson, walletAddress, now);
       const checkInId = randomUUID();
       const perkUnlock = activePerk
         ? buildVenuePerkUnlock({
@@ -402,6 +408,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'CHECK_IN_REPLAY') return NextResponse.json({ success: false, error: 'This check-in window has already been used', code: 'REPLAY_BLOCKED' }, { status: 409 });
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[VENUE_CHECK_IN] Failed:', message);
     return NextResponse.json(

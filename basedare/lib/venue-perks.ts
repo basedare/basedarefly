@@ -33,6 +33,7 @@ export function normalizeVenuePerk(input: unknown): VenuePerkLite | null {
 
   return {
     enabled: record.enabled === true,
+    ...perkLimits(record),
     title,
     description: cleanString(record.description, 180),
     staffInstructions: cleanString(record.staffInstructions, 180),
@@ -41,10 +42,20 @@ export function normalizeVenuePerk(input: unknown): VenuePerkLite | null {
   };
 }
 
-export function getActiveVenuePerk(metadataJson: unknown): VenuePerkLite | null {
+function perkLimits(record: Record<string, unknown>) {
+  const date = (value: unknown) => typeof value === 'string' && Number.isFinite(Date.parse(value)) ? new Date(value).toISOString() : null;
+  return {
+    offerId: cleanString(record.offerId, 80),
+    quantityLimit: typeof record.quantityLimit === 'number' && Number.isInteger(record.quantityLimit) && record.quantityLimit > 0 ? Math.min(1000, record.quantityLimit) : null,
+    startsAt: date(record.startsAt), endsAt: date(record.endsAt), conditions: cleanString(record.conditions, 300),
+  };
+}
+
+export function getActiveVenuePerk(metadataJson: unknown, now = new Date()): VenuePerkLite | null {
   const metadata = asRecord(metadataJson);
   const perk = normalizeVenuePerk(metadata.venuePerk);
-  return perk?.enabled ? perk : null;
+  return perk?.enabled && (!perk.startsAt || Date.parse(perk.startsAt) <= now.getTime())
+    && (!perk.endsAt || Date.parse(perk.endsAt) > now.getTime()) ? perk : null;
 }
 
 export function writeVenuePerkToMetadata(
@@ -55,10 +66,16 @@ export function writeVenuePerkToMetadata(
     description?: string | null;
     staffInstructions?: string | null;
     expiresInHours?: number | null;
+    offerId?: string | null;
+    quantityLimit?: number | null;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    conditions?: string | null;
   }
 ) {
   const metadata = { ...asRecord(metadataJson) };
   const perk = normalizeVenuePerk({
+    ...input,
     enabled: input.enabled,
     title: input.title,
     description: input.description,
@@ -90,6 +107,7 @@ export function getVenuePerkSnapshot(metadataJson: unknown): VenuePerkUnlock | n
 
   return {
     enabled: true,
+    ...perkLimits(snapshot),
     title,
     description: cleanString(snapshot.description, 180),
     staffInstructions: cleanString(snapshot.staffInstructions, 180),
@@ -111,9 +129,10 @@ export function buildVenuePerkUnlock(input: {
   const existing = getVenuePerkSnapshot(input.metadataJson);
   if (existing) return existing;
 
-  const expiresAt = new Date(
-    input.scannedAt.getTime() + input.perk.expiresInHours * 60 * 60 * 1000
-  );
+  const expiresAt = new Date(Math.min(
+    input.scannedAt.getTime() + input.perk.expiresInHours * 60 * 60 * 1000,
+    input.perk.endsAt ? Date.parse(input.perk.endsAt) : Infinity
+  ));
   const codeSource = input.checkInId.replace(/[^a-z0-9]/gi, '').toUpperCase();
 
   return {

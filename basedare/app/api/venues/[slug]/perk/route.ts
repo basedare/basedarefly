@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { getServerSession } from 'next-auth';
 import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { writeVenuePerkToMetadata } from '@/lib/venue-perks';
+import { normalizeVenuePerk } from '@/lib/venue-perks';
 
 type VenuePerkSession = {
   token?: string;
@@ -20,6 +22,14 @@ const VenuePerkSchema = z.object({
   description: z.string().trim().max(180).optional().nullable(),
   staffInstructions: z.string().trim().max(180).optional().nullable(),
   expiresInHours: z.number().int().min(1).max(24).optional().default(12),
+  quantityLimit: z.number().int().min(1).max(1000).optional().nullable(),
+  startsAt: z.string().datetime().optional().nullable(),
+  endsAt: z.string().datetime().optional().nullable(),
+  conditions: z.string().trim().max(300).optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.enabled && (!data.quantityLimit || !data.startsAt || !data.endsAt || !data.conditions?.trim())) ctx.addIssue({ code: 'custom', message: 'A live offer needs a quantity, start/end time and clear activity or purchase requirements.' });
+  if (data.startsAt && data.endsAt && Date.parse(data.endsAt) <= Date.parse(data.startsAt)) ctx.addIssue({ code: 'custom', message: 'Offer end must be after its start.' });
+  if (data.enabled && data.endsAt && Date.parse(data.endsAt) <= Date.now()) ctx.addIssue({ code: 'custom', message: 'The offer has already ended.' });
 });
 
 function getSessionWallet(session: VenuePerkSession | null) {
@@ -75,13 +85,16 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: 'Only the claimed venue wallet can edit perks' }, { status: 403 });
     }
 
-    const { metadata, perk } = writeVenuePerkToMetadata(venue.metadataJson, parsed.data);
-
-    await prisma.venue.update({
-      where: { id: venue.id },
-      data: {
-        metadataJson: metadata as Prisma.InputJsonObject,
-      },
+    const perk = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Venue" WHERE id = ${venue.id} FOR UPDATE`;
+      const latest = await tx.venue.findUniqueOrThrow({ where: { id: venue.id }, select: { metadataJson: true, claimedBy: true } });
+      if (latest.claimedBy?.toLowerCase() !== walletAddress) throw new Error('Venue ownership changed. Refresh and try again.');
+      const root = (latest.metadataJson && typeof latest.metadataJson === 'object' && !Array.isArray(latest.metadataJson) ? latest.metadataJson : {}) as Record<string, unknown>;
+      const previous = normalizeVenuePerk(root.venuePerk);
+      const newWindow = previous?.endsAt && Date.parse(previous.endsAt) <= Date.now() && parsed.data.startsAt && Date.parse(parsed.data.startsAt) >= Date.parse(previous.endsAt);
+      const { metadata, perk } = writeVenuePerkToMetadata(latest.metadataJson, { ...parsed.data, offerId: newWindow ? randomUUID() : previous?.offerId || randomUUID() });
+      await tx.venue.update({ where: { id: venue.id }, data: { metadataJson: metadata as Prisma.InputJsonObject } });
+      return perk;
     });
 
     return NextResponse.json({

@@ -5,13 +5,17 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { CreatorMissionTray, type CreatorMissionTrayItem } from '@/components/creator-entry/CreatorMissionTray';
 import MyNextMoveTray from '@/components/live-plans/MyNextMoveTray';
+import AdventureTray from '@/components/adventures/AdventureTray';
+import { useAdventureProgress } from '@/hooks/useAdventureProgress';
+import { activeAdventure } from '@/lib/adventure-progress';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import type { LivePlanSnapshot } from '@/lib/live-plans';
+import { normalizeWorldPulseCenter, normalizeWorldPulseRadius } from '@/lib/world-pulse';
 
 const SIARGAO_QUERY = 'lat=9.803&lng=126.159&radiusKm=25&horizonHours=168&limit=100';
 
 function isVisibleRoute(pathname: string) {
-  return pathname === '/map' || pathname === '/board' || pathname === '/now' || pathname === '/dashboard' || pathname.startsWith('/earn');
+  return pathname === '/map' || pathname === '/board' || pathname === '/now' || pathname === '/community' || pathname === '/dashboard' || pathname.startsWith('/earn');
 }
 
 function isCreatorMissionItem(value: unknown): value is CreatorMissionTrayItem {
@@ -28,6 +32,7 @@ function isCreatorMissionItem(value: unknown): value is CreatorMissionTrayItem {
 export default function GlobalMyNextMove() {
   const pathname = usePathname();
   const { address } = useActiveWallet();
+  const { progress } = useAdventureProgress();
   const [snapshot, setSnapshot] = useState<LivePlanSnapshot | null>(null);
   const [creatorMission, setCreatorMission] = useState<CreatorMissionTrayItem | null>(null);
   const visible = isVisibleRoute(pathname);
@@ -35,8 +40,14 @@ export default function GlobalMyNextMove() {
   const load = useCallback(async () => {
     if (!visible) return;
     try {
+      let planQuery = SIARGAO_QUERY;
+      if (pathname === '/now') {
+        const params = new URLSearchParams(window.location.search);
+        const center = normalizeWorldPulseCenter(params.get('lat') ?? undefined, params.get('lng') ?? undefined);
+        planQuery = new URLSearchParams({ lat: String(center.latitude), lng: String(center.longitude), radiusKm: String(normalizeWorldPulseRadius(params.get('radiusKm') ?? undefined)), horizonHours: '72', limit: '60' }).toString();
+      }
       const [plansResponse, workResponse] = await Promise.all([
-        fetch(`/api/live-plans?${SIARGAO_QUERY}`, { cache: 'no-store' }),
+        fetch(`/api/live-plans?${planQuery}`, { cache: 'no-store' }),
         address
           ? fetch(`/api/action-center?wallet=${encodeURIComponent(address)}`, { cache: 'no-store' })
           : Promise.resolve(null),
@@ -58,7 +69,7 @@ export default function GlobalMyNextMove() {
     } catch {
       // The tray is progressive enhancement. Page navigation must remain usable if it cannot refresh.
     }
-  }, [address, visible]);
+  }, [address, visible, pathname]);
 
   useEffect(() => {
     if (!visible) return;
@@ -67,11 +78,13 @@ export default function GlobalMyNextMove() {
     const refresh = () => void load();
     window.addEventListener('basedare:live-plans-updated', refresh);
     window.addEventListener('basedare:mission-updated', refresh);
+    window.addEventListener('basedare:plan-area-updated', refresh);
     return () => {
       window.clearTimeout(initialLoad);
       window.clearInterval(interval);
       window.removeEventListener('basedare:live-plans-updated', refresh);
       window.removeEventListener('basedare:mission-updated', refresh);
+      window.removeEventListener('basedare:plan-area-updated', refresh);
     };
   }, [load, visible]);
 
@@ -86,5 +99,6 @@ export default function GlobalMyNextMove() {
       />
     );
   }
+  if (activeAdventure(progress)) return <AdventureTray className={className} />;
   return pathname === '/dashboard' ? null : <MyNextMoveTray plans={snapshot?.myNextMoves ?? []} className={className} />;
 }

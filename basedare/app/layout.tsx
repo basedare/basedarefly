@@ -16,7 +16,7 @@ import { LiquidFilter } from "@/components/ui/LiquidFilter";
 import ClientLoader from "@/components/ClientLoader";
 import BackgroundLayers from "@/components/BackgroundLayers";
 import { Toaster } from "@/components/ui/toaster";
-import MobileLightningFlash from "@/components/MobileLightningFlash";
+import AmbientLightning from "@/components/AmbientLightning";
 import PwaRegistrar from "@/components/PwaRegistrar";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import MobileIgnitionField from "@/components/MobileIgnitionField";
@@ -154,8 +154,8 @@ export default function RootLayout({
           <BackgroundLayers />
         </div>
 
-        {/* Mobile-only periodic lightning flash */}
-        <MobileLightningFlash />
+        {/* Infrequent, lightweight edge lightning on discovery screens. */}
+        <AmbientLightning />
         <AppStabilityGuard />
         <PwaRegistrar />
         <PwaInstallPrompt />

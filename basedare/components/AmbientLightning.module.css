@@ -1,0 +1,35 @@
+.field {
+  position: fixed;
+  inset-block: 0;
+  left: 0;
+  width: min(26vw, 320px);
+  z-index: 11;
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+  opacity: 0;
+  animation: distant-strike 1.7s ease-out both;
+  /* Fade inward so the discharge remains atmosphere along the page edge. */
+  mask-image: linear-gradient(to right, #000 0%, #000 25%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 25%, transparent 100%);
+}
+.field[data-side='right'] { left: auto; right: 0; transform: scaleX(-1); }
+.bolt { position: absolute; inset: 0; width: 100%; height: 100%; }
+.afterglow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 0% 35%, rgba(137, 78, 230, .22), transparent 68%);
+}
+@keyframes distant-strike {
+  0% { opacity: 0; }
+  8% { opacity: .65; }
+  27% { opacity: .22; }
+  100% { opacity: 0; }
+}
+@media (max-width: 767px) {
+  .field { width: 30vw; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .field { display: none; animation: none; }
+}
+:global(html[data-bd-bg='light']) .field { display: none; }

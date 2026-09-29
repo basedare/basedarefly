@@ -11,6 +11,7 @@ import type { VenueLegendKey, VenueProfileSummary } from '@/lib/venue-profile';
 import LiveActivationCard from '@/components/venues/LiveActivationCard';
 import VenueAutopilotPanel from '@/components/venues/VenueAutopilotPanel';
 import VenueContactEditor from '@/components/venues/VenueContactEditor';
+import LocalSpendPilot from '@/components/venues/LocalSpendPilot';
 import { submitBountyCreation, type BountyApprovalStatus } from '@/lib/bounty-flow';
 import { useBountyMode } from '@/hooks/useBountyMode';
 import { formatPhp } from '@/lib/basecash-shared';
@@ -86,6 +87,10 @@ type VenueProfileDraft = {
 };
 
 type VenuePerkDraft = {
+  quantityLimit: number;
+  startsAt: string;
+  endsAt: string;
+  conditions: string;
   enabled: boolean;
   title: string;
   description: string;
@@ -195,7 +200,11 @@ function inferTierByPayout(payout: number) {
 }
 
 function buildPerkDraft(perk: VenuePerkLite | null): VenuePerkDraft {
+  const localInput = (value?: string | null) => { if (!value) return ''; const date = new Date(value); return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
   return {
+    quantityLimit: perk?.quantityLimit ?? 10,
+    startsAt: localInput(perk?.startsAt), endsAt: localInput(perk?.endsAt),
+    conditions: perk?.conditions ?? '',
     enabled: perk?.enabled ?? false,
     title: perk?.title ?? '',
     description: perk?.description ?? '',
@@ -657,7 +666,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
           'Content-Type': 'application/json',
           ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
         },
-        body: JSON.stringify(perkDraft),
+        body: JSON.stringify({ ...perkDraft, startsAt: perkDraft.startsAt ? new Date(perkDraft.startsAt).toISOString() : null, endsAt: perkDraft.endsAt ? new Date(perkDraft.endsAt).toISOString() : null }),
       });
       const payload = await response.json();
 
@@ -666,7 +675,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
       }
 
       setSavedActivePerk(payload.data?.perk ?? null);
-      setPerkMessage(payload.data?.perk?.enabled ? 'Venue Pass perk is live.' : 'Venue Pass perk saved as inactive.');
+      setPerkMessage(payload.data?.perk?.enabled ? 'Offer saved. It appears during its active window.' : 'Venue Pass perk saved as inactive.');
     } catch (error) {
       setPerkError(error instanceof Error ? error.message : 'Unable to save venue perk');
     } finally {
@@ -1220,6 +1229,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
             initialContacts={venue.officialContacts}
             canEdit={canEditVenueProfile}
           />
+          {canEditVenueProfile ? <LocalSpendPilot slug={venue.slug} manage /> : null}
 
           <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <div className={`${softCardClass} p-5 sm:p-8`}>
@@ -1362,6 +1372,15 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                     placeholder="Optional staff note: what to check before redeeming"
                     className="rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-white/28 focus:border-[#f8dd72]/34 disabled:cursor-not-allowed disabled:opacity-50"
                   />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="text-xs text-white/60">Offer starts <input aria-label="Offer starts" type="datetime-local" value={perkDraft.startsAt} onChange={(e) => setPerkDraft((d) => ({ ...d, startsAt: e.target.value }))} disabled={!canEditVenueProfile || savingPerk} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-white" /></label>
+                    <label className="text-xs text-white/60">Offer ends <input aria-label="Offer ends" type="datetime-local" value={perkDraft.endsAt} onChange={(e) => setPerkDraft((d) => ({ ...d, endsAt: e.target.value }))} disabled={!canEditVenueProfile || savingPerk} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-white" /></label>
+                    <label className="text-xs text-white/60">Total rewards available <input aria-label="Total rewards available" type="number" min={1} max={1000} value={perkDraft.quantityLimit} onChange={(e) => setPerkDraft((d) => ({ ...d, quantityLimit: Number(e.target.value) }))} disabled={!canEditVenueProfile || savingPerk} className="mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-white" /></label>
+                  </div>
+                  <label className="text-xs text-white/60">What must a guest do?
+                    <textarea aria-label="Reward requirements" value={perkDraft.conditions} maxLength={300} onChange={(e) => setPerkDraft((d) => ({ ...d, conditions: e.target.value }))} disabled={!canEditVenueProfile || savingPerk} placeholder="Describe the activity, any purchase requirement and eligibility. Staff must confirm before handing over the reward." className="mt-2 min-h-24 w-full rounded-xl border border-white/15 bg-black/30 p-3 text-white" />
+                  </label>
+                  <p className="text-xs leading-5 text-white/45">Times use this device’s timezone. One reward per signed-in wallet per offer. Scanning reserves one until expiry; issued rewards remain promised even if you pause the offer. Staff must check the activity requirements. Do not offer rewards for Google reviews.</p>
                   <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
                     <label className="rounded-[18px] border border-white/10 bg-black/24 px-4 py-3">
                       <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-white/36">

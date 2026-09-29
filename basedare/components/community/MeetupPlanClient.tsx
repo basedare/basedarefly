@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { ArrowLeft, CalendarClock, Check, MapPin, Repeat2, ShieldCheck, Users, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
+import { IdentityButton } from '@/components/IdentityButton';
 import PlanCalendarButton from '@/components/live-plans/PlanCalendarButton';
 import LivePlanInviteTracker from '@/components/live-plans/LivePlanInviteTracker';
 import PlanAttendanceButton from '@/components/live-plans/PlanAttendanceButton';
@@ -41,6 +42,8 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
   const actorWallet = address ?? sessionWallet;
   const [plan, setPlan] = useState(initialPlan);
   const [pending, setPending] = useState(false);
+  const [joinAfterSignIn, setJoinAfterSignIn] = useState(false);
+  const joining = useRef(false);
   const [state, setState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const refresh = useCallback(async () => {
@@ -58,12 +61,14 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
     return () => window.clearInterval(interval);
   }, [refresh]);
 
-  const join = async () => {
+  const join = useCallback(async () => {
+    if (joining.current) return;
     setState(null);
     if (!actorWallet) {
-      setState({ type: 'error', message: 'Sign in from the top bar, then tap I’m going again.' });
+      setJoinAfterSignIn(true);
       return;
     }
+    joining.current = true;
     setPending(true);
     try {
       const headers = await buildWalletActionAuthHeaders({
@@ -105,9 +110,24 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
     } catch (error) {
       setState({ type: 'error', message: error instanceof Error ? error.message : 'Could not join this plan.' });
     } finally {
+      joining.current = false;
       setPending(false);
     }
-  };
+  }, [actorWallet, sessionShape?.token, sessionWallet, signMessageAsync, plan.id, plan.rsvpCount, plan.minimumPeople]);
+
+  useEffect(() => {
+    try {
+      const saved = Number(sessionStorage.getItem('basedare:join-meetup:' + plan.id));
+      if (saved > Date.now() - 15 * 60000 && saved <= Date.now()) setJoinAfterSignIn(true);
+    } catch { /* In-memory intent still works. */ }
+  }, [plan.id]);
+
+  useEffect(() => {
+    if (!joinAfterSignIn || !actorWallet || pending) return;
+    setJoinAfterSignIn(false);
+    try { sessionStorage.removeItem('basedare:join-meetup:' + plan.id); } catch { /* Optional recovery. */ }
+    if (!plan.viewerRsvped) void join();
+  }, [actorWallet, joinAfterSignIn, pending, plan.id, plan.viewerRsvped, join]);
 
   const leave = async () => {
     setState(null);
@@ -185,6 +205,14 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
                 </span>
               </span>
               <button type="button" disabled={pending} onClick={() => void leave()} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-white/10 bg-black/18 px-3 text-[9px] font-black uppercase tracking-[0.11em] text-white/48 disabled:opacity-45"><X className="h-3.5 w-3.5" /> Leave</button>
+            </div>
+          ) : !actorWallet ? (
+            <div className="mt-5" onClickCapture={() => {
+              setJoinAfterSignIn(true);
+              try { sessionStorage.setItem('basedare:join-meetup:' + plan.id, String(Date.now())); } catch { /* Keep intent in memory. */ }
+            }}>
+              <IdentityButton disconnectedLabel="Sign in to join this plan" />
+              <p className="mt-2 text-xs text-white/50">Your place and RSVP stay with you through sign-in.</p>
             </div>
           ) : (
             <button type="button" disabled={pending} onClick={() => void join()} className="mt-5 min-h-12 w-full rounded-full bg-[#f5c518] px-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#171006] disabled:opacity-45">{pending ? 'Joining…' : 'I’m going'}</button>

@@ -8,6 +8,7 @@ import { AtSign, BadgeCheck, HandHeart, Map, MessageCircle, Plus, ShieldCheck, S
 
 import CommunityActivityCard from '@/components/community/CommunityActivityCard';
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
+import AdventureSuggestions from '@/components/adventures/AdventureSuggestions';
 import { getLocalPostMapHref, type LocalPostType } from '@/lib/community-around-policy';
 import {
   resolveCommunityIdentity,
@@ -62,6 +63,7 @@ export default function CommunityHubClient() {
   const [localActivities, setLocalActivities] = useState<LocalActivity[]>([]);
   const [venues, setVenues] = useState<VenueChoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [postType, setPostType] = useState<'ask' | 'offer'>('ask');
   const [venueSlug, setVenueSlug] = useState('');
   const [title, setTitle] = useState('');
@@ -72,9 +74,9 @@ export default function CommunityHubClient() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void Promise.all([
+    const load = () => { void Promise.all([
       fetch('/api/live-plans?lat=9.803&lng=126.159&radiusKm=12&horizonHours=72&limit=18', { cache: 'no-store', signal: controller.signal }),
-      fetch('/api/local-signals?limit=20', { signal: controller.signal }),
+      fetch('/api/local-signals?lat=9.803&lng=126.159&radiusKm=12&limit=20', { cache: 'no-store', signal: controller.signal }),
       fetch('/api/venues/active', { signal: controller.signal }),
     ])
       .then(async ([livePlanResponse, localResponse, venueResponse]) => {
@@ -83,6 +85,8 @@ export default function CommunityHubClient() {
           localResponse.json(),
           venueResponse.json(),
         ]);
+        if (controller.signal.aborted) return;
+        setLoadFailed(!livePlanResponse.ok || !livePlanPayload?.success);
         if (livePlanResponse.ok && livePlanPayload?.success && Array.isArray(livePlanPayload.data?.plans)) {
           setLivePlans(livePlanPayload.data.plans);
         }
@@ -95,12 +99,18 @@ export default function CommunityHubClient() {
       })
       .catch((error) => {
         if (error instanceof DOMException && error.name === 'AbortError') return;
+        setLoadFailed(true);
         console.error('[COMMUNITY_HUB] Activity load failed:', error);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
+      }); };
+    load();
+    const refresh = () => { if (document.visibilityState === 'visible') load(); };
+    const interval = window.setInterval(refresh, 60000);
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('basedare:live-plans-updated', refresh);
+    return () => { controller.abort(); window.clearInterval(interval); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('basedare:live-plans-updated', refresh); };
   }, []);
 
   useEffect(() => {
@@ -243,11 +253,13 @@ export default function CommunityHubClient() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-[#f8dd72]"><Sparkles className="h-3.5 w-3.5" /> Live Plans</p>
-              <h2 className="mt-1 text-2xl font-black">What can you join?</h2>
+              <h2 className="mt-1 text-2xl font-black">What can you join in Siargao?</h2>
             </div>
             <Link href="/now" className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.07] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.13em] text-[#f8dd72]">Open NOW</Link>
           </div>
-          {livePlans.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{livePlans.slice(0, 6).map((plan) => <LivePlanCard key={plan.id} plan={plan} compact />)}</div> : !loading ? <div className="mt-4 rounded-2xl border border-dashed border-white/14 bg-black/20 p-5 text-sm text-white/42">Nothing is forming yet. Start the first Rally.</div> : null}
+          {loadFailed ? <p role="status" className="mt-3 text-sm text-amber-100">Live plans could not refresh. Open NOW to retry; any cards below may be out of date.</p> : null}
+          {livePlans.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{livePlans.slice(0, 6).map((plan) => <LivePlanCard key={plan.id} plan={plan} compact />)}</div> : !loading && !loadFailed ? <div className="mt-4 rounded-2xl border border-dashed border-white/14 bg-black/20 p-5 text-sm text-white/42">No published plans in this area yet. Start a Rally or try a free adventure below.</div> : null}
+          <AdventureSuggestions area={{ lat: 9.803, lng: 126.159, label: 'Siargao', timeZone: 'Asia/Manila' }} />
         </section>
 
         <section className="mt-8">

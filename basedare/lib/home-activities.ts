@@ -26,6 +26,10 @@ export type ActivitySuggestion = {
 
 // Authored activities, never synthetic events, attendance, rewards or venue hours.
 export const ACTIVITY_SUGGESTIONS: ActivitySuggestion[] = [
+  { id: 'little-local-loop', title: 'Take the three-stop discovery loop', summary: 'A short walk, three small discoveries, one story to take home.', minutes: 30, daylight: true,
+    steps: ['Choose an accessible public starting point on the map. Notice one detail you would usually walk past.',
+      'Take a short walk along a public path to a second spot: find something handmade, growing or locally distinctive. Turn back if the route is inaccessible.',
+      'Return by a comfortable public route and choose a third detail. Tell a friend what you found or keep a private note. No purchase or photo required.'] },
   { id: 'three-details', title: 'Three details you never noticed', summary: 'Turn a familiar street into a tiny photo hunt.', minutes: 15, daylight: true,
     steps: ['Choose a public street you can comfortably walk.', 'Find a surprising colour, a texture and a handmade detail. Take one photo of each.', 'Pick your favourite and show a friend. Ask before photographing people.'] },
   { id: 'light-hunt', title: 'Find the best glow on the block', summary: 'Make a three-photo story from lights and reflections.', minutes: 15, evening: true,

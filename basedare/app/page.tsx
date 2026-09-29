@@ -40,7 +40,6 @@ const ParticleNetwork = dynamic(() => import("@/components/ParticleNetwork"));
 const GradualBlurOverlay = dynamic(() => import("@/components/GradualBlurOverlay"));
 const PeeBearConveyor = dynamic(() => import("@/components/PeeBearConveyor"));
 const PeeBearOrb = dynamic(() => import("@/components/PeeBearOrb"));
-const Lightning = dynamic(() => import("@/components/Lightning"));
 const RealityShift = dynamic(() => import("@/components/RealityShift"));
 const MatrixRain = dynamic(() => import("@/components/MatrixRain"));
 function HomeContent() {
@@ -53,7 +52,6 @@ function HomeContent() {
   const [showDossier, setShowDossier] = useState(false);
   const [triggerRealityShift, setTriggerRealityShift] = useState(false);
   const [triggerMatrixRain, setTriggerMatrixRain] = useState(false);
-  const [isLightningRoar, setIsLightningRoar] = useState(false);
   const [showViewToggle, setShowViewToggle] = useState(false);
   const [showBelowFoldSections, setShowBelowFoldSections] = useState(false);
   const [useLightweightHome, setUseLightweightHome] = useState(false);
@@ -199,30 +197,9 @@ function HomeContent() {
 
                 {/* Mobile/tablet: simplified hero avoids iPad WebKit overload */}
                 <div className="block pt-8 pb-8 lg:hidden">
-                  {/* Lightning background - behind orb, triggers every 2-3 roars */}
-                  <AnimatePresence>
-                    {isLightningRoar && (
-                      <motion.div
-                        className="md:hidden fixed inset-0 z-[5] pointer-events-none"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 0.7 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.25, ease: "easeOut" }}
-                      >
-                        <Lightning
-                          hue={270}
-                          xOffset={0}
-                          speed={2}
-                          intensity={1.8}
-                          size={1.2}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
                   {/* Mobile PeeBear Orb - MGM Lion-style roar animation */}
                   <div className="relative w-full flex justify-center mb-6 z-[20]">
-                    <PeeBearOrb onLightningRoar={setIsLightningRoar} />
+                    <PeeBearOrb />
                   </div>
 
                   {/* Mobile Conveyor Strip - Always uses featured dares (same as desktop orbit) */}

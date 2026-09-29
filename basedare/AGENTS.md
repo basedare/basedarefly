@@ -14,6 +14,17 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex occasional lightning recovery (2026-09-29 — MAIN RELEASE)
+- Replace the disabled opt-in mobile WebGL flash with lightweight SVG edge lightning on home, Dashboard, NOW, Community, adventures and leaderboard. First strike 30–50 seconds, subsequent attempts 70–120 seconds, one 1.7-second fade. No full-screen white wash or new reward mechanic.
+- Pause on hidden/unfocused tabs and during input, scrolling or visible dialogs; respect reduced motion, data-saving and light background mode. Map, payment, proof and operator routes are excluded. NEXT_PUBLIC_ENABLE_AMBIENT_LIGHTNING=false is the build-time kill switch. The old mobile flag no longer controls the effect.
+- Remove the separate homepage WebGL trigger; keep the orb and existing visual identity. Verified naturally scheduled strikes at 390px and 1440px, app typecheck and targeted lint (no errors), plus Graphify rebuild. User authorized shipping this and the adventure pilot together through the main Git deployment path.
+
+### Codex adventure and local-spend pilot (2026-09-29 — MAIN RELEASE)
+- Connect authored free activities to anonymous start, step progress, repeat and a device-local adventure journal. Homepage, NOW and Community link to the same catalogue; map/place pages and the shared tray resume it. Keep verified map Trail distinct from self-reported journal entries.
+- Meetup authentication preserves plan-specific join intent. Community now refreshes on return/plan changes and labels its Siargao scope; NOW suggestions stay separate from scheduled or paid inventory. This is not full cross-page area synchronization.
+- Venue perks have bounded windows, quantity reservations and one allocation per signed-in wallet. Venue/check-in locks prevent concurrent allocation/redemption overcounts. Existing paid settlement and BaseCash rules are unchanged.
+- Yodl is an owner-configured, manually evidenced pilot, hidden without a recent successful merchant QR test. No SDK, automatic payment verification, balance conversion or live pilot activation. No migration needed. See docs/adventure-pilot.md for verification and remaining production gates.
+
 ### Codex production database recovery (2026-09-27)
 - Applied the sole pending content-rights migration to production after read-only queue/schema checks. Both production payout/refund cron endpoints subsequently returned 200, success true, processed 0; no transfers were performed.
 - Production build commands now enforce a read-only migration/model-column compatibility gate. No automatic migrations; local/preview builds remain independent of production credentials. Fatal cron alerts distinguish DATABASE_SCHEMA_ERROR from CRON_FAILED. See docs/database-recovery-2026-09-27.md.

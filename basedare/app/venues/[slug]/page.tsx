@@ -16,6 +16,7 @@ import {
 } from '@/lib/venue-launch';
 import { buildSparkRun } from '@/lib/spark-run';
 import VenuePageShell from '../VenuePageShell';
+import LocalSpendPilot from '@/components/venues/LocalSpendPilot';
 import ClaimVenueButton from '@/components/venues/ClaimVenueButton';
 import SparkRunCard from '@/components/venues/SparkRunCard';
 import VenueMarkButton from '@/components/venues/VenueMarkButton';
@@ -653,6 +654,7 @@ export default async function VenueDetailPage(
 
                 <div className="grid min-w-0 gap-3 sm:min-w-[280px] sm:grid-cols-2 lg:grid-cols-1">
                   <div id="venue-actions" className={`${softCardClass} scroll-mt-24 px-5 py-5`}>
+                    <LocalSpendPilot slug={venue.slug} />
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">After you visit</p>
                     <h2 className="mt-2 text-2xl font-black text-white">Check in. Help the next traveller.</h2>
@@ -661,7 +663,10 @@ export default async function VenueDetailPage(
                         ? `Check in first, then optionally share what you found. This venue lists a perk: ${venue.activePerk.title}. Eligibility is shown before redemption.`
                         : 'Check-in is quick presence. An approved photo or clip helps the next visitor and builds your visible place history.'}
                     </p>
+                    {venue.activePerk?.conditions ? <p className="mt-3 text-sm text-yellow-100">{venue.activePerk.conditions}</p> : null}
+                    {venue.activePerk?.quantityLimit ? <p className="mt-2 text-xs text-white/50">Up to {venue.activePerk.quantityLimit} rewards in this offer · one per signed-in wallet. Availability is confirmed when you scan; staff verify the requirements. {venue.activePerk.endsAt ? `Ends ${new Date(venue.activePerk.endsAt).toLocaleString('en-PH', { timeZone: venue.timezone })} (${venue.timezone}).` : ''}</p> : null}
                     <div className="mt-5 grid gap-2">
+                      <Link className="inline-flex min-h-11 items-center justify-center rounded-full border border-violet-200/20 px-4 text-xs font-bold text-violet-100" href={`/adventures?place=${encodeURIComponent(venue.slug)}`}>Free things to try here →</Link>
                       <VenueCheckInButton
                         venueId={venue.id}
                         venueName={venue.name}

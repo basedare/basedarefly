@@ -131,6 +131,11 @@ export type VenueCommandCenterSummary = {
 };
 
 export type VenuePerkLite = {
+  offerId?: string | null;
+  quantityLimit?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  conditions?: string | null;
   enabled: boolean;
   title: string;
   description: string | null;

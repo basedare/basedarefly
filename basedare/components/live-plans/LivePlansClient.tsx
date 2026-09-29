@@ -20,7 +20,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
-import MyNextMoveTray from '@/components/live-plans/MyNextMoveTray';
+import AdventureSuggestions from '@/components/adventures/AdventureSuggestions';
 import PeeBearDecisionCard from '@/components/live-plans/PeeBearDecisionCard';
 import {
   LIVE_PLANS_INTRO_KEY,
@@ -129,9 +129,14 @@ export default function LivePlansClient({
     const controller = new AbortController();
     void load(controller.signal);
     const interval = window.setInterval(() => void load(), 60_000);
+    const refresh = () => { if (document.visibilityState === 'visible') void load(controller.signal); };
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('basedare:live-plans-updated', refresh);
     return () => {
       controller.abort();
       window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('basedare:live-plans-updated', refresh);
     };
   }, [load]);
 
@@ -145,6 +150,7 @@ export default function LivePlansClient({
       participation,
     });
     window.history.replaceState(window.history.state, '', href);
+    window.dispatchEvent(new Event('basedare:plan-area-updated'));
   }, [center, mode, needsPeopleOnly, pickedPlanId, radiusKm, participation]);
 
   const useMyLocation = () => {
@@ -177,7 +183,6 @@ export default function LivePlansClient({
     const timed = filterWorldPulsePlans(source, mode, now, snapshot?.window.tz);
     return needsPeopleOnly ? timed.filter((plan) => plan.status.forming) : timed;
   }, [mode, needsPeopleOnly, now, snapshot?.plans, snapshot?.window.tz, participation]);
-  const nextMoves = snapshot?.myNextMoves ?? [];
   const pickedPlan = useMemo(
     () => plans.find((plan) => plan.id === pickedPlanId) ?? null,
     [pickedPlanId, plans],
@@ -417,8 +422,8 @@ export default function LivePlansClient({
               {plans.map((plan) => <LivePlanCard key={plan.id} plan={plan} />)}
             </section>
           ) : (
-            <section className="mt-6 rounded-[1.75rem] border border-dashed border-white/14 bg-black/24 p-10 text-center">
-              <UsersIcon />
+            <section className={`mt-6 rounded-[1.75rem] border border-dashed border-white/14 bg-black/24 text-center ${participation === 'all' || participation === 'play' ? 'p-5' : 'p-10'}`}>
+              {participation !== 'all' && participation !== 'play' ? <UsersIcon /> : null}
               <h2 className="mt-4 text-2xl font-black">{snapshot ? participation === 'earn' ? 'No paid dares in this window.' : participation === 'play' ? 'No free challenges in this window.' : 'No suitable plans in this window.' : 'Plans couldn’t load.'}</h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-white/44">{snapshot ? "Try another time window, browse plans for later, or start a public plan nearby." : "Refresh to check what is available in this area."}</p>
               {!snapshot ? <button type="button" onClick={() => void load()} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Try again</button> : mode !== 'ALL' ? <button type="button" onClick={() => setMode('ALL')} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Browse all plans</button> : null}
@@ -428,6 +433,7 @@ export default function LivePlansClient({
           )}
         </div>
         {guideStep === 1 ? <LivePlansGuideCue step={1} onBack={() => moveGuide('back')} onNext={() => moveGuide('next')} onClose={closeIntro} /> : null}
+        {participation === 'all' || participation === 'play' ? <AdventureSuggestions area={{ lat: center.latitude, lng: center.longitude, label: center.latitude === SIARGAO_CENTER.latitude && center.longitude === SIARGAO_CENTER.longitude ? 'Siargao' : 'Selected map area', timeZone: snapshot?.window.tz }} /> : null}
 
         {guideStep === 2 ? (
           <div id="live-plan-next-move" className="scroll-mt-32 mt-6 rounded-[1.4rem] border border-emerald-200/22 bg-emerald-300/[0.07] p-4 ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70">
@@ -444,7 +450,6 @@ export default function LivePlansClient({
         </div>
       </div>
 
-      <MyNextMoveTray plans={nextMoves} />
     </main>
   );
 }

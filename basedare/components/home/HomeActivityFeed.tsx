@@ -6,11 +6,12 @@ import { ArrowRight, MapPin, RefreshCw, Sparkles } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { trackClientEvent } from '@/lib/analytics';
 import type { LivePlanSnapshot } from '@/lib/live-plans';
-import { ACTIVITY_SUGGESTIONS, SIARGAO_ACTIVITY_AREA, homePlanTime, readSavedActivity, suggestionsForArea, visibleHomePlans, visibleHomePosts, type ActivityArea, type ActivityFilter, type SavedActivity, type HomeLocalPost } from '@/lib/home-activities';
+import { ACTIVITY_SUGGESTIONS, SIARGAO_ACTIVITY_AREA, homePlanTime, suggestionsForArea, visibleHomePlans, visibleHomePosts, type ActivityArea, type ActivityFilter, type HomeLocalPost } from '@/lib/home-activities';
+import { useAdventureProgress } from '@/hooks/useAdventureProgress';
+import { activeAdventure, adventureHref } from '@/lib/adventure-progress';
 import '@/components/PremiumBentoGrid.css';
 import ActivityRail from './ActivityRail';
 
-const SAVED_KEY = 'basedare:home-activity:v1';
 const OPEN_KEY = 'basedare:home-activity-open:v1';
 const cardClass = 'flex min-w-0 flex-col rounded-[1.55rem] border border-white/10 bg-[linear-gradient(145deg,rgba(36,26,59,0.8),rgba(6,7,14,0.98))] p-5 shadow-[0_12px_28px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]';
 const actionClass = 'mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 text-xs font-black text-white hover:bg-white/10';
@@ -33,8 +34,7 @@ export default function HomeActivityFeed() {
   const [now, setNow] = useState(() => new Date());
   const [rotation, setRotation] = useState(0);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [saved, setSaved] = useState<SavedActivity | null>(null);
-  const [storageUnavailable, setStorageUnavailable] = useState(false);
+  const { progress } = useAdventureProgress();
   const { coordinates, requestLocation, loading: locating, error: locationError } = useGeolocation();
   const requestedLocation = useRef(false);
   const areaKey = `${area.lat}:${area.lng}`;
@@ -80,7 +80,6 @@ export default function HomeActivityFeed() {
   useEffect(() => {
     const restore = () => {
       try {
-        setSaved(readSavedActivity(JSON.parse(localStorage.getItem(SAVED_KEY) ?? 'null')));
         const opened = JSON.parse(sessionStorage.getItem(OPEN_KEY) ?? 'null');
         if (opened && typeof opened.id === 'string' && Number.isFinite(opened.at) && Date.now() - opened.at < 24 * 3600000) {
           trackClientEvent('home_activity_returned', { activity_id: opened.id, source: 'home' });
@@ -101,17 +100,12 @@ export default function HomeActivityFeed() {
     return () => { clearInterval(timer); document.removeEventListener('visibilitychange', returnToPage); window.removeEventListener('pageshow', returnToPage); };
   }, []);
 
-  const saveProgress = (value: SavedActivity) => {
-    setNow(new Date());
-    setSaved(value);
-    try { localStorage.setItem(SAVED_KEY, JSON.stringify(value)); setStorageUnavailable(false); } catch { setStorageUnavailable(true); }
-  };
   const live = visibleHomePlans(data?.plans ?? [], effectiveArea, now, filter).slice(0, 6);
   const posts = filter === 'ALL' || filter === 'MEET' ? visibleHomePosts(localPosts?.areaKey === areaKey ? localPosts.posts : [], now)
     .filter((post) => !live.some((plan) => plan.title.toLowerCase() === post.title.toLowerCase() && plan.place.venueSlug === post.venueSlug)) : [];
   const ideas = suggestionsForArea(effectiveArea, now, rotation).slice(0, Math.max(3 - live.length - posts.length, 1));
-  const active = readSavedActivity(saved, now.getTime());
-  const activeIdea = ACTIVITY_SUGGESTIONS.find((item) => item.id === active?.id);
+  const active = activeAdventure(progress, now.getTime());
+  const activeIdea = ACTIVITY_SUGGESTIONS.find((item) => item.id === active?.activityId);
   const mapHref = `/map?lat=${area.lat}&lng=${area.lng}&source=home-activity`;
 
   return <section className="mx-auto w-full max-w-[1400px]" aria-label="Find your next move">
@@ -137,12 +131,10 @@ export default function HomeActivityFeed() {
       : loading ? <p role="status" className="mb-4 text-xs text-white/50">Checking local activities…</p> : null}
     {postsFailed ? <p className="mb-3 text-xs text-white/50">Community updates couldn’t refresh. Any published schedule below still needs checking with the venue.</p> : null}
     {activeIdea && active ? <div className="mb-5 rounded-2xl border border-yellow-200/20 bg-yellow-300/[0.05] p-4">
-      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-100">{active.completedAt ? 'You marked it done' : 'Your next move'}</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-100">Your adventure · {active.steps.length}/{activeIdea.steps.length} steps</p>
       <p className="mt-2 font-bold text-white">{activeIdea.title}</p>
-      <p className="mt-1 text-xs text-white/50">{storageUnavailable ? 'Kept for this visit; browser storage is unavailable.' : 'Saved on this device for 24 hours.'} Personal progress · no payment or verified points.</p>
-      <button className="mt-2 min-h-11 text-xs font-bold text-cyan-100" onClick={() => setExpanded(expanded === active.id ? null : active.id)}>View steps</button>
-      {expanded === active.id ? <ol className="list-inside list-decimal space-y-2 text-sm text-white/70">{activeIdea.steps.map((step) => <li key={step}>{step}</li>)}</ol> : null}
-      {!active.completedAt ? <button className="ml-4 min-h-11 text-xs font-bold text-yellow-100" onClick={() => { saveProgress({ ...active, completedAt: Date.now() }); trackClientEvent('home_suggestion_completed', { activity_id: active.id, completion_kind: 'self_reported' }); }}>I did it</button> : null}
+      <p className="mt-1 text-xs text-white/50">Personal progress · free activity · no payment or verified points.</p>
+      <Link className="mt-2 inline-flex min-h-11 items-center text-xs font-bold text-cyan-100" href={adventureHref(active.activityId, active.placeSlug, active.area)}>Continue your adventure →</Link>
     </div> : null}
     {!loading && !failed && !live.length && !posts.length && filter !== 'ALL' && filter !== 'PLAY' ? <p className="mb-4 text-sm text-white/60">{filter === 'EARN' ? 'No available paid missions in this area right now.' : 'No published group plans in this area right now.'} You can still try an activity below.</p> : null}
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -167,19 +159,17 @@ export default function HomeActivityFeed() {
       <p className="mt-3 text-[11px] text-white/45">{post.sourceAttribution}</p>
       <Link className={actionClass} href={post.venueSlug ? `/map?place=${encodeURIComponent(post.venueSlug)}&source=home-activity` : '/community'} onClick={() => recordOpen(post.id, 'local_post')}>See place and details <ArrowRight size={14} /></Link>
     </article>)}{ideas.map((idea) => <article key={idea.id} className={cardClass}>
-      <p className="text-[10px] font-black uppercase tracking-widest text-violet-200/80">Suggested dare · {idea.minutes} min</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-violet-200/80">Free activity · {idea.minutes} min</p>
       <h4 className="mt-3 text-xl font-black leading-tight text-white">{idea.title}</h4>
       <p className="mt-3 text-sm text-white/60">{idea.summary}</p>
       <div className="mt-auto">{expanded === idea.id ? <div className="mt-4">
         <ol className="list-inside list-decimal space-y-3 text-sm text-white/70">{idea.steps.map((step) => <li key={step}>{step}</li>)}</ol>
         <Link href={mapHref} onClick={() => recordOpen(idea.id, 'suggestion_map')} className="mt-3 inline-flex min-h-11 items-center text-xs font-bold text-cyan-100">Explore places on the map →</Link>
-        <button disabled={active?.id === idea.id} className={`${actionClass} w-full disabled:opacity-40`} onClick={() => {
-          const startedAt = Date.now(); saveProgress({ id: idea.id, startedAt });
-          trackClientEvent('home_suggestion_started', { activity_id: idea.id, source: 'home' });
-        }}>{active?.id === idea.id ? 'Saved above' : active && !active.completedAt ? 'Make this my next move instead' : 'Make this my next move'}</button>
+        <Link className={`${actionClass} w-full`} href={adventureHref(idea.id, undefined, effectiveArea)}>{active?.activityId === idea.id ? 'Continue adventure' : 'Open this adventure'} <ArrowRight size={14} /></Link>
       </div> : <button className={`${actionClass} w-full`} onClick={() => { setExpanded(idea.id); recordOpen(idea.id, 'suggestion'); }}>Try this dare <ArrowRight size={14} /></button>}</div>
     </article>)}</ActivityRail>
     <div className="mt-5 flex flex-wrap gap-x-5 text-xs font-bold text-white/55">
+      <Link className="min-h-11 py-3" href={adventureHref(undefined, undefined, effectiveArea)}>Free adventures & your journal →</Link>
       <Link className="min-h-11 py-3" href="/community">Community posts →</Link>
       <Link className="min-h-11 py-3" href="/earn">All paid missions →</Link>
       <Link className="min-h-11 py-3" href="/community/rally/new">Start a meetup →</Link>

@@ -620,6 +620,8 @@ export default function HandshakeClient() {
                           Unlocked at {venue?.name ?? result.venueSlug}
                         </p>
                         <h2 className="mt-1 text-xl font-black text-white">{result.perk.title}</h2>
+                        {result.perk.conditions ? <p className="mt-3 text-sm text-yellow-100">{result.perk.conditions}</p> : null}
+                        <p className="mt-2 text-xs text-white/50">Reserved for this check-in. Staff confirm the requirements before redeeming.</p>
                         {result.perk.description ? (
                           <p className="mt-2 text-sm leading-5 text-white/62">{result.perk.description}</p>
                         ) : null}
