@@ -14,6 +14,10 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex adventure and earn background consistency (2026-09-29 — MAIN RELEASE)
+- Remove the opaque adventure page fill and the Earn page's duplicate black veil and full-screen blur. Both entry pages now reveal the existing global background; adventure details share the same correction. Preserve card surfaces, navigation and activity/payment behavior.
+- Checked desktop and 390px mobile rendering, transparent page shells, no horizontal overflow, targeted lint (zero errors; one existing adventure-handler warning), and production build. No schema or environment changes. User authorized the main push; roll back if these page shells obscure content or navigation.
+
 ### Codex occasional lightning recovery (2026-09-29 — MAIN RELEASE)
 - Replace the disabled opt-in mobile WebGL flash with lightweight SVG edge lightning on home, Dashboard, NOW, Community, adventures and leaderboard. First strike 30–50 seconds, subsequent attempts 70–120 seconds, one 1.7-second fade. No full-screen white wash or new reward mechanic.
 - Pause on hidden/unfocused tabs and during input, scrolling or visible dialogs; respect reduced motion, data-saving and light background mode. Map, payment, proof and operator routes are excluded. NEXT_PUBLIC_ENABLE_AMBIENT_LIGHTNING=false is the build-time kill switch. The old mobile flag no longer controls the effect.

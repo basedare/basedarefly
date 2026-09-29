@@ -63,8 +63,9 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
     setMessage('Adventure started. Your steps are saved as you go.');
     trackClientEvent('adventure_started', { activity_id: activity.id, company, source: 'adventures' });
   }
-  return <main className="min-h-screen bg-[#070810] px-4 pb-32 pt-28 text-white sm:px-6">
-    <div className="mx-auto max-w-3xl">
+  return <main className="relative min-h-screen overflow-hidden bg-transparent px-4 pb-32 pt-28 text-white sm:px-6">
+    <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_18%_10%,rgba(34,211,238,0.06),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(168,85,247,0.08),transparent_36%)]" aria-hidden="true" />
+    <div className="relative z-10 mx-auto max-w-3xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link href={activity ? href() : '/'} className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-white/65"><ArrowLeft size={16} />{activity ? 'All adventures' : 'Home'}</Link>
         <Link href={mapHref} className={button}><MapPin size={15} />Open map</Link>

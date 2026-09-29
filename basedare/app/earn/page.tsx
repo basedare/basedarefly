@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BriefcaseBusiness, CheckCircle2, Plus, Radio } from 'lucide-react';
 
-import GradualBlurOverlay from '@/components/GradualBlurOverlay';
-import LiquidBackground from '@/components/LiquidBackground';
 import { MissionAlertForm } from '@/components/creator-entry/MissionAlertForm';
 import { CreatorMissionCard } from '@/components/creators/CreatorMissionCard';
 import {
@@ -44,8 +42,6 @@ export default async function EarnPage({
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-transparent px-4 pb-24 pt-7 text-white sm:px-6 md:pt-11">
-      <LiquidBackground performanceMode="quiet" veilOpacity={0.72} />
-      <div className="pointer-events-none fixed inset-0 z-10 hidden md:block"><GradualBlurOverlay /></div>
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_16%_8%,rgba(34,211,238,0.1),transparent_31%),radial-gradient(circle_at_84%_12%,rgba(250,204,21,0.1),transparent_34%)]" />
 
       <div className="relative z-20 mx-auto max-w-6xl">
