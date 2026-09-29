@@ -60,7 +60,7 @@ export default function PortalGates({
               Get answers from people on the ground.
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/72 md:text-lg">
-              Choose a place and tell us what you need checked. The managed Field Sprint includes {MANAGED_FIELD_SPRINT.assignedContributorCount} independent checks, reviewed evidence and one receipt. ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} · {MANAGED_FIELD_SPRINT.durationDaysMin}–{MANAGED_FIELD_SPRINT.durationDaysMax} days.
+              Choose a place and tell us what you need checked. The service includes {MANAGED_FIELD_SPRINT.assignedContributorCount} independent checks, reviewed evidence and one receipt. ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} · {MANAGED_FIELD_SPRINT.durationDaysMin}–{MANAGED_FIELD_SPRINT.durationDaysMax} days.
             </p>
 
             <div className="mx-auto mt-7 grid max-w-xl gap-3 sm:grid-cols-2">
@@ -69,7 +69,7 @@ export default function PortalGates({
                 className="activation-raised-gold inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-black uppercase tracking-[0.1em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70"
               >
                 <CreditCard className="h-4 w-4" />
-                Start a brief
+                Describe what you need
               </Link>
               <button
                 type="button"
@@ -85,7 +85,7 @@ export default function PortalGates({
               href="/field-sprints/example"
               className="mt-4 inline-flex min-h-11 items-center justify-center px-4 text-sm font-black text-cyan-100/80 underline decoration-cyan-200/30 underline-offset-4 transition hover:text-cyan-100"
             >
-              See an example receipt
+              See an example report
             </Link>
 
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-white/65">
@@ -95,7 +95,7 @@ export default function PortalGates({
             </p>
 
             <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/58">
-              No venue claim is required. Buyers can commission fieldwork about any eligible place; claiming is only for an authorized owner or manager who wants to maintain that place profile.
+              You don’t need to own a venue to request on-site checks.
             </p>
 
             <div className="mx-auto mt-7 flex max-w-2xl flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 text-left sm:flex-row sm:items-center sm:justify-between">
@@ -105,7 +105,7 @@ export default function PortalGates({
                 </span>
                 <div>
                   <div className="font-black text-white">Manage a place instead?</div>
-                  <p className="mt-1 text-sm leading-6 text-white/62">Claim and manage your venue from its page on the map.</p>
+                  <p className="mt-1 text-sm leading-6 text-white/62">Find your venue → View place → Request venue access. After approval, open Manage venue.</p>
                 </div>
               </div>
               <Link
@@ -138,9 +138,9 @@ export default function PortalGates({
               <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300/[0.09] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-yellow-100">
                 Buyer profile
               </div>
-              <h1 className="mt-5 text-4xl font-black uppercase italic tracking-[-0.05em] text-white">Who is buying the Sprint?</h1>
+              <h1 className="mt-5 text-4xl font-black uppercase italic tracking-[-0.05em] text-white">Who is this request for?</h1>
               <p className="mt-3 text-base font-semibold leading-7 text-white/68">
-                This name appears on the managed mission and receipt. New Sprints launch only after the invoice is confirmed.
+                This name appears on the managed mission and receipt. Work starts after your request and payment are confirmed.
               </p>
             </div>
 
@@ -159,7 +159,7 @@ export default function PortalGates({
               </div>
 
               <div>
-                <div className="mb-2 text-sm font-black text-white/78">Reporting wallet</div>
+                <div className="mb-2 text-sm font-black text-white/78">Connected wallet</div>
                 <div className="break-all rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-white/65">{address}</div>
               </div>
 
@@ -175,14 +175,14 @@ export default function PortalGates({
                 disabled={!registerName.trim()}
                 className="activation-raised-gold inline-flex min-h-12 w-full items-center justify-center rounded-2xl border px-5 text-sm font-black uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70"
               >
-                Scope the Sprint
+                Continue to your request
               </button>
             </div>
 
             <p className="mt-5 text-center text-sm leading-6 text-white/62">
               Own or manage a venue?{' '}
               <Link href="/map" className="font-black text-cyan-100 underline decoration-cyan-200/30 underline-offset-4">
-                Manage it from the map instead.
+                Find your venue and request access.
               </Link>
             </p>
           </section>

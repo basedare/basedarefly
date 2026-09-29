@@ -106,6 +106,12 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
   const { trigger } = useFeedback();
   const { checked: webviewChecked, isSocialWebview } = useSocialWebview();
 
+  useEffect(() => {
+    const openSignIn = () => { setShowDropdown(false); setShowWalletPicker(true); };
+    window.addEventListener('basedare:sign-in', openSignIn);
+    return () => window.removeEventListener('basedare:sign-in', openSignIn);
+  }, []);
+
   const updateMenuPosition = useCallback(() => {
     if (!dropdownRef.current || typeof window === 'undefined') return;
     const rect = dropdownRef.current.getBoundingClientRect();

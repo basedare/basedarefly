@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import Link from "@/components/DiscoveryLink";
 import { useRouter } from "next/navigation";
 import { Plus, Clock, CheckCircle, XCircle, Loader2, LogIn, ChevronDown, ChevronRight, Settings2, Zap, Building2, MapPinned, Compass, Target, ArrowRight, Radio, ShieldCheck } from "lucide-react";
 import SubmitEvidence from "@/components/SubmitEvidence";
@@ -280,7 +280,7 @@ function getIdentityStatusLabel(status: string | null | undefined): string {
   if (status === 'ACTIVE' || status === 'VERIFIED') return 'Verified';
   if (status === 'PENDING') return 'Pending verification';
   if (status === 'REJECTED' || status === 'REVOKED' || status === 'SUSPENDED') return 'Rejected';
-  return 'Not connected';
+  return 'No public profile';
 }
 
 function walletsMatch(left?: string | null, right?: string | null) {
@@ -1221,13 +1221,27 @@ export default function Dashboard() {
     });
   }
 
+  if (!isConnected) return <div className="mx-auto min-h-screen max-w-4xl px-4 py-6 text-white">
+    <section className={`${raisedPanelClass} p-6`}>
+      <h1 className="text-3xl font-black">Your activity</h1>
+      <p className="mt-3 text-sm leading-6 text-white/70">Your plans, paid work and saved activities, together. Sign in to see work linked to your wallet.</p>
+      <button className="bd-action bd-action--gold mt-5" onClick={handleConnect} disabled={isConnecting}>{isConnecting ? 'Connecting…' : 'Sign in'}</button>
+    </section>
+    <div className="mt-5 grid gap-3 sm:grid-cols-2">{[
+      ['/now','Find something to do','Explore current plans and free activities.'],
+      ['/earn','Find paid work','See real briefs and rewards before signing in.'],
+      ['/missions','Saved activities','Continue from a private saved link.'],
+      ['/adventures','Adventure journal','Your free activities saved on this device.'],
+    ].map(([href,title,detail]) => <Link key={href} href={href} className={`${softCardClass} p-5`}><h2 className="font-black">{title}</h2><p className="mt-2 text-sm text-white/65">{detail}</p></Link>)}</div>
+  </div>;
+
   return (
     <div className="relative min-h-screen flex flex-col">
       <div className="fixed inset-0 z-10 pointer-events-none hidden md:block">
         <GradualBlurOverlay />
       </div>
 
-      <div className="container relative z-20 mx-auto mb-12 flex flex-grow flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-6 md:py-24">
+      <div className="container relative z-20 mx-auto mb-12 flex flex-grow flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 md:py-10">
         <div className={`${raisedPanelClass} order-1 mb-8 px-5 py-6 sm:px-6`}>
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(250,204,21,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.1),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_36%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
           <HoneyGooAccent className="absolute right-5 top-[-2px] hidden xl:block" size="md" />
@@ -1264,15 +1278,15 @@ export default function Dashboard() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[2.2rem] leading-none sm:text-5xl md:text-6xl font-black uppercase italic tracking-[-0.06em]">
-                  <span className="text-[#FACC15] drop-shadow-[0_4px_18px_rgba(250,204,21,0.25)]">Command</span>
-                  <span className="text-[#A855F7] drop-shadow-[0_4px_18px_rgba(168,85,247,0.2)]">Base</span>
+                  <span className="text-[#FACC15] drop-shadow-[0_4px_18px_rgba(250,204,21,0.25)]">Your</span>
+                  <span className="text-[#A855F7] drop-shadow-[0_4px_18px_rgba(168,85,247,0.2)]">activity</span>
                 </div>
                 <p className="mt-2 text-sm text-white/55">
                   {isConnected
                     ? identityHandle && identityPlatform
                       ? `@${identityHandle} on ${getProviderLabel(identityPlatform)}`
-                      : 'Claim a handle first, then edit your public creator profile from your creator page.'
-                    : 'Connect your wallet to enter the creator loop.'}
+                      : 'Explore, join a plan or request paid work. A public profile is optional.'
+                    : 'Sign in to resume your plans and paid work.'}
                 </p>
 
                 {isConnected && userTag ? (
@@ -1349,7 +1363,7 @@ export default function Dashboard() {
                         </span>
                       </button>
                     )}
-                    {!hasVerifiedIdentity ? (
+                    {!hasVerifiedIdentity && identityHandle ? (
                       <button
                         onClick={() => router.push(claimTagHref)}
                         className={volumetricButtonNeutral}
@@ -1392,6 +1406,9 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <nav aria-label="Your activity sections" className="order-1 mb-5 flex flex-wrap gap-2">
+          <Link href="/now" className="bd-action">Plans</Link><Link href="/action-center" className="bd-action">Paid work &amp; actions</Link><Link href="/missions" className="bd-action">Saved</Link><Link href="/adventures" className="bd-action">Journal</Link><Link href="/my-dares" className="bd-action">Funded by me</Link>
+        </nav>
         {primaryDashboardMove || dashboardQuickActions.length > 0 ? (
           <div className="order-2 mb-6">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -1909,13 +1926,13 @@ export default function Dashboard() {
           ) : topOpportunities.length === 0 ? (
             <div className={`${insetCardClass} flex flex-wrap items-center gap-3 px-4 py-4`}>
               <span className="text-sm text-white/55">
-                {opportunitiesReason === 'CLAIM_TAG_REQUIRED' ? 'Claim your tag to unlock matches.' : 'No live matches yet.'}
+                {opportunitiesReason === 'CLAIM_TAG_REQUIRED' ? 'A public profile enables tailored matches. You can browse paid missions now.' : 'No live matches yet.'}
               </span>
               <button
-                onClick={() => router.push(opportunitiesReason === 'CLAIM_TAG_REQUIRED' ? claimTagHref : (creatorProfileHref || claimTagHref))}
+                onClick={() => router.push('/earn')}
                 className={volumetricButtonPurple}
               >
-                {opportunitiesReason === 'CLAIM_TAG_REQUIRED' ? 'Claim handle' : 'Open creator page'}
+                Browse paid missions
               </button>
               {opportunitiesReason !== 'CLAIM_TAG_REQUIRED' ? (
                 <button

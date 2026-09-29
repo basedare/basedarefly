@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ArrowRight, Loader2, Send, Sparkles } from 'lucide-react';
@@ -23,6 +24,7 @@ type IntakeState = {
   city: string;
   venue: string;
   budgetRange:
+    | 'discuss'
     | typeof MANAGED_FIELD_SPRINT_BUDGET_RANGE
     | '1500_5000'
     | '5000_15000'
@@ -105,6 +107,7 @@ const summaryClass =
   'cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.2em] text-white/52 transition hover:text-white';
 
 const BUDGET_RANGE_LABELS: Record<IntakeState['budgetRange'], string> = {
+  discuss: 'Let’s discuss',
   [MANAGED_FIELD_SPRINT_BUDGET_RANGE]: MANAGED_FIELD_SPRINT_BUDGET_LABEL,
   '1500_5000': '$1.5k-$5k custom scope',
   '5000_15000': '$5k-$15k',
@@ -112,13 +115,13 @@ const BUDGET_RANGE_LABELS: Record<IntakeState['budgetRange'], string> = {
 };
 
 const PACKAGE_LABELS: Record<IntakeState['packageId'], string> = {
-  'pilot-drop': 'Design-partner Sprint (approval required)',
-  'local-signal': 'Verified Field Sprint — $2,500',
+  'pilot-drop': 'Custom activity (approval required)',
+  'local-signal': 'On-site checks — $2,500',
   'city-takeover': 'Custom multi-area fieldwork',
 };
 
 const GOAL_LABELS: Record<IntakeState['goal'], string> = {
-  foot_traffic: 'Move people',
+  foot_traffic: 'Bring visitors',
   ugc: 'Creator content',
   launch: 'Launch push',
   event: 'Event energy',
@@ -147,7 +150,7 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 function isBudgetRange(value: string | null | undefined): value is IntakeState['budgetRange'] {
-  return value === MANAGED_FIELD_SPRINT_BUDGET_RANGE || value === '1500_5000' || value === '5000_15000' || value === '15000_plus';
+  return value === 'discuss' || value === MANAGED_FIELD_SPRINT_BUDGET_RANGE || value === '1500_5000' || value === '5000_15000' || value === '15000_plus';
 }
 
 function isPackageId(value: string | null | undefined): value is IntakeState['packageId'] {
@@ -258,7 +261,7 @@ export default function ActivationIntakeForm({
   const initialDeadWindowTime =
     initialNormalizedDeadWindowTime || (initialIsDeadWindowMission ? initialNormalizedTimeWindow || '' : '');
   const initialDeadWindowCheckInTarget =
-    initialNormalizedDeadWindowCheckInTarget || (initialIsDeadWindowMission ? '20 verified check-ins' : '');
+    initialNormalizedDeadWindowCheckInTarget || '';
   const initialDeadWindowPerk =
     initialNormalizedDeadWindowPerk || (initialIsDeadWindowMission ? initialNormalizedPerkLabel || '' : '');
   const initialDeadWindowBaseline = initialNormalizedDeadWindowBaseline || '';
@@ -295,7 +298,7 @@ export default function ActivationIntakeForm({
         company: initialNormalizedVenue || '',
         city: initialNormalizedCity || '',
         venue: initialNormalizedVenue || '',
-        budgetRange: initialBudgetRange ?? INITIAL_STATE.budgetRange,
+        budgetRange: initialBudgetRange ?? (initialOfferId === 'first-spark' && initialNormalizedMissionType !== 'field-mission' ? 'discuss' : INITIAL_STATE.budgetRange),
         timeline: initialOfferId === 'first-spark' ? 'this_week' : INITIAL_STATE.timeline,
         packageId: initialPackageId ?? INITIAL_STATE.packageId,
         goal: initialGoal ?? (initialOfferId === 'first-spark' ? 'foot_traffic' : INITIAL_STATE.goal),
@@ -318,31 +321,7 @@ export default function ActivationIntakeForm({
         deadWindowPerk: initialDeadWindowPerk,
         deadWindowBaseline: initialDeadWindowBaseline,
         offerId: initialOfferId || '',
-        notes: [
-          initialOfferId === 'first-spark'
-            ? 'Offer: Verified Field Sprint. $2,000 managed service plus a separately funded $500 creator pool; BaseDare scopes one bounded question, routes four contributors, verifies the evidence, and returns a receipt.'
-            : null,
-          initialNormalizedCreator ? `Preferred creator: ${initialNormalizedCreator}` : null,
-          initialNormalizedVenue ? `Target venue: ${initialNormalizedVenue}` : null,
-          initialNormalizedCity ? `Target city: ${initialNormalizedCity}` : null,
-          initialNormalizedMissionType ? `Mission type: ${initialNormalizedMissionType}` : null,
-          initialNormalizedMissionTitle ? `Mission title: ${initialNormalizedMissionTitle}` : null,
-          initialNormalizedCreatorSlots ? `Creator slots: ${initialNormalizedCreatorSlots}` : null,
-          initialNormalizedPayout ? `Payout: ${initialNormalizedPayout}` : null,
-          initialNormalizedTimeWindow ? `Time window: ${initialNormalizedTimeWindow}` : null,
-          initialNormalizedProofRequired ? `Proof required: ${initialNormalizedProofRequired}` : null,
-          initialNormalizedContentRequired ? `Content required: ${initialNormalizedContentRequired}` : null,
-          initialNormalizedGuestMission ? `Guest mission: ${initialNormalizedGuestMission}` : null,
-          initialNormalizedPerkLabel ? `Venue perk: ${initialNormalizedPerkLabel}` : null,
-          initialDeadWindowTime ? `Dead window: ${initialDeadWindowTime}` : null,
-          initialDeadWindowCheckInTarget ? `Dead window target: ${initialDeadWindowCheckInTarget}` : null,
-          initialDeadWindowPerk ? `Dead window perk: ${initialDeadWindowPerk}` : null,
-          initialDeadWindowBaseline ? `Baseline: ${initialDeadWindowBaseline}` : null,
-          initialNormalizedAuditBrief ? `Spark Audit:\n${initialNormalizedAuditBrief}` : null,
-          initialNormalizedSource ? `Source: ${initialNormalizedSource}` : 'Source: Control activation route',
-        ]
-          .filter(Boolean)
-          .join('\n'),
+        notes: initialNormalizedAuditBrief || initialNormalizedGuestMission || (initialNormalizedMissionTitle && initialNormalizedMissionTitle !== 'Venue activity' ? initialNormalizedMissionTitle : ''),
       }
     : INITIAL_STATE;
   const [form, setForm] = useState<IntakeState>(() => initialFormState);
@@ -452,7 +431,7 @@ export default function ActivationIntakeForm({
     const deadWindowTime =
       normalizedDeadWindowTime || (isDeadWindowMission ? normalizedTimeWindow || null : null);
     const deadWindowCheckInTarget =
-      normalizedDeadWindowCheckInTarget || (isDeadWindowMission ? '20 verified check-ins' : null);
+      normalizedDeadWindowCheckInTarget || null;
     const deadWindowPerk =
       normalizedDeadWindowPerk || (isDeadWindowMission ? normalizedPerkLabel || null : null);
     const contextKey = [
@@ -514,32 +493,7 @@ export default function ActivationIntakeForm({
         deadWindowPerk: deadWindowPerk ?? current.deadWindowPerk,
         deadWindowBaseline: normalizedDeadWindowBaseline ?? current.deadWindowBaseline,
         offerId: offerId ?? current.offerId,
-        notes: [
-          current.notes.trim(),
-          offerId === 'first-spark'
-            ? 'Offer: Verified Field Sprint. $2,000 managed service plus a separately funded $500 creator pool; BaseDare scopes one bounded question, routes four contributors, verifies the evidence, and returns a receipt.'
-            : null,
-          normalizedCreator ? `Preferred creator: ${normalizedCreator}` : null,
-          normalizedVenue ? `Target venue: ${normalizedVenue}` : null,
-          normalizedCity ? `Target city: ${normalizedCity}` : null,
-          normalizedMissionType ? `Mission type: ${normalizedMissionType}` : null,
-          normalizedMissionTitle ? `Mission title: ${normalizedMissionTitle}` : null,
-          normalizedCreatorSlots ? `Creator slots: ${normalizedCreatorSlots}` : null,
-          normalizedPayout ? `Payout: ${normalizedPayout}` : null,
-          normalizedTimeWindow ? `Time window: ${normalizedTimeWindow}` : null,
-          normalizedProofRequired ? `Proof required: ${normalizedProofRequired}` : null,
-          normalizedContentRequired ? `Content required: ${normalizedContentRequired}` : null,
-          normalizedGuestMission ? `Guest mission: ${normalizedGuestMission}` : null,
-          normalizedPerkLabel ? `Venue perk: ${normalizedPerkLabel}` : null,
-          deadWindowTime ? `Dead window: ${deadWindowTime}` : null,
-          deadWindowCheckInTarget ? `Dead window target: ${deadWindowCheckInTarget}` : null,
-          deadWindowPerk ? `Dead window perk: ${deadWindowPerk}` : null,
-          normalizedDeadWindowBaseline ? `Baseline: ${normalizedDeadWindowBaseline}` : null,
-          normalizedAuditBrief ? `Spark Audit:\n${normalizedAuditBrief}` : null,
-          normalizedSource ? `Source: ${normalizedSource}` : 'Source: Control activation route',
-        ]
-          .filter(Boolean)
-          .join('\n'),
+        notes: [current.notes.trim(), normalizedAuditBrief].filter(Boolean).join('\n'),
       };
     });
   }, [
@@ -637,10 +591,10 @@ export default function ActivationIntakeForm({
     form.deadWindowBaseline
   );
   const primaryActionLabel = isFieldSprintRequest
-    ? 'Request Sprint invoice'
+    ? 'Request an invoice'
     : isPilotCloseLoop
-      ? 'Send pilot request'
-      : 'Route activation request';
+      ? 'Send request'
+      : 'Send your request';
   const routingActionLabel = isFieldSprintRequest
     ? 'Sending invoice request'
     : isPilotCloseLoop
@@ -661,7 +615,7 @@ export default function ActivationIntakeForm({
         ['Budget lane', BUDGET_RANGE_LABELS[form.budgetRange]],
         ['Package', PACKAGE_LABELS[form.packageId]],
         ['Goal', GOAL_LABELS[form.goal]],
-        form.offerId === 'first-spark' ? ['Offer', 'Verified Field Sprint template'] : null,
+        form.offerId === 'first-spark' ? ['Offer', 'Venue activity request'] : null,
       ].filter((item): item is [string, string] => Boolean(item)),
     [
       form.budgetRange,
@@ -820,21 +774,21 @@ export default function ActivationIntakeForm({
           OK
         </div>
         <h3 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">
-          {submittedFieldSprint ? 'Sprint scope received.' : 'Activation signal received.'}
+          {submittedFieldSprint ? 'Request received.' : 'Request received.'}
         </h3>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/58">
           {submittedFieldSprint
             ? 'BaseDare will review the attached question, coverage, evidence rules, and quote before sending the invoice route.'
             : submittedCloseRoomHref
-              ? 'The paid pilot route is ready. Open the close room to approve the venue, perk, payment path, and launch gates.'
-              : 'We routed this into the operator queue. Next step is qualifying the city, venue, creator fit, proof target, and Spark Receipt before any paid campaign moves.'}
+              ? 'Open your request to review the venue, visitor offer, costs and launch requirements.'
+              : 'BaseDare will review your request and contact you to agree on the activity, evidence and costs before work starts.'}
         </p>
         <p className="mx-auto mt-3 max-w-md rounded-2xl border border-white/10 bg-black/24 px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-yellow-100/75">
           {submittedFieldSprint
-            ? 'No contributors are routed and no payment is taken until the scope is approved.'
+            ? 'No work starts and no payment is taken until you approve the details.'
             : submittedCloseRoomHref
-              ? 'Close room created. Payment and approval stay attached to this request.'
-              : 'BaseDare will reply with the cleanest activation route after review.'}
+              ? 'Your request keeps the approvals and payment details together.'
+              : 'We will contact you using the reply details you provided.'}
         </p>
         <p className="mx-auto mt-3 max-w-md rounded-2xl border border-emerald-200/12 bg-emerald-300/[0.06] px-4 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/70">
           Reference: {submittedId === 'received' ? 'received' : submittedId}
@@ -845,7 +799,7 @@ export default function ActivationIntakeForm({
               href={submittedCloseRoomHref}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-yellow-300/25 bg-yellow-300 px-5 text-xs font-black uppercase tracking-[0.16em] text-black shadow-[0_7px_0_rgba(118,74,0,0.65)] transition hover:-translate-y-0.5"
             >
-              Open close room
+              Review your request
               <ArrowRight className="h-4 w-4" />
             </a>
           ) : null}
@@ -865,18 +819,38 @@ export default function ActivationIntakeForm({
     );
   }
 
+  const simpleVenueRequest = form.offerId === 'first-spark' && !isFieldSprintRequest;
+  const knownVenue = Boolean(initialNormalizedVenue && initialNormalizedCity);
   return (
     <form onSubmit={submit} className="space-y-4">
+      {simpleVenueRequest ? (
+        <>
+          {knownVenue ? <div className="rounded-2xl border border-cyan-200/15 bg-cyan-200/5 p-4"><p className="font-bold text-white">{form.company}</p><p className="mt-1 text-sm text-white/60">{form.city}</p><Link href="/map" className="mt-2 inline-flex min-h-11 items-center text-xs font-bold text-cyan-100 underline">Choose another place</Link></div> : <div className="grid gap-4 sm:grid-cols-2">
+            <label className={labelClass}>Venue name<input required maxLength={140} value={form.company} onChange={event => setForm(current => ({ ...current, company: event.target.value, venue: event.target.value }))} className={`${inputClass} mt-2`} placeholder="Your venue" /></label>
+            <label className={labelClass}>City or area<input required maxLength={140} value={form.city} onChange={event => updateField('city', event.target.value)} className={`${inputClass} mt-2`} placeholder="e.g. General Luna, Siargao" /></label>
+          </div>}
+          <label className={labelClass}>What would you like to do?<textarea required minLength={2} maxLength={1200} value={form.notes} onChange={event => updateField('notes', event.target.value)} className={`${inputClass} mt-2 min-h-28 normal-case tracking-normal`} placeholder="e.g. Bring people in on Friday afternoon with a coffee meetup. We can offer a free upgrade." /></label>
+          {(form.deadWindowTime || form.routedTimeWindow || form.deadWindowPerk || form.routedPerkLabel || form.routedProofRequired) ? <div className="rounded-2xl border border-white/10 p-4 text-sm leading-6 text-white/65"><p className="font-bold text-white/85">Details carried from your place</p>{(form.deadWindowTime || form.routedTimeWindow) ? <p>When: {form.deadWindowTime || form.routedTimeWindow}</p> : null}{(form.deadWindowPerk || form.routedPerkLabel) ? <p>Offer: {form.deadWindowPerk || form.routedPerkLabel}</p> : null}{form.routedProofRequired ? <p>Evidence: {form.routedProofRequired}</p> : null}<p>Add any changes in your request above.</p></div> : null}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={labelClass}>Your name<input required minLength={2} maxLength={120} autoComplete="name" value={form.contactName} onChange={event => updateField('contactName', event.target.value)} className={`${inputClass} mt-2 normal-case tracking-normal`} /></label>
+            <label className={labelClass}>Reply email<input required type="email" maxLength={180} autoComplete="email" value={form.email} onChange={event => updateField('email', event.target.value)} className={`${inputClass} mt-2 normal-case tracking-normal`} /></label>
+          </div>
+          <details className={detailsClass}><summary className={summaryClass}>Budget and timing, if you know them</summary><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Planning budget<select value={form.budgetRange} onChange={event => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])} className={`${inputClass} mt-2`}>{Object.entries(BUDGET_RANGE_LABELS).map(([value,label]) => <option key={value} value={value} className="bg-[#080814]">{label}</option>)}</select></label><label className={labelClass}>Preferred time<input maxLength={180} value={form.deadWindowTime} onChange={event => updateField('deadWindowTime',event.target.value)} className={`${inputClass} mt-2`} placeholder="e.g. Friday afternoon" /></label></div><p className="mt-3 text-xs text-white/55">Planning information only. BaseDare confirms the appropriate service and price with you before any invoice.</p></details>
+          <input tabIndex={-1} autoComplete="off" value={form.companyWebsite} onChange={event => updateField('companyWebsite',event.target.value)} className="hidden" aria-hidden="true" />
+          <p className="text-xs leading-5 text-white/60">We’ll reply to agree on the activity, price and venue approval. Sending this request doesn’t publish an activity or take payment.</p>
+        </>
+      ) : <>
+
       {hasRoutedContext ? (
         <div className="rounded-[28px] border border-yellow-200/16 bg-[radial-gradient(circle_at_14%_0%,rgba(250,204,21,0.16),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.018)_18%,rgba(7,6,14,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_18px_45px_rgba(0,0,0,0.24)] sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/72">
-                {isFieldSprintRequest ? 'Invoice request' : 'Pilot request'}
+                {isFieldSprintRequest ? 'Invoice request' : 'Venue activity request'}
               </p>
               <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">Review and send.</h3>
               <p className="mt-2 max-w-xl text-sm leading-6 text-white/58">
-                Confirm the essentials. The source stays attached in the background.
+                Check the details below. Nothing is published or charged when you send this request.
               </p>
             </div>
             <div className="rounded-full border border-emerald-200/14 bg-emerald-300/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/76">
@@ -905,9 +879,9 @@ export default function ActivationIntakeForm({
                 ['3', 'Contact', form.email || 'Invoice reply'],
               ]
             : [
-                ['1', 'Place', form.venue || 'Venue selected'],
+                ['1', 'Place', form.venue || 'Choose a venue'],
                 ['2', 'Goal', GOAL_LABELS[form.goal]],
-                ['3', 'Contact', form.email || 'Reply route'],
+                ['3', 'Contact', form.email || 'Your email'],
               ]).map(([step, title, detail]) => (
             <div key={title} className="min-w-0 rounded-[16px] border border-white/[0.08] bg-black/26 px-2.5 py-2.5 sm:px-3 sm:py-3">
               <p className="text-[8px] font-black uppercase tracking-[0.14em] text-cyan-100/56 sm:text-[9px] sm:tracking-[0.18em]">
@@ -923,7 +897,7 @@ export default function ActivationIntakeForm({
         <div className="rounded-[26px] border border-cyan-200/16 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_18%,rgba(7,6,14,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-100/72">Mission invite</p>
           <h3 className="mt-2 text-lg font-black leading-6 text-white">
-            {form.routedMissionTitle || 'First Spark mission route'}
+            {form.routedMissionTitle || 'Venue activity'}
           </h3>
           <div className={isPilotCloseLoop ? 'mt-3 flex flex-wrap gap-2' : 'mt-3 grid gap-2 sm:grid-cols-2'}>
             {visibleMissionBriefItems.map(([label, value]) => (
@@ -959,9 +933,9 @@ export default function ActivationIntakeForm({
 
       {form.offerId === 'first-spark' ? (
         <div className="rounded-[22px] border border-emerald-200/14 bg-emerald-300/[0.055] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/72">Founding venue offer</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/72">Before anything goes live</p>
           <p className="mt-1.5 text-sm font-bold leading-6 text-white/70">
-            We set up the route, QR proof, and receipt. Venue approves the plan and provides one perk.
+            BaseDare reviews your request with you. The venue must approve the activity, time and any offer before publication.
           </p>
         </div>
       ) : null}
@@ -995,19 +969,19 @@ export default function ActivationIntakeForm({
         <div className="rounded-[28px] border border-yellow-200/14 bg-[radial-gradient(circle_at_10%_0%,rgba(250,204,21,0.14),transparent_34%),radial-gradient(circle_at_92%_0%,rgba(34,211,238,0.1),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.058),rgba(255,255,255,0.018)_18%,rgba(7,6,14,0.88))] p-4 shadow-[0_18px_42px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.09)] sm:p-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/72">Dead Window Rescue</p>
-              <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">Slow window to proof receipt.</h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/72">Bring people to a quieter time</p>
+              <h3 className="mt-2 text-xl font-black tracking-[-0.04em] text-white">Plan a venue activity.</h3>
               <p className="mt-2 max-w-xl text-sm font-bold leading-6 text-white/56">
-                Quiet slot. One perk. QR proof. Clear repeat call.
+                Choose a time, what visitors can do and an optional offer. Attendance is a target, not a guarantee.
               </p>
             </div>
             <div className="rounded-full border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100/72">
-              QR + creator proof
+              Visits and submitted photos
             </div>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Slow window</label>
+              <label className={labelClass}>Proposed date and time</label>
               <input
                 value={form.deadWindowTime}
                 onChange={(event) => updateField('deadWindowTime', event.target.value)}
@@ -1021,20 +995,20 @@ export default function ActivationIntakeForm({
                 value={form.deadWindowCheckInTarget}
                 onChange={(event) => updateField('deadWindowCheckInTarget', event.target.value)}
                 className={inputClass}
-                placeholder="20 verified check-ins"
+                placeholder="e.g. 10 visitors — a target, not a guarantee"
               />
             </div>
             <div>
-              <label className={labelClass}>Perk</label>
+              <label className={labelClass}>Optional visitor offer</label>
               <input
                 value={form.deadWindowPerk}
                 onChange={(event) => updateField('deadWindowPerk', event.target.value)}
                 className={inputClass}
-                placeholder="Welcome shot, coffee upgrade, 10% off tab"
+                placeholder="e.g. a coffee upgrade or a discount"
               />
             </div>
             <div>
-              <label className={labelClass}>Baseline</label>
+              <label className={labelClass}>Usual attendance</label>
               <input
                 value={form.deadWindowBaseline}
                 onChange={(event) => updateField('deadWindowBaseline', event.target.value)}
@@ -1047,8 +1021,8 @@ export default function ActivationIntakeForm({
             {[
               ['1', 'Quiet slot'],
               ['2', 'Visible reward'],
-              ['3', 'QR proof'],
-              ['4', 'Repeat call'],
+              ['3', 'Check in'],
+              ['4', 'Review results'],
             ].map(([step, label]) => (
               <div key={label} className="rounded-[18px] border border-white/[0.08] bg-black/24 px-3 py-3">
                 <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">{step}</p>
@@ -1205,8 +1179,8 @@ export default function ActivationIntakeForm({
                 onChange={(event) => updateField('packageId', event.target.value as IntakeState['packageId'])}
                 className={inputClass}
               >
-                <option className="bg-[#080814]" value="pilot-drop">Design-partner Sprint (approval required)</option>
-                <option className="bg-[#080814]" value="local-signal">Verified Field Sprint — $2,500</option>
+                <option className="bg-[#080814]" value="pilot-drop">Custom activity (approval required)</option>
+                <option className="bg-[#080814]" value="local-signal">On-site checks — $2,500</option>
                 <option className="bg-[#080814]" value="city-takeover">Custom multi-area fieldwork</option>
               </select>
             </div>
@@ -1247,8 +1221,8 @@ export default function ActivationIntakeForm({
             onChange={(event) => updateField('packageId', event.target.value as IntakeState['packageId'])}
             className={inputClass}
           >
-            <option className="bg-[#080814]" value="pilot-drop">Design-partner Sprint (approval required)</option>
-            <option className="bg-[#080814]" value="local-signal">Verified Field Sprint — $2,500</option>
+            <option className="bg-[#080814]" value="pilot-drop">Custom activity (approval required)</option>
+            <option className="bg-[#080814]" value="local-signal">On-site checks — $2,500</option>
             <option className="bg-[#080814]" value="city-takeover">Custom multi-area fieldwork</option>
           </select>
         </div>
@@ -1262,7 +1236,7 @@ export default function ActivationIntakeForm({
           onChange={(event) => updateField('goal', event.target.value as IntakeState['goal'])}
           className={inputClass}
         >
-          <option className="bg-[#080814]" value="foot_traffic">Move people to a place</option>
+          <option className="bg-[#080814]" value="foot_traffic">Bring visitors to a place</option>
           <option className="bg-[#080814]" value="ugc">Get verified creator content</option>
           <option className="bg-[#080814]" value="launch">Launch product / venue</option>
           <option className="bg-[#080814]" value="event">Drive event energy</option>
@@ -1385,7 +1359,7 @@ export default function ActivationIntakeForm({
 
       <div>
         <label className={labelClass}>
-          {isFieldSprintRequest ? 'Final scope note' : isPilotCloseLoop ? 'Anything else?' : 'What should the activation prove?'}
+          {isFieldSprintRequest ? 'Anything else we should know?' : isPilotCloseLoop ? 'Anything else?' : 'What should the activation prove?'}
         </label>
         <textarea
           value={form.notes}
@@ -1393,13 +1367,15 @@ export default function ActivationIntakeForm({
           className={`${inputClass} ${isPilotCloseLoop ? 'min-h-24' : 'min-h-32'} resize-none leading-6`}
           placeholder={
             isFieldSprintRequest
-              ? 'Add any constraint the attached Sprint scope does not already cover.'
+              ? 'Add any requirements not already covered in your request.'
               : isPilotCloseLoop
                 ? 'Example: first 25 check-ins unlock a simple perk.'
                 : 'Example: We want creators to visit this week, scan in, post proof, and show whether BaseDare can move real venue activity.'
           }
         />
       </div>
+
+      </>}
 
       {error ? (
         <div className="rounded-2xl border border-red-300/18 bg-red-500/[0.08] px-4 py-3 text-sm font-bold text-red-100">

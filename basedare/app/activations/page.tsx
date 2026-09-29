@@ -88,15 +88,15 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
     : isFirstSparkOffer
       ? 'First Spark Pilot'
       : isVerifiedFieldSprintRoute
-        ? 'Verified Field Sprint'
-      : 'Activation Route';
+        ? 'On-site checks'
+      : 'Activity request';
   const heroTitle = isVenueGuestMissionRoute
-    ? 'Launch a guest loop.'
+    ? 'Plan a visitor activity.'
     : isFirstSparkOffer
       ? 'Run First Spark.'
       : isVerifiedFieldSprintRoute
-        ? 'Request your Sprint invoice.'
-      : 'Start an activation.';
+        ? 'Request on-site checks.'
+      : 'Plan your request.';
   const heroDetail = isVenueGuestMissionRoute
     ? 'Confirm the venue, guest action, perk, and reply path. Keep the loop light enough that people can join fast.'
     : isFirstSparkOffer
@@ -110,8 +110,8 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
       ? 'Run First Spark'
       : isVerifiedFieldSprintRoute
         ? 'Review invoice request'
-      : 'Start Activation';
-  const intakeHeading = hasRoutedContext ? 'Confirm the route.' : 'Give us the basics.';
+      : 'Send a request';
+  const intakeHeading = hasRoutedContext ? 'Check your request.' : 'Give us the basics.';
   const intakeDetail = hasRoutedContext
     ? 'Most fields are prefilled from the page you came from. Check the essentials and send it.'
     : 'One place, one action, and one clear contact is enough to start.';
@@ -129,9 +129,9 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
         ]
     : isVerifiedFieldSprintRoute
       ? [
-          ['1', 'Coverage', routedVenue || routedCity || 'One bounded area'],
+          ['1', 'Coverage', routedVenue || routedCity || 'One place or local area'],
           ['2', 'Evidence', resolvedSearchParams.proofRequired || 'What gets verified'],
-          ['3', 'Invoice', 'Scope attached for review'],
+          ['3', 'Invoice', 'Details ready to review'],
         ]
       : [
           ['1', 'Place', routedVenue || routedCity || 'Venue or city'],

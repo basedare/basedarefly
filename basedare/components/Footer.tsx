@@ -3,7 +3,7 @@
 import React from 'react';
 import { Twitter, Shield, ShieldCheck, FileText, HelpCircle, Info, MessageSquare, Lightbulb, Users } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
+import Link from '@/components/DiscoveryLink';
 import { useView } from '@/app/context/ViewContext';
 
 export default function Footer() {

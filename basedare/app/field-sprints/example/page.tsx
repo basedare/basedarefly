@@ -19,7 +19,7 @@ export default function ExampleFieldSprintReceiptPage() {
         <Link href="/brands/portal?compose=1" className="mb-5 inline-flex min-h-11 items-center text-sm font-bold text-cyan-100/75 hover:text-cyan-100">← Back to your brief</Link>
         <header className="buyer-evidence-hero rounded-[28px] border border-[#ffe36a]/20 p-5 sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#ffe36a]">Verified Field Sprint · Example receipt</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#ffe36a]">On-site checks · Example report</p>
             <span className="rounded-full border border-amber-200/20 bg-amber-200/[0.08] px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-amber-100">Illustrative · not a live result</span>
           </div>
           <h1 className="mt-4 text-3xl font-black sm:text-5xl">Is this place&apos;s public information accurate this week?</h1>
@@ -47,7 +47,7 @@ export default function ExampleFieldSprintReceiptPage() {
         </section>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <Link href="/brands/portal" className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#f5c518] px-5 text-sm font-black uppercase tracking-[0.12em] text-[#15120c]">Scope a real Sprint</Link>
+          <Link href="/brands/portal" className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#f5c518] px-5 text-sm font-black uppercase tracking-[0.12em] text-[#15120c]">Request on-site checks</Link>
           <Link href="/how-it-works" className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/12 px-5 text-sm font-black text-white/70">How verification works</Link>
         </div>
       </div>

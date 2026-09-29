@@ -917,13 +917,13 @@ export default function BrandPortalPage() {
                     className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
                   >
                     <Sparkles className="h-4 w-4" />
-                    Start a brief
+                    Describe what you need
                   </button>
                   <Link
                     href="/field-sprints/example"
                     className="activation-soft-button inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/[0.13] px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-white/68 transition hover:border-white/24 hover:text-white"
                   >
-                    See an example receipt
+                    See an example report
                   </Link>
                 </div>
               </div>
@@ -988,7 +988,7 @@ export default function BrandPortalPage() {
           <>
         {!showCreateCampaign ? <div className="activation-shell mb-6 overflow-hidden rounded-[28px] border p-4 backdrop-blur-xl md:mb-8 md:p-6">
           <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">
-            Managed fieldwork · Verified Field Sprint
+            Managed fieldwork · On-site checks
           </div>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-white md:text-5xl">
             Get answers from people on the ground
@@ -1003,7 +1003,7 @@ export default function BrandPortalPage() {
               className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
             >
               <Sparkles className="h-4 w-4" />
-              Start a brief
+              Describe what you need
             </button>
             <Link
               href={brand?.latestCompletedSprintReceiptHref ?? '/field-sprints/example'}
@@ -1014,7 +1014,7 @@ export default function BrandPortalPage() {
             </Link>
           </div>
           <p className="mt-4 text-sm font-semibold leading-6 text-white/58">
-            Managing a venue? Claim it from its page on the map; buyer missions stay here.
+            Own this venue? Find it on the map, open View place and request management access.
           </p>
         </div> : null}
 

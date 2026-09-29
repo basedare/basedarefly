@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/DiscoveryLink';
 import { ArrowLeft, ArrowRight, Compass, Flag, MapPin, MoonStar, Radio, Sparkles, Users } from 'lucide-react';
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
 import { getBoardSections, type BoardSections, type Flyer, type FlyerStamp, type FlyerTone } from '@/lib/board';
@@ -498,13 +498,14 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
         ) : total === 0 ? (
           <div className="mx-auto mt-12 max-w-md rounded-[24px] border border-white/10 bg-black/40 p-8 text-center backdrop-blur-md">
             <p className="text-sm font-bold leading-6 text-white/60">
-              Nothing is forming in this area yet.{' '}
-              <Link href="/community/rally/new" className="text-[#f8dd72] underline-offset-2 hover:underline">Start a Rally</Link>
+              {!liveSnapshot || sections.unavailable ? 'Some activities couldn’t load. Try refreshing, or browse another view.' : 'No published plans in this area yet.'}{' '}
+              <Link href="/community/rally/new" className="text-[#f8dd72] underline-offset-2 hover:underline">Start a meetup</Link>
               {' '}or <Link href="/map" className="text-cyan-100 underline-offset-2 hover:underline">open the map</Link> to choose a place.
             </p>
           </div>
         ) : (
           <>
+            {!liveSnapshot || sections.unavailable ? <p role="status" className="mt-5 rounded-2xl border border-amber-200/20 bg-amber-200/5 p-4 text-sm text-amber-100">Some activities couldn’t load. <a href="" className="underline">Refresh this view</a> to try again.</p> : null}
             {livePlans.length ? (
               <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-[9px] font-black uppercase tracking-[0.13em] text-white/44">
                 <span className="rounded-full border border-white/10 bg-black/24 px-3 py-1.5">{liveSnapshot?.totals.plans ?? livePlans.length} live plans</span>

@@ -1,6 +1,8 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/DiscoveryLink';
+import { useDiscovery } from '@/components/DiscoveryProvider';
+import { venueLocalToIso } from '@/lib/venue-local-time';
 import { Anchor, ArrowLeft, Loader2, MapPin, ShieldCheck, Users } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -24,6 +26,7 @@ type RallyVenue = {
   city: string | null;
   latitude: number;
   longitude: number;
+  timezone?: string | null;
 };
 
 const TEMPLATES: ReadonlyArray<{
@@ -42,15 +45,10 @@ const TEMPLATES: ReadonlyArray<{
   { id: 'surf', label: 'Surf together', detail: 'Find people for a beach session', type: 'surf', title: 'Social surf', minimum: 3 },
 ];
 
-function defaultStartValue(hoursFromNow = 1) {
-  const date = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000);
-  date.setMinutes(Math.ceil(date.getMinutes() / 15) * 15, 0, 0);
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
-}
-
 export default function RallyComposerClient() {
   const router = useRouter();
+  const { area, ready: areaReady } = useDiscovery();
+  const [loadedDraftKey, setLoadedDraftKey] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const { address } = useAccount();
@@ -59,14 +57,14 @@ export default function RallyComposerClient() {
   const sessionWallet = sessionShape?.walletAddress ?? sessionShape?.user?.walletAddress ?? null;
   const actorWallet = address ?? sessionWallet;
 
-  const initialTemplate = TEMPLATES.find((item) => item.id === searchParams.get('template')) ?? TEMPLATES[1];
+  const initialTemplate = TEMPLATES.find((item) => item.id === searchParams.get('template')) ?? TEMPLATES[3];
   const [templateId, setTemplateId] = useState(initialTemplate.id);
-  const template = TEMPLATES.find((item) => item.id === templateId) ?? TEMPLATES[1];
+  const template = TEMPLATES.find((item) => item.id === templateId) ?? TEMPLATES[3];
   const [venues, setVenues] = useState<RallyVenue[]>([]);
   const [venueId, setVenueId] = useState(searchParams.get('venueId') ?? '');
   const [title, setTitle] = useState(searchParams.get('title') ?? initialTemplate.title);
   const [minimumPeople, setMinimumPeople] = useState(Number(searchParams.get('minimum')) || initialTemplate.minimum);
-  const [startTime, setStartTime] = useState(defaultStartValue());
+  const [startTime, setStartTime] = useState('');
   const [note, setNote] = useState('');
   const [loadingVenues, setLoadingVenues] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -74,7 +72,7 @@ export default function RallyComposerClient() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const query = new URLSearchParams({ lat: '9.803', lng: '126.159', radiusMeters: '25000', limit: '30' });
+    const query = new URLSearchParams({ lat: String(area.lat), lng: String(area.lng), radiusMeters: String(area.radiusKm * 1000), limit: '30' });
     void fetch(`/api/venues/nearby?${query.toString()}`, { signal: controller.signal })
       .then(async (response) => {
         const payload = await response.json().catch(() => null);
@@ -86,6 +84,7 @@ export default function RallyComposerClient() {
           city: venue.city,
           latitude: venue.latitude,
           longitude: venue.longitude,
+          timezone: venue.timezone,
         })));
       })
       .catch((error) => {
@@ -96,12 +95,34 @@ export default function RallyComposerClient() {
         if (!controller.signal.aborted) setLoadingVenues(false);
       });
     return () => controller.abort();
-  }, []);
+  }, [area.lat, area.lng, area.radiusKm]);
 
   const selectedVenue = useMemo(
     () => venues.find((venue) => venue.id === venueId) ?? null,
     [venueId, venues],
   );
+
+  const draftKey = `basedare:rally-draft:v1:${area.lat}:${area.lng}:${searchParams.get('venueId') ?? ''}:${searchParams.get('repeatFrom') ?? ''}`;
+  const timeZone = selectedVenue?.timezone || (Math.abs(area.lng - 126) < 3 && Math.abs(area.lat - 10) < 3 ? 'Asia/Manila' : 'UTC');
+  useEffect(() => {
+    if (!areaReady) return;
+    try {
+      const draft = JSON.parse(sessionStorage.getItem(draftKey) ?? 'null');
+      if (draft && Date.now() - draft.savedAt < 86400000 && draft.areaKey === `${area.lat}:${area.lng}`) {
+        if (TEMPLATES.some(t => t.id === draft.templateId)) setTemplateId(draft.templateId);
+        if (typeof draft.title === 'string') setTitle(draft.title.slice(0,120));
+        if (typeof draft.venueId === 'string') setVenueId(draft.venueId);
+        if (typeof draft.startTime === 'string') setStartTime(draft.startTime);
+        if (typeof draft.note === 'string') setNote(draft.note.slice(0,500));
+        if (Number.isInteger(draft.minimumPeople)) setMinimumPeople(Math.min(50,Math.max(2,draft.minimumPeople)));
+      }
+    } catch { /* Private mode can disable draft storage. */ }
+    setLoadedDraftKey(draftKey);
+  }, [areaReady, area.lat, area.lng, draftKey]);
+  useEffect(() => {
+    if (loadedDraftKey !== draftKey) return;
+    try { sessionStorage.setItem(draftKey, JSON.stringify({ savedAt: Date.now(), areaKey: `${area.lat}:${area.lng}`, templateId, title, venueId, startTime, note, minimumPeople })); } catch { /* Form still works in memory. */ }
+  }, [loadedDraftKey, draftKey, area.lat, area.lng, templateId, title, venueId, startTime, note, minimumPeople]);
 
   const selectTemplate = (id: string) => {
     const next = TEMPLATES.find((item) => item.id === id);
@@ -121,16 +142,17 @@ export default function RallyComposerClient() {
   const submit = async () => {
     setState(null);
     if (!actorWallet) {
-      setState({ type: 'error', message: 'Sign in, then start your Rally again.' });
+      setState({ type: 'error', message: 'Sign in to continue. Your draft stays here; review it before publishing.' });
+      window.dispatchEvent(new Event('basedare:sign-in'));
       return;
     }
     if (!selectedVenue) {
       setState({ type: 'error', message: 'Choose a public place.' });
       return;
     }
-    const parsedStart = new Date(startTime);
-    if (!Number.isFinite(parsedStart.getTime())) {
-      setState({ type: 'error', message: 'Choose a valid time.' });
+    const startIso = venueLocalToIso(startTime, timeZone);
+    if (!startIso || Date.parse(startIso) <= Date.now()) {
+      setState({ type: 'error', message: 'Choose a future, unambiguous time at the venue.' });
       return;
     }
     setSubmitting(true);
@@ -155,7 +177,7 @@ export default function RallyComposerClient() {
           placeLabel: selectedVenue.name,
           approxLat: selectedVenue.latitude,
           approxLng: selectedVenue.longitude,
-          startTime: parsedStart.toISOString(),
+          startTime: startIso,
           note: note.trim() || undefined,
           minimumPeople,
           repeatMeetupId: searchParams.get('repeatFrom') || undefined,
@@ -168,6 +190,7 @@ export default function RallyComposerClient() {
       }
       const sameCrewInvited = Number(payload.data?.sameCrewInvited) || 0;
       setState({ type: 'success', message: sameCrewInvited ? `Rally live. ${sameCrewInvited} previous crew ${sameCrewInvited === 1 ? 'mate was' : 'mates were'} invited.` : 'Rally live. Opening the invite…' });
+      try { sessionStorage.removeItem(draftKey); } catch { /* Optional storage. */ }
       router.push(payload.data.shareHref);
     } catch (error) {
       setState({ type: 'error', message: error instanceof Error ? error.message : 'Could not start this Rally.' });
@@ -177,16 +200,16 @@ export default function RallyComposerClient() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-28 text-white sm:px-6">
+    <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-6 text-white sm:px-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_5%,rgba(139,92,246,0.15),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(34,211,238,0.12),transparent_34%)]" />
       <div className="relative mx-auto max-w-3xl">
         <Link href="/now" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-white/44 hover:text-white"><ArrowLeft className="h-4 w-4" /> Live Plans</Link>
         <section className="mt-5 rounded-[2rem] border border-white/10 bg-[linear-gradient(150deg,rgba(25,20,44,0.94),rgba(5,7,14,0.99))] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.09)] sm:p-8">
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-violet-200/70">Start a Rally</p>
-          <h1 className="mt-3 text-4xl font-black leading-[0.96] sm:text-5xl">Start something. Fill the crew.</h1>
-          <p className="mt-3 text-sm text-white/48">Pick the move, place and time. Share the live link. No full-page manual.</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-violet-200/70">Start a meetup</p>
+          <h1 className="mt-3 text-4xl font-black leading-[0.96] sm:text-5xl">Make a plan. Invite people.</h1>
+          <p className="mt-3 text-sm text-white/48">Choose a place and time, then share the invitation.</p>
 
-          <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <details className="mt-5"><summary className="bd-action cursor-pointer">Activity: {template.label}</summary><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {TEMPLATES.map((item) => (
               <button key={item.id} type="button" onClick={() => selectTemplate(item.id)} aria-pressed={template.id === item.id} className={`min-h-20 rounded-2xl border p-3 text-left transition ${template.id === item.id ? 'border-[#f5c518]/34 bg-[#f5c518]/[0.1]' : 'border-white/9 bg-black/22'}`}>
                 <strong className={`block text-sm ${template.id === item.id ? 'text-[#fff0a8]' : 'text-white/78'}`}>{item.label}</strong>
@@ -194,6 +217,8 @@ export default function RallyComposerClient() {
               </button>
             ))}
           </div>
+
+          </details>
 
           {template.type === 'boat' ? (
             <div className="mt-6 rounded-2xl border border-cyan-200/18 bg-cyan-300/[0.06] p-5">
@@ -214,28 +239,30 @@ export default function RallyComposerClient() {
                     {venues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}{venue.city ? ` · ${venue.city}` : ''}</option>)}
                   </select>
                 </label>
-                <label className="block text-[9px] font-black uppercase tracking-[0.16em] text-white/44">When
+                <label className="block text-[9px] font-black uppercase tracking-[0.16em] text-white/44">When · {timeZone}
                   <input type="datetime-local" value={startTime} onChange={(event) => setStartTime(event.target.value)} className="mt-2 min-h-12 w-full rounded-2xl border border-white/10 bg-black/28 px-4 text-sm font-bold normal-case tracking-normal text-white outline-none focus:border-violet-200/32" />
                 </label>
-                <label className="block text-[9px] font-black uppercase tracking-[0.16em] text-white/44">People to unlock
-                  <input type="number" min={2} max={50} value={minimumPeople} onChange={(event) => setMinimumPeople(Math.min(50, Math.max(2, Number(event.target.value) || 2)))} className="mt-2 min-h-12 w-full rounded-2xl border border-white/10 bg-black/28 px-4 text-sm font-bold normal-case tracking-normal text-white outline-none focus:border-amber-200/32" />
-                </label>
+
               </div>
-              <label className="mt-4 block text-[9px] font-black uppercase tracking-[0.16em] text-white/44">One useful detail
+              <details className="mt-4"><summary className="bd-action cursor-pointer">More details · {minimumPeople} people needed</summary><div className="mt-4">
+                <label className="block text-[9px] font-black uppercase tracking-[0.16em] text-white/44">People needed
+                  <input type="number" min={2} max={50} value={minimumPeople} onChange={(event) => setMinimumPeople(Math.min(50, Math.max(2, Number(event.target.value) || 2)))} className="mt-2 min-h-12 w-full rounded-2xl border border-white/10 bg-black/28 px-4 text-sm font-bold normal-case tracking-normal text-white outline-none focus:border-amber-200/32" />
+                </label>              <label className="mt-4 block text-[9px] font-black uppercase tracking-[0.16em] text-white/44">One useful detail
                 <textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={500} placeholder="Optional: ability, what to bring, or where to meet." className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm font-bold normal-case tracking-normal text-white outline-none placeholder:text-white/23 focus:border-violet-200/32" />
               </label>
+              </div></details>
 
               <div className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-200/14 bg-amber-300/[0.05] p-4 text-xs leading-5 text-white/46"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-amber-100" /> Public places only. Everyone opts in. BaseDare coordinates the plan; it does not host or supervise it.</div>
               {state ? <p role="status" className={`mt-4 rounded-2xl border p-3 text-xs font-bold ${state.type === 'success' ? 'border-emerald-200/20 bg-emerald-300/[0.08] text-emerald-100' : 'border-rose-200/20 bg-rose-300/[0.08] text-rose-100'}`}>{state.message}</p> : null}
               <button type="button" onClick={() => void submit()} disabled={submitting || loadingVenues || title.trim().length < 2} className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#f5c518] px-5 text-[11px] font-black uppercase tracking-[0.15em] text-[#171006] disabled:opacity-45">
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
-                {submitting ? 'Starting…' : `Start Rally · 1/${minimumPeople}`}
+                {submitting ? 'Publishing…' : !actorWallet ? 'Sign in to continue' : `Publish meetup · 1/${minimumPeople}`}
               </button>
               {!actorWallet ? <p className="mt-3 text-center text-[10px] text-white/34">You can choose everything first. Sign in is required only when you start it.</p> : null}
             </>
           )}
         </section>
-        <p className="mt-4 flex items-center justify-center gap-2 text-[10px] text-white/30"><MapPin className="h-3.5 w-3.5" /> Place-native · time-bound · mutual opt-in</p>
+        <p className="mt-4 flex items-center justify-center gap-2 text-[10px] text-white/30"><MapPin className="h-3.5 w-3.5" /> Choose a public place. Share with people who want to join.</p>
       </div>
     </main>
   );

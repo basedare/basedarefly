@@ -37,6 +37,7 @@ export type Flyer = {
 };
 
 export type BoardSections = {
+  unavailable?: boolean;
   tonight: Flyer[];
   rewards: Flyer[];
   receipts: Flyer[];
@@ -210,6 +211,6 @@ export async function getBoardSections(opts: { city?: string } = {}): Promise<Bo
     };
   } catch (error) {
     console.error('[BOARD] getBoardSections failed:', error);
-    return EMPTY;
+    return { ...EMPTY, unavailable: true };
   }
 }

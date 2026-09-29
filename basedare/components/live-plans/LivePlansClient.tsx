@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/DiscoveryLink';
+import { useDiscovery } from '@/components/DiscoveryProvider';
 import { useRecommendationClock } from '@/hooks/useRecommendationClock';
 import { assessRecommendation } from '@/lib/recommendation-policy';
 import { PARTICIPATION_FILTERS, filterParticipation, type ParticipationFilter } from '@/lib/participation-filter';
@@ -73,24 +74,24 @@ type LivePlansClientProps = {
 };
 
 export default function LivePlansClient({
-  initialCenter = SIARGAO_CENTER,
-  initialMode = 'NOW',
-  initialRadiusKm = 12,
   initialSelectedPlanId = null,
   initialNeedsPeople = false,
-  initialParticipation = 'all',
 }: LivePlansClientProps) {
   const now = useRecommendationClock();
-  const [center, setCenter] = useState(initialCenter);
-  const [radiusKm] = useState(initialRadiusKm);
+  const { area, ready: areaReady, updateArea } = useDiscovery();
+  const center = useMemo(() => ({ latitude: area.lat, longitude: area.lng }), [area.lat, area.lng]);
+  const setCenter = (value: { latitude: number; longitude: number }) => updateArea({ lat: value.latitude, lng: value.longitude, label: 'Selected map area' });
+  const radiusKm = area.radiusKm;
   const [usingDeviceLocation, setUsingDeviceLocation] = useState(false);
   const [snapshot, setSnapshot] = useState<LivePlanSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<WorldPulseMode>(initialMode);
+  const mode = area.mode;
+  const setMode = useCallback((mode: WorldPulseMode) => updateArea({ mode }), [updateArea]);
   const [needsPeopleOnly, setNeedsPeopleOnly] = useState(initialNeedsPeople);
-  const [participation, setParticipation] = useState(initialParticipation);
+  const participation = area.participation;
+  const setParticipation = (participation: ParticipationFilter) => updateArea({ participation });
   const [pickedPlanId, setPickedPlanId] = useState<string | null>(initialSelectedPlanId);
   const [peebearOpen, setPeebearOpen] = useState(false);
   const [peebearDecision, setPeebearDecision] = useState<PeeBearDecisionState | null>(null);
@@ -141,6 +142,7 @@ export default function LivePlansClient({
   }, [load]);
 
   useEffect(() => {
+    if (!areaReady) return;
     const href = getWorldPulseViewHref({
       mode,
       center,
@@ -151,7 +153,7 @@ export default function LivePlansClient({
     });
     window.history.replaceState(window.history.state, '', href);
     window.dispatchEvent(new Event('basedare:plan-area-updated'));
-  }, [center, mode, needsPeopleOnly, pickedPlanId, radiusKm, participation]);
+  }, [areaReady, center, mode, needsPeopleOnly, pickedPlanId, radiusKm, participation]);
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -307,7 +309,7 @@ export default function LivePlansClient({
     setPeebearDecision(null);
     setGuideStep(0);
     scrollToGuideTarget(0);
-  }, [rememberIntro, scrollToGuideTarget]);
+  }, [rememberIntro, scrollToGuideTarget, setMode]);
 
   const moveGuide = useCallback((direction: 'back' | 'next') => {
     if (guideStep == null) return;
@@ -329,25 +331,27 @@ export default function LivePlansClient({
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200/72"><Radio className="h-4 w-4" /> World Pulse</p>
-              <h1 className="mt-3 max-w-4xl text-4xl font-black leading-[0.96] sm:text-6xl">See the island move. Join what happens next.</h1>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/52">Free challenges, community plans and paid dares. Pick what you want to do, then choose a time.</p>
+              <h1 className="mt-3 max-w-4xl text-3xl font-black leading-[0.96] sm:text-4xl">Find your next move. </h1>
+              <p className="mt-3 text-sm text-cyan-100/80">{area.label} · within {radiusKm} km</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => setPeebearOpen((current) => !current)} aria-expanded={peebearOpen} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-200/22 bg-yellow-300/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-yellow-100 hover:bg-yellow-300/[0.13]">
                 <Dices className="h-4 w-4" /> Poke PeeBear
               </button>
-              <button type="button" onClick={startGuide} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/12 bg-white/[0.045] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-white/62 hover:text-white">
-                <CircleHelp className="h-4 w-4" /> Show me around
-              </button>
               <button type="button" onClick={useMyLocation} disabled={locating} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-cyan-200/22 bg-cyan-300/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-cyan-100 disabled:opacity-50">
                 {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
                 {usingDeviceLocation ? 'Near me' : 'Use my area'}
               </button>
+              <details className="relative"><summary className="bd-action cursor-pointer">More options</summary><div className="mt-2 flex flex-wrap gap-2">              <button type="button" onClick={startGuide} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/12 bg-white/[0.045] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-white/62 hover:text-white">
+                <CircleHelp className="h-4 w-4" /> How it works
+              </button>
+
               <button type="button" onClick={() => void sharePulse()} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-violet-200/20 bg-violet-300/[0.07] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-violet-100">
                 <Share2 className="h-4 w-4" /> Share view
               </button>
-              <Link href="/community/rally/new" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-[#171006]">
-                <Plus className="h-4 w-4" /> Start a Rally
+</div></details>
+              <Link href="/community/rally/new" className="bd-action bd-action--gold inline-flex min-h-11 items-center gap-2 rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-[#171006]">
+                <Plus className="h-4 w-4" /> Start a meetup
               </Link>
             </div>
           </div>
@@ -428,7 +432,7 @@ export default function LivePlansClient({
               <p className="mx-auto mt-2 max-w-md text-sm text-white/44">{snapshot ? "Try another time window, browse plans for later, or start a public plan nearby." : "Refresh to check what is available in this area."}</p>
               {!snapshot ? <button type="button" onClick={() => void load()} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Try again</button> : mode !== 'ALL' ? <button type="button" onClick={() => setMode('ALL')} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Browse all plans</button> : null}
               {snapshot && participation !== 'all' ? <button type="button" onClick={() => setParticipation('all')} className="mx-auto mt-4 block min-h-11 text-sm font-bold text-cyan-100">See other activity types</button> : null}
-              <Link href="/community/rally/new" className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006]">Start the first Rally</Link>
+              <Link href="/community/rally/new" className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006]">Start a meetup</Link>
             </section>
           )}
         </div>

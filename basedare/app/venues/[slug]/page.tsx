@@ -321,7 +321,7 @@ export default async function VenueDetailPage(
       delta: last7DayWindow.checkInsDelta,
     },
     {
-      label: 'Visitors',
+      label: 'Daily visitors total',
       value: last7DayWindow.uniqueVisitors,
       delta: last7DayWindow.uniqueVisitorsDelta,
     },
@@ -713,7 +713,9 @@ export default async function VenueDetailPage(
                       </Link>
                     </div>
                   </div>
-                  <div className={`${softCardClass} px-5 py-4`}>
+                  <details id="venue-management" className={`${softCardClass} scroll-mt-28 px-5 py-4`}>
+                    <summary className="cursor-pointer text-sm font-bold text-white">Own or manage this venue?</summary>
+                    <p className="mt-3 text-sm leading-6 text-white/65">Sign in and set up a public handle, then request venue access. BaseDare reviews your authority to manage this place before editing tools are enabled.</p>
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">For venue teams</p>
                     <div className="mt-2 flex items-center justify-between">
@@ -731,24 +733,24 @@ export default async function VenueDetailPage(
                     <div className="mt-4 grid gap-2">
                       <SquircleLink
                         href={activateVenueHref}
-                        label="Set up a venue pilot"
+                        label="Plan a venue activity"
                         tone="yellow"
                         fullWidth
                         height={44}
                         labelClassName="text-[0.64rem] tracking-[0.06em] sm:text-[0.72rem] sm:tracking-[0.07em]"
                       >
-                        Set up a venue pilot
+                        Plan a venue activity
                         <Sparkles className="h-4 w-4" />
                       </SquircleLink>
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {venue.commandCenter.consoleUrl ? (
+                      {venue.commandCenter.claimState === 'claimed' && venue.commandCenter.consoleUrl ? (
                         <Link
                           href={venue.commandCenter.consoleUrl}
                           className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
                         >
-                          Open venue console
+                          Manage venue
                           <ArrowRight className="h-4 w-4" />
                         </Link>
                       ) : (
@@ -784,7 +786,7 @@ export default async function VenueDetailPage(
                           <CreditCard className="h-3.5 w-3.5" />
                           BaseCash manual pilot
                         </Link>
-                        {venue.commandCenter.consoleUrl ? (
+                        {venue.commandCenter.claimState === 'claimed' && venue.commandCenter.consoleUrl ? (
                           <>
                             <Link href={venueReportHref} className="rounded-full border border-cyan-300/16 bg-cyan-500/[0.07] px-3 py-2 text-cyan-100/78 transition hover:text-white">
                               Decision brief
@@ -803,7 +805,7 @@ export default async function VenueDetailPage(
                         ) : null}
                       </div>
                     </details>
-                  </div>
+                  </details>
                 </div>
                 <WorthADetourCard venueSlug={venue.slug} venueName={venue.name} />
               </div>
@@ -833,6 +835,9 @@ export default async function VenueDetailPage(
             </div>
           </div>
 
+          <details className="rounded-[24px] border border-white/10 bg-black/20 p-4">
+            <summary className="bd-action cursor-pointer">Place history and venue reports</summary>
+            <div className="mt-4 space-y-5">
           {sparkRun.state !== 'cold' || venue.commandCenter.consoleUrl ? (
             <SparkRunCard sparkRun={sparkRun} />
           ) : null}
@@ -1025,6 +1030,9 @@ export default async function VenueDetailPage(
               </div>
             </div>
           </div>
+
+            </div>
+          </details>
 
           <div className="relative grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
             <div className="space-y-6">

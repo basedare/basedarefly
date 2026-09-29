@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
-import LiquidBackground from '@/components/LiquidBackground';
 
 const missionPassEmailEnabled = process.env.NEXT_PUBLIC_MISSION_PASS_EMAIL_ENABLED === 'true';
 
@@ -97,19 +96,19 @@ export default function MissionsClient() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#07070b] px-4 pb-20 pt-24 text-white sm:px-6">
-      <LiquidBackground />
+    <main className="relative min-h-screen overflow-hidden bg-transparent px-4 pb-20 pt-6 text-white sm:px-6">
+
       <div className="relative z-10 mx-auto max-w-3xl">
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#ffe36a]">Mission Pass</p>
-        <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Your saved Mission Passes.</h1>
+        <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Your saved activities.</h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-white/55">
-          A Mission Pass is a private handoff link for an activity you chose. It restores the exact activity in another browser or device; it does not reserve a slot, claim a reward, or create a public profile.
+          Save a private link to continue an activity on another browser or device. Saving does not reserve a place or claim a reward.
         </p>
 
         <section className="mt-6 grid gap-2 sm:grid-cols-3" aria-label="How Mission Pass handoff works">
           {[
             ['1. Save', 'Choose Save Mission Pass on a live activity.'],
-            ['2. Handoff', 'Email, share, or copy the private continuation link.'],
+            ['2. Share', 'Email, share, or copy the private continuation link.'],
             ['3. Continue', 'Open it later; claim or prove separately when ready.'],
           ].map(([label, detail]) => (
             <div key={label} className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4">
@@ -131,7 +130,7 @@ export default function MissionsClient() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-black">Saved on this journey</h2>
-              <p className="mt-1 text-sm text-white/40">The list follows your private pass, not a public account.</p>
+              <p className="mt-1 text-sm text-white/40">These private links belong to this journey.</p>
             </div>
             {missions.some((mission) => mission.state !== 'COMPLETED') ? (
               <button

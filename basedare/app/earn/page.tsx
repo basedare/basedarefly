@@ -1,3 +1,4 @@
+import RetryPage from '@/components/RetryPage';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BriefcaseBusiness, CheckCircle2, Plus, Radio } from 'lucide-react';
@@ -34,7 +35,9 @@ export default async function EarnPage({
   searchParams: Promise<{ alerts?: string; city?: string }>;
 }) {
   const { alerts, city } = await searchParams;
-  const missions = await getCreatorMissions();
+  const result = await getCreatorMissions();
+  const unavailable = result === null;
+  const missions = result ?? [];
   const missionAlertCity = getMarket(city)?.name ?? city;
   const showAlerts = missions.length === 0 || alerts === '1';
   const alertsQuery = new URLSearchParams({ alerts: '1' });
@@ -95,7 +98,7 @@ export default async function EarnPage({
             <div>
               <p className={controlMicroLabel}>Available now</p>
               <h2 id="open-creator-missions" className="mt-1 text-2xl font-black text-white">
-                {missions.length === 1 ? '1 open mission' : `${missions.length} open missions`}
+                {unavailable ? 'Missions couldn’t load' : missions.length === 1 ? '1 open mission' : `${missions.length} open missions`}
               </h2>
             </div>
             <span className="hidden text-xs font-semibold text-white/35 sm:block">Real rewards only · no sample jobs</span>
@@ -108,11 +111,12 @@ export default async function EarnPage({
           ) : (
             <div className={`${controlPanel} px-6 py-10 text-center sm:px-10`}>
               <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-200" aria-hidden="true" />
-              <h2 className="mt-4 text-2xl font-black text-white">No open paid missions right now</h2>
+              <h2 className="mt-4 text-2xl font-black text-white">{unavailable ? 'We couldn’t check available missions' : 'No open paid missions right now'}</h2>
               <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/48">
-                BaseDare does not show fake jobs to make the page look busy. Check back after the next funded brief goes live.
+                {unavailable ? 'Please try again. Your existing work is still available from Your activity.' : 'Get an alert when a funded brief opens, or find something free to do nearby.'}
               </p>
               <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
+                {unavailable ? <RetryPage /> : null}
                 <Link
                   href="#mission-alerts"
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-yellow-200/18 bg-yellow-300/[0.07] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100"

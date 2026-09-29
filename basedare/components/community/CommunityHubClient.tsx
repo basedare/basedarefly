@@ -1,10 +1,11 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/DiscoveryLink';
+import { useDiscovery } from '@/components/DiscoveryProvider';
 import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
-import { AtSign, BadgeCheck, HandHeart, Map, MessageCircle, Plus, ShieldCheck, ShipWheel, Sparkles, Store } from 'lucide-react';
+import { AtSign, BadgeCheck, Map, MessageCircle, Plus, ShieldCheck, ShipWheel, Sparkles, Store } from 'lucide-react';
 
 import CommunityActivityCard from '@/components/community/CommunityActivityCard';
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
@@ -52,6 +53,7 @@ function postTypeLabel(postType: 'ask' | 'offer') {
 }
 
 export default function CommunityHubClient() {
+  const { area } = useDiscovery();
   const { data: session } = useSession();
   const { address } = useAccount();
   const { signMessageAsync } = useSignMessage();
@@ -75,8 +77,8 @@ export default function CommunityHubClient() {
   useEffect(() => {
     const controller = new AbortController();
     const load = () => { void Promise.all([
-      fetch('/api/live-plans?lat=9.803&lng=126.159&radiusKm=12&horizonHours=72&limit=18', { cache: 'no-store', signal: controller.signal }),
-      fetch('/api/local-signals?lat=9.803&lng=126.159&radiusKm=12&limit=20', { cache: 'no-store', signal: controller.signal }),
+      fetch(`/api/live-plans?lat=${area.lat}&lng=${area.lng}&radiusKm=${area.radiusKm}&horizonHours=72&limit=18`, { cache: 'no-store', signal: controller.signal }),
+      fetch(`/api/local-signals?lat=${area.lat}&lng=${area.lng}&radiusKm=${area.radiusKm}&limit=20`, { cache: 'no-store', signal: controller.signal }),
       fetch('/api/venues/active', { signal: controller.signal }),
     ])
       .then(async ([livePlanResponse, localResponse, venueResponse]) => {
@@ -111,7 +113,7 @@ export default function CommunityHubClient() {
     document.addEventListener('visibilitychange', refresh);
     window.addEventListener('basedare:live-plans-updated', refresh);
     return () => { controller.abort(); window.clearInterval(interval); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('basedare:live-plans-updated', refresh); };
-  }, []);
+  }, [area.lat, area.lng, area.radiusKm]);
 
   useEffect(() => {
     if (!actorWallet) {
@@ -211,36 +213,24 @@ export default function CommunityHubClient() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-28 text-white sm:px-6 lg:px-10">
+    <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-6 text-white sm:px-6 lg:px-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(16,185,129,0.12),transparent_30%),radial-gradient(circle_at_85%_18%,rgba(139,92,246,0.14),transparent_34%)]" />
       <div className="relative mx-auto max-w-6xl">
         <section className="rounded-[2rem] border border-white/10 bg-[linear-gradient(155deg,rgba(28,24,48,0.78),rgba(5,7,14,0.94))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] sm:p-8">
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-200/72">BaseDare community</p>
+          <p className="text-xs font-bold text-emerald-100/80">{area.label} · within {area.radiusKm} km</p>
           <div className="mt-3 grid gap-7 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>
-              <h1 className="max-w-3xl text-4xl font-black leading-[0.98] sm:text-6xl">See what&apos;s happening. Join in. Go together.</h1>
+              <h1 className="max-w-3xl text-3xl font-black leading-[0.98] sm:text-4xl">Find your people. Make a plan.</h1>
               <p className="mt-5 max-w-2xl text-sm leading-relaxed text-white/56 sm:text-base">
-                Live plans, bounded crews and useful local posts—attached to a real place and time instead of another endless feed.
+                Meetups, local conversations and people looking for company.
               </p>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              {[
-                { icon: Sparkles, label: 'Live Plans' },
-                { icon: MessageCircle, label: 'Place rooms' },
-                { icon: HandHeart, label: 'Ask / Offer' },
-              ].map(({ icon: Icon, label }) => (
-                <div key={label} className="rounded-2xl border border-white/9 bg-black/24 p-3">
-                  <Icon className="mx-auto h-5 w-5 text-cyan-200" aria-hidden="true" />
-                  <p className="mt-2 text-[9px] font-black uppercase tracking-[0.12em] text-white/48">{label}</p>
-                </div>
-              ))}
             </div>
           </div>
         </section>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <Link href="/community/rally/new" className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-[#f5c518]/20 bg-[linear-gradient(135deg,rgba(245,197,24,0.11),rgba(139,92,246,0.08),rgba(0,0,0,0.35))] p-4 transition hover:-translate-y-px hover:border-[#f8dd72]/35 sm:p-5">
-            <span className="flex min-w-0 items-center gap-4"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#f5c518]/20 bg-[#f5c518]/10 text-[#f8dd72]"><Plus className="h-6 w-6" /></span><span className="min-w-0"><strong className="block text-lg font-black text-white">Start a Rally</strong><span className="mt-1 block text-xs text-white/46">Choose a place, time and people needed.</span></span></span>
+            <span className="flex min-w-0 items-center gap-4"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#f5c518]/20 bg-[#f5c518]/10 text-[#f8dd72]"><Plus className="h-6 w-6" /></span><span className="min-w-0"><strong className="block text-lg font-black text-white">Start a meetup</strong><span className="mt-1 block text-xs text-white/46">Choose a place, time and people needed.</span></span></span>
             <span className="shrink-0 rounded-full border border-[#f5c518]/20 px-3 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#f8dd72]">Start</span>
           </Link>
           <Link href="/community/boat/kanaway" className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(34,211,238,0.09),rgba(0,0,0,0.35))] p-4 transition hover:-translate-y-px hover:border-cyan-100/32 sm:p-5">
@@ -253,13 +243,13 @@ export default function CommunityHubClient() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-[#f8dd72]"><Sparkles className="h-3.5 w-3.5" /> Live Plans</p>
-              <h2 className="mt-1 text-2xl font-black">What can you join in Siargao?</h2>
+              <h2 className="mt-1 text-2xl font-black">What can you join nearby?</h2>
             </div>
             <Link href="/now" className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.07] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.13em] text-[#f8dd72]">Open NOW</Link>
           </div>
           {loadFailed ? <p role="status" className="mt-3 text-sm text-amber-100">Live plans could not refresh. Open NOW to retry; any cards below may be out of date.</p> : null}
-          {livePlans.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{livePlans.slice(0, 6).map((plan) => <LivePlanCard key={plan.id} plan={plan} compact />)}</div> : !loading && !loadFailed ? <div className="mt-4 rounded-2xl border border-dashed border-white/14 bg-black/20 p-5 text-sm text-white/42">No published plans in this area yet. Start a Rally or try a free adventure below.</div> : null}
-          <AdventureSuggestions area={{ lat: 9.803, lng: 126.159, label: 'Siargao', timeZone: 'Asia/Manila' }} />
+          {livePlans.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{livePlans.slice(0, 6).map((plan) => <LivePlanCard key={plan.id} plan={plan} compact />)}</div> : !loading && !loadFailed ? <div className="mt-4 rounded-2xl border border-dashed border-white/14 bg-black/20 p-5 text-sm text-white/42">No published plans in this area yet. Start a meetup or try a free adventure below.</div> : null}
+          <AdventureSuggestions area={area} />
         </section>
 
         <section className="mt-8">

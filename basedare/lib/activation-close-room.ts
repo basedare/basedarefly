@@ -45,6 +45,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const BUDGET_LABELS: Record<string, string> = {
+  discuss: 'Budget to be agreed',
   [MANAGED_FIELD_SPRINT_BUDGET_RANGE]: MANAGED_FIELD_SPRINT_BUDGET_LABEL,
   '1500_5000': '$1.5k-$5k',
   '5000_15000': '$5k-$15k',

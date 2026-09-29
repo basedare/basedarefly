@@ -9887,7 +9887,6 @@ export default function RealWorldMap() {
 
   const selectedPlaceOpenVenueButton =
     selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlace.slug && selectedVenueActionsHref ? (
-      <>
       <Link
         href={selectedVenueActionsHref}
         prefetch
@@ -9911,10 +9910,6 @@ export default function RealWorldMap() {
         ) : null}
         <span>{openingVenueSlug === selectedPlace.slug ? 'Opening…' : 'View place'}</span>
       </Link>
-      <Link href={`/adventures?place=${encodeURIComponent(selectedPlace.slug)}`} className="inline-flex min-h-11 items-center justify-center gap-2 px-3 text-xs font-bold text-violet-200">
-        Free things to try here →
-      </Link>
-      </>
     ) : null;
 
   const selectedPlaceDirectionsButton =
@@ -12318,6 +12313,10 @@ export default function RealWorldMap() {
                   ) : null}
 
                   {selectedPlaceCheckInMessage ? <div className="mt-1">{selectedPlaceCheckInMessage}</div> : null}
+
+                  {!selectedPlaceIsPrivateSpot && selectedPlace.slug ? (
+                    <Link href={`/adventures?place=${encodeURIComponent(selectedPlace.slug)}&lat=${selectedPlace.latitude}&lng=${selectedPlace.longitude}`} className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-violet-200">Free things to try here →</Link>
+                  ) : null}
 
                   {selectedPlaceLatestUpdatesRail}
 

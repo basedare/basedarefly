@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, MessageCircle, Sparkles, X } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/DiscoveryLink";
 import { usePathname } from 'next/navigation';
 import { useView } from '@/app/context/ViewContext';
 import GlassSurface from './GlassSurface';
@@ -23,7 +23,7 @@ const NAV_LINKS = [
     href: "/start",
     activePrefixes: ["/start", "/create", "/community/rally/new"],
   },
-  { name: "PROFILE", href: "/dashboard", activePrefixes: ["/dashboard"] },
+  { name: "MY ACTIVITY", href: "/dashboard", activePrefixes: ["/dashboard"] },
   { name: "COMMUNITY", href: "/community", activePrefixes: ["/community"] },
 ];
 
@@ -31,6 +31,12 @@ const NAV_LINK_PREFETCH = false;
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setIsOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen]);
   const pathname = usePathname();
   const { isControlMode } = useView();
   const isMapRoute = pathname === '/map' || pathname?.startsWith('/map/');
@@ -109,7 +115,7 @@ export default function Navbar() {
               href="/"
               prefetch={NAV_LINK_PREFETCH}
               aria-label="Open BaseDare home"
-              className="relative group inline-flex h-10 w-[132px] items-center justify-center md:h-14 md:w-[224px]"
+              className="relative group inline-flex h-10 w-[112px] items-center justify-center md:h-14 md:w-[224px]"
             >
               {/* Very subtle ambient glow */}
               <div className="absolute inset-1 rounded-lg bg-purple-500/10 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 md:inset-2" />
@@ -120,7 +126,7 @@ export default function Navbar() {
                 width={620}
                 height={161}
                 priority
-                sizes="(min-width: 768px) 224px, 132px"
+                sizes="(min-width: 768px) 224px, 112px"
                 className={`relative h-8 w-auto max-w-full object-contain transition-all duration-300 hover:scale-105 md:h-[56px] ${isControlMode
                   ? 'grayscale contrast-110 brightness-95'
                   : ''
@@ -172,7 +178,7 @@ export default function Navbar() {
               prefetch={NAV_LINK_PREFETCH}
               aria-label="Open messenger"
               title="Messenger"
-              className={`order-2 flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors md:hidden ${
+              className={`order-2 hidden h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition-colors md:hidden ${
                 pathname?.startsWith('/chat')
                   ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100'
                   : 'border-white/10 bg-black/50 text-white/75 hover:border-cyan-300/30 hover:bg-cyan-400/[0.1]'
@@ -189,6 +195,9 @@ export default function Navbar() {
 
             {/* === MOBILE HAMBURGER (Visible ONLY on Mobile via 'md:hidden') === */}
             <button
+              aria-label={isOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isOpen}
+              aria-controls="mobile-navigation"
               onClick={() => setIsOpen(!isOpen)}
               className="order-5 md:hidden w-10 h-10 flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-white active:scale-90 transition-transform"
             >
@@ -215,7 +224,8 @@ export default function Navbar() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-40 bg-[#050505]/95 backdrop-blur-xl md:hidden flex flex-col pt-32 px-6"
+            id="mobile-navigation"
+            className="fixed inset-0 z-40 bg-[#050505]/95 backdrop-blur-xl md:hidden flex flex-col overflow-y-auto pt-24 px-6 pb-8"
           >
             {/* Mobile Links - Liquid Metal Chrome */}
             <div className="flex flex-col gap-4">
@@ -278,6 +288,7 @@ export default function Navbar() {
               })}
             </div>
 
+            <Link href="/chat" onClick={() => setIsOpen(false)} className="bd-action mt-4">Messages</Link>
             {/* Universal first-run CTA. */}
             <Link
               href="/join"

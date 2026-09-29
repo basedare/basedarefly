@@ -14,6 +14,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex plain-English and usability continuity (2026-09-30 — MAIN RELEASE)
+- User authorized the site-wide usability pass and main push. Preserve the physical homepage controls and existing brand; replace Sprint/scoping jargon in public buyer journeys, simplify First Spark and Dashboard, and collapse venue reporting behind an explicit disclosure.
+- Shared discovery context carries area/radius/category/time through supported links. Meetup drafts restore in session storage and use venue-local scheduling. Venue management remains an authenticated, reviewed claim; claim-tag setup retains its return link.
+- Correct misleading empty/error states, hardcoded nearby counts, calendar-based venue reports and recorded funding/payment filters. No DB migration, contract deployment, live payment, approval or production data mutation.
+- See docs/usability-release-2026-09-30.md for checks, remaining gates and rollback. This does not certify the previously blocked mainnet money loop.
+
 ### Codex adventure and earn background consistency (2026-09-29 — MAIN RELEASE)
 - Remove the opaque adventure page fill and the Earn page's duplicate black veil and full-screen blur. Both entry pages now reveal the existing global background; adventure details share the same correction. Preserve card surfaces, navigation and activity/payment behavior.
 - Checked desktop and 390px mobile rendering, transparent page shells, no horizontal overflow, targeted lint (zero errors; one existing adventure-handler warning), and production build. No schema or environment changes. User authorized the main push; roll back if these page shells obscure content or navigation.

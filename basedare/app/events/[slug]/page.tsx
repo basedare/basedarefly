@@ -29,7 +29,7 @@ export default async function EventPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const event = await getPublicVenueEvent(slug).catch(() => null);
+  const event = await getPublicVenueEvent(slug);
   if (!event) notFound();
   return <EventDetailClient initialEvent={event} />;
 }

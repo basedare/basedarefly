@@ -153,7 +153,7 @@ function shapeCreatorMission(row: CreatorMissionRow, now = new Date()): CreatorM
   };
 }
 
-export async function getCreatorMissions(): Promise<CreatorMission[]> {
+export async function getCreatorMissions(): Promise<CreatorMission[] | null> {
   try {
     const now = new Date();
     const rows = await fetchMissionRows();
@@ -162,7 +162,7 @@ export async function getCreatorMissions(): Promise<CreatorMission[]> {
       .map((row) => shapeCreatorMission(row, now));
   } catch (error) {
     console.error('[CREATOR MISSIONS] Unable to load open missions:', error);
-    return [];
+    return null;
   }
 }
 
@@ -180,6 +180,6 @@ export const getCreatorMissionByShortId = cache(async (shortId: string): Promise
     return shapeCreatorMission(row);
   } catch (error) {
     console.error('[CREATOR MISSIONS] Unable to load mission:', error);
-    return null;
+    throw error;
   }
 });

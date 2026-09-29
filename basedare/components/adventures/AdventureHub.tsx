@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/DiscoveryLink';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Check, Compass, MapPin, Sparkles } from 'lucide-react';
@@ -10,7 +10,7 @@ import { ACTIVITY_SUGGESTIONS, SIARGAO_ACTIVITY_AREA, suggestionsForArea, type A
 import { trackClientEvent } from '@/lib/analytics';
 
 const panel = 'rounded-[1.7rem] border border-white/10 bg-[linear-gradient(145deg,rgba(39,26,64,0.85),rgba(7,8,16,0.98))] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-7';
-const button = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40';
+const button = 'bd-action inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40';
 
 export default function AdventureHub({ activityId }: { activityId?: string }) {
   const query = useSearchParams();
@@ -63,7 +63,7 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
     setMessage('Adventure started. Your steps are saved as you go.');
     trackClientEvent('adventure_started', { activity_id: activity.id, company, source: 'adventures' });
   }
-  return <main className="relative min-h-screen overflow-hidden bg-transparent px-4 pb-32 pt-28 text-white sm:px-6">
+  return <main className="relative min-h-screen overflow-hidden bg-transparent px-4 pb-32 pt-6 text-white sm:px-6">
     <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_18%_10%,rgba(34,211,238,0.06),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(168,85,247,0.08),transparent_36%)]" aria-hidden="true" />
     <div className="relative z-10 mx-auto max-w-3xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -90,9 +90,10 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
         </article>)}</div>
       </> : <section className={panel + ' mt-6'}>
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold text-violet-100"><span>Free activity</span><span>About {activity.minutes} minutes</span><span>Solo or with friends</span></div>
-        <p className="mt-4 text-sm text-white/60">Your reward: a new experience and a personal journal. No cash, venue perk or verified reputation is awarded for this activity.</p>
+        <p className="mt-4 text-sm text-white/60">Free to try. Save the experience in your journal; this activity has no cash or venue reward.</p>
         {!canStart && !current ? <p className="mt-4 rounded-xl border border-amber-200/20 bg-amber-200/5 p-3 text-sm text-amber-100">{!placeReady ? 'Confirm the place before starting.' : 'This activity doesn’t fit the local time right now. Choose another adventure or come back at a suitable time.'}</p> : null}
         {current && !canStart ? <p className="mt-4 text-sm text-amber-100">The activity window has changed. Stop if conditions no longer suit it; your progress is still saved.</p> : null}
+        {current ? <p className="mt-4 text-sm text-violet-100">Tap each numbered circle as you finish a step.</p> : null}
         <ol className="my-6 space-y-3">{activity.steps.map((step, index) => <li key={step} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 p-4">
           <button aria-label={`Step ${index + 1}: ${step}`} aria-pressed={current?.steps.includes(index) ?? false} disabled={!current} onClick={() => current && change((previous) => updateAdventureStep(previous, current.runId, index))} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-violet-200/25 text-violet-100 disabled:opacity-45">{current?.steps.includes(index) ? <Check size={18} /> : index + 1}</button><p className="pt-2 text-sm leading-6 text-white/80">{step}</p>
         </li>)}</ol>

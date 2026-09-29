@@ -29,7 +29,6 @@ const ACTIVE_DARE_STATUSES = [
 
 const PAID_DARE_STATUSES = ['VERIFIED', 'PAID', 'COMPLETED'];
 const ACTIVE_VENUE_CAMPAIGN_STATUSES = ['FUNDING', 'RECRUITING', 'LIVE', 'ACTIVE', 'VERIFYING'];
-const PAID_CAMPAIGN_SLOT_STATUSES = ['VERIFIED', 'PAID'];
 const LIVE_POT_QUERY_TIMEOUT_MS = 1600;
 const LIVE_POT_MEMORY_TTL_MS = 30_000;
 const LIVE_POT_CACHE_HEADER = 'public, max-age=20, stale-while-revalidate=90';
@@ -184,11 +183,10 @@ async function buildLivePotPayload() {
       _sum: { amount: true },
     });
 
+    const asOf = new Date();
     const paidCampaignSlotWhere: Prisma.CampaignSlotWhereInput = {
-      OR: [
-        { paidAt: { not: null } },
-        { status: { in: PAID_CAMPAIGN_SLOT_STATUSES } },
-      ],
+      paidAt: { not: null },
+      payoutTxHash: { startsWith: '0x' },
     };
 
     const [
@@ -203,16 +201,17 @@ async function buildLivePotPayload() {
       topVenueRows,
     ] = await Promise.all([
       prisma.dare.aggregate({
-        where: { status: { in: ACTIVE_DARE_STATUSES } },
+        where: { status: { in: ACTIVE_DARE_STATUSES }, isSimulated: false, onChainDareId: { not: null }, txHash: { startsWith: '0x' }, OR: [{ expiresAt: null }, { expiresAt: { gt: asOf } }] },
         _sum: { bounty: true },
       }),
       prisma.dare.count({
-        where: { status: { in: ACTIVE_DARE_STATUSES } },
+        where: { status: { in: ACTIVE_DARE_STATUSES }, isSimulated: false, onChainDareId: { not: null }, txHash: { startsWith: '0x' }, OR: [{ expiresAt: null }, { expiresAt: { gt: asOf } }] },
       }),
       prisma.campaign.aggregate({
         where: {
           venueId: { not: null },
           status: { in: ACTIVE_VENUE_CAMPAIGN_STATUSES },
+          fundedAt: { not: null },
         },
         _sum: { budgetUsdc: true },
       }),
@@ -220,14 +219,15 @@ async function buildLivePotPayload() {
         where: {
           venueId: { not: null },
           status: { in: ACTIVE_VENUE_CAMPAIGN_STATUSES },
+          fundedAt: { not: null },
         },
       }),
       prisma.dare.aggregate({
-        where: { status: { in: PAID_DARE_STATUSES } },
+        where: { status: { in: PAID_DARE_STATUSES }, isSimulated: false, verifyTxHash: { startsWith: '0x' } },
         _sum: { bounty: true },
       }),
       prisma.dare.count({
-        where: { status: { in: PAID_DARE_STATUSES } },
+        where: { status: { in: PAID_DARE_STATUSES }, isSimulated: false, verifyTxHash: { startsWith: '0x' } },
       }),
       prisma.campaignSlot.aggregate({
         where: paidCampaignSlotWhere,
@@ -240,6 +240,7 @@ async function buildLivePotPayload() {
         by: ['venueId'],
         where: {
           venueId: { not: null },
+          isSimulated: false, verifyTxHash: { startsWith: '0x' },
           status: { in: PAID_DARE_STATUSES },
         },
         _sum: { bounty: true },

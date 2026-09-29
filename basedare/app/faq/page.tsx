@@ -114,7 +114,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What's the CHAOS / CONTROL switch?",
-    a: "The switch separates everyday play from commissioned fieldwork. **CHAOS** is for exploring the map, joining plans, playing Sparks, and completing Dares. **CONTROL** is for buyers: scope a Verified Field Sprint and track verified results and receipts in the Buyer Workspace."
+    a: "The switch separates everyday play from commissioned fieldwork. **CHAOS** is for exploring the map, joining plans, playing Sparks, and completing Dares. **CONTROL** is for buyers: request on-site checks and review the evidence and reports in the Buyer Workspace."
   },
   {
     q: "Can brands or venues use this too?",

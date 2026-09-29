@@ -1,3 +1,4 @@
+import { venueReportPeriod } from '@/lib/venue-reporting';
 import 'server-only';
 
 import {
@@ -517,8 +518,9 @@ function buildVenueActivationInsight(input: {
   memoryHistory: VenueDetail['memoryHistory'];
   paidActivationCount: number;
 }): VenueActivationInsight {
-  const currentBucket = input.memorySummary;
-  const previousBucket = input.memoryHistory[1] ?? null;
+  const periods = venueReportPeriod(input.memoryHistory, 1);
+  const currentBucket = periods.current[0] ?? null;
+  const previousBucket = periods.previous[0] ?? null;
   const recentCompletedCount = currentBucket?.completedDareCount ?? 0;
   const completedDelta =
     recentCompletedCount - (previousBucket?.completedDareCount ?? 0);
@@ -551,8 +553,8 @@ function buildVenueActivationInsight(input: {
 
   return {
     timeframeLabel: currentBucket
-      ? `Current ${currentBucket.bucketType.toLowerCase()} bucket`
-      : 'Current venue pulse',
+      ? 'Today (UTC)'
+      : 'No observations today',
     summary: input.featuredPaidActivation
       ? `The strongest repeat candidate right now is "${input.featuredPaidActivation.title}" because it sits on the clearest mix of live funding, venue memory, and recent completion signal.`
       : recentCompletedCount > 0
@@ -575,8 +577,7 @@ function buildVenueRoiWindow(
   length: number,
   label: string
 ) {
-  const current = history.slice(0, length);
-  const previous = history.slice(length, length * 2);
+  const { current, previous } = venueReportPeriod(history, length);
   const sum = (items: VenueDetail['memoryHistory']) =>
     items.reduce(
       (acc, item) => ({
@@ -2039,8 +2040,9 @@ async function getVenueDetailBySlugFromDatabase(
         },
       },
       memories: {
+        where: { bucketType: 'DAY', bucketStartAt: { gte: new Date(Date.now() - 61 * 86400000) } },
         orderBy: { bucketStartAt: 'desc' },
-        take: 7,
+        take: 62,
       },
       qrSessions: {
         where: {

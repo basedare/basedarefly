@@ -33,7 +33,6 @@ import {
 import ContentDeliveryFields from '@/components/ContentDeliveryFields';
 import { readContentDelivery, type ContentDeliveryBrief } from '@/lib/content-delivery';
 
-const NEARBY_TOAST_KEY = 'basedare_nearby_toast_seen_v1';
 
 const dentInputClass =
   "bd-dent-surface bd-dent-surface--soft border-white/[0.06] backdrop-blur-2xl bg-white/[0.03]";
@@ -506,18 +505,7 @@ function CreateDareContent() {
     }
   }, [isSprintMission, searchParams, setValue, syncCommunitySparkPreset]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.localStorage.getItem(NEARBY_TOAST_KEY)) return;
 
-    toast({
-      title: 'Nearby Dares Enabled!',
-      description: '3 challenges waiting within 500m — open now or turn off in Settings.',
-      duration: 7000,
-    });
-
-    window.localStorage.setItem(NEARBY_TOAST_KEY, '1');
-  }, [toast]);
 
   useEffect(() => {
     if (watchVenueId) return;

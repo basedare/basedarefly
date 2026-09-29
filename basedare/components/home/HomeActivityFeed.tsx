@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import Link from '@/components/DiscoveryLink';
+import { useDiscovery } from '@/components/DiscoveryProvider';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, MapPin, RefreshCw, Sparkles } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { trackClientEvent } from '@/lib/analytics';
@@ -23,8 +24,10 @@ function recordOpen(id: string, kind: string, planId?: string) {
 }
 
 export default function HomeActivityFeed() {
-  const [area, setArea] = useState<ActivityArea>(SIARGAO_ACTIVITY_AREA);
-  const [filter, setFilter] = useState<ActivityFilter>('ALL');
+  const { area, updateArea } = useDiscovery();
+  const setArea = useCallback((value: ActivityArea) => updateArea(value), [updateArea]);
+  const filter = area.participation.toUpperCase() as ActivityFilter;
+  const setFilter = (value: ActivityFilter) => updateArea({ participation: value.toLowerCase() as typeof area.participation });
   const [snapshot, setSnapshot] = useState<{ areaKey: string; data: LivePlanSnapshot } | null>(null);
   const [failed, setFailed] = useState(false);
   const [localPosts, setLocalPosts] = useState<{ areaKey: string; posts: HomeLocalPost[] } | null>(null);
@@ -37,7 +40,7 @@ export default function HomeActivityFeed() {
   const { progress } = useAdventureProgress();
   const { coordinates, requestLocation, loading: locating, error: locationError } = useGeolocation();
   const requestedLocation = useRef(false);
-  const areaKey = `${area.lat}:${area.lng}`;
+  const areaKey = `${area.lat}:${area.lng}:${area.radiusKm}`;
   const data = snapshot?.areaKey === areaKey ? snapshot.data : null;
   const effectiveArea = { ...area, timeZone: data?.window.tz ?? area.timeZone };
 
@@ -46,7 +49,7 @@ export default function HomeActivityFeed() {
       setArea({ lat: Math.round(coordinates.lat * 1000) / 1000, lng: Math.round(coordinates.lng * 1000) / 1000, label: 'Near my location' });
       requestedLocation.current = false;
     }
-  }, [coordinates]);
+  }, [coordinates, setArea]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -55,8 +58,8 @@ export default function HomeActivityFeed() {
     setFailed(false);
     setPostsFailed(false);
     let disposed = false;
-    const query = new URLSearchParams({ lat: String(area.lat), lng: String(area.lng), radiusKm: '25', horizonHours: '72', limit: '40' });
-    const localQuery = new URLSearchParams({ lat: String(area.lat), lng: String(area.lng), radiusKm: '25', limit: '8' });
+    const query = new URLSearchParams({ lat: String(area.lat), lng: String(area.lng), radiusKm: String(area.radiusKm), horizonHours: '72', limit: '40' });
+    const localQuery = new URLSearchParams({ lat: String(area.lat), lng: String(area.lng), radiusKm: String(area.radiusKm), limit: '8' });
     const get = async (url: string) => {
         const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
         const body = await response.json();
@@ -75,7 +78,7 @@ export default function HomeActivityFeed() {
       })
       .finally(() => { window.clearTimeout(timeout); if (!disposed) setLoading(false); });
     return () => { disposed = true; window.clearTimeout(timeout); controller.abort(); };
-  }, [area.lat, area.lng, areaKey, refresh]);
+  }, [area.lat, area.lng, area.radiusKm, areaKey, refresh]);
 
   useEffect(() => {
     const restore = () => {
@@ -101,16 +104,16 @@ export default function HomeActivityFeed() {
   }, []);
 
   const live = visibleHomePlans(data?.plans ?? [], effectiveArea, now, filter).slice(0, 6);
-  const posts = filter === 'ALL' || filter === 'MEET' ? visibleHomePosts(localPosts?.areaKey === areaKey ? localPosts.posts : [], now)
+  const posts = filter === 'ALL' || filter === 'MEET' ? visibleHomePosts(localPosts?.areaKey === areaKey ? localPosts.posts : [], now, area.radiusKm)
     .filter((post) => !live.some((plan) => plan.title.toLowerCase() === post.title.toLowerCase() && plan.place.venueSlug === post.venueSlug)) : [];
-  const ideas = suggestionsForArea(effectiveArea, now, rotation).slice(0, Math.max(3 - live.length - posts.length, 1));
+  const ideas = filter === 'ALL' || filter === 'PLAY' ? suggestionsForArea(effectiveArea, now, rotation).slice(0, Math.max(3 - live.length - posts.length, 1)) : [];
   const active = activeAdventure(progress, now.getTime());
   const activeIdea = ACTIVITY_SUGGESTIONS.find((item) => item.id === active?.activityId);
   const mapHref = `/map?lat=${area.lat}&lng=${area.lng}&source=home-activity`;
 
   return <section className="mx-auto w-full max-w-[1400px]" aria-label="Find your next move">
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-      <div><p className="text-sm font-bold text-white/80">Open BaseDare and find your next move.</p><p className="mt-1 flex items-center gap-1 text-xs text-cyan-100/60"><MapPin size={13} />{area.label} · within 25 km</p></div>
+      <div><p className="text-sm font-bold text-white/80">Open BaseDare and find your next move.</p><p className="mt-1 flex items-center gap-1 text-xs text-cyan-100/60"><MapPin size={13} />{area.label} · within {area.radiusKm} km</p></div>
       <div className="flex flex-wrap gap-2 text-xs">
         <button className="min-h-11 rounded-full border border-white/10 px-3 text-white/70" onClick={() => { requestedLocation.current = false; setArea(SIARGAO_ACTIVITY_AREA); }}>Browse Siargao</button>
         <button className="min-h-11 rounded-full border border-white/10 px-3 text-white/70" disabled={locating} onClick={() => {
@@ -136,11 +139,11 @@ export default function HomeActivityFeed() {
       <p className="mt-1 text-xs text-white/50">Personal progress · free activity · no payment or verified points.</p>
       <Link className="mt-2 inline-flex min-h-11 items-center text-xs font-bold text-cyan-100" href={adventureHref(active.activityId, active.placeSlug, active.area)}>Continue your adventure →</Link>
     </div> : null}
-    {!loading && !failed && !live.length && !posts.length && filter !== 'ALL' && filter !== 'PLAY' ? <p className="mb-4 text-sm text-white/60">{filter === 'EARN' ? 'No available paid missions in this area right now.' : 'No published group plans in this area right now.'} You can still try an activity below.</p> : null}
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    {!loading && !failed && !live.length && !posts.length && filter !== 'ALL' && filter !== 'PLAY' ? <p className="mb-4 text-sm text-white/60">{filter === 'EARN' ? 'No available paid missions in this area right now.' : 'No published group plans in this area right now.'} <Link href="/adventures" className="ml-2 underline text-cyan-100">Try a free activity instead →</Link></p> : null}
+    {ideas.length ? <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
       <p className="flex items-center gap-2 text-xs text-white/50"><Sparkles size={14} />Suggested dares are free to try · no hosted event or cash reward</p>
       <button className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-white/70" onClick={() => setRotation((v) => v + 1)}><RefreshCw size={13} />Give me another idea</button>
-    </div>
+    </div> : null}
     <ActivityRail key={[filter, ...live.map((p) => p.id), ...posts.map((p) => p.id), ...ideas.map((p) => p.id)].join(':')} count={live.length + posts.length + ideas.length}>{live.map((plan) => <article key={plan.id} className={cardClass}>
       <p className="text-[10px] font-black uppercase tracking-widest text-yellow-100/80">{labels[plan.type]}</p>
       <h4 className="mt-3 text-xl font-black leading-tight text-white">{plan.title}</h4>

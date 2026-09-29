@@ -783,6 +783,7 @@ export async function alertActivationIntake(data: {
   activationBrief?: ActivationStoryBrief | null;
 }): Promise<boolean> {
   const budgetLabels: Record<string, string> = {
+    discuss: 'Budget to be agreed',
     [MANAGED_FIELD_SPRINT_BUDGET_RANGE]: MANAGED_FIELD_SPRINT_BUDGET_LABEL,
     '1500_5000': '$1.5k-$5k',
     '5000_15000': '$5k-$15k',
@@ -1111,6 +1112,7 @@ export async function alertActivationIntakeFollowUpQueue(data: {
   }>;
 }): Promise<boolean> {
   const budgetLabels: Record<string, string> = {
+    discuss: 'Budget to be agreed',
     [MANAGED_FIELD_SPRINT_BUDGET_RANGE]: MANAGED_FIELD_SPRINT_BUDGET_LABEL,
     '1500_5000': '$1.5k-$5k',
     '5000_15000': '$5k-$15k',

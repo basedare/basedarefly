@@ -110,7 +110,7 @@ export default function HowItWorks() {
                 </p>
                 <h4 className="mt-2 text-2xl font-black uppercase italic text-white">Flip to Control</h4>
                 <p className="mt-2 text-sm leading-6 text-white/58">
-                  Scope a Field Sprint, let BaseDare route contributors, and read verified results in your Buyer Workspace.
+                  Request on-site checks. BaseDare arranges the contributors and you review the evidence in your Buyer Workspace.
                 </p>
               </div>
             </div>

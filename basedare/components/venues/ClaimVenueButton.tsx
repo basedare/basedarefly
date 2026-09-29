@@ -70,8 +70,8 @@ export default function ClaimVenueButton({
 
   if (!canSubmit && status !== 'loading') {
     return (
-      <Link href="/claim-tag" className={requireAuthClassName ?? className}>
-        Set up venue access
+      <Link href={`/claim-tag?returnTo=${encodeURIComponent(`/venues/${venueSlug}#venue-management`)}`} className={requireAuthClassName ?? className}>
+        Set up your public handle
       </Link>
     );
   }

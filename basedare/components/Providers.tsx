@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { SessionProvider } from 'next-auth/react';
 import { ReactNode, useState } from 'react';
+import { DiscoveryProvider } from './DiscoveryProvider';
 import WalletAutoReconnect from './WalletAutoReconnect';
 import PostHogProvider from './PostHogProvider';
 import { SocialWebviewProvider } from './mission-pass/SocialWebviewProvider';
@@ -60,7 +61,7 @@ export function Providers({ children }: { children: ReactNode }) {
                 }}
               >
                 <WalletAutoReconnect />
-                {children}
+                <DiscoveryProvider>{children}</DiscoveryProvider>
               </OnchainKitProvider>
             </QueryClientProvider>
           </WagmiProvider>

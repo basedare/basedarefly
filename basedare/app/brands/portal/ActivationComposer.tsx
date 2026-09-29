@@ -142,7 +142,7 @@ export default function ActivationComposer({
               What do you need checked?
             </h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-white/70">
-              Tell us what to check and where. We coordinate the contributors, review the evidence and return one report. You review the scope before requesting an invoice.
+              Tell us what to check and where. We coordinate the contributors, review the evidence and return one report. You review the details before requesting an invoice.
             </p>
           </div>
           <button
@@ -218,7 +218,7 @@ export default function ActivationComposer({
                 placeholder="e.g. Are this café’s published opening hours accurate?"
                 className={inputClass}
               />
-              <p className="mt-2 text-sm leading-6 text-white/55">Keep it bounded enough that one person can answer it honestly.</p>
+              <p className="mt-2 text-sm leading-6 text-white/55">Ask one specific question that someone can answer during a visit.</p>
             </div>
             <div>
               <label htmlFor="mission-proof" className={labelClass}>What should the answer include?</label>
@@ -390,13 +390,13 @@ export default function ActivationComposer({
               }`}
             >
               <CreditCard className="h-4 w-4" />
-              Request ${formatUsdAmount(MANAGED_FIELD_SPRINT.invoiceTotalUsd)} Sprint invoice
+              Request a ${formatUsdAmount(MANAGED_FIELD_SPRINT.invoiceTotalUsd)} invoice
             </Link>
             <Link
               href="/field-sprints/example"
               className="activation-soft-button inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/12 px-5 py-3 text-sm font-black text-white/78 transition hover:border-white/24 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              See an example receipt
+              See an example report
             </Link>
             <button
               type="button"

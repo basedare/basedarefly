@@ -10,9 +10,9 @@ export type HomeLocalPost = {
   sourceAttribution: string; postType: string;
 };
 
-export function visibleHomePosts(posts: HomeLocalPost[], now: Date) {
+export function visibleHomePosts(posts: HomeLocalPost[], now: Date, radiusKm = 25) {
   return posts.filter((post) => {
-    if (post.distanceKm == null || !Number.isFinite(post.distanceKm) || post.distanceKm > 25) return false;
+    if (post.distanceKm == null || !Number.isFinite(post.distanceKm) || post.distanceKm > radiusKm) return false;
     const start = post.startsAt ? Date.parse(post.startsAt) : null;
     const end = post.endsAt ? Date.parse(post.endsAt) : start != null ? start + 4 * 3600000 : Date.parse(post.updatedAt) + 7 * 86400000;
     return Number.isFinite(end) && end > now.getTime()

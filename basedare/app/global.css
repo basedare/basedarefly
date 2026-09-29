@@ -3742,3 +3742,26 @@ button[data-testid='ockConnectWalletButton']:hover {
     linear-gradient(155deg, #141928, #0a0d17 70%);
   box-shadow: inset 0 1px 0 rgba(255, 235, 155, 0.1), 0 20px 50px rgba(0, 0, 0, 0.25);
 }
+
+/* Shared physical controls: the homepage segmented controls remain the reference. */
+.bd-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  min-height: 44px; padding: .7rem 1.1rem; border-radius: 999px;
+  border: 1px solid rgba(220,210,255,.16); color: #eeeaf5; font-size: .8rem; font-weight: 800;
+  background: linear-gradient(165deg, #242032, #100e18 65%, #08080d);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.13), inset 0 -3px 4px rgba(0,0,0,.6), 0 3px 0 #050509, 0 5px 12px rgba(0,0,0,.28);
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+.bd-action:hover { border-color: rgba(220,210,255,.35); }
+.bd-action:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 2px 6px #0009, 0 1px 0 #050509; }
+.bd-action:focus-visible { outline: 2px solid #a5f3fc; outline-offset: 4px; }
+.bd-action:disabled { opacity: .5; cursor: not-allowed; }
+.bd-action--gold { color: #211900; background: linear-gradient(160deg,#ffed76,#facc15 60%,#b48809); border-color: #ffe77d; box-shadow: inset 0 1px 2px #fff8, inset 0 -3px 3px #79540080, 0 3px 0 #614400, 0 6px 14px #0005; }
+
+.activation-raised-gold { background: linear-gradient(160deg,#ffed76,#facc15 60%,#b48809); box-shadow: inset 0 1px 2px #fff8,inset 0 -3px 3px #79540080,0 3px 0 #614400,0 6px 14px #0005; }
+.activation-soft-button { background: linear-gradient(165deg,#242032,#100e18 65%,#08080d); box-shadow: inset 0 1px 1px #ffffff21,inset 0 -3px 4px #0009,0 3px 0 #050509,0 5px 12px #0005; }
+
+@media (max-width: 767px) {
+  body.bd-map-route-active .selected-place-panel-header .venue-action-rail--lead { align-items: start !important; }
+  body.bd-map-route-active .selected-place-panel-header .map-primary-action-button { height: 48px !important; min-height: 48px !important; max-height: 48px !important; align-self: start !important; border-radius: 999px !important; font-size: 11px !important; }
+}

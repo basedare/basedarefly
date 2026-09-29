@@ -11,7 +11,7 @@ import {
   normalizeActivationBrandMemory,
 } from '@/lib/activation-brand-memory';
 import { buildActivationCloseRoomHref } from '@/lib/activation-close-room';
-import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
+import { ACTIVATION_BUDGETS, activationPlanningAmount, canReviseActivationEnquiry } from '@/lib/activation-budget';
 
 const ActivationBrandMemorySchema = z
   .object({
@@ -76,7 +76,7 @@ const ActivationIntakeSchema = z.object({
   buyerType: z.enum(['venue', 'brand', 'agency', 'event', 'other']),
   city: z.string().min(2).max(140),
   venue: z.string().max(180).optional().default(''),
-  budgetRange: z.enum(['verified_field_sprint', '1500_5000', '5000_15000', '15000_plus']),
+  budgetRange: z.enum(ACTIVATION_BUDGETS),
   timeline: z.enum(['this_week', 'this_month', 'next_90_days', 'exploring']),
   goal: z.enum(['foot_traffic', 'ugc', 'launch', 'event', 'repeat_visits', 'other']),
   packageId: z.enum(['pilot-drop', 'local-signal', 'city-takeover']).optional().default('local-signal'),
@@ -105,13 +105,6 @@ const ActivationIntakeSchema = z.object({
   activationAttribution: ActivationAttributionSchema,
   brandMemory: ActivationBrandMemorySchema,
 });
-
-const BUDGET_FLOORS: Record<z.infer<typeof ActivationIntakeSchema>['budgetRange'], number> = {
-  verified_field_sprint: MANAGED_FIELD_SPRINT.invoiceTotalUsd,
-  '1500_5000': 1500,
-  '5000_15000': 5000,
-  '15000_plus': 15000,
-};
 
 function normalizeText(value: string) {
   return value.replace(/\s+/g, ' ').trim();
@@ -244,7 +237,7 @@ export async function POST(request: NextRequest) {
       notes,
       brandMemory,
     });
-    const amount = BUDGET_FLOORS[input.budgetRange];
+    const amount = activationPlanningAmount(input.budgetRange);
     const stableDedupeKey = buildStableIntakeDedupeKey({
       email: input.email.toLowerCase(),
       company,
@@ -310,7 +303,7 @@ export async function POST(request: NextRequest) {
         metadataJson: true,
       },
     });
-    const shouldMergeExisting = Boolean(existing && !['LAUNCHED', 'REJECTED'].includes(existing.status || ''));
+    const shouldMergeExisting = Boolean(existing && canReviseActivationEnquiry(existing.status));
 
     const event = shouldMergeExisting
       ? await prisma.founderEvent.update({

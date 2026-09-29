@@ -1,5 +1,6 @@
 'use client';
 
+import { useDiscovery } from '@/components/DiscoveryProvider';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -12,7 +13,7 @@ import { useActiveWallet } from '@/hooks/useActiveWallet';
 import type { LivePlanSnapshot } from '@/lib/live-plans';
 import { normalizeWorldPulseCenter, normalizeWorldPulseRadius } from '@/lib/world-pulse';
 
-const SIARGAO_QUERY = 'lat=9.803&lng=126.159&radiusKm=25&horizonHours=168&limit=100';
+
 
 function isVisibleRoute(pathname: string) {
   return pathname === '/map' || pathname === '/board' || pathname === '/now' || pathname === '/community' || pathname === '/dashboard' || pathname.startsWith('/earn');
@@ -31,6 +32,7 @@ function isCreatorMissionItem(value: unknown): value is CreatorMissionTrayItem {
 
 export default function GlobalMyNextMove() {
   const pathname = usePathname();
+  const { area } = useDiscovery();
   const { address } = useActiveWallet();
   const { progress } = useAdventureProgress();
   const [snapshot, setSnapshot] = useState<LivePlanSnapshot | null>(null);
@@ -40,7 +42,7 @@ export default function GlobalMyNextMove() {
   const load = useCallback(async () => {
     if (!visible) return;
     try {
-      let planQuery = SIARGAO_QUERY;
+      let planQuery = new URLSearchParams({ lat: String(area.lat), lng: String(area.lng), radiusKm: String(area.radiusKm), horizonHours: "168", limit: "100" }).toString();
       if (pathname === '/now') {
         const params = new URLSearchParams(window.location.search);
         const center = normalizeWorldPulseCenter(params.get('lat') ?? undefined, params.get('lng') ?? undefined);
@@ -69,7 +71,7 @@ export default function GlobalMyNextMove() {
     } catch {
       // The tray is progressive enhancement. Page navigation must remain usable if it cannot refresh.
     }
-  }, [address, visible, pathname]);
+  }, [address, visible, pathname, area.lat, area.lng, area.radiusKm]);
 
   useEffect(() => {
     if (!visible) return;

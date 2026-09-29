@@ -17,14 +17,15 @@ export default async function EventsPage({
   searchParams: Promise<{ venue?: string }>;
 }) {
   const { venue } = await searchParams;
-  const events = await getUpcomingVenueEvents({
+  const result = await getUpcomingVenueEvents({
     venueSlug: venue ?? null,
     window: "month",
     limit: 48,
     viewerBaretagId: null,
-  }).catch(() => []);
+  }).catch(() => null);
+  const events = result ?? [];
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-28 text-white sm:px-6 lg:px-10">
+    <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-6 text-white sm:px-6 lg:px-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_4%,rgba(245,197,24,0.13),transparent_30%),radial-gradient(circle_at_86%_18%,rgba(34,211,238,0.1),transparent_34%)]" />
       <div className="relative mx-auto max-w-6xl">
         <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#f8dd72]">
@@ -56,12 +57,12 @@ export default async function EventsPage({
         ) : (
           <div className="mt-8 rounded-[1.7rem] border border-dashed border-white/14 bg-black/24 p-8 text-center">
             <p className="text-lg font-black">
-              No sourced events are live yet.
+              {result === null ? 'Events couldn’t load' : 'No published events right now'}
             </p>
             <p className="mt-2 text-sm text-white/44">
-              The operator queue publishes only listings with a real source,
-              place and exact time.
+              {result === null ? 'Try again shortly. We couldn’t check the latest listings.' : 'Try a free activity or browse community plans while new events are added.'}
             </p>
+            <a href={result === null ? "/events" : "/now"} className="bd-action mt-4">{result === null ? "Try again" : "Find something to do"}</a>
           </div>
         )}
       </div>

@@ -6,7 +6,7 @@ import type {
   VenueSessionSummary,
 } from '@/lib/venue-types';
 
-const DEFAULT_WINDOW_LABEL = 'Tonight 7-8:30';
+const DEFAULT_WINDOW_LABEL = 'Time to be confirmed';
 const DEFAULT_PERK_LABEL = 'One simple perk';
 const DEFAULT_TARGET_CHECK_INS = 20;
 const MIN_TARGET_CHECK_INS = 1;

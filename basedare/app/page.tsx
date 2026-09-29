@@ -388,7 +388,7 @@ function HomeContent() {
                 Control Mode
               </h1>
               <p className="mx-auto mt-5 max-w-md px-6 text-base font-bold leading-7 text-zinc-800 md:max-w-lg md:px-0 md:text-lg lg:-mt-16">
-                Commission one bounded real-world question. BaseDare routes independent contributors, verifies the evidence, and returns an honest receipt.
+                Ask a question about a place. BaseDare sends independent contributors to check it and returns their evidence in one report.
               </p>
             </div>
 
@@ -398,26 +398,26 @@ function HomeContent() {
                 <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
                   <div>
                     <div className="inline-flex rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100">
-                      Verified Field Sprint · Managed offer
+                      On-site checks · Managed service
                     </div>
                     <h2 className="mt-5 max-w-3xl text-3xl font-black leading-[0.98] tracking-[-0.05em] text-white sm:text-4xl lg:text-5xl">
                       Get verified answers from the real world.
                     </h2>
                     <p className="mt-4 max-w-2xl text-sm font-bold leading-6 text-white/62 sm:text-base sm:leading-7">
-                      Tell BaseDare what you need to know and where. We route independent contributors, verify the evidence, and return timestamped results with a receipt.
+                      Tell BaseDare what you need to know and where. Local contributors visit the place, document what they find, and send evidence for review. You receive a dated report.
                     </p>
                     <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                       <Link
                         href="/brands/portal?from=home&compose=1"
-                        className="inline-flex min-h-12 items-center justify-center rounded-full border border-yellow-100/30 bg-yellow-300 px-6 text-xs font-black uppercase tracking-[0.16em] text-[#171207] shadow-[0_8px_0_rgba(126,79,0,0.72)] transition hover:-translate-y-0.5"
+                        className="bd-action bd-action--gold min-h-12 px-6"
                       >
-                        Scope a Field Sprint →
+                        Request on-site checks →
                       </Link>
                       <Link
                         href="/field-sprints/example"
                         className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/12 bg-white/[0.05] px-6 text-xs font-black uppercase tracking-[0.16em] text-white/75 transition hover:bg-white/[0.09] hover:text-white"
                       >
-                        See an example receipt
+                        See an example report
                       </Link>
                     </div>
                   </div>
@@ -425,7 +425,7 @@ function HomeContent() {
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       ['Answers', `${MANAGED_FIELD_SPRINT.assignedContributorCount} independent checks`],
-                      ['Coverage', 'One bounded place or micro-area'],
+                      ['Coverage', 'One place or small local area'],
                       ['Turnaround', `${MANAGED_FIELD_SPRINT.durationDaysMin}–${MANAGED_FIELD_SPRINT.durationDaysMax} days`],
                       ['Delivery', 'Evidence, decisions and receipt'],
                     ].map(([label, value]) => (
@@ -450,7 +450,7 @@ function HomeContent() {
                 Start with one move
               </div>
               <p className="mx-auto mt-3 max-w-2xl text-sm font-bold leading-6 text-zinc-700">
-                New buyer? Start with one Verified Field Sprint. Already operating missions? Open the Brand Portal.
+                New buyer? Start with one On-site checks. Already operating missions? Open the Brand Portal.
               </p>
             </div>
 
@@ -495,9 +495,9 @@ function HomeContent() {
                     <div className="mb-3 inline-flex rounded-full border border-yellow-200/18 bg-yellow-300/[0.08] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100">
                       Start here
                     </div>
-                    <h2 className="text-2xl font-bold mb-2 text-white">Verified Field Sprint</h2>
+                    <h2 className="text-2xl font-bold mb-2 text-white">On-site checks</h2>
                     <p className="text-zinc-400 mb-4">
-                      One useful question, four independent field answers, bounded review, and one timestamped buyer receipt in {MANAGED_FIELD_SPRINT.durationDaysMin}–{MANAGED_FIELD_SPRINT.durationDaysMax} days.
+                      One clear question, four independent checks, reviewed evidence and one dated report in {MANAGED_FIELD_SPRINT.durationDaysMin}–{MANAGED_FIELD_SPRINT.durationDaysMax} days.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
                       <span className="px-2 py-1 bg-black/50 border border-yellow-200/20 text-yellow-100/80 rounded">${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} total</span>
@@ -505,7 +505,7 @@ function HomeContent() {
                       <span className="px-2 py-1 bg-black/50 border border-zinc-700/50 text-zinc-300 rounded">${MANAGED_FIELD_SPRINT.grossRewardPoolUsd} rewards</span>
                     </div>
                     <div className="mt-auto pt-6 flex items-center gap-2 text-yellow-100 font-semibold group-hover:text-white transition-colors duration-500">
-                      Scope a ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} Sprint
+                      Request ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} on-site checks
                       <span className="group-hover:translate-x-2 transition-transform duration-500">→</span>
                     </div>
                   </div>
