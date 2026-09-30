@@ -131,12 +131,11 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
       {/* ============================================
           MOBILE - Tap Target Wrapper + Visual Button
           ============================================ */}
-      <div
-        className="md:hidden fixed top-[68px] right-0 z-[9999] touch-manipulation select-none cursor-pointer"
+      <button
+        type="button"
+        aria-label={isControl ? 'Switch to community' : 'Switch to businesses'}
+        className="md:hidden relative z-20 self-end mr-6 mt-2 mb-1 touch-manipulation select-none cursor-pointer rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-300"
         style={{
-          // Large invisible tap area - extended in all directions for easier mobile taps
-          padding: '16px 20px 40px 24px',
-          margin: '-8px -8px -24px -12px',
           WebkitTapHighlightColor: 'transparent',
         }}
         onClick={flip}
@@ -169,16 +168,16 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
           {isControl ? (
             <>
               <span style={{ color: '#A855F7' }}>◀</span>
-              <span>CHAOS<span className="block text-[8px] font-semibold normal-case tracking-normal">Community</span></span>
+              <span>Community</span>
             </>
           ) : (
             <>
-              <span>CONTROL<span className="block text-[8px] font-semibold normal-case tracking-normal">For businesses</span></span>
+              <span>For businesses</span>
               <span style={{ color: '#FACC15' }}>▶</span>
             </>
           )}
         </div>
-      </div>
+      </button>
     </>
   );
 }

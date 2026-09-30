@@ -184,16 +184,16 @@ export default function RallyComposerClient() {
         }),
       });
       const payload = await response.json().catch(() => null);
-      if (!response.ok || !payload?.success || !payload.data?.shareHref) throw new Error(payload?.error || 'Could not start this Rally.');
+      if (!response.ok || !payload?.success || !payload.data?.shareHref) throw new Error(payload?.error || 'Could not start this meetup.');
       if (searchParams.get('repeat') === '1') {
         trackClientEvent('live_plan_repeat_started', { plan_type: 'meetup' });
       }
       const sameCrewInvited = Number(payload.data?.sameCrewInvited) || 0;
-      setState({ type: 'success', message: sameCrewInvited ? `Rally live. ${sameCrewInvited} previous crew ${sameCrewInvited === 1 ? 'mate was' : 'mates were'} invited.` : 'Rally live. Opening the invite…' });
+      setState({ type: 'success', message: sameCrewInvited ? `Meetup published. ${sameCrewInvited} previous ${sameCrewInvited === 1 ? 'participant was' : 'participants were'} invited.` : 'Meetup published. Opening the invite…' });
       try { sessionStorage.removeItem(draftKey); } catch { /* Optional storage. */ }
       router.push(payload.data.shareHref);
     } catch (error) {
-      setState({ type: 'error', message: error instanceof Error ? error.message : 'Could not start this Rally.' });
+      setState({ type: 'error', message: error instanceof Error ? error.message : 'Could not start this meetup.' });
     } finally {
       setSubmitting(false);
     }
@@ -203,7 +203,7 @@ export default function RallyComposerClient() {
     <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-6 text-white sm:px-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_5%,rgba(139,92,246,0.15),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(34,211,238,0.12),transparent_34%)]" />
       <div className="relative mx-auto max-w-3xl">
-        <Link href="/now" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-white/44 hover:text-white"><ArrowLeft className="h-4 w-4" /> Live Plans</Link>
+        <Link href="/now" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-white/44 hover:text-white"><ArrowLeft className="h-4 w-4" /> What’s happening</Link>
         <section className="mt-5 rounded-[2rem] border border-white/10 bg-[linear-gradient(150deg,rgba(25,20,44,0.94),rgba(5,7,14,0.99))] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.09)] sm:p-8">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-violet-200/70">Start a meetup</p>
           <h1 className="mt-3 text-4xl font-black leading-[0.96] sm:text-5xl">Make a plan. Invite people.</h1>

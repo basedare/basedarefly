@@ -4,8 +4,8 @@ import { Suspense } from 'react';
 import RallyComposerClient from '@/components/live-plans/RallyComposerClient';
 
 export const metadata: Metadata = {
-  title: 'Start a Rally | BaseDare',
-  description: 'Start a real-world plan, invite people and fill the crew.',
+  title: 'Start a meetup | BaseDare',
+  description: 'Choose a place and time, then invite people to a meetup.',
 };
 
 export default function NewRallyPage() {

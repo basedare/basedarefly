@@ -33,7 +33,7 @@ export const MARKETS: Market[] = [
     name: 'Siargao / General Luna',
     status: 'Founding market · live',
     live: true,
-    blurb: 'Live paid missions around General Luna, plus local surf crews and venue events.',
+    blurb: 'Explore General Luna, find local plans and see paid dares when available.',
     gradient: 'from-[#0d2b2b] via-[#0a1a1e] to-[#070f14]',
     accent: 'text-[#f5c518]',
     contributorCta: 'Find paid missions',

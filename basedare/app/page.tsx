@@ -52,16 +52,10 @@ function HomeContent() {
   const [showDossier, setShowDossier] = useState(false);
   const [triggerRealityShift, setTriggerRealityShift] = useState(false);
   const [triggerMatrixRain, setTriggerMatrixRain] = useState(false);
-  const [showViewToggle, setShowViewToggle] = useState(false);
   const [showBelowFoldSections, setShowBelowFoldSections] = useState(false);
   const [useLightweightHome, setUseLightweightHome] = useState(false);
   // Internal residue on a public surface — only visible with ?dossier=1.
   const showInvestorDossier = searchParams.get('dossier') === '1';
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => setShowViewToggle(true), 320);
-    return () => window.clearTimeout(timeoutId);
-  }, []);
 
   useEffect(() => {
     const hints = getClientPerformanceHints();
@@ -152,7 +146,7 @@ function HomeContent() {
           <GradualBlurOverlay intensity={useLightweightHome ? 'none' : 'full'} />
         </div>
       ) : null}
-      {showViewToggle ? <ViewToggle view={view} setView={handleViewChange} /> : null}
+      <ViewToggle view={view} setView={handleViewChange} />
 
       {/* Reality Shift - Sin City lightning from Control to Chaos */}
       <RealityShift
@@ -222,16 +216,9 @@ function HomeContent() {
               {/* Consumer first: understand the live map before seeing its earning and funding rails. */}
               <div className="relative z-30 mb-8 w-full max-w-3xl px-6 text-center">
                 <p className="mx-auto max-w-2xl text-sm font-bold leading-6 text-white/64 sm:text-base">
-                  Play a free challenge, meet people, or take a paid brief. It starts with a real place.
+                  Play free challenges. Meet people. Earn from paid dares.
                 </p>
                 <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] font-black uppercase tracking-[0.14em]">
-                  <Link
-                    href="/now?source=home"
-                    prefetch={false}
-                    className="inline-flex items-center gap-1.5 text-cyan-100/76 transition hover:text-white"
-                  >
-                    Find something nearby →
-                  </Link>
                   <Link
                     href="/map?source=home"
                     prefetch={false}

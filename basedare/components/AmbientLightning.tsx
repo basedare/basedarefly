@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { getClientPerformanceHints } from '@/lib/client-performance';
 import styles from './AmbientLightning.module.css';
@@ -18,6 +18,8 @@ type Strike = { side: 'left' | 'right'; variant: number; route: string };
 export default function AmbientLightning() {
   const pathname = usePathname();
   const [strike, setStrike] = useState<Strike | null>(null);
+  // Keep the appointment across discovery routes instead of restarting on every visit.
+  const dueAt = useRef<number | null>(null);
   const allowed = DISCOVERY_ROUTES.includes(pathname) || pathname.startsWith('/adventures/');
 
   useEffect(() => {
@@ -37,16 +39,19 @@ export default function AmbientLightning() {
         document.visibilityState === 'visible' && document.hasFocus() && !editing && !dialog &&
         document.documentElement.dataset.bdBg !== 'light' && Date.now() - lastInteraction > 3000;
     };
-    const schedule = (first = false) => {
+    const schedule = () => {
       clearTimeout(next);
       if (motion.matches || document.visibilityState !== 'visible') return;
+      if (dueAt.current === null) dueAt.current = Date.now() + 12000 + Math.random() * 6000;
       next = setTimeout(() => {
         if (quiet()) {
           setStrike({ side: Math.random() < 0.5 ? 'left' : 'right', variant: Math.random() < 0.5 ? 0 : 1, route: pathname });
           end = setTimeout(() => setStrike(null), DURATION_MS);
+          dueAt.current = Date.now() + 80000 + Math.random() * 40000;
         }
+        // A busy page defers the due strike until quiet; it does not lose an entire cycle.
         schedule();
-      }, first ? 30000 + Math.random() * 20000 : 70000 + Math.random() * 50000);
+      }, Math.max(1500, dueAt.current - Date.now()));
     };
     const activity = () => {
       lastInteraction = Date.now();
@@ -56,7 +61,7 @@ export default function AmbientLightning() {
     const reset = () => {
       clearTimeout(next); clearTimeout(end);
       setStrike(null);
-      schedule(true);
+      schedule();
     };
     const pause = () => {
       clearTimeout(next); clearTimeout(end);
@@ -68,7 +73,7 @@ export default function AmbientLightning() {
     window.addEventListener('blur', pause);
     window.addEventListener('focus', reset);
     motion.addEventListener('change', reset);
-    schedule(true);
+    schedule();
     return () => {
       clearTimeout(next); clearTimeout(end);
       setStrike(null);

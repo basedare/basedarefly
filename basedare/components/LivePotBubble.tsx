@@ -350,7 +350,7 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
               </div>
 
               <p className="mt-3 text-sm leading-relaxed text-white/68">
-                Recorded USDC rewards, campaign budgets and past settlements are shown separately. Active dares can include assigned work; these totals are not a claimable balance. Open a paid brief for its availability and your net reward.
+                Recorded USDC rewards, campaign budgets and past settlements are shown separately. Active dares can include assigned work; these totals are not a claimable balance. Open a paid dare to see availability and your net reward.
               </p>
 
               <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/35 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">

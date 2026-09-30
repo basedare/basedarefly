@@ -14,6 +14,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex homepage wording and ambient timing (2026-09-30)
+- Replace the homepage's paid-brief language with paid dares; remove its duplicate nearby link and unconditional earning promise. Use meetup and venue activity labels on the connected entry pages.
+- Mobile business switch sits in document flow with a real keyboard-accessible button, so it cannot cover the introduction. Preserve the desktop physical switch and homepage segmented controls.
+- Ambient edge lightning first becomes due after 12–18 seconds, then 80–120 seconds between actual strikes. Carry the appointment across discovery routes and retry after a busy moment rather than discarding a full interval. Keep 1.7-second fade, route exclusions, reduced-motion/data-saving/light-background and focus/interaction guards.
+- No payment, API, database or permission changes. Observed natural strikes at 390px and 1440px; mobile switch no longer overlaps copy. Typecheck, production build, targeted lint (zero errors) and static safety checks pass. Roll back this pass if navigation is covered or the effect repeats continuously.
+
 ### Codex plain-English and usability continuity (2026-09-30 — MAIN RELEASE)
 - User authorized the site-wide usability pass and main push. Preserve the physical homepage controls and existing brand; replace Sprint/scoping jargon in public buyer journeys, simplify First Spark and Dashboard, and collapse venue reporting behind an explicit disclosure.
 - Shared discovery context carries area/radius/category/time through supported links. Meetup drafts restore in session storage and use venue-local scheduling. Venue management remains an authenticated, reviewed claim; claim-tag setup retains its return link.

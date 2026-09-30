@@ -176,9 +176,9 @@ export default function HowItWorks() {
               Real dares. Real proof. Real payouts.
             </p>
             <h3 className="text-[clamp(2.35rem,7.4vw,5.7rem)] font-black italic uppercase leading-[0.9] tracking-[-0.06em] text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.16)]">
-              Wherever You Go.
+              Explore. Meet. Earn.
               <span className="mt-2 block bg-gradient-to-r from-[#f8dd72] via-[#ff7adf] to-[#a5b4fc] bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(168,85,247,0.28)] max-sm:bg-none max-sm:text-[#f8dd72] max-sm:drop-shadow-[0_0_18px_rgba(245,197,24,0.2)]">
-                Someone Will Pay You To Do It.
+                Find Your Next Move.
               </span>
             </h3>
             <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -192,7 +192,7 @@ export default function HowItWorks() {
                 href="/first-spark"
                 className="inline-flex w-full items-center justify-center rounded-full border border-white/12 bg-white/[0.045] px-6 py-3 text-[0.76rem] font-black uppercase tracking-[0.2em] text-white/86 shadow-[0_16px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-purple-300/30 hover:text-white sm:w-auto"
               >
-                Run First Spark
+                Plan a venue activity
               </Link>
             </div>
           </div>

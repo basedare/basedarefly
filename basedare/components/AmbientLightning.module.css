@@ -22,8 +22,8 @@
 }
 @keyframes distant-strike {
   0% { opacity: 0; }
-  8% { opacity: .65; }
-  27% { opacity: .22; }
+  8% { opacity: .8; }
+  27% { opacity: .3; }
   100% { opacity: 0; }
 }
 @media (max-width: 767px) {

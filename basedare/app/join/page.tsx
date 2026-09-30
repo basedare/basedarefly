@@ -37,8 +37,8 @@ const START_PATHS = [
     accent: 'border-violet-300/24 bg-violet-400/[0.08] text-violet-100',
   },
   {
-    title: 'Earn from a mission',
-    description: 'See real paid briefs first. Sign in only when you choose one.',
+    title: 'Earn from paid dares',
+    description: 'See paid dares and their rewards first. Sign in only when you choose one.',
     href: '/earn?source=join',
     intent: 'earn' as const,
     cta: 'Find paid work',
