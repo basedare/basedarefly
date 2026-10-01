@@ -1,5 +1,6 @@
 'use client';
 
+import PeoplePanel from './PeoplePanel';
 import Link from '@/components/DiscoveryLink';
 import { useDiscovery } from '@/components/DiscoveryProvider';
 import { useSession } from 'next-auth/react';
@@ -249,7 +250,8 @@ export default function CommunityHubClient() {
           </div>
           {loadFailed ? <p role="status" className="mt-3 text-sm text-amber-100">Live plans could not refresh. Open NOW to retry; any cards below may be out of date.</p> : null}
           {livePlans.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{livePlans.slice(0, 6).map((plan) => <LivePlanCard key={plan.id} plan={plan} compact />)}</div> : !loading && !loadFailed ? <div className="mt-4 rounded-2xl border border-dashed border-white/14 bg-black/20 p-5 text-sm text-white/42">No published plans in this area yet. Start a meetup or try a free adventure below.</div> : null}
-          <AdventureSuggestions area={area} />
+          <PeoplePanel />
+              <AdventureSuggestions area={area} />
         </section>
 
         <section className="mt-8">

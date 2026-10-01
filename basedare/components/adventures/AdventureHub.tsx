@@ -1,4 +1,6 @@
 'use client';
+import ShareAdventure from './ShareAdventure';
+import SharedAdventures from './SharedAdventures';
 import Link from '@/components/DiscoveryLink';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -15,6 +17,7 @@ const button = 'bd-action inline-flex min-h-11 items-center justify-center gap-2
 export default function AdventureHub({ activityId }: { activityId?: string }) {
   const query = useSearchParams();
   const placeSlug = query.get('place') ?? undefined;
+  const viewingShared = Boolean(query.get('post') || query.get('shared') === 'public' || query.get('shared') === 'mine');
   const [area, setArea] = useState<ActivityArea>(SIARGAO_ACTIVITY_AREA);
   const [placeState, setPlaceState] = useState<'none' | 'loading' | 'ready' | 'failed'>('none');
   const [minutes, setMinutes] = useState(60);
@@ -71,10 +74,10 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
         <Link href={mapHref} className={button}><MapPin size={15} />Open map</Link>
       </div>
       <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-violet-200">Explore · play · go together</p>
-      <h1 className="text-3xl font-black tracking-tight sm:text-5xl">{activity?.title ?? 'Make a little adventure.'}</h1>
-      <p className="mt-4 text-sm leading-6 text-white/65">{activity?.summary ?? 'Free things to try, on your own or with friends. Pick one and go at your own pace.'}</p>
+      <h1 className="text-3xl font-black tracking-tight sm:text-5xl">{activity?.title ?? (viewingShared ? 'Adventures worth sharing.' : 'Make a little adventure.')}</h1>
+      <p className="mt-4 text-sm leading-6 text-white/65">{activity?.summary ?? (viewingShared ? 'See what people made, then try an adventure yourself.' : 'Free things to try, on your own or with friends. Pick one and go at your own pace.')}</p>
       <p className="mt-3 flex items-center gap-2 text-xs text-cyan-100"><MapPin size={14} />{placeState === 'loading' ? 'Finding this place…' : placeState === 'failed' ? 'Place details unavailable — go back to the map and try again.' : area.label}</p>
-      {!activity ? <>
+      {!activity && !viewingShared ? <>
         <div className="my-6 flex flex-wrap items-center gap-3">
           <label className="text-xs text-white/60">Time available <select aria-label="Time available" value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="ml-2 min-h-11 rounded-xl border border-white/15 bg-[#141222] px-3 text-white"><option value={10}>10 minutes</option><option value={15}>15 minutes</option><option value={30}>30 minutes</option><option value={60}>Any time</option></select></label>
           <label className="text-xs text-white/60">Going <select aria-label="Going" value={company} onChange={(e) => setCompany(e.target.value as 'solo' | 'friends')} className="ml-2 min-h-11 rounded-xl border border-white/15 bg-[#141222] px-3 text-white"><option value="solo">Solo</option><option value="friends">With friends</option></select></label>
@@ -88,14 +91,14 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
           <p className="mt-2 text-xs text-white/50">{company === 'friends' ? 'Each choose a detail, then compare what you noticed.' : 'Go at your own pace. Sharing is optional.'}</p>
           <Link href={href(a.id)} className={button + ' mt-5 w-full'}>See the adventure →</Link>
         </article>)}</div>
-      </> : <section className={panel + ' mt-6'}>
+      </> : activity ? <section className={panel + ' mt-6'}>
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold text-violet-100"><span>Free activity</span><span>About {activity.minutes} minutes</span><span>Solo or with friends</span></div>
         <p className="mt-4 text-sm text-white/60">Free to try. Save the experience in your journal; this activity has no cash or venue reward.</p>
         {!canStart && !current ? <p className="mt-4 rounded-xl border border-amber-200/20 bg-amber-200/5 p-3 text-sm text-amber-100">{!placeReady ? 'Confirm the place before starting.' : 'This activity doesn’t fit the local time right now. Choose another adventure or come back at a suitable time.'}</p> : null}
         {current && !canStart ? <p className="mt-4 text-sm text-amber-100">The activity window has changed. Stop if conditions no longer suit it; your progress is still saved.</p> : null}
         {current ? <p className="mt-4 text-sm text-violet-100">Tap each numbered circle as you finish a step.</p> : null}
         <ol className="my-6 space-y-3">{activity.steps.map((step, index) => <li key={step} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 p-4">
-          <button aria-label={`Step ${index + 1}: ${step}`} aria-pressed={current?.steps.includes(index) ?? false} disabled={!current} onClick={() => current && change((previous) => updateAdventureStep(previous, current.runId, index))} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-violet-200/25 text-violet-100 disabled:opacity-45">{current?.steps.includes(index) ? <Check size={18} /> : index + 1}</button><p className="pt-2 text-sm leading-6 text-white/80">{step}</p>
+          <button aria-label={`Step ${index + 1}: ${step}`} aria-pressed={(current ?? latestCompleted)?.steps.includes(index) ?? false} disabled={!current} onClick={() => current && change((previous) => updateAdventureStep(previous, current.runId, index))} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-violet-200/25 text-violet-100 disabled:opacity-45">{(current ?? latestCompleted)?.steps.includes(index) ? <Check size={18} /> : index + 1}</button><p className="pt-2 text-sm leading-6 text-white/80">{step}</p>
         </li>)}</ol>
         {current ? <button className={button + ' w-full border-yellow-200/30 text-yellow-100'} disabled={current.steps.length !== activity.steps.length} onClick={() => {
           change((previous) => completeAdventure(previous, current.runId)); setMessage('You did it. This adventure is now in your adventure journal.');
@@ -103,19 +106,21 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
         }}>I finished this adventure</button> : <button className={button + ' w-full border-yellow-200/30 text-yellow-100'} disabled={!ready || !canStart} onClick={start}>{run ? 'Switch to this adventure' : latestCompleted ? 'Do this again' : 'Start this adventure'}</button>}
         {run && !current ? <p className="mt-2 text-xs text-white/45">Switching replaces your unfinished adventure. Completed adventures stay in your journal.</p> : null}
         {latestCompleted && !current ? <p className="mt-4 flex items-center gap-2 text-sm text-emerald-100"><Sparkles size={17} />Completed · {new Date(latestCompleted.completedAt!).toLocaleDateString()} · self-reported</p> : null}
+        {latestCompleted && !current ? <ShareAdventure activityId={activity.id} runId={latestCompleted.runId} placeSlug={placeSlug}/> : null}
         <div className="mt-4 flex flex-wrap gap-3">
           <PlanShareButton href={href(activity.id)} title={activity.title} text={`Want to try this free ${activity.minutes}-minute activity with me? ${activity.title}.`} label="Invite a friend" analyticsSource="adventure" />
           <Link className={button} href={mapHref}>Choose a public spot</Link>
           {placeSlug && placeReady ? <Link className={button} href={`/venues/${encodeURIComponent(placeSlug)}`}>Meet at this place</Link> : null}
         </div>
         {current ? <button className="mt-4 min-h-11 text-xs text-white/50 underline" onClick={() => { change((previous) => ({ runs: previous.runs.filter((r) => r.runId !== current.runId) })); setMessage('Adventure stopped. You can choose another whenever you like.'); }}>Stop this adventure</button> : null}
-      </section>}
+      </section> : null}
       {message ? <p role="status" className="mt-4 rounded-xl bg-violet-300/10 p-4 text-sm text-violet-100">{message}</p> : null}
-      <section className={panel + ' mt-6'} aria-label="Your adventure journal">
+      {!activity ? <SharedAdventures/> : null}
+      {!viewingShared ? <section className={panel + ' mt-6'} aria-label="Your adventure journal">
         <h2 className="flex items-center gap-2 text-lg font-black"><Compass size={20} className="text-violet-200" />Your adventure journal</h2>
         <p className="mt-2 text-xs leading-5 text-white/50">{storageUnavailable ? 'Browser storage is unavailable. Progress lasts for this visit only.' : 'Saved on this device. Active adventures last 24 hours; your latest 30 completed adventures stay until browser data is cleared.'} This is your own record, not verified attendance or proof.</p>
         {!completed.length ? <p className="mt-4 text-sm text-white/60">Your first completed adventure will appear here.</p> : <ul className="mt-4 space-y-3">{completed.slice(0, 5).map((r) => <li key={r.runId} className="border-t border-white/10 pt-3"><Link href={adventureHref(r.activityId, r.placeSlug, r.area)} className="text-sm font-bold text-white">{ACTIVITY_SUGGESTIONS.find((a) => a.id === r.activityId)?.title} →</Link><p className="mt-1 text-xs text-white/45">{r.area.label} · {new Date(r.completedAt!).toLocaleDateString()} · self-reported</p></li>)}</ul>}
-      </section>
+      </section> : null}
       <div className="mt-6 flex flex-wrap gap-4 text-xs font-bold text-cyan-100"><Link className="min-h-11 py-3" href="/now">Find a group plan →</Link><Link className="min-h-11 py-3" href="/earn">Browse paid work →</Link>{activity ? <Link className="min-h-11 py-3" href={href()}>Choose the next adventure →</Link> : null}</div>
     </div>
   </main>;

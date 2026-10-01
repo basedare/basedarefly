@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 
 import CommunityHubClient from '@/components/community/CommunityHubClient';
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function CommunityPage() {
-  return <CommunityHubClient />;
+  return <Suspense fallback={<p className="p-6 text-white/60">Loading community…</p>}><CommunityHubClient /></Suspense>;
 }

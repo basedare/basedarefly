@@ -230,6 +230,7 @@ model Venue {
   activeRakeReviewedAt DateTime?
   createdAt            DateTime                     @default(now())
   updatedAt            DateTime                     @updatedAt
+  adventureSubmissions AdventureSubmission[]
   dares                Dare[]
   campaigns            Campaign[]
   inboxThreads         InboxThread[]
@@ -1859,4 +1860,42 @@ model ContentRightsAcceptance {
   dare Dare @relation(fields: [dareId], references: [id], onDelete: Restrict)
   @@unique([dareId, wallet, fingerprint])
   @@index([wallet, acceptedAt])
+}
+
+// Free, self-reported adventures. Review approves display, never presence or payment.
+model AdventureSubmission {
+  id String @id @default(cuid())
+  wallet String
+  activityId String
+  runId String
+  venueSlug String
+  venue Venue @relation(fields: [venueSlug], references: [slug], onDelete: Restrict, onUpdate: Cascade)
+  caption String
+  hashtag String
+  mediaUrl String
+  mediaType String
+  status String @default("PENDING")
+  publicConsentVersion String
+  promotionContact Boolean @default(false)
+  reviewReason String?
+  reviewedBy String?
+  reviewedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([wallet, runId])
+  @@index([status, createdAt])
+  @@index([venueSlug, status])
+  @@index([hashtag, status])
+}
+
+model FriendConnection {
+  id String @id @default(cuid())
+  pairKey String @unique
+  requester String
+  recipient String
+  status String @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([requester, status])
+  @@index([recipient, status])
 }

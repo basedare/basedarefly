@@ -151,3 +151,8 @@ export function isSiargaoVenueFeaturedTonight({
     (rotation.warmUpVenues?.some((venue) => venueMatches(venue, name, slug)) ?? false)
   );
 }
+
+export function isSiargaoVenueFeaturedOnNight(name: string, slug: string, weekday: SiargaoWeekday) {
+  const rotation = NIGHT_ROTATION[weekday];
+  return [...rotation.venues, ...(rotation.warmUpVenues ?? []), SIARGAO_BEACH_CLUB].some(venue => venueMatches(venue, name, slug));
+}

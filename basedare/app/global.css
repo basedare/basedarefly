@@ -3765,3 +3765,11 @@ button[data-testid='ockConnectWalletButton']:hover {
   body.bd-map-route-active .selected-place-panel-header .venue-action-rail--lead { align-items: start !important; }
   body.bd-map-route-active .selected-place-panel-header .map-primary-action-button { height: 48px !important; min-height: 48px !important; max-height: 48px !important; align-self: start !important; border-radius: 999px !important; font-size: 11px !important; }
 }
+
+/* A short speaking gesture; never an idle loop or flashing reward. */
+@keyframes peebear-speak {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-3px) rotate(2deg); }
+}
+.peebear-speaking { animation: peebear-speak .48s ease-in-out infinite; transform-origin: 50% 85%; }
+@media (prefers-reduced-motion: reduce) { .peebear-speaking { animation: none; } }

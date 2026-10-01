@@ -1,6 +1,7 @@
 'use client';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { useSharedAdventureMap } from '@/hooks/useSharedAdventureMap';
 import Image from 'next/image';
 import { useRecommendationClock } from '@/hooks/useRecommendationClock';
 import { assessRecommendation, destinationHour, solarElevation, type RecommendationInput } from '@/lib/recommendation-policy';
@@ -3542,6 +3543,8 @@ export default function RealWorldMap() {
   const [showFootprintLayer, setShowFootprintLayer] = useState(false);
   const [showMatchedLayer, setShowMatchedLayer] = useState(false);
   const [targetCenter, setTargetCenter] = useState<[number, number] | null>(null);
+  const [showSharedAdventures, setShowSharedAdventures] = useState(true);
+  const sharedAdventureMap = useSharedAdventureMap(mapInstanceRef, mapReady, showSharedAdventures);
   const [targetZoom, setTargetZoom] = useState<number | null>(null);
   const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
   const [mapBearing, setMapBearing] = useState(DEFAULT_MAP_BEARING);
@@ -11195,6 +11198,7 @@ export default function RealWorldMap() {
 
               {showAdvancedMapFilters ? (
                 <div className="map-advanced-filter-panel">
+                  <div className="map-advanced-filter-group"><span className="map-advanced-filter-label">Map legend</span><button type="button" className="map-status-pill" aria-pressed={showSharedAdventures} onClick={() => setShowSharedAdventures(v => !v)}><span className="rounded-md bg-purple-700 px-2 font-black text-yellow-200">B</span> Shared adventures · {sharedAdventureMap.failed ? 'unavailable' : sharedAdventureMap.count}</button><span className="text-[10px] text-white/50">Community photos & clips · not verified check-ins</span></div>
                   {isMobileViewport ? (
                     <div className="map-advanced-filter-group">
                       <span className="map-advanced-filter-label">Show places</span>
@@ -11382,6 +11386,7 @@ export default function RealWorldMap() {
             <div className="adventure-map-atmosphere pointer-events-none absolute inset-0 z-[2]" aria-hidden="true" />
 
             <AdventureMapOverlay
+              nightPlaces={nearbyPlaces.map(place => ({ id: place.id, slug: place.slug, name: place.name }))}
               enabled={adventureMode}
               panelOpen={adventurePanelOpen}
               selectedNight={selectedGuideNight}

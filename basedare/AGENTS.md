@@ -14,6 +14,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex shared adventures and people (2026-10-01)
+- User authorized building and pushing optional adventure submissions, review, hashtag discovery, branded map pins, people/friends, Tonight meetup actions and PeeBear dialogue. Keep the existing map, forms and physical controls.
+- Display consent permits BaseDare public display only; optional promotional-contact interest is not commercial reuse permission. Uploaded files use public storage, disclosed before upload; only approved submissions enter public discovery. No verified attendance, points or money is awarded.
+- Friend requests are bilateral, wallet-authorized and respect existing blocks. They do not unlock restricted chat or expose live location. Mission Pass remains saved continuation, separate from paid work; production email recovery remains disabled.
+- Applied additive migration 20261001100000_adventure_sharing_friends before release; 59 migrations / 77 models passed the production compatibility gate. Preserve these tables on app rollback. See docs/adventure-sharing-release-2026-10-01.md for verification and limits.
+
 ### Codex homepage wording and ambient timing (2026-09-30)
 - Replace the homepage's paid-brief language with paid dares; remove its duplicate nearby link and unconditional earning promise. Use meetup and venue activity labels on the connected entry pages.
 - Mobile business switch sits in document flow with a real keyboard-accessible button, so it cannot cover the introduction. Preserve the desktop physical switch and homepage segmented controls.

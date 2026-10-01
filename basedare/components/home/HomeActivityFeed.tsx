@@ -1,5 +1,6 @@
 'use client';
 
+import SharedAdventures from '@/components/adventures/SharedAdventures';
 import Link from '@/components/DiscoveryLink';
 import { useDiscovery } from '@/components/DiscoveryProvider';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -177,5 +178,6 @@ export default function HomeActivityFeed() {
       <Link className="min-h-11 py-3" href="/earn">All paid missions →</Link>
       <Link className="min-h-11 py-3" href="/community/rally/new">Start a meetup →</Link>
     </div>
-  </section>;
+  <SharedAdventures compact/>
+</section>;
 }

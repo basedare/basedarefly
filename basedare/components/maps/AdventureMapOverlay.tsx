@@ -1,6 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from 'next/link';
+import PlanShareButton from '@/components/community/PlanShareButton';
+import { usePeeBearDialogue } from '@/hooks/usePeeBearDialogue';
+import { isSiargaoVenueFeaturedOnNight } from '@/lib/siargao-nightlife';
 import Image from "next/image";
 import {
   ChevronRight,
@@ -23,6 +27,7 @@ import MapSurfGuide from "./MapSurfGuide";
 import { getSiargaoNightGuide, getSiargaoNightGuideForWeekday, type SiargaoWeekday } from "@/lib/siargao-nightlife";
 
 type AdventureMapOverlayProps = {
+  nightPlaces: Array<{ id: string; slug: string; name: string }>;
   now: Date;
   timeZone?: string;
   enabled: boolean;
@@ -107,6 +112,7 @@ function getActivityMeta(activity: TonightActivity, now: Date, timeZone?: string
 }
 
 export default function AdventureMapOverlay({
+  nightPlaces,
   now,
   timeZone,
   enabled,
@@ -216,6 +222,10 @@ export default function AdventureMapOverlay({
     surfDaylight,
     trailCount,
   ]);
+
+  const guideText = guideLines[guideLineIndex % guideLines.length];
+  const dialogue = usePeeBearDialogue(guideText, showGuideDock && (guideSpeechOpen || showPanel) && !showIntentCard);
+  const tonightPlaces = nightPlaces.filter(p => isSiargaoVenueFeaturedOnNight(p.name,p.slug,nightGuide.weekday)).slice(0,5);
 
   return (
     <>
@@ -602,6 +612,8 @@ export default function AdventureMapOverlay({
               </p>
             </div>
 
+            {tonightPlaces.length ? <div className="mt-3 space-y-2"><p className="text-[10px] font-bold text-white/60">Make your own plan · choose a time next</p>{tonightPlaces.map(place => <div key={place.slug} className="rounded-2xl border border-white/10 bg-black/20 p-3"><button className="min-h-11 text-left text-xs font-bold text-cyan-100" onClick={() => onSelectPlace(place.slug)}>{place.name} →</button><div className="flex flex-wrap gap-2"><Link className="bd-action inline-flex min-h-11 items-center rounded-full border border-yellow-200/25 bg-yellow-300/10 px-3 text-[10px] font-bold text-yellow-100" href={'/community/rally/new?venueId='+encodeURIComponent(place.id)+'&title='+encodeURIComponent('Meet at '+place.name)}>Start a meetup</Link><PlanShareButton href={'/map?place='+encodeURIComponent(place.slug)} title={'Meet at '+place.name} text={'Want to make a plan at '+place.name+'? Let’s agree a time and check what’s on with the venue.'} label="Invite a friend" analyticsSource="tonight-place"/></div></div>)}</div> : null}
+
             {browsingAnotherNight ? <p className="mt-2.5 text-[10px] leading-4 text-white/55">This is the usual weekly pattern. Choose Tonight to see currently published plans; these are not confirmed events for a future date.</p> : scheduledTonightActivities.length > 0 ? (
               <div className="mt-2.5 grid gap-2">
                 <p className="px-1 text-[8px] font-black uppercase tracking-[0.18em] text-cyan-100/48">
@@ -676,17 +688,18 @@ export default function AdventureMapOverlay({
                 setGuideSpeechOpen(true);
                 return;
               }
+              if (dialogue.speaking) { dialogue.finish(); return; }
               setGuideSpeechOpen(true);
               if (guideSpeechOpen) {
                 setGuideLineIndex((current) => (current + 1) % guideLines.length);
               }
             }}
-            aria-label="Ask PeeBear for another field hint"
+            aria-label={`${guideText} ${dialogue.speaking ? "Show the whole hint" : "Get another hint"}`}
             className="flex items-end gap-2 text-left"
           >
             {(guideSpeechOpen || showPanel) && !showIntentCard ? (
               <span className="mb-2 max-w-[12rem] rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.96),rgba(5,7,14,0.98))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/86 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl sm:max-w-[15rem]">
-                {guideLines[guideLineIndex % guideLines.length]}
+                <span className="sr-only">{guideText}</span><span aria-hidden="true" className="relative block"><span className="invisible">{guideText}</span><span className="absolute inset-0">{dialogue.visible}<span className="ml-1 text-yellow-200">{dialogue.speaking ? '·' : '▾'}</span></span></span>
               </span>
             ) : null}
             <span className="adventure-guide-orb shrink-0" aria-hidden="true">
@@ -696,7 +709,7 @@ export default function AdventureMapOverlay({
                 width={1200}
                 height={670}
                 unoptimized
-                className="adventure-guide-face"
+                className={`adventure-guide-face ${dialogue.speaking ? "peebear-speaking" : ""}`}
               />
               <span className="adventure-guide-orb__spark" />
             </span>

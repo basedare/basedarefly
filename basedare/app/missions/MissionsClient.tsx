@@ -40,6 +40,7 @@ export default function MissionsClient() {
 
   const loadMissions = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch('/api/mission-passes/missions', { cache: 'no-store' });
       const payload = await response.json();
@@ -105,6 +106,7 @@ export default function MissionsClient() {
           Save a private link to continue an activity on another browser or device. Saving does not reserve a place or claim a reward.
         </p>
 
+        <nav className="mt-5 flex flex-wrap gap-4 text-sm text-cyan-100"><Link className="min-h-11 py-3" href="/dashboard">My activity →</Link><Link className="min-h-11 py-3" href="/adventures">Adventure journal →</Link><Link className="min-h-11 py-3" href="/earn">Paid dares →</Link></nav>
         <section className="mt-6 grid gap-2 sm:grid-cols-3" aria-label="How Mission Pass handoff works">
           {[
             ['1. Save', 'Choose Save Mission Pass on a live activity.'],
@@ -147,7 +149,7 @@ export default function MissionsClient() {
 
           {loading ? (
             <div className="grid min-h-40 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-[#ffe36a]" /></div>
-          ) : missions.length === 0 ? (
+          ) : error ? (<p role="alert" className="mt-5 text-sm text-amber-100">{error} <button className="min-h-11 underline" onClick={() => void loadMissions()}>Retry</button></p>) : missions.length === 0 ? (
             <div className="mt-6 rounded-2xl border border-dashed border-white/10 p-7 text-center">
               <Compass className="mx-auto h-7 w-7 text-cyan-300" />
               <h3 className="mt-3 font-black">Nothing saved here yet</h3>

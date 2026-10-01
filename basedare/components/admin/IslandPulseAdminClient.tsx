@@ -328,7 +328,7 @@ export default function IslandPulseAdminClient() {
             </p>
             <h1 className="mt-3 text-4xl font-black uppercase italic tracking-[-0.05em] sm:text-6xl">
               Source → check → live
-            </h1>
+            </h1><Link href="/admin/adventures" className="mt-3 inline-block min-h-11 py-3 text-sm text-cyan-100">Review shared adventures →</Link>
             <p className="mt-3 max-w-2xl text-sm text-white/52">
               Paste the public post or flyer copy. BaseDare suggests a draft;
               you confirm the exact venue and time before it appears.
