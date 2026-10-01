@@ -1,7 +1,10 @@
 'use client';
 
+// ReactBits Lightning shader, adapted for short, transparent mobile/desktop bursts.
+// https://reactbits.dev/backgrounds/lightning
+
 import { useRef, useEffect } from 'react';
-import { shouldPreferLightweightClient } from '@/lib/client-performance';
+import { getClientPerformanceHints } from '@/lib/client-performance';
 
 interface LightningProps {
   hue?: number;
@@ -17,7 +20,8 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    if (shouldPreferLightweightClient()) return;
+    const hints = getClientPerformanceHints();
+    if (hints.prefersReducedMotion || hints.saveData || hints.slowConnection) return;
 
     let animationId: number | null = null;
     let disposed = false;
@@ -28,7 +32,7 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
     let vertexBuffer: WebGLBuffer | null = null;
 
     const resizeCanvas = () => {
-      const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, hints.isConstrainedViewport ? 0.75 : 1);
       const width = Math.max(1, Math.floor(canvas.clientWidth * pixelRatio));
       const height = Math.max(1, Math.floor(canvas.clientHeight * pixelRatio));
 
@@ -70,7 +74,8 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
           gl.deleteShader(fragmentShader);
         }
         gl.useProgram(null);
-        gl.getExtension('WEBGL_lose_context')?.loseContext();
+        // Do not force context loss: React Strict Mode reuses this canvas on
+        // effect setup, and a deliberately lost context cannot compile shaders.
       } catch (error) {
         console.warn('[Lightning] WebGL cleanup failed', error);
       } finally {
@@ -81,6 +86,7 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
 
     gl = canvas.getContext('webgl', {
       alpha: true,
+      premultipliedAlpha: false,
       antialias: false,
       depth: false,
       failIfMajorPerformanceCaveat: true,
@@ -110,7 +116,7 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
       uniform float uIntensity;
       uniform float uSize;
 
-      #define OCTAVE_COUNT 10
+      #define OCTAVE_COUNT ${hints.isConstrainedViewport ? 6 : 8}
 
       vec3 hsv2rgb(vec3 c) {
           vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0,4.0,2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
@@ -168,11 +174,12 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
 
           uv += 2.0 * fbm(uv * uSize + 0.8 * iTime * uSpeed) - 1.0;
 
-          float dist = abs(uv.x);
+          float dist = max(abs(uv.x), 0.002);
           vec3 baseColor = hsv2rgb(vec3(uHue / 360.0, 0.7, 0.8));
-          vec3 col = baseColor * pow(mix(0.0, 0.07, hash11(iTime * uSpeed)) / dist, 1.0) * uIntensity;
+          vec3 col = baseColor * pow((0.05 + 0.012 * sin(iTime * uSpeed * 3.0)) / dist, 1.0) * uIntensity;
           col = pow(col, vec3(1.0));
-          fragColor = vec4(col, 1.0);
+          float alpha = clamp(max(col.r, max(col.g, col.b)), 0.0, 1.0);
+          fragColor = vec4(col, alpha);
       }
 
       void main() {
@@ -242,8 +249,15 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
 
     const startTime = performance.now();
 
+    let lastFrame = -100;
     const render = () => {
       if (disposed || !gl) return;
+      const now = performance.now();
+      if (document.hidden || now - lastFrame < 1000 / 30) {
+        animationId = requestAnimationFrame(render);
+        return;
+      }
+      lastFrame = now;
       resizeCanvas();
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.uniform2f(iResolutionLocation, canvas.width, canvas.height);

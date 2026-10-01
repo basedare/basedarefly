@@ -154,7 +154,7 @@ export default function RootLayout({
           <BackgroundLayers />
         </div>
 
-        {/* Infrequent, lightweight edge lightning on discovery screens. */}
+        {/* Occasional ReactBits lightning bursts on discovery screens. */}
         <AmbientLightning />
         <AppStabilityGuard />
         <PwaRegistrar />

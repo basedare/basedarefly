@@ -1,33 +1,27 @@
 .field {
   position: fixed;
   inset-block: 0;
-  left: 0;
-  width: min(26vw, 320px);
+  left: -8vw;
+  width: min(70vw, 760px);
   z-index: 11;
   pointer-events: none;
   overflow: hidden;
   contain: strict;
   opacity: 0;
-  animation: distant-strike 1.7s ease-out both;
-  /* Fade inward so the discharge remains atmosphere along the page edge. */
-  mask-image: linear-gradient(to right, #000 0%, #000 25%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 25%, transparent 100%);
+  animation: electric-arrival 2.4s ease-out both;
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 75%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 75%, transparent);
 }
-.field[data-side='right'] { left: auto; right: 0; transform: scaleX(-1); }
-.bolt { position: absolute; inset: 0; width: 100%; height: 100%; }
-.afterglow {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 0% 35%, rgba(137, 78, 230, .22), transparent 68%);
-}
-@keyframes distant-strike {
+.field[data-side='right'] { left: auto; right: -8vw; transform: scaleX(-1); }
+@keyframes electric-arrival {
   0% { opacity: 0; }
-  8% { opacity: .8; }
-  27% { opacity: .3; }
+  12% { opacity: .85; }
+  45% { opacity: .7; }
   100% { opacity: 0; }
 }
 @media (max-width: 767px) {
-  .field { width: 30vw; }
+  .field { width: 100vw; left: -18vw; }
+  .field[data-side='right'] { right: -18vw; }
 }
 @media (prefers-reduced-motion: reduce) {
   .field { display: none; animation: none; }

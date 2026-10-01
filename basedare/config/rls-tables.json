@@ -73,5 +73,7 @@
   "VerifiedFieldSprintBuyerDecision",
   "VerifiedFieldSprintStation",
   "PlaceMemoryObservation",
-  "ContentRightsAcceptance"
+  "ContentRightsAcceptance",
+  "AdventureSubmission",
+  "FriendConnection"
 ]

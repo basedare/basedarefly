@@ -215,6 +215,14 @@ async function checkFinancialCanon() {
   }
 }
 
+// Every new model must join the production RLS audit, even when its migration
+// already enables RLS. This catches audit-inventory drift before deployment.
+const schema = await read('prisma/schema.prisma');
+const rlsTables = JSON.parse(await read('config/rls-tables.json'));
+for (const match of schema.matchAll(/^model\s+(\w+)\s*\{/gm)) {
+  if (!rlsTables.includes(match[1])) failures.push(`RLS audit inventory is missing model ${match[1]}`);
+}
+
 await checkAdminRoutes();
 await checkCronRoutes();
 await checkSensitiveRoutes();

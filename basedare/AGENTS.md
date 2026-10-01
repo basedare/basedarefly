@@ -14,6 +14,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex footer, electric motion and launch audit (2026-10-01)
+- User authorized restoring the original ReactBits Lightning effect, improving business footer contrast, updating FAQ/terms and pushing fixes to main. Reuse the shader with transparency, mobile resolution/frame limits, short 2.4-second bursts and existing interaction/reduced-motion/route guards. First 14–22 seconds; repeat 75–120 seconds. No mounted canvas between bursts.
+- Footer uses a near-opaque dark surface and readable text in both modes. FAQ follows current adventures, friends, paid-work and Mission Pass behavior. Terms/privacy align public display, optional promotional contact, public media storage and separate invoice/escrow rules; this is not human legal sign-off.
+- Add AdventureSubmission/FriendConnection to RLS inventory and enforce model coverage in static CI. Live read-only RLS check confirms all 77 tables enabled. Paid launch remains blocked by missing mainnet bounty bytecode; do not deploy a contract, rotate venue secrets, relabel funding records or enable commercial rights implicitly. See docs/launch-audit-2026-10-01.md.
+
 ### Codex shared adventures and people (2026-10-01)
 - User authorized building and pushing optional adventure submissions, review, hashtag discovery, branded map pins, people/friends, Tonight meetup actions and PeeBear dialogue. Keep the existing map, forms and physical controls.
 - Display consent permits BaseDare public display only; optional promotional-contact interest is not commercial reuse permission. Uploaded files use public storage, disclosed before upload; only approved submissions enter public discovery. No verified attendance, points or money is awarded.

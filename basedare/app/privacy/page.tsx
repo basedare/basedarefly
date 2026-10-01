@@ -51,6 +51,7 @@ export default function PrivacyPolicy() {
                 </div>
                 <div className={`${dentWellClass} font-mono text-sm opacity-80 space-y-3 px-5 py-4`}>
                     <p><strong>Location proof:</strong> QR + GPS check-ins — coordinates, distance from the venue, and timestamps. This is the core product, not a side effect.</p>
+                    <p><strong>Adventure progress and connections:</strong> free adventure progress is stored in your browser. If you share a submission, we store the place, caption, media link, consent and review status. Friend requests and accepted connections are stored with the participating wallet identities and are shown to those participants.</p>
                     <p><strong>Proof media:</strong> the photos and videos you submit as proof, plus captions and tags.</p>
                     <p><strong>Wallet &amp; session data:</strong> your wallet address, signed session proofs, and your @tag if you claim one.</p>
                     <p><strong>Messages:</strong> venue room posts and direct messages you send are stored so they can be delivered.</p>
@@ -78,8 +79,8 @@ export default function PrivacyPolicy() {
                     <h2 className="text-xl font-black italic uppercase">3. What Stays Private</h2>
                 </div>
                 <div className={`${dentWellClass} font-mono text-sm opacity-80 space-y-3 px-5 py-4`}>
-                    <p>Direct messages are visible only to their participants. Rejected or pending proof is not public. Contact emails and business intakes go to the ops team, not the feed.</p>
-                    <p>Raw GPS coordinates are used to verify presence; the public surface shows the venue, not your exact position. We do not track your location in the background — only at the moment you check in.</p>
+                    <p>Direct messages are visible only to their participants. Pending or rejected adventure listings do not appear in public discovery, but their uploaded media uses public storage and may be accessible by URL before approval. Do not treat an unlisted upload as private. Contact emails and business intakes go to the ops team, not the feed.</p>
+                    <p>Raw GPS coordinates are used to verify presence; the public surface shows the venue, not your exact position. Location is requested when you use features such as nearby discovery, presence or check-in; friendship does not expose a live location feed.</p>
                     <p>We do not sell your data, and we do not run third-party ad pixels.</p>
                 </div>
             </section>
@@ -107,7 +108,7 @@ export default function PrivacyPolicy() {
                 </div>
                 <div className={`${dentWellClass} font-mono text-sm opacity-80 space-y-3 px-5 py-4`}>
                     <p>On-chain transactions are permanent. Proof media published to IPFS is content-addressed and may persist on nodes we do not control, even after we unpin it. Receipts that people screenshot and share are out of anyone&apos;s hands.</p>
-                    <p>Think before you submit proof: the unfakeable part is the product, and unfakeable cuts both ways.</p>
+                    <p>You can withdraw a shared-adventure listing from discovery, but this does not guarantee deletion from public storage, third-party copies or screenshots.</p>
                 </div>
             </section>
 
@@ -141,7 +142,7 @@ export default function PrivacyPolicy() {
             </section>
 
             <div className={`${dentWellClass} mt-10 px-5 py-4 flex items-center justify-between`}>
-                <span className="font-mono text-xs text-gray-500 uppercase">Last Updated: July 8, 2026</span>
+                <span className="font-mono text-xs text-gray-500 uppercase">Last Updated: October 1, 2026</span>
                 <span className="font-mono text-xs text-gray-500 uppercase">v.2.0</span>
             </div>
 

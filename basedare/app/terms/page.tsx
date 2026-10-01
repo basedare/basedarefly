@@ -30,12 +30,11 @@ export default function TermsOfChaos() {
                     </h1>
                     <div className={`${dentWellClass} px-5 py-4`}>
                         <p className="font-mono text-purple-300 uppercase tracking-widest text-xs mb-2">
-                            {'// LEGAL PROTOCOL V1.1 // READ BEFORE INTERACTING'}
+                            {'// TERMS OF USE // READ BEFORE TAKING PART'}
                         </p>
                         <p className="text-sm md:text-base text-white/70 leading-relaxed">
                             These Terms are between you and the operator of BaseDare, the service available at basedare.xyz.
-                            BaseDare runs on public rails, signed actions are final, real-world dares carry real-world
-                            responsibility, and unsafe or illegal behavior is not welcome here.
+                            Some features use public blockchain transactions. Free adventures, community plans and paid work have different requirements. Read the rules shown for the activity before taking part; unsafe or illegal behavior is not welcome here.
                         </p>
                     </div>
                 </div>
@@ -50,7 +49,7 @@ export default function TermsOfChaos() {
                         </div>
                         <div className={`${dentWellClass} px-5 py-4`}>
                             <p className="font-mono text-sm opacity-80">
-                                BaseDare is experimental code running on Base. If you fund, claim, or verify through the protocol, you accept that the system is still early-stage software and should be used carefully. Bounty funds stay in escrow until completion conditions are verified.
+                                BaseDare is experimental code running on Base. If you fund, claim, or verify through the protocol, you accept that the system is still early-stage software and should be used carefully. Where a supported bounty contract is used, its rules control escrow and settlement. Paid features are in a limited rollout; availability does not establish that every payment path is ready for general use.
                             </p>
                         </div>
                     </section>
@@ -91,8 +90,9 @@ export default function TermsOfChaos() {
                             <h2 className="text-xl font-black italic uppercase">5. Your Proof, Shared Stage</h2>
                         </div>
                         <div className={`${dentWellClass} font-mono text-sm opacity-80 space-y-4 px-5 py-4`}>
-                            <p>When you submit proof — photos, videos, captions, check-ins — you grant BaseDare a non-exclusive, worldwide, royalty-free license to display it on the map, the Board, venue pages, proof receipts, and BaseDare promotion. That is the point: proof is public memory.</p>
-                            <p>You must own or have permission for what you upload. Only film people who are fine being filmed. We can remove any content that breaks these Terms, and moderation decisions on proof are final.</p>
+                            <p>You retain ownership of your uploads. For shared adventures, the display consent you accept allows BaseDare to display the post in its public discovery features, including the map and shared-adventure feed. Opting in to be contacted about promotion is not permission for commercial reuse. Paid content work is governed by the specific deliverables and usage permissions accepted for that mission; submitting content does not automatically grant advertising or social-channel reuse rights.</p>
+                            <p>You must own or have permission for what you upload. Get permission from identifiable people you film and follow venue rules. We can decline or remove listings that break these Terms. Review reasons and available appeal or support routes appear in the relevant flow. Shared-adventure listing approval is not verified attendance or entitlement to payment.</p>
+                            <p>Adventure uploads use public media storage even while review is pending. Withdrawing a listing removes it from BaseDare discovery; copies and public storage links may persist. Do not upload private or sensitive footage. See the <Link href="/privacy" className="underline">Privacy Policy</Link>.</p>
                         </div>
                     </section>
 
@@ -103,7 +103,7 @@ export default function TermsOfChaos() {
                         </div>
                         <div className={`${dentWellClass} px-5 py-4`}>
                             <p className="font-mono text-sm opacity-80">
-                                Direct messages between strangers unlock only after verified crossed paths at the same venue. Do not use messaging to harass, spam, scam, or pressure anyone. We can revoke messaging access without notice from anyone who does.
+                                Friend requests are separate from direct messaging. Accepting a friend does not reveal live location or bypass crossed-paths eligibility at a venue. Do not use messaging to harass, spam, scam, or pressure anyone. We can revoke messaging access without notice from anyone who does.
                             </p>
                         </div>
                     </section>
@@ -124,15 +124,15 @@ export default function TermsOfChaos() {
                         </div>
                         <div className={`${dentWellClass} font-mono text-sm opacity-90 space-y-4 px-5 py-5`}>
                             <p><strong>NON-GAMBLING PLATFORM:</strong> BaseDare is NOT a gambling platform. Dares are conditional bounties/grants for verified real-world performance. There are no wagers, odds, or chance mechanisms.</p>
-                            <p><strong>NON-CUSTODIAL NATURE:</strong> We do NOT custody user USDC. All funds are held in immutable smart contracts on the Base network. You retain ultimate control through the contract&apos;s fixed parameters.</p>
-                            <p><strong>REFEREE WALLET LIMITATIONS:</strong> The platform&apos;s &apos;Referee wallet&apos; solely executes contract state changes to abstract gas costs. It holds NO user funds and cannot arbitrarily redirect bounties.</p>
-                            <p><strong>REFUND POLICY:</strong> Refunds are strictly bound by the smart contract expiration logic. We cannot mathematically or manually refund or override the contract if conditions are not met. What happens on-chain, stays on-chain.</p>
+                            <p><strong>NON-CUSTODIAL NATURE:</strong> Self-serve bounty escrow and managed-service invoices are different payment routes. Supported bounty funds are governed by the relevant contract. Managed-service charges and reward pools are recorded separately under the agreed invoice terms. BaseCash venue credit is also separate.</p>
+                            <p><strong>REFEREE WALLET LIMITATIONS:</strong> A referee service executes supported review and settlement actions subject to the deployed contract and application permissions. A review decision alone is not confirmation that a transfer has completed.</p>
+                            <p><strong>REFUND POLICY:</strong> Bounty refunds follow the applicable contract, activity status and review process; they may require processing and are not promised instantly. Managed-service refunds or credits follow the agreed delivery terms. Contact support for failed or disputed transactions. Nothing here removes rights that applicable law does not allow to be excluded.</p>
                             <p><strong>OPERATING ENTITY:</strong> &quot;BaseDare&quot;, &quot;we&quot;, and &quot;us&quot; refer to the operator of basedare.xyz. Formal operating entity details will be added when available.</p>
                         </div>
                     </section>
 
                     <div className={`${dentWellClass} mt-10 px-5 py-4 flex items-center justify-between`}>
-                        <span className="font-mono text-xs text-gray-500 uppercase">Last Updated: July 8, 2026</span>
+                        <span className="font-mono text-xs text-gray-500 uppercase">Last Updated: October 1, 2026</span>
                         <Gavel className="w-6 h-6 text-gray-700" />
                     </div>
 

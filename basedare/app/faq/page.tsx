@@ -37,100 +37,76 @@ const octagonClipPath =
 
 const FAQ_ITEMS = [
   {
-    q: "Who are you and why are you yelling?",
-    a: "I am Peebear 🐻. I am the chaotic neutral AI running this circus. I verify humans, print receipts, and judge your proof. Next question."
+    "q": "What is BaseDare?",
+    "a": "Open BaseDare and **find your next move**: free adventures, community meetups and paid dares around real places. Explore the map or choose Play, Meet or Earn on the homepage. You do not need to earn money to take part."
   },
   {
-    q: "What exactly is BaseDare?",
-    a: "A map of **real nights out** where everything is proven by an actual human showing up. Fund a dare with USDC, someone completes it in the real world, checks in with QR + GPS, and the protocol pays out. Every proof prints a **receipt that cannot be faked — not even by AI**. In 2026 that #HumanOnly signal is the rarest thing on the internet. Think Snap Map meets Pokémon GO, but the receipts are real."
+    "q": "Do I need a wallet to get started?",
+    "a": "You can browse places and start a free adventure without signing in. Adventure progress is saved on this device. Sharing an upload, joining or hosting a meetup, and paid work require the sign-in shown in the app. Wallet actions may require a signature; phone/passkey sign-in is not promised."
   },
   {
-    q: "Do I need crypto or a seed phrase to use this?",
-    a: "To **play**: no. You sign in with your **phone — one tap, passkey, done**. No app, no seed phrase, no 'gm ser'. Complete dares, check in, get paid — the blockchain is just plumbing, the same way nobody thinks about Venmo's database. To **fund** a dare you need USDC today — unless you're a **venue or business**, in which case we can invoice you the normal way and handle the on-chain part for you. Ask us."
+    "q": "How do free adventures work?",
+    "a": "Pick an idea, follow the steps at your own pace and mark it finished. Your **adventure journal is self-reported**, saved in this browser, and separate from verified visits and paid work. Free suggestions are not hosted events and do not promise cash or venue perks."
   },
   {
-    q: "What is a Mission Pass?",
-    a: "A **Mission Pass** is a private link that saves an activity you chose, so you can reopen the same mission and map context in Safari, Chrome, or another device. It is especially useful when Instagram or TikTok might lose your place. Email it to yourself, share it, or copy the link, then find saved passes under **Your Missions**. It does **not** claim a reward, prove your identity, connect a wallet, or authorize payment. If you use email, it is only for pass delivery and recovery — not automatic marketing consent."
+    "q": "Can I share a photo or video from an adventure?",
+    "a": "After finishing, choose **Share what you made**. Select a public place, add one photo or short clip under 4 MB and a caption, and accept public display. A person reviews it before it appears in discovery. Approved posts have a hashtag and a B pin on the map. You can withdraw your listing from My submissions."
   },
   {
-    q: "What's a @baretag?",
-    a: "Your **handle on the grid** — the name that shows up next to your check-ins, proofs, and dares. Claim yours on `/claim-tag`. Short, clean handles go first and they go **forever**, so the founding cohort of a city gets the good ones. Nobody who joins in six months can take yours."
+    "q": "Who can use the content I upload?",
+    "a": "You keep ownership. Adventure display consent allows BaseDare to show the post in its public discovery features. The optional promotion checkbox only lets BaseDare ask you about reuse; it does **not** give a venue or brand advertising rights. Paid content work uses the specific deliverables and permissions accepted for that mission. Uploaded media uses public storage, including while a listing awaits review."
   },
   {
-    q: "What's a FIRST PROOF badge?",
-    a: "The **first verified human** to prove presence at a venue owns that FIRST PROOF **permanently**. There are a finite number of venues on any island — whoever checks in first plants the flag. It is a genuine land grab and it only happens once per place. Get there first."
+    "q": "Where can I find people or add friends?",
+    "a": "Open **Community → Find people & friends**. Search public profiles, send a request and accept or decline incoming requests. Both people need a public profile. Friendship does not reveal live location or bypass the existing chat rules. You can also invite someone using a meetup or adventure share link."
   },
   {
-    q: "What's the receipt everyone keeps flexing?",
-    a: "When your proof clears, BaseDare prints a **thermal-style receipt** — serial number, venue, timestamp, and `TOTAL HUMANS VERIFIED: 1`. It ends with `THIS RECEIPT CANNOT BE FAKED. NOT EVEN BY AI.` Share it as an image anywhere. It's the reward, the flex, and the sales pitch to the next venue all at once."
+    "q": "How do I make a plan for tonight?",
+    "a": "Open **Tonight** on the map. Matching venue suggestions offer Start a meetup and Invite a friend. Choose the actual date and time when creating the plan. A usual weekly nightlife pattern is not a confirmed event: check the venue or the published event source before going."
   },
   {
-    q: "Can I message people from the map?",
-    a: "Only people you've **actually crossed paths with** — meaning you both had verified check-ins at the same venue in the same window. No cold DMs, no bots, no randoms. It's the **anti-Tinder**: you can only talk to humans you provably shared a real place with."
+    "q": "How do paid dares work?",
+    "a": "Open **Earn** to see funded opportunities and read the requirements, deadline and reward. Request a mission, wait for acceptance where required, submit the requested evidence and follow its review status. Payment follows approval and successful settlement; it is not guaranteed to be instant. Only start work under the terms shown for that mission."
   },
   {
-    q: "What's a Mayor 👑?",
-    a: "The **top prover at a venue** over the last 30 days wears the crown. Show up, prove presence, out-prove everyone else, and the venue's Mayor badge is yours until someone knocks you off. Pure status, earned only by being there."
+    "q": "Is paid participation ready for everyone?",
+    "a": "Paid participation is in a **limited rollout**. Production payment and recovery checks must be completed before wider launch. Browsing or finishing a free adventure does not create a payment entitlement. Do not send money to an address shared in a message; use only the supported funding flow."
   },
   {
-    q: "What's a free meetup?",
-    a: "Not every gathering needs a bounty. Anyone can **start a free meetup** at a venue — a surf session, a sunset, a games night — and it shows up live on the map for people nearby. It's the social layer under the paid dares: free to host, free to join, still on the grid."
+    "q": "What is saved on /missions?",
+    "a": "**Mission Pass** saves a private continuation link for a supported activity. Saving does not reserve a spot, accept paid work or claim a reward. Keep the link private. Email recovery is not currently enabled. Use My Activity for your wider activity and Earn to find paid work."
   },
   {
-    q: "Who judges the proof? Can players cheat?",
-    a: "Cute theory. The **community review layer** on `/verify` can signal whether proof looks real, but crowd votes do **not** trigger payout directly. Consensus pushes the dare into **referee review**, and the protocol still owns the final payout or failure path. If the proof is fake, weak, or edited into fantasy, it gets bounced."
+    "q": "What do check-ins and receipts prove?",
+    "a": "At enabled venues, a Venue Pass and nearby location provide evidence of a visit. Approved records can contribute to your verified trail. A receipt records the evidence and review outcome; it is **not a guarantee against fraud** and does not prove every claim about a place. Self-reported adventure completions stay separate."
   },
   {
-    q: "What's the difference between IRL and STREAM dares?",
-    a: "**IRL** dares happen in the physical world: places, movement, nearby dares, venue check-ins, real-life nonsense. **STREAM** dares are tied to a creator, stream context, and proof from that world. Same protocol. Different battlefield."
+    "q": "Can I message anyone?",
+    "a": "You can find public profiles and request friends in Community. Direct messaging still follows the existing crossed-paths eligibility rules; becoming friends does not automatically open a private chat. Venue rooms require nearby presence or an eligible check-in. Report harassment or suspicious content through Contact or support."
   },
   {
-    q: "What is a venue on BaseDare?",
-    a: "A **venue** is not just a pin on a map. It's a live place page with memory: check-ins, active dares, recent presence, and eventually perks. We want places on BaseDare to feel alive, social, and worth showing up to."
+    "q": "What happens if my submission is rejected?",
+    "a": "Read the review reason. Paid missions show the available correction or appeal route and any deadline. Shared adventure posts can be declined or removed from discovery; the current sharing flow does not edit or resubmit the same upload. Contact support if you think a decision is wrong."
   },
   {
-    q: "Do I need to scan a QR code to use BaseDare?",
-    a: "No. Relax. QR is **not** the whole app. Normal links are for normal discovery. Venue Pass is the QR layer when a venue wants stronger proof that you actually showed up. Browse freely. Scan only when trust matters."
+    "q": "How can a business or venue take part?",
+    "a": "Use **For businesses** to request on-site checks or discuss a venue activity. The Buyer Workspace shows the agreed scope, price and invoice steps before work starts. For paid content or promotion, agree the files, posting obligations and usage rights explicitly. To manage an existing venue, open its place page from the map and follow the ownership claim process."
   },
   {
-    q: "How do venue check-ins work?",
-    a: "At venues with a live Venue Pass, the rotating pass and nearby location create stronger presence evidence. Your **first QR + GPS check-in at each venue earns 20 Signal Points**; the unique venue rule prevents farming. A verified check-in also opens the local room, makes **Crossed Paths** possible, adds to your visit history, and unlocks a venue perk when one is actually live. It does not automatically promise cash — paid rewards still come from funded dares."
+    "q": "Are venue perks, BaseCash and Yodl the same thing?",
+    "a": "No. A venue perk has its own availability, quantity and redemption conditions. BaseCash is a separate venue-credit system. Yodl is a limited spend-local pilot shown only at tested participating venues; it does not convert BaseCash or automatically verify a BaseDare reward purchase."
   },
   {
-    q: "My dare got rejected immediately. Why?",
-    a: "It was probably cringe, illegal, or gross. My content filters are strict. We want vibes, not a lawsuit. Keep it TOS-friendly or get banned."
+    "q": "What does PeeBear do?",
+    "a": "PeeBear helps you choose places and activities. Suggestions can use published plans, usual venue patterns or clearly labelled BaseDare ideas. PeeBear does not guarantee opening hours, conditions, attendance or payment. Tap a talking hint to reveal it immediately."
   },
   {
-    q: "I have zero creativity. Can you help?",
-    a: "Typical human. Yes, use the **'AI Suggest'** button in the Create menu. I read the venue — surf bar, beach club, cafe, night market — and suggest dares that actually fit the place and make good proof. You're welcome."
+    "q": "Is there a BaseDare token?",
+    "a": "There is **no official BaseDare token**. Paid rewards use the currency and network shown on the mission. Signal Points and journal entries are not money or promises of a future token."
   },
   {
-    q: "Is there a $BARE token?",
-    a: "🛑 **STOP.** There is NO token yet. Payouts are **USDC on Base**. If you buy a 'BaseDare' token on Uniswap right now, you are donating to a scammer. Don't be that guy."
-  },
-  {
-    q: "When does a dare expire?",
-    a: "You choose the expiry when you create the dare: 24h, 3 days, 1 week, whatever flavor of pressure you want. If the clock dies and there is no valid completion, the dare goes through the **refund path**. We are not keeping your money in a haunted vault forever."
-  },
-  {
-    q: "What's the CHAOS / CONTROL switch?",
-    a: "The switch separates everyday play from commissioned fieldwork. **CHAOS** is for exploring the map, joining plans, playing Sparks, and completing Dares. **CONTROL** is for buyers: request on-site checks and review the evidence and reports in the Buyer Workspace."
-  },
-  {
-    q: "Can brands or venues use this too?",
-    a: "Yes. Buyers use **CONTROL mode** to commission a Verified Field Sprint and open the Buyer Workspace. BaseDare handles contributor routing. Venue owners manage their place profile and venue tools from the map."
-  },
-  {
-    q: "Is Pilot Qualification a real feature or just a contact form?",
-    a: "It is a real intake route. Your brief goes straight to a human who scopes the pilot with you — venue, window, budget, proof rules. Nothing auto-approves and no money moves until both sides confirm."
-  },
-  {
-    q: "Do buyers choose the contributors?",
-    a: "Usually, no. Tell BaseDare the question, coverage and evidence required. BaseDare routes independent contributors using local fit and verified work history. A recommended shortlist can appear later as an advanced override."
-  },
-  {
-    q: "Can I collab or report a bug?",
-    a: "Slide into the DMs. If it's a good idea, we build it. If it's a bug, we fix it."
+    "q": "How do I report a problem?",
+    "a": "Use **Contact** or in-app support. Include the page or activity link, what happened and a screenshot if useful. Never send your seed phrase, private key or private Mission Pass link in a public post."
   }
 ];
 
@@ -198,7 +174,7 @@ export default function FAQPage() {
             <div className="relative mx-auto mb-5 inline-flex">
               <div className={sectionLabelClass}>
                 <Bot className="w-4 h-4 text-fuchsia-300" />
-                FAQ TERMINAL
+                FAQ TERMINAL · UPDATED OCT 1, 2026
               </div>
             </div>
 
@@ -275,7 +251,7 @@ export default function FAQPage() {
 
             <p className="mt-4 flex items-center justify-center gap-2 font-mono text-sm uppercase tracking-[0.2em] text-gray-300 md:text-base">
               <Bot className="w-5 h-5 text-purple-400" />
-              Peebear answers your questions
+              PeeBear’s guide to the current build
             </p>
           </motion.div>
 
@@ -406,6 +382,7 @@ export default function FAQPage() {
         }
 
         @media (prefers-reduced-motion: reduce) {
+          .faq-mobile-peebear,
           .faq-accordion .faq-accordion-item,
           .faq-accordion .faq-answer-well,
           .faq-accordion [data-state] {
