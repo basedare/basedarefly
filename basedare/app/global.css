@@ -2239,8 +2239,8 @@ html[data-bd-bg="light"] .star-field {
 }
 
 .bd-background-root canvas:not(.maplibregl-canvas):not(.lightning-canvas) {
-    opacity: 0.18;
-    filter: saturate(0.68) brightness(0.46);
+    opacity: 0.72;
+    filter: none;
     transition: opacity 260ms ease, filter 260ms ease;
 }
 

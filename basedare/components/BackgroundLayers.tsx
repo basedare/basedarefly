@@ -53,7 +53,6 @@ export default function BackgroundLayers() {
       setShouldRenderAnimatedBackground(
         !(
           hints.isConstrainedViewport ||
-          hints.isLowMemory ||
           hints.prefersReducedMotion ||
           hints.saveData ||
           hints.slowConnection
@@ -61,8 +60,10 @@ export default function BackgroundLayers() {
       );
     };
     const frameId = window.requestAnimationFrame(update);
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     window.addEventListener('resize', update, { passive: true });
-    return () => { window.cancelAnimationFrame(frameId); window.removeEventListener('resize', update); };
+    motion.addEventListener('change', update);
+    return () => { window.cancelAnimationFrame(frameId); window.removeEventListener('resize', update); motion.removeEventListener('change', update); };
   }, [shouldSkipAnimatedBackground]);
 
   if (shouldSkipAnimatedBackground) return null;

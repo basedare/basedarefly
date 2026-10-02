@@ -14,6 +14,11 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex restore branded motion and remove unfunded active work (2026-10-03)
+- User explicitly wants the desktop node network and animated mobile PeeBear preserved. Brave's reported 4GB memory must lower desktop network density/frame rate, not remove it. Precompute neighboring node pairs and regenerate on resize. Keep hidden-tab cleanup and reduced-motion support.
+- Restore the original mobile OrbLiquidLoop.mp4 inside the circular clip. Play only while visible and calm; pause for burst/hidden/offscreen and respect reduced-motion/data-saving preferences. Do not restore the hidden desktop hero on phones.
+- Read-only inspection identified seed-venue1 as a July pending request with no txHash or onChainDareId. Exclude unfunded paid records from shared creator actions and /earn; guard claim/approval mutations with the same recorded-funding predicate. Do not delete or relabel historical records. This does not unblock mainnet payments or prove current escrow solvency.
+
 ### Codex payment guard and mobile stability (2026-10-02)
 - User authorized fixing/proving payments first, then the mission tray, approved adventure pins and mobile Brave effects, with a combined main push. See docs/payment-mobile-release-2026-10-02.md.
 - Live paid creation must pass fresh chain/token/fee/referee checks before wallet approval and initialization; the generic create route cannot simulate or server-fund paid work in live mode. Open content funding remains gated. Registration checks exact escrow identities/amount and uses compare-and-set; browser recovery only re-registers an existing hash.

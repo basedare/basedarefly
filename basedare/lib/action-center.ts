@@ -1,3 +1,4 @@
+import { hasRecordedRewardFunding } from '@/lib/reward-funding';
 import 'server-only';
 
 import { prisma } from '@/lib/prisma';
@@ -396,6 +397,7 @@ export async function getActionCenter(
   const items: ActionCenterItem[] = [];
 
   const creatorClaims = dareRows
+    .filter(dare => dare.bounty <= 0 || hasRecordedRewardFunding(dare))
     .filter(
       (dare) =>
         walletsMatch(dare.targetWalletAddress, lowerWallet) ||

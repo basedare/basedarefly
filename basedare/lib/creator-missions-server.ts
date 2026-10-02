@@ -1,3 +1,4 @@
+import { hasRecordedRewardFunding } from '@/lib/reward-funding';
 import { contentRightsFingerprint, contentRightsReleaseEnabled } from '@/lib/content-rights-server';
 import { readContentDelivery } from '@/lib/content-delivery';
 import 'server-only';
@@ -53,6 +54,8 @@ const creatorMissionSelect = {
   title: true,
   bounty: true,
   isSimulated: true,
+  txHash: true,
+  onChainDareId: true,
   missionMode: true,
   tag: true,
   streamerHandle: true,
@@ -86,6 +89,8 @@ async function fetchMissionRows() {
       status: 'PENDING',
       bounty: { gt: 0 },
       isSimulated: false,
+      txHash: { not: null },
+      onChainDareId: { not: null },
       claimedBy: null,
       targetWalletAddress: null,
       AND: [
@@ -138,8 +143,8 @@ function shapeCreatorMission(row: CreatorMissionRow, now = new Date()): CreatorM
     baseDareCanDisplay: copy.baseDareCanDisplay,
     sponsorReuseNeedsOptIn: copy.sponsorReuseNeedsOptIn,
     contentRightsFingerprint: readContentDelivery(row.outcomeContractSnapshot) ? contentRightsFingerprint(row.outcomeContractSnapshot) : null,
-    isAvailable: isCreatorMissionAvailable(row, now) && (!copy.sponsorReuseNeedsOptIn || contentRightsReleaseEnabled()),
-    isFunnelCandidate: isCreatorMissionFunnelCandidate(row, now),
+    isAvailable: hasRecordedRewardFunding(row) && isCreatorMissionAvailable(row, now) && (!copy.sponsorReuseNeedsOptIn || contentRightsReleaseEnabled()),
+    isFunnelCandidate: hasRecordedRewardFunding(row) && isCreatorMissionFunnelCandidate(row, now),
     status: row.status,
     appealStatus: row.appealStatus,
     assignedWallet: row.targetWalletAddress ?? row.claimedBy,
@@ -158,7 +163,7 @@ export async function getCreatorMissions(): Promise<CreatorMission[] | null> {
     const now = new Date();
     const rows = await fetchMissionRows();
     return rows
-      .filter((row) => isCreatorMissionAvailable(row, now) && (!readContentDelivery(row.outcomeContractSnapshot) || contentRightsReleaseEnabled()))
+      .filter((row) => hasRecordedRewardFunding(row) && isCreatorMissionAvailable(row, now) && (!readContentDelivery(row.outcomeContractSnapshot) || contentRightsReleaseEnabled()))
       .map((row) => shapeCreatorMission(row, now));
   } catch (error) {
     console.error('[CREATOR MISSIONS] Unable to load open missions:', error);
@@ -173,10 +178,12 @@ export const getCreatorMissionByShortId = cache(async (shortId: string): Promise
         OR: [{ shortId }, { id: shortId }],
         bounty: { gt: 0 },
         isSimulated: false,
+        txHash: { not: null },
+        onChainDareId: { not: null },
       },
       select: creatorMissionSelect,
     });
-    if (!row || !isPublicFacingDareTitle(row.title)) return null;
+    if (!row || !hasRecordedRewardFunding(row) || !isPublicFacingDareTitle(row.title)) return null;
     return shapeCreatorMission(row);
   } catch (error) {
     console.error('[CREATOR MISSIONS] Unable to load mission:', error);

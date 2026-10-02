@@ -1,3 +1,4 @@
+import { hasRecordedRewardFunding } from '@/lib/reward-funding';
 import { missionReturnPath } from '@/lib/mission-return-path';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -144,6 +145,10 @@ export async function PUT(request: NextRequest) {
     const notifyLink = missionReturnPath(dare);
 
     if (decision === 'APPROVE') {
+      if (dare.bounty > 0 && !hasRecordedRewardFunding(dare)) {
+        return NextResponse.json({ success: false, code: 'REWARD_NOT_FUNDED', error: 'This reward has no confirmed funding record. Please choose another mission.' }, { status: 409 });
+      }
+
       // Revalidate at decision time: not expired/claimed/terminal, no
       // self-dealing, and no real creator handle introduced after the request.
       const approvalCheck = evaluateApproval(dare, now);

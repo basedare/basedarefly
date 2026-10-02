@@ -1,3 +1,4 @@
+import { hasRecordedRewardFunding } from '@/lib/reward-funding';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -112,6 +113,10 @@ export async function POST(
     });
     if (!dare) {
       return NextResponse.json({ success: false, error: 'Dare not found' }, { status: 404 });
+    }
+
+    if (dare.bounty > 0 && !hasRecordedRewardFunding(dare)) {
+      return NextResponse.json({ success: false, code: 'REWARD_NOT_FUNDED', error: 'This reward has no confirmed funding record. Please choose another mission.' }, { status: 409 });
     }
 
     const needsContentRights = requiresSponsorCommercialReuseConsent(dare.outcomeContractSnapshot);
