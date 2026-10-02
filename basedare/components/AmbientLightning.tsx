@@ -32,7 +32,7 @@ export default function AmbientLightning() {
       const editing = active instanceof HTMLElement && (active.isContentEditable || active.matches('input, textarea, select'));
       const dialog = Array.from(document.querySelectorAll('[role="dialog"], dialog[open], [aria-modal="true"]'))
         .some((node) => node.getClientRects().length > 0);
-      return !motion.matches && !hints.saveData && !hints.slowConnection &&
+      return !motion.matches && !hints.isLowMemory && !document.documentElement.hasAttribute('data-bd-effects-over-budget') && !hints.saveData && !hints.slowConnection &&
         document.visibilityState === 'visible' && document.hasFocus() && !editing && !dialog &&
         document.documentElement.dataset.bdBg !== 'light' && Date.now() - lastInteraction > 3000;
     };

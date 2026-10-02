@@ -106,4 +106,36 @@ describe("BaseDareBountyV2", function () {
     expect(await bounty.referralFeePercent()).to.equal(0n);
     expect(await bounty.totalFeePercent()).to.equal(4n);
   });
+  for (const settlement of ['verifyAndPayout', 'refundBacker']) {
+    it(`cannot fund the same ID again after ${settlement}`, async function () {
+      const { bounty, referee, backer, streamer } = await deployFixture();
+      await bounty.connect(backer).fundBounty(DARE_ID, streamer.address, ethers.ZeroAddress, AMOUNT);
+      await bounty.connect(referee)[settlement](DARE_ID);
+      await expect(bounty.connect(backer).fundBounty(DARE_ID, streamer.address, ethers.ZeroAddress, AMOUNT))
+        .to.be.revertedWith('Bounty: Already exists');
+      await expect(bounty.connect(referee).verifyAndPayout(DARE_ID)).to.be.revertedWith('Bounty: Does not exist');
+      await expect(bounty.connect(referee).refundBacker(DARE_ID)).to.be.revertedWith('Bounty: Does not exist');
+    });
+  }
+
+  it('a failed funding attempt can recover without consuming its ID', async function () {
+    const { bounty, usdc, backer, streamer } = await deployFixture();
+    await usdc.connect(backer).approve(await bounty.getAddress(), 0);
+    await expect(bounty.connect(backer).fundBounty(DARE_ID, streamer.address, ethers.ZeroAddress, AMOUNT)).to.be.reverted;
+    expect(await bounty.usedDareIds(DARE_ID)).to.equal(false);
+    await usdc.connect(backer).approve(await bounty.getAddress(), AMOUNT);
+    await bounty.connect(backer).fundBounty(DARE_ID, streamer.address, ethers.ZeroAddress, AMOUNT);
+    expect((await bounty.bounties(DARE_ID)).amount).to.equal(AMOUNT);
+  });
+
+  it('rejects unauthorized refunds and protects other active escrow', async function () {
+    const { bounty, usdc, referee, backer, streamer, other } = await deployFixture();
+    for (const id of [1, 2]) await bounty.connect(backer).fundBounty(id, streamer.address, ethers.ZeroAddress, AMOUNT);
+    await expect(bounty.connect(other).refundBacker(1)).to.be.revertedWith('Bounty: Not the AI Referee');
+    await bounty.connect(referee).verifyAndPayout(1);
+    expect(await usdc.balanceOf(await bounty.getAddress())).to.equal(AMOUNT);
+    await bounty.connect(referee).refundBacker(2);
+    expect(await usdc.balanceOf(await bounty.getAddress())).to.equal(0);
+  });
+
 });

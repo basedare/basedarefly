@@ -1145,10 +1145,10 @@ function CreateDareContent() {
                     : successData.isCommunitySpark
                       ? 'Community Spark Live'
                     : successData.syncPending
-                      ? 'Syncing Dare Record'
+                      ? 'Payment confirmation pending'
                     : successData.simulated
                       ? 'Simulation Success'
-                      : 'Contract Deployed'}
+                      : 'Dare funded'}
                 </h3>
                 <p className={`text-xs md:text-sm font-mono mt-1 truncate ${successData.awaitingClaim ? 'text-yellow-400/80' : 'text-green-400/80'
                   }`}>
@@ -1157,7 +1157,7 @@ function CreateDareContent() {
                     : successData.isCommunitySpark
                       ? 'Open community mission - proof builds the local grid.'
                     : successData.syncPending
-                      ? `Onchain tx confirmed: ${successData.txHash?.slice(0, 12)}...`
+                      ? `Payment sent · do not pay again: ${successData.txHash?.slice(0, 12)}...`
                     : successData.streamerTag
                       ? `Dare ID: ${successData.dareId}`
                       : 'Open dare - anyone can complete!'}

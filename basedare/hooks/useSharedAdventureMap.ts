@@ -42,12 +42,20 @@ export function useSharedAdventureMap(
             seen.add(post.venue.slug);
             const el = document.createElement("button");
             el.type = "button";
-            el.textContent = "B";
+            const icon = document.createElement("img");
+            icon.src = "/assets/peebear-head.webp";
+            icon.alt = "";
+            icon.width = 32;
+            icon.height = 32;
+            icon.style.objectFit = "contain";
+            el.appendChild(icon);
             el.title = "Shared adventures · " + post.venue.name;
             el.setAttribute("aria-label", el.title);
             Object.assign(el.style, {
-              width: "38px",
-              height: "38px",
+              display: "grid",
+              placeItems: "center",
+              width: "44px",
+              height: "44px",
               borderRadius: "50% 50% 50% 8px",
               border: "2px solid #e9bdff",
               background: "linear-gradient(145deg,#8637bf,#22103f)",
@@ -89,6 +97,7 @@ export function useSharedAdventureMap(
     };
     map.on("moveend", load);
     window.addEventListener("focus", load);
+    window.addEventListener("basedare:adventure-submissions-updated", load);
     load();
     return () => {
       disposed = true;
@@ -96,6 +105,7 @@ export function useSharedAdventureMap(
       controller?.abort();
       map.off("moveend", load);
       window.removeEventListener("focus", load);
+      window.removeEventListener("basedare:adventure-submissions-updated", load);
       markers.forEach((m) => m.remove());
     };
   }, [mapRef, ready, enabled]);

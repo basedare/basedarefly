@@ -26,21 +26,21 @@ function toExpectedAmountUnits(bounty: number) {
 export async function reconcileFundingDare<T extends FundingReconciliationDare>(
   dare: T
 ): Promise<T> {
-  if (dare.status !== 'FUNDING' || !CONTRACT_VALIDATION.bounty.isValid) {
+  if (dare.status !== 'FUNDING' || !dare.stakerAddress || !dare.targetWalletAddress || !CONTRACT_VALIDATION.bounty.isValid) {
     return dare;
   }
 
   const expectedOnChainDareId = dare.onChainDareId || generateOnChainDareId(dare.id).toString();
 
   try {
-    const [amount, streamer, , backer] = (await publicClient.readContract({
+    const [amount, streamer, , backer, settled] = (await publicClient.readContract({
       address: BOUNTY_CONTRACT_ADDRESS,
       abi: BOUNTY_ABI,
       functionName: 'bounties',
       args: [BigInt(expectedOnChainDareId)],
     })) as readonly [bigint, `0x${string}`, `0x${string}`, `0x${string}`, boolean];
 
-    if (amount <= BigInt(0)) {
+    if (settled || amount <= BigInt(0)) {
       return dare;
     }
 
@@ -59,7 +59,7 @@ export async function reconcileFundingDare<T extends FundingReconciliationDare>(
     }
 
     const expectedAmount = toExpectedAmountUnits(dare.bounty);
-    if (amount < expectedAmount) {
+    if (amount !== expectedAmount) {
       return dare;
     }
 
@@ -70,9 +70,10 @@ export async function reconcileFundingDare<T extends FundingReconciliationDare>(
     });
 
     const latestFunding = fundingLogs.at(-1);
+    if (!latestFunding?.transactionHash && !dare.txHash) return dare;
 
-    const reconciled = await prisma.dare.update({
-      where: { id: dare.id },
+    const changed = await prisma.dare.updateMany({
+      where: { id: dare.id, status: 'FUNDING', isSimulated: false },
       data: {
         status: getPostFundingDareStatus({
           isAwaitingClaim: false,
@@ -81,12 +82,10 @@ export async function reconcileFundingDare<T extends FundingReconciliationDare>(
         onChainDareId: expectedOnChainDareId,
         txHash: latestFunding?.transactionHash ?? dare.txHash ?? null,
       },
-      select: {
-        status: true,
-        onChainDareId: true,
-        txHash: true,
-      },
     });
+    if (!changed.count) return dare;
+    const reconciled = await prisma.dare.findUnique({ where: { id: dare.id }, select: { status: true, onChainDareId: true, txHash: true } });
+    if (!reconciled) return dare;
 
     return {
       ...dare,

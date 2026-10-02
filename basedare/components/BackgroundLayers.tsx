@@ -43,7 +43,7 @@ export default function BackgroundLayers() {
   }, [shouldSkipAnimatedBackground]);
 
   useEffect(() => {
-    const frameId = window.requestAnimationFrame(() => {
+    const update = () => {
       if (shouldSkipAnimatedBackground) {
         setShouldRenderAnimatedBackground(false);
         return;
@@ -53,14 +53,16 @@ export default function BackgroundLayers() {
       setShouldRenderAnimatedBackground(
         !(
           hints.isConstrainedViewport ||
+          hints.isLowMemory ||
           hints.prefersReducedMotion ||
           hints.saveData ||
           hints.slowConnection
         )
       );
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
+    };
+    const frameId = window.requestAnimationFrame(update);
+    window.addEventListener('resize', update, { passive: true });
+    return () => { window.cancelAnimationFrame(frameId); window.removeEventListener('resize', update); };
   }, [shouldSkipAnimatedBackground]);
 
   if (shouldSkipAnimatedBackground) return null;

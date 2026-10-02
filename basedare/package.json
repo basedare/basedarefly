@@ -24,6 +24,7 @@
     "safety:rls": "node scripts/verify-rls.mjs",
     "safety:endpoints": "node scripts/production-endpoint-smoke.mjs",
     "safety:ux": "node scripts/launch-gauntlet.mjs",
+    "test:payments:db": "bash scripts/run-payment-db-integration.sh",
     "test:adventure-sharing:db": "bash scripts/run-adventure-sharing-db-integration.sh",
     "test:mission-pass:db": "bash scripts/run-mission-pass-db-integration.sh",
     "push:keys": "node scripts/generate-vapid-keys.mjs",

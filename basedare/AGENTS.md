@@ -14,6 +14,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex payment guard and mobile stability (2026-10-02)
+- User authorized fixing/proving payments first, then the mission tray, approved adventure pins and mobile Brave effects, with a combined main push. See docs/payment-mobile-release-2026-10-02.md.
+- Live paid creation must pass fresh chain/token/fee/referee checks before wallet approval and initialization; the generic create route cannot simulate or server-fund paid work in live mode. Open content funding remains gated. Registration checks exact escrow identities/amount and uses compare-and-set; browser recovery only re-registers an existing hash.
+- V2 source permanently consumes funded IDs, including after settlement. This is tested source, NOT a production contract deployment. Mainnet still has no code at the configured bounty address. Follow the human-only deployment step in docs/runbooks/mainnet-cutover.md; never relabel the 33 unresolved funding rows as paid/refunded without evidence.
+- Mobile mounts no hidden desktop hero; orb uses clipped original artwork and no video, effects pause offscreen/hidden, and lightning has pixel/frame limits plus a slow-frame cutoff. Approved public adventure submissions use PeeBear pins; private adventure starts do not publish pins. Mission tray excludes simulated/stale work and displays USDC without a fixed peso conversion.
+
 ### Codex footer, electric motion and launch audit (2026-10-01)
 - User authorized restoring the original ReactBits Lightning effect, improving business footer contrast, updating FAQ/terms and pushing fixes to main. Reuse the shader with transparency, mobile resolution/frame limits, short 2.4-second bursts and existing interaction/reduced-motion/route guards. First 14–22 seconds; repeat 75–120 seconds. No mounted canvas between bursts.
 - Footer uses a near-opaque dark surface and readable text in both modes. FAQ follows current adventures, friends, paid-work and Mission Pass behavior. Terms/privacy align public display, optional promotional contact, public media storage and separate invoice/escrow rules; this is not human legal sign-off.

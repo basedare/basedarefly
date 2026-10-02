@@ -4,9 +4,10 @@ import {
   BOUNTY_CONTRACT_ADDRESS,
   CONTRACT_VALIDATION,
   USDC_ADDRESS,
+  NETWORK_CONFIG,
 } from '@/lib/contracts';
 import { getBountyModeSnapshot } from '@/lib/bounty-mode';
-import { MIN_REUSABLE_BOUNTY_ALLOWANCE_USDC } from '@/lib/bounty-create-auth';
+import { PAYMENT_UNAVAILABLE } from '@/lib/payment-readiness';
 import type { OutcomeContractRequest } from '@/lib/outcome-contracts';
 
 export type BountyApprovalStatus = 'idle' | 'approving' | 'funding' | 'verifying';
@@ -67,7 +68,8 @@ function sleep(ms: number) {
 
 type PublicClientLike = {
   readContract: (...args: readonly unknown[]) => Promise<unknown>;
-  waitForTransactionReceipt: (...args: readonly unknown[]) => Promise<unknown>;
+  waitForTransactionReceipt: (...args: readonly unknown[]) => Promise<{ status: 'success' | 'reverted' }>;
+  getChainId: () => Promise<number>;
 };
 
 type WriteContractAsyncLike = (...args: readonly unknown[]) => Promise<`0x${string}`>;
@@ -163,6 +165,18 @@ export async function submitBountyCreation(
   const publicClient = options.publicClient as PublicClientLike;
   const writeContractAsync = options.writeContractAsync as WriteContractAsyncLike;
 
+  const readinessResponse = await fetch('/api/config/payment-readiness', { cache: 'no-store' });
+  const readiness = await readinessResponse.json();
+  if (!readinessResponse.ok || !readiness.ready) throw new Error(PAYMENT_UNAVAILABLE);
+  if (readiness.chainId !== NETWORK_CONFIG.chainId ||
+      readiness.bounty?.toLowerCase() !== BOUNTY_CONTRACT_ADDRESS.toLowerCase() ||
+      readiness.usdc?.toLowerCase() !== USDC_ADDRESS.toLowerCase()) {
+    throw new Error('The payment setup changed. Refresh this page before funding.');
+  }
+  if (await publicClient.getChainId() !== NETWORK_CONFIG.chainId) {
+    throw new Error(`Switch your wallet to ${NETWORK_CONFIG.chainName} before funding.`);
+  }
+
   const initRes = await fetch('/api/bounties/init', {
     method: 'POST',
     headers: jsonHeaders,
@@ -173,10 +187,12 @@ export async function submitBountyCreation(
     throw new Error(initData.error || 'Failed to initialize dare');
   }
 
-  const { dareId, onChainDareId, targetAddress, referrerAddress, shortId } = initData.data;
+  const { dareId, onChainDareId, targetAddress, referrerAddress, shortId, paymentConfig } = initData.data;
+  if (paymentConfig?.chainId !== NETWORK_CONFIG.chainId || paymentConfig?.bounty?.toLowerCase() !== BOUNTY_CONTRACT_ADDRESS.toLowerCase() || paymentConfig?.usdc?.toLowerCase() !== USDC_ADDRESS.toLowerCase()) {
+    throw new Error('The payment setup changed. Refresh this page before funding.');
+  }
   const amountInUnits = parseUnits(input.amount.toString(), 6);
-  const reusableAllowanceFloor = parseUnits(String(MIN_REUSABLE_BOUNTY_ALLOWANCE_USDC), 6);
-  const approvalAmount = amountInUnits > reusableAllowanceFloor ? amountInUnits : reusableAllowanceFloor;
+  const approvalAmount = amountInUnits;
   const bountyContract = BOUNTY_CONTRACT_ADDRESS as `0x${string}`;
 
   const currentAllowance = (await publicClient.readContract({
@@ -190,12 +206,14 @@ export async function submitBountyCreation(
     options.onApprovalStatusChange?.('approving');
     try {
       const approveTx = await writeContractAsync({
+        chainId: NETWORK_CONFIG.chainId,
         address: USDC_ADDRESS,
         abi: USDC_ABI,
         functionName: 'approve',
         args: [bountyContract, approvalAmount],
       });
-      await publicClient.waitForTransactionReceipt({ hash: approveTx });
+      const approval = await publicClient.waitForTransactionReceipt({ hash: approveTx });
+      if (approval.status !== 'success') throw new Error('USDC approval reverted. No reward was funded.');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes('User rejected') || message.includes('User denied')) {
@@ -209,6 +227,7 @@ export async function submitBountyCreation(
   let txHash: string;
   try {
     txHash = await writeContractAsync({
+      chainId: NETWORK_CONFIG.chainId,
       address: bountyContract,
       abi: BOUNTY_ABI,
       functionName: 'fundBounty',
@@ -219,7 +238,20 @@ export async function submitBountyCreation(
         amountInUnits,
       ],
     });
-    await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
+    // A broadcast hash must survive a timeout; never invite a second payment.
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem(`basedare:pending-funding:${dareId}`, JSON.stringify({ dareId, txHash, shortId, wallet: input.stakerAddress, chainId: NETWORK_CONFIG.chainId, bounty: bountyContract }));
+    } catch { /* Private browsing may deny storage; the result still includes the hash. */ }
+    let fundingReceipt;
+    try {
+      fundingReceipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
+    } catch {
+      // Registration can recover a mined transaction even if this RPC timed out.
+    }
+    if (fundingReceipt?.status === 'reverted') {
+      try { if (typeof window !== 'undefined') window.localStorage.removeItem(`basedare:pending-funding:${dareId}`); } catch { /* Storage is optional. */ }
+      throw new Error('Funding reverted. No reward was funded.');
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes('User rejected') || message.includes('User denied')) {
@@ -233,17 +265,20 @@ export async function submitBountyCreation(
   let registerSucceeded = false;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const regRes = await fetch('/api/bounties/register', {
-      method: 'POST',
-      headers: jsonHeaders,
-      body: JSON.stringify({ dareId, txHash }),
-    });
-    regData = await regRes.json().catch(() => null);
+    try {
+      const regRes = await fetch('/api/bounties/register', {
+        method: 'POST',
+        headers: jsonHeaders,
+        body: JSON.stringify({ dareId, txHash }),
+      });
+      regData = await regRes.json().catch(() => null);
 
-    if (regRes.ok && regData?.success) {
-      registerSucceeded = true;
-      break;
-    }
+      if (regRes.ok && regData?.success) {
+        registerSucceeded = true;
+        break;
+      }
+
+    } catch { /* Keep the broadcast hash and retry registration, never funding. */ }
 
     if (attempt < 2) {
       await sleep(900);
@@ -267,6 +302,9 @@ export async function submitBountyCreation(
     };
   }
 
+  try {
+    if (typeof window !== 'undefined') window.localStorage.removeItem(`basedare:pending-funding:${dareId}`);
+  } catch { /* A later registration retry is idempotent. */ }
   const registeredData = regData?.data;
   if (!registeredData) {
     return {

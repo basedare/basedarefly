@@ -16,7 +16,6 @@ export default function HyperspaceBackground() {
     // PHYSICS CONSTANTS
     const NODE_SPACING = 80; // Fixed pixels: High density everywhere
     const CONNECTION_DIST = 180; // Tight connections
-    const MOUSE_INFLUENCE = 150;
 
     canvas.width = width;
     canvas.height = height;
@@ -34,7 +33,14 @@ export default function HyperspaceBackground() {
       }
     }
 
-    const animate = () => {
+    let frameId = 0;
+    let disposed = false;
+    let lastFrame = 0;
+    const animate = (now: number) => {
+      if (disposed || document.hidden) return;
+      frameId = requestAnimationFrame(animate);
+      if (now - lastFrame < 1000 / 30) return;
+      lastFrame = now;
       ctx.clearRect(0, 0, width, height);
       
       // No black fill - let galaxy background show through fully
@@ -72,10 +78,13 @@ export default function HyperspaceBackground() {
         }
       });
 
-      requestAnimationFrame(animate);
     };
-
-    animate();
+    const visibility = () => {
+      cancelAnimationFrame(frameId);
+      if (!document.hidden) frameId = requestAnimationFrame(animate);
+    };
+    document.addEventListener('visibilitychange', visibility);
+    frameId = requestAnimationFrame(animate);
 
     const handleResize = () => {
       width = window.innerWidth;
@@ -87,7 +96,12 @@ export default function HyperspaceBackground() {
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('visibilitychange', visibility);
+    };
   }, []);
 
   return (

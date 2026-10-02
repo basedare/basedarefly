@@ -21,7 +21,7 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
     const canvas = canvasRef.current;
     if (!canvas) return;
     const hints = getClientPerformanceHints();
-    if (hints.prefersReducedMotion || hints.saveData || hints.slowConnection) return;
+    if (hints.prefersReducedMotion || hints.isLowMemory || hints.saveData || hints.slowConnection) return;
 
     let animationId: number | null = null;
     let disposed = false;
@@ -32,9 +32,10 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
     let vertexBuffer: WebGLBuffer | null = null;
 
     const resizeCanvas = () => {
-      const pixelRatio = Math.min(window.devicePixelRatio || 1, hints.isConstrainedViewport ? 0.75 : 1);
-      const width = Math.max(1, Math.floor(canvas.clientWidth * pixelRatio));
-      const height = Math.max(1, Math.floor(canvas.clientHeight * pixelRatio));
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, hints.isConstrainedViewport ? 0.5 : 1);
+      const budgetRatio = Math.min(pixelRatio, Math.sqrt((hints.isConstrainedViewport ? 160000 : 600000) / Math.max(1, canvas.clientWidth * canvas.clientHeight)));
+      const width = Math.max(1, Math.floor(canvas.clientWidth * budgetRatio));
+      const height = Math.max(1, Math.floor(canvas.clientHeight * budgetRatio));
 
       if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width;
@@ -250,15 +251,22 @@ const Lightning = ({ hue = 230, xOffset = 0, speed = 1, intensity = 1, size = 1 
     const startTime = performance.now();
 
     let lastFrame = -100;
+    let slowFrames = 0;
     const render = () => {
       if (disposed || !gl) return;
       const now = performance.now();
-      if (document.hidden || now - lastFrame < 1000 / 30) {
+      if (document.hidden || gl.isContextLost()) return;
+      if (lastFrame > 0 && now - lastFrame > 100) slowFrames += 1;
+      if (slowFrames >= 4) {
+        document.documentElement.setAttribute('data-bd-effects-over-budget', 'true');
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        return;
+      }
+      if (now - lastFrame < 1000 / (hints.isConstrainedViewport ? 24 : 30)) {
         animationId = requestAnimationFrame(render);
         return;
       }
       lastFrame = now;
-      resizeCanvas();
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.uniform2f(iResolutionLocation, canvas.width, canvas.height);
       const currentTime = performance.now();

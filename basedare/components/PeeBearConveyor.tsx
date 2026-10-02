@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useVisualActivity } from '@/hooks/useVisualActivity';
 import { HOME_ACTIVITY_EXAMPLES } from '@/lib/home-activity-examples';
 
 interface Dare {
@@ -28,6 +28,7 @@ const formatBounty = (amount: number): string => {
 };
 
 export default function PeeBearConveyor({ dares = [] }: PeeBearConveyorProps = {}) {
+  const { ref, active } = useVisualActivity();
   // Map dares to display format
   const displayItems = useMemo(() => {
     if (!dares.length) return HOME_ACTIVITY_EXAMPLES.map((item) => `${item.expiry_timer} · ${item.description} · ${item.valueLabel}`);
@@ -47,28 +48,19 @@ export default function PeeBearConveyor({ dares = [] }: PeeBearConveyorProps = {
   }, [displayItems]);
 
   // Calculate total width for seamless loop
-  const itemWidth = 300; // Approximate width per item
-  const totalWidth = infiniteItems.length * itemWidth;
+
 
   return (
-    <div className="w-full overflow-hidden backdrop-blur-md bg-black/30 border-y border-purple-500/20 py-4 relative">
+    <div ref={ref} className="w-full overflow-hidden bg-black/30 border-y border-purple-500/20 py-4 relative">
       {/* Edge fade gradients */}
       <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-black z-10 pointer-events-none" />
 
       {/* Subtle glow accent */}
       <div className="absolute inset-0 bg-gradient-to-b from-purple-500/5 to-transparent pointer-events-none" />
 
-      <motion.div
-        className="flex whitespace-nowrap gap-6"
-        style={{ willChange: 'transform', backfaceVisibility: 'hidden' }}
-        animate={{ x: [0, -totalWidth / 2] }}
-        transition={{
-          repeat: Infinity,
-          duration: infiniteItems.length * 1.5, // Slightly faster for mobile
-          ease: "linear",
-          type: "tween"
-        }}
-      >
+      <div
+        className="conveyor-track flex w-max whitespace-nowrap gap-6"
+        style={{ animationPlayState: active ? 'running' : 'paused' }}      >
         {infiniteItems.map((item, i) => (
           <div key={`${i}-${item}`} className="flex items-center gap-2 flex-shrink-0 px-2">
             <span className="text-[#FFD700] text-lg">⚡</span>
@@ -77,7 +69,12 @@ export default function PeeBearConveyor({ dares = [] }: PeeBearConveyorProps = {
             </span>
           </div>
         ))}
-      </motion.div>
+      </div>
+      <style jsx>{`
+        .conveyor-track { animation: conveyor-travel 40s linear infinite; }
+        @keyframes conveyor-travel { to { transform: translateX(-50%); } }
+        @media (prefers-reduced-motion: reduce) { .conveyor-track { animation: none; } }
+      `}</style>
     </div>
   );
 }

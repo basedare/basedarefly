@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { BriefcaseBusiness, ChevronRight, MapPin, Navigation } from 'lucide-react';
 
 import { trackClientEvent } from '@/lib/analytics';
-import { formatPhp, formatUsdc, getBaseCashPhpPerUsdc } from '@/lib/basecash-shared';
+import { formatUsdc } from '@/lib/basecash-shared';
 
 export type CreatorMissionTrayItem = {
   id: string;
@@ -16,6 +16,7 @@ export type CreatorMissionTrayItem = {
   statusLabel?: string | null;
   locationLabel?: string | null;
   creatorPayout?: number | null;
+  isSimulated?: boolean;
   expiresAt?: string | null;
   directionsHref?: string | null;
 };
@@ -103,8 +104,8 @@ export function CreatorMissionTray({
         </span>
         {payout ? (
           <span className="hidden shrink-0 text-right sm:block">
-            <strong className="block text-sm font-black text-yellow-100">≈ {formatPhp(payout * getBaseCashPhpPerUsdc())}</strong>
-            <span className="block text-[8px] font-black uppercase tracking-[0.13em] text-white/34">{formatUsdc(payout)} payout</span>
+            <strong className="block text-sm font-black text-yellow-100">{formatUsdc(payout)}</strong>
+            <span className="block text-[8px] font-black uppercase tracking-[0.13em] text-white/34">After approval</span>
           </span>
         ) : null}
         <Link

@@ -30,6 +30,7 @@ export type ActionCenterItem = {
   locationLabel?: string | null;
   bounty?: number | null;
   creatorPayout?: number | null;
+  isSimulated?: boolean;
   expiresAt?: string | null;
   directionsHref?: string | null;
   createdAt?: string | null;
@@ -45,6 +46,9 @@ type RelevantDare = {
   shortId: string | null;
   title: string;
   bounty: number;
+  isSimulated: boolean;
+  txHash: string | null;
+  onChainDareId: string | null;
   status: string;
   streamerHandle: string | null;
   videoUrl: string | null;
@@ -132,7 +136,7 @@ function getClaimLoopState(dare: RelevantDare, walletAddress?: string | null) {
   const isAssignedCreator =
     walletsMatch(dare.targetWalletAddress, walletAddress) || walletsMatch(dare.claimedBy, walletAddress);
 
-  if (isPendingRequester && dare.claimRequestStatus === 'PENDING') {
+  if (isPendingRequester && dare.claimRequestStatus === 'PENDING' && dare.status === 'PENDING' && (!dare.expiresAt || dare.expiresAt.getTime() > Date.now())) {
     return {
       label: 'Requested',
       detail: dare.claimRequestedAt
@@ -221,7 +225,8 @@ function buildDirectionsHref(latitude: number | null, longitude: number | null) 
 
 function creatorMissionFields(dare: RelevantDare) {
   return {
-    creatorPayout: calculateCreatorPayout(dare.bounty),
+    creatorPayout: !dare.isSimulated && dare.txHash && dare.onChainDareId ? calculateCreatorPayout(dare.bounty) : null,
+    isSimulated: dare.isSimulated,
     expiresAt: dare.expiresAt?.toISOString() ?? null,
     directionsHref: buildDirectionsHref(dare.latitude, dare.longitude),
   };
@@ -311,6 +316,9 @@ export async function getActionCenter(
         shortId: true,
         title: true,
         bounty: true,
+        isSimulated: true,
+        txHash: true,
+        onChainDareId: true,
         status: true,
         streamerHandle: true,
         videoUrl: true,

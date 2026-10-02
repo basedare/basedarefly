@@ -11198,7 +11198,7 @@ export default function RealWorldMap() {
 
               {showAdvancedMapFilters ? (
                 <div className="map-advanced-filter-panel">
-                  <div className="map-advanced-filter-group"><span className="map-advanced-filter-label">Map legend</span><button type="button" className="map-status-pill" aria-pressed={showSharedAdventures} onClick={() => setShowSharedAdventures(v => !v)}><span className="rounded-md bg-purple-700 px-2 font-black text-yellow-200">B</span> Shared adventures · {sharedAdventureMap.failed ? 'unavailable' : sharedAdventureMap.count}</button><span className="text-[10px] text-white/50">Community photos & clips · not verified check-ins</span></div>
+                  <div className="map-advanced-filter-group"><span className="map-advanced-filter-label">Map legend</span><button type="button" className="map-status-pill" aria-pressed={showSharedAdventures} onClick={() => setShowSharedAdventures(v => !v)}><span aria-hidden="true" className="inline-block h-5 w-5 bg-contain bg-center bg-no-repeat" style={{ backgroundImage: "url(/assets/peebear-head.webp)" }} /> Shared adventures · {sharedAdventureMap.failed ? 'unavailable' : sharedAdventureMap.count}</button><span className="text-[10px] text-white/50">Community photos & clips · not verified check-ins</span></div>
                   {isMobileViewport ? (
                     <div className="map-advanced-filter-group">
                       <span className="map-advanced-filter-label">Show places</span>

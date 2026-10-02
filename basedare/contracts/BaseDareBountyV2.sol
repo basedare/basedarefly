@@ -28,6 +28,8 @@ contract BaseDareBountyV2 is Ownable, ReentrancyGuard {
     }
 
     mapping(uint256 => Bounty) public bounties;
+    // IDs are permanent settlement identities, even after clearing escrow storage.
+    mapping(uint256 => bool) public usedDareIds;
 
     event BountyFunded(uint256 indexed dareId, address indexed backer, uint256 amount);
     event BountyPayout(uint256 indexed dareId, uint256 streamerAmount, uint256 platformFee, uint256 referrerFee);
@@ -69,9 +71,10 @@ contract BaseDareBountyV2 is Ownable, ReentrancyGuard {
         uint256 _amount
     ) external nonReentrant {
         require(_amount > 0, "Bounty: Amount must be greater than zero");
-        require(bounties[_dareId].amount == 0, "Bounty: Already exists");
+        require(!usedDareIds[_dareId], "Bounty: Already exists");
         require(_streamer != address(0), "Bounty: Streamer is zero address");
 
+        usedDareIds[_dareId] = true;
         USDC.safeTransferFrom(msg.sender, address(this), _amount);
 
         bounties[_dareId] = Bounty({

@@ -53,7 +53,15 @@ function HomeContent() {
   const [triggerRealityShift, setTriggerRealityShift] = useState(false);
   const [triggerMatrixRain, setTriggerMatrixRain] = useState(false);
   const [showBelowFoldSections, setShowBelowFoldSections] = useState(false);
-  const [useLightweightHome, setUseLightweightHome] = useState(false);
+  const [useLightweightHome, setUseLightweightHome] = useState(true);
+  const [desktopHero, setDesktopHero] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 1024px)');
+    const update = () => setDesktopHero(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
   // Internal residue on a public surface — only visible with ?dossier=1.
   const showInvestorDossier = searchParams.get('dossier') === '1';
 
@@ -186,18 +194,18 @@ function HomeContent() {
                 </div>
                 {/* Desktop: Full 3D Hero with orbiting cards */}
                 <div className="hidden lg:block">
-                  <HeroEllipticalStream />
+                  {desktopHero ? <HeroEllipticalStream /> : null}
                 </div>
 
                 {/* Mobile/tablet: simplified hero avoids iPad WebKit overload */}
                 <div className="block pt-8 pb-8 lg:hidden">
                   {/* Mobile PeeBear Orb - MGM Lion-style roar animation */}
                   <div className="relative w-full flex justify-center mb-6 z-[20]">
-                    <PeeBearOrb />
+                    {!desktopHero ? <PeeBearOrb /> : null}
                   </div>
 
                   {/* Mobile Conveyor Strip - Always uses featured dares (same as desktop orbit) */}
-                  <PeeBearConveyor />
+                  {!desktopHero ? <PeeBearConveyor /> : null}
                 </div>
               </div>
 

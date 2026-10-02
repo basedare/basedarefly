@@ -385,6 +385,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // The public paid rail is wallet-funded through init/register. Never silently
+    // create simulated rewards or spend the referee wallet in live mode.
+    if (!isCommunitySpark && !FORCE_SIMULATION) {
+      return NextResponse.json({ success: false, code: 'WALLET_FUNDING_REQUIRED',
+        error: 'Fund paid dares from your connected wallet. Choose a verified contributor before funding.' }, { status: 409 });
+    }
+
     const contentDelivery = validation.data.outcomeContract?.contentDelivery;
     if (contentDelivery) {
       if (!contentRightsReleaseEnabled()) return NextResponse.json({ success: false, error: 'Content missions are waiting for reviewed usage terms. No reward has been funded.', code: 'CONTENT_TERMS_NOT_RELEASED' }, { status: 409 });

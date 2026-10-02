@@ -1,230 +1,42 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { getClientPerformanceHints, runAfterPageIdle, shouldPreferLightweightClient } from '@/lib/client-performance';
+import { useEffect, useState } from 'react';
+import { useVisualActivity } from '@/hooks/useVisualActivity';
 
-interface PeeBearOrbProps {
-  onRoarChange?: (isRoaring: boolean) => void;
-  onLightningRoar?: (isRoaring: boolean) => void;
-}
-
-/**
- * PeeBearOrb - MGM Lion-style roaring animation
- * Crossfades between calm (OrbLiquid) and roaring (BurstingOrb) states
- * Lightning triggers every 2-3 roars for dramatic effect
- */
-export default function PeeBearOrb({ onRoarChange, onLightningRoar }: PeeBearOrbProps) {
-  const [isRoaring, setIsRoaring] = useState(false);
-  const [allowMotion, setAllowMotion] = useState(false);
-  const [allowLightning, setAllowLightning] = useState(false);
-  const [canPlayVideo, setCanPlayVideo] = useState(false);
-  const roarCountRef = useRef(0);
-  const nextLightningRoarRef = useRef(2); // First lightning on 2nd roar
-
+/** Keep the original two-stage artwork without a mobile video decoder or canvas. */
+export default function PeeBearOrb() {
+  const { ref, active } = useVisualActivity();
+  const [roaring, setRoaring] = useState(false);
   useEffect(() => {
-    let cancelIdle: (() => void) | undefined;
-    const frameId = window.requestAnimationFrame(() => {
-      const hints = getClientPerformanceHints();
-      const lightweight = shouldPreferLightweightClient();
-      setAllowMotion(!lightweight);
-      setAllowLightning(!hints.isConstrainedViewport && !lightweight);
-
-      if (lightweight) {
-        setCanPlayVideo(false);
-        return;
-      }
-
-      cancelIdle = runAfterPageIdle(() => {
-        setCanPlayVideo(true);
-      }, hints.isConstrainedViewport ? 4200 : 1400);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      cancelIdle?.();
+    if (!active) return;
+    let end: ReturnType<typeof setTimeout>;
+    const roar = () => {
+      setRoaring(true);
+      end = setTimeout(() => setRoaring(false), 1500);
     };
-  }, []);
-
-  // Notify parent of roar state changes
-  useEffect(() => {
-    onRoarChange?.(isRoaring);
-  }, [isRoaring, onRoarChange]);
-
-  // Roar cycle: calm for 4s, then roar for 1.5s, repeat
-  useEffect(() => {
-    if (!allowMotion) {
-      onLightningRoar?.(false);
-      return undefined;
-    }
-
-    let roarEndTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    const roarCycle = () => {
-      roarCountRef.current += 1;
-
-      // Check if this roar should trigger lightning
-      const shouldTriggerLightning = allowLightning && roarCountRef.current >= nextLightningRoarRef.current;
-
-      if (shouldTriggerLightning) {
-        // Reset counter and set next lightning to 2-3 roars away
-        roarCountRef.current = 0;
-        nextLightningRoarRef.current = Math.random() < 0.5 ? 2 : 3;
-        onLightningRoar?.(true);
-      }
-
-      // Start roar animation (always happens)
-      setIsRoaring(true);
-
-      // End roar after 1.5s
-      roarEndTimeout = setTimeout(() => {
-        setIsRoaring(false);
-        if (shouldTriggerLightning) {
-          onLightningRoar?.(false);
-        }
-      }, 1500);
-    };
-
-    // Initial delay before first roar
-    const initialDelay = setTimeout(() => {
-      roarCycle();
-    }, 3000);
-
-    // Set up repeating cycle
-    const interval = setInterval(() => {
-      roarCycle();
-    }, 6000); // Every 6 seconds
-
-    return () => {
-      clearTimeout(initialDelay);
-      clearInterval(interval);
-      if (roarEndTimeout) clearTimeout(roarEndTimeout);
-      onLightningRoar?.(false);
-    };
-  }, [allowLightning, allowMotion, onLightningRoar]);
-
+    const first = setTimeout(roar, 6000);
+    const repeat = setInterval(roar, 18000);
+    return () => { clearTimeout(first); clearTimeout(end); clearInterval(repeat); setRoaring(false); };
+  }, [active]);
   return (
-    <div className="relative w-[220px] h-[220px] flex items-center justify-center">
-      {/* Ambient glow - pulses during roar */}
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        animate={{
-          scale: allowMotion ? (isRoaring ? 1.3 : 1.1) : 1,
-          opacity: isRoaring ? 0.6 : 0.3,
-        }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
-        style={{
-          background: 'radial-gradient(circle, rgba(168, 85, 247, 0.5) 0%, rgba(250, 204, 21, 0.2) 50%, transparent 70%)',
-          filter: 'blur(30px)',
-        }}
-      />
-
-      {/* Glass shine overlay - moves across the orb */}
-      <motion.div
-        className="absolute inset-0 rounded-full pointer-events-none z-20 overflow-hidden"
-        style={{
-          background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.05) 50%, transparent 55%)',
-          backgroundSize: '200% 200%',
-        }}
-        animate={allowMotion ? { backgroundPosition: ['0% 0%', '200% 200%'] } : { backgroundPosition: '0% 0%' }}
-        transition={{
-          duration: 3,
-          ease: 'linear',
-          repeat: allowMotion ? Infinity : 0,
-          repeatDelay: 2,
-        }}
-      />
-
-      {/* Calm state - OrbLiquid (animated video) */}
-      <AnimatePresence>
-        {!isRoaring && (
-          <motion.div
-            key="calm"
-            className="absolute inset-0 flex items-center justify-center"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 0.4, ease: 'easeInOut' }}
-          >
-            {canPlayVideo ? (
-              <motion.video
-                src="/assets/OrbLiquidLoop.mp4"
-                poster="/assets/OrbLiquid.webp"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="none"
-                className="w-full h-full object-contain drop-shadow-2xl"
-                animate={allowMotion ? { scale: [1, 1.02, 1], y: [0, -4, 0] } : { scale: 1, y: 0 }}
-                transition={{
-                  duration: 4,
-                  ease: 'easeInOut',
-                  repeat: allowMotion ? Infinity : 0,
-                }}
-              />
-            ) : (
-              <motion.img
-                src="/assets/OrbLiquid.webp"
-                alt="PeeBear Orb"
-                decoding="async"
-                className="w-full h-full object-contain drop-shadow-2xl"
-                animate={allowMotion ? { scale: [1, 1.01, 1], y: [0, -2, 0] } : { scale: 1, y: 0 }}
-                transition={{
-                  duration: 4,
-                  ease: 'easeInOut',
-                  repeat: allowMotion ? Infinity : 0,
-                }}
-              />
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Roaring state - BurstingOrb */}
-      <AnimatePresence>
-        {isRoaring && (
-          <motion.div
-            key="roar"
-            className="absolute inset-0 flex items-center justify-center"
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1.08 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-          >
-            <motion.img
-              src="/assets/BurstingOrb.webp"
-              alt="PeeBear Roaring"
-              className="w-full h-full object-contain drop-shadow-2xl"
-              animate={{
-                x: [0, -2, 2, -1, 1, 0],
-                y: [0, 1, -1, 1, 0],
-              }}
-              transition={{
-                duration: 0.3,
-                ease: 'easeInOut',
-                repeat: 3,
-              }}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Roar flash effect */}
-      <AnimatePresence>
-        {isRoaring && (
-          <motion.div
-            className="absolute inset-0 rounded-full pointer-events-none z-10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.4, 0] }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            style={{
-              background: 'radial-gradient(circle, rgba(250, 204, 21, 0.6) 0%, transparent 60%)',
-            }}
-          />
-        )}
-      </AnimatePresence>
+    <div ref={ref} className="peebear-orb relative flex h-[220px] w-[220px] items-center justify-center" data-roaring={active && roaring} data-moving={active}>
+      <div className="absolute -inset-5 rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.2),transparent_70%)]" aria-hidden="true" />
+      <div className="peebear-orb-art relative h-full w-full overflow-hidden rounded-full" role="img" aria-label="PeeBear in a golden orb">
+        {/* Circular clipping removes the black corners in both original assets. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/assets/OrbLiquid.webp" alt="" width={220} height={220} decoding="async" className="peebear-orb-calm absolute inset-0 h-full w-full object-cover" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/assets/BurstingOrb.webp" alt="" width={220} height={220} decoding="async" className="peebear-orb-roar absolute inset-0 h-full w-full object-cover" />
+      </div>
+      <style jsx>{`
+        .peebear-orb-art { clip-path: circle(49.6% at 50% 50%); transition: transform .4s ease; }
+        .peebear-orb-art img { transition: opacity .35s ease; }
+        .peebear-orb-roar { opacity: 0; }
+        [data-roaring='true'] .peebear-orb-art { transform: scale(1.045); }
+        [data-roaring='true'] .peebear-orb-calm { opacity: 0; }
+        [data-roaring='true'] .peebear-orb-roar { opacity: 1; }
+        @media (prefers-reduced-motion: reduce) { .peebear-orb-art, .peebear-orb-art img { transition: none; } }
+      `}</style>
     </div>
   );
 }
