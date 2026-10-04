@@ -1,3 +1,4 @@
+import { getPublicVenueTagWhere } from '@/lib/public-venue-evidence';
 import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
@@ -129,6 +130,7 @@ export async function GET(
       where: {
         venueId: id,
         status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
       },
       orderBy: { submittedAt: 'desc' },
       take: 12,
@@ -151,12 +153,14 @@ export async function GET(
         where: {
           venueId: id,
           status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
         },
       }),
       prisma.placeTag.aggregate({
         where: {
           venueId: id,
           status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
         },
         _sum: {
           heatContribution: true,

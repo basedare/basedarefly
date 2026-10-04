@@ -423,14 +423,14 @@ export default async function VenueDetailPage(
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/26 to-transparent" />
             <div className="relative">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
                 <div className="max-w-3xl">
                   <div className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]">
                     <ShieldCheck className="h-4 w-4" />
-                    {venue.isPartner ? 'Partner · Proof Page' : 'Venue Proof Page'}
+                    {venue.isPartner ? 'Partner venue' : 'Explore this place'}
                   </div>
-                  <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end">
-                    <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[28px] border border-white/12 bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.035)_38%,rgba(8,8,16,0.92)_100%)] text-3xl shadow-[0_24px_48px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-16px_24px_rgba(0,0,0,0.24)]">
+                  <div className="mt-5 flex items-center gap-4 sm:items-end">
+                    <div className="relative flex h-14 w-14 sm:h-20 sm:w-20 shrink-0 items-center justify-center overflow-hidden rounded-[28px] border border-white/12 bg-[linear-gradient(145deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.035)_38%,rgba(8,8,16,0.92)_100%)] text-3xl shadow-[0_24px_48px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-16px_24px_rgba(0,0,0,0.24)]">
                       {venueProfile.profileImageUrl ? (
                         <img src={venueProfile.profileImageUrl} alt="" className="h-full w-full object-cover" />
                       ) : (
@@ -438,7 +438,7 @@ export default async function VenueDetailPage(
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f8dd72]">{venueProfile.tagline}</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f8dd72]">{venue.categories.slice(0, 2).join(' · ')}</p>
                       <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">{venue.name}</h1>
                     </div>
                   </div>
@@ -457,13 +457,13 @@ export default async function VenueDetailPage(
                   <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-white/55">
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                       <MapPin className="h-4 w-4 text-amber-300" />
-                      {venue.address ? `${venue.address}, ` : ''}{venue.city}, {venue.country}
+                      {venue.address || [venue.city, venue.country].filter(Boolean).join(', ')}
                     </span>
                     <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/14 bg-cyan-500/[0.06] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                       <Waves className="h-4 w-4 text-cyan-300" />
                       {venue.liveSession?.status === 'LIVE'
-                        ? venue.liveSession.campaignLabel ?? 'Venue pass live'
-                        : 'Venue pass not live'}
+                        ? venue.liveSession.campaignLabel ?? 'Verified check-in available'
+                        : 'Verified check-in unavailable'}
                     </span>
                   </div>
 
@@ -619,49 +619,19 @@ export default async function VenueDetailPage(
                     </div>
                   ) : null}
 
-                  {/* Proof-page identity strip — frames the page as the venue's BaseDare proof page. */}
-                  <div className="mt-5 rounded-2xl border border-[#f5c518]/16 bg-[#f5c518]/[0.05] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
-                      {venue.name}&apos;s proof page
-                    </p>
-                    <p className="mt-1 text-sm font-bold leading-6 text-white/68">
-                      Get on the Board <span className="text-[#f5c518]/70">→</span> bring people in{' '}
-                      <span className="text-[#f5c518]/70">→</span> prove visits{' '}
-                      <span className="text-[#f5c518]/70">→</span> show the receipt.
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Link
-                        href="/board"
-                        prefetch={false}
-                        className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#f5c518]/28 bg-[#f5c518]/[0.1] px-3.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#f8dd72] transition hover:border-[#f5c518]/50 hover:text-white"
-                      >
-                        Open The Board
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                      {hasVenueReceipt ? (
-                        <Link
-                          href={venueRecapHref}
-                          prefetch={false}
-                          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-emerald-300/24 bg-emerald-500/[0.08] px-3.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-100 transition hover:border-emerald-200/40 hover:text-white"
-                        >
-                          View activation receipt
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Link>
-                      ) : null}
-                    </div>
-                  </div>
+
                 </div>
 
-                <div className="grid min-w-0 gap-3 sm:min-w-[280px] sm:grid-cols-2 lg:grid-cols-1">
+                <div className="grid min-w-0 gap-3">
                   <div id="venue-actions" className={`${softCardClass} scroll-mt-24 px-5 py-5`}>
                     <LocalSpendPilot slug={venue.slug} />
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
-                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">After you visit</p>
-                    <h2 className="mt-2 text-2xl font-black text-white">Check in. Help the next traveller.</h2>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">At this place</p>
+                    <h2 className="mt-2 text-2xl font-black text-white">Make a plan. Share a moment.</h2>
                     <p className="mt-2 text-sm leading-6 text-white/58">
                       {venue.activePerk
                         ? `Check in first, then optionally share what you found. This venue lists a perk: ${venue.activePerk.title}. Eligibility is shown before redemption.`
-                        : 'Check-in is quick presence. An approved photo or clip helps the next visitor and builds your visible place history.'}
+                        : 'Meet people here, try a free activity, or share a photo or video after your visit.'}
                     </p>
                     {venue.activePerk?.conditions ? <p className="mt-3 text-sm text-yellow-100">{venue.activePerk.conditions}</p> : null}
                     {venue.activePerk?.quantityLimit ? <p className="mt-2 text-xs text-white/50">Up to {venue.activePerk.quantityLimit} rewards in this offer · one per signed-in wallet. Availability is confirmed when you scan; staff verify the requirements. {venue.activePerk.endsAt ? `Ends ${new Date(venue.activePerk.endsAt).toLocaleString('en-PH', { timeZone: venue.timezone })} (${venue.timezone}).` : ''}</p> : null}
@@ -681,23 +651,13 @@ export default async function VenueDetailPage(
                         address={venue.address}
                         city={venue.city}
                         country={venue.country}
-                        buttonLabel={receiptProofs > 0 ? 'Add fresh proof' : 'Be first to verify'}
+                        buttonLabel="Share a photo or video"
                         buttonVariant="jelly"
                       />
-                      <SquircleLink
-                        href={fundChallengeHref}
-                        label="Fund dare"
-                        tone="blue"
-                        fullWidth
-                        height={44}
-                        labelClassName="text-[0.72rem] tracking-[0.08em] sm:text-[0.8rem]"
-                      >
-                        Fund dare
-                        <Zap className="h-4 w-4" />
-                      </SquircleLink>
                       {/* Same feature set as the map pin popup — the venue page is the
                           ergonomic, full-screen version of that bottom sheet. */}
                       <MeetHereButton
+                        timeZone={venue.timezone}
                         venueId={venue.id}
                         venueSlug={venue.slug}
                         venueName={venue.name}
@@ -724,13 +684,25 @@ export default async function VenueDetailPage(
                           ? 'Venue tools ready'
                           : venue.commandCenter.claimState === 'pending'
                             ? 'Access pending'
-                            : 'Test one measurable visit loop'}
+                            : 'Bring more people here'}
                       </span>
                     </div>
                     <p className="mt-2 text-sm leading-6 text-white/58">
-                      Pick one slow window and one perk. BaseDare sets up the route, proof rail, and receipt.
+                      Choose a quiet time and a visitor offer. BaseDare helps plan the activity and record confirmed visits.
                     </p>
                     <div className="mt-4 grid gap-2">
+                      <SquircleLink
+                        href={fundChallengeHref}
+                        label="Draft a paid dare"
+                        tone="blue"
+                        fullWidth
+                        height={44}
+                        labelClassName="text-[0.72rem] tracking-[0.08em] sm:text-[0.8rem]"
+                      >
+                        Draft a paid dare
+                        <Zap className="h-4 w-4" />
+                      </SquircleLink>
+<p className="text-xs leading-5 text-white/55">Payment availability is checked before funding. Creating a draft does not charge you.</p>
                       <SquircleLink
                         href={activateVenueHref}
                         label="Plan a venue activity"
@@ -784,7 +756,7 @@ export default async function VenueDetailPage(
                         </Link>
                         <Link href={baseCashHref} className="inline-flex items-center gap-1.5 rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.07] px-3 py-2 text-[#f8dd72]/82 transition hover:text-white">
                           <CreditCard className="h-3.5 w-3.5" />
-                          BaseCash manual pilot
+                          Venue credit · manual pilot
                         </Link>
                         {venue.commandCenter.claimState === 'claimed' && venue.commandCenter.consoleUrl ? (
                           <>
@@ -806,37 +778,15 @@ export default async function VenueDetailPage(
                       </div>
                     </details>
                   </details>
+                <details className={`${softCardClass} p-4`}><summary className="cursor-pointer text-sm font-bold text-white">Recommend this place</summary><div className="mt-3"><WorthADetourCard venueSlug={venue.slug} venueName={venue.name} /></div></details>
                 </div>
-                <WorthADetourCard venueSlug={venue.slug} venueName={venue.name} />
               </div>
-              {venue.activeDares.length > 0 ||
-              totalActiveChallengeFunding > 0 ||
-              venue.tagSummary.heatScore > 0 ||
-              venue.tagSummary.approvedCount > 0 ? (
-                <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  <div className={`${insetCardClass} px-4 py-4`}>
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Challenges</p>
-                    <p className="mt-2 text-2xl font-black">{venue.activeDares.length}</p>
-                  </div>
-                  <div className={`${insetCardClass} px-4 py-4`}>
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Rewards</p>
-                    <p className="mt-2 text-2xl font-black">${totalActiveChallengeFunding.toFixed(0)}</p>
-                  </div>
-                  <div className={`${insetCardClass} px-4 py-4`}>
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Heat</p>
-                    <p className={`mt-2 text-2xl font-black ${currentPulseState.className}`}>{venue.tagSummary.heatScore}</p>
-                  </div>
-                  <div className={`${insetCardClass} px-4 py-4`}>
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Proofs</p>
-                    <p className="mt-2 text-2xl font-black">{venue.tagSummary.approvedCount}</p>
-                  </div>
-                </div>
-              ) : null}
+
             </div>
           </div>
 
           <details className="rounded-[24px] border border-white/10 bg-black/20 p-4">
-            <summary className="bd-action cursor-pointer">Place history and venue reports</summary>
+            <summary className="bd-action cursor-pointer">Activity reports</summary>
             <div className="mt-4 space-y-5">
           {sparkRun.state !== 'cold' || venue.commandCenter.consoleUrl ? (
             <SparkRunCard sparkRun={sparkRun} />
@@ -994,7 +944,7 @@ export default async function VenueDetailPage(
                         href={bestCreatorRoute.href}
                         className="inline-flex items-center justify-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
                       >
-                        Route creator
+                        Invite to a paid dare
                         <ArrowRight className="h-4 w-4" />
                       </Link>
                       <Link
@@ -1034,8 +984,9 @@ export default async function VenueDetailPage(
             </div>
           </details>
 
-          <div className="relative grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+          <div className="relative grid gap-6">
             <div className="space-y-6">
+              {venue.activeDares.length > 0 ? (
               <div className={`${softCardClass} p-5 sm:p-6`}>
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -1353,21 +1304,22 @@ export default async function VenueDetailPage(
                 </div>
               </div>
 
-              <div className={`${softCardClass} hidden p-6 md:block`}>
+              ) : null}
+              <details className={`${softCardClass} p-5`}><summary className="cursor-pointer text-sm font-bold text-white">Find a contributor for paid work</summary><div className="mt-4">
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">Top Creators For This Venue</p>
-                    <h2 className="mt-2 text-2xl font-bold">Route proven people into this place faster</h2>
+                    <h2 className="mt-2 text-2xl font-bold">Invite someone who has contributed here</h2>
                     <p className="mt-3 max-w-2xl text-sm text-white/60">
-                      These creators already have signal here. Use them as the fastest path from venue momentum to a funded drop or activation.
+                      Browse contributors and message them about the work you have in mind.
                     </p>
                   </div>
                   <Link
                     href={`/brands/portal?venue=${encodeURIComponent(venue.slug)}&compose=1`}
                     className="inline-flex items-center gap-2 self-start rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-4 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
                   >
-                    Launch here
+                    Draft paid work
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
@@ -1430,7 +1382,7 @@ export default async function VenueDetailPage(
                             href={creator.href}
                             className="inline-flex min-w-0 items-center justify-center gap-2 rounded-full border border-fuchsia-400/24 bg-fuchsia-500/[0.1] px-3 py-2 text-sm font-semibold text-fuchsia-100 shadow-[0_12px_22px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-fuchsia-300/38 hover:bg-fuchsia-500/[0.14]"
                           >
-                            Route
+                            Invite to a paid dare
                             <ArrowRight className="h-4 w-4" />
                           </Link>
                           <Link
@@ -1443,41 +1395,38 @@ export default async function VenueDetailPage(
                             href={`/chat?creator=${encodeURIComponent(creator.creatorTag)}&venue=${encodeURIComponent(venue.slug)}&subject=${encodeURIComponent(`${venue.name} creator route: ${creator.creatorTag}`)}&source=venue-profile`}
                             className="inline-flex min-w-0 items-center justify-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/[0.08] px-3 py-2 text-sm font-semibold text-cyan-100 transition hover:-translate-y-[1px] hover:border-cyan-300/34 hover:bg-cyan-500/[0.12] sm:col-span-2"
                           >
-                            Message / bid
+                            Message
                           </Link>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </div>
+              </div></details>
 
               <div className={`${softCardClass} p-6`}>
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Venue Logbook</p>
-                    <h2 className="mt-2 text-2xl font-bold">Verified history at this place</h2>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Place history</p>
+                    <h2 className="mt-2 text-2xl font-bold">Photos, videos and completed activities</h2>
                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/58">
-                      Every approved mark becomes part of this venue&apos;s public memory trail. The best places should
-                      feel inhabited before you even arrive.
+                      Updates reviewed by BaseDare. Check the date: an older visit may not reflect the place today.
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <div className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                       {venue.tagSummary.approvedCount} verified mark{venue.tagSummary.approvedCount === 1 ? '' : 's'}
                     </div>
-                    <div className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/[0.08] px-4 py-2 text-sm text-fuchsia-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                      Pulse {venue.tagSummary.heatScore}
-                    </div>
+
                   </div>
                 </div>
                 <div className="mt-5 space-y-3">
-                  {venue.tagSummary.approvedCount === 0 ? (
+                  {venue.tagSummary.approvedCount === 0 && hasPendingOwnVenueMark ? (
                     <div className="rounded-[18px] border border-[#f5c518]/18 bg-[#f5c518]/[0.08] px-4 py-3 text-sm text-[#f8dd72] shadow-[0_14px_28px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.08)]">
                       {hasPendingOwnVenueMark
-                        ? 'Your first mark is under referee review. Once approved, it becomes the venue opening legend.'
-                        : 'First mark open. The first approved memory here becomes the venue opening legend.'}
+                        ? 'Your update is being reviewed. It will appear here if approved.'
+                        : 'Visited recently? Share a photo or video to help the next visitor.'}
                     </div>
                   ) : null}
                   {venue.timelineMoments.length > 0 ? (
@@ -1610,7 +1559,7 @@ export default async function VenueDetailPage(
                   ) : (
                     <div className={`${insetCardClass} px-4 py-5`}>
                       <p className="text-sm text-white/58">
-                        No verified marks yet. The first approved tag here will start the place-memory timeline.
+                        No reviewed updates yet.
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <div className="w-full max-w-xs">
@@ -1622,7 +1571,7 @@ export default async function VenueDetailPage(
                             address={venue.address}
                             city={venue.city}
                             country={venue.country}
-                            buttonLabel="Be first to verify"
+                            buttonLabel="Share a photo or video"
                             buttonVariant="jelly"
                           />
                         </div>
@@ -1640,7 +1589,7 @@ export default async function VenueDetailPage(
 
             </div>
 
-            <div className="hidden space-y-6 lg:block">
+            <details className={`${softCardClass} p-5`}><summary className="cursor-pointer text-sm font-bold text-white">Venue check-in status</summary><div className="mt-4">
               <div className={`${softCardClass} p-6`}>
                 <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
                 <div className="flex items-center gap-2">
@@ -1698,7 +1647,7 @@ export default async function VenueDetailPage(
                   )}
                 </div>
               </div>
-            </div>
+            </div></details>
           </div>
         </section>
       </main>

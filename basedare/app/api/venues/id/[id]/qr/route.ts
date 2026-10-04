@@ -1,12 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { authorizeVenueOperator } from '@/lib/venue-operator-auth';
 import { getVenueQrPayloadByVenueId } from '@/lib/venues';
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    const denied = await authorizeVenueOperator(request, id);
+    if (denied) return denied;
     const qr = await getVenueQrPayloadByVenueId(id);
 
     if (!qr) {
@@ -19,7 +22,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       data: qr,
-    });
+    }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[VENUE_QR] Failed:', message);

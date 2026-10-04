@@ -1,3 +1,4 @@
+import { venueLocationError } from '@/lib/venue-check-in-location';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { randomUUID } from 'crypto';
@@ -31,8 +32,10 @@ const VenueCheckInSchema = z.object({
   token: z.string().min(20),
   tag: z.string().trim().max(40).optional(),
   dareId: z.string().trim().min(1).optional(),
-  lat: z.number().min(-90).max(90).optional(),
-  lng: z.number().min(-180).max(180).optional(),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  accuracyMeters: z.number().nonnegative(),
+  locationTimestamp: z.number().positive(),
   walletAddress: z.string().optional(),
 });
 
@@ -135,35 +138,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const gpsProvided = typeof parsed.data.lat === 'number' && typeof parsed.data.lng === 'number';
-    let geoDistanceMeters: number | null = null;
-    let proofLevel: 'QR_ONLY' | 'QR_AND_GPS' = 'QR_ONLY';
+    const locationError = venueLocationError(parsed.data, venue.checkInRadiusMeters);
+    if (locationError) return NextResponse.json({ success: false, error: locationError }, { status: 400 });
 
-    if (gpsProvided) {
-      if (!isValidCoordinates(parsed.data.lat!, parsed.data.lng!)) {
-        return NextResponse.json(
-          { success: false, error: 'Invalid coordinates' },
-          { status: 400 }
-        );
-      }
-
-      geoDistanceMeters = Math.round(
-        calculateDistance(venue.latitude, venue.longitude, parsed.data.lat!, parsed.data.lng!) * 1000
-      );
-
-      if (geoDistanceMeters > venue.checkInRadiusMeters) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'You are outside the venue check-in radius',
-            distanceMeters: geoDistanceMeters,
-            allowedRadiusMeters: venue.checkInRadiusMeters,
-          },
-          { status: 403 }
-        );
-      }
-
-      proofLevel = 'QR_AND_GPS';
+    const gpsProvided = true;
+    const proofLevel = 'QR_AND_GPS';
+    if (!isValidCoordinates(parsed.data.lat, parsed.data.lng)) {
+      return NextResponse.json({ success: false, error: 'Invalid coordinates' }, { status: 400 });
+    }
+    const geoDistanceMeters = Math.round(
+      calculateDistance(venue.latitude, venue.longitude, parsed.data.lat, parsed.data.lng) * 1000
+    );
+    if (geoDistanceMeters > venue.checkInRadiusMeters) {
+      return NextResponse.json({
+        success: false,
+        error: 'You are outside the venue check-in radius',
+        distanceMeters: geoDistanceMeters,
+        allowedRadiusMeters: venue.checkInRadiusMeters,
+      }, { status: 403 });
     }
 
     const existingCheckIn = await prisma.venueCheckIn.findFirst({

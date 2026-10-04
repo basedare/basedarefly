@@ -66,7 +66,6 @@ type CheckInResult = {
   perk: VenuePerkUnlock | null;
 };
 
-type CheckInMode = 'gps' | 'qr-only';
 type SubmitPhase = 'idle' | 'locating' | 'signing' | 'submitting' | 'success' | 'error';
 type VenueActiveDare = VenueDetail['activeDares'][number];
 
@@ -92,7 +91,7 @@ function getVenueCheckInAuthResource(venueId: string, sessionId: string) {
   return `venue:${venueId}:session:${sessionId}`;
 }
 
-function getPosition(): Promise<{ lat: number; lng: number }> {
+function getPosition(): Promise<{ lat: number; lng: number; accuracyMeters: number; locationTimestamp: number }> {
   return new Promise((resolve, reject) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       reject(new Error('GPS is not available in this browser.'));
@@ -104,12 +103,14 @@ function getPosition(): Promise<{ lat: number; lng: number }> {
         resolve({
           lat: position.coords.latitude,
           lng: position.coords.longitude,
+          accuracyMeters: position.coords.accuracy,
+          locationTimestamp: position.timestamp,
         });
       },
       () => reject(new Error('GPS permission was blocked or unavailable.')),
       {
         enableHighAccuracy: true,
-        maximumAge: 30_000,
+        maximumAge: 0,
         timeout: 8_000,
       }
     );
@@ -217,7 +218,6 @@ export default function HandshakeClient() {
   const [venueError, setVenueError] = useState<string | null>(null);
   const [creatorTag, setCreatorTag] = useState('');
   const [phase, setPhase] = useState<SubmitPhase>('idle');
-  const [gpsWarning, setGpsWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CheckInResult | null>(null);
 
@@ -285,7 +285,7 @@ export default function HandshakeClient() {
   }, [handshake]);
 
   const submitCheckIn = useCallback(
-    async (mode: CheckInMode) => {
+    async () => {
       if (!handshake) {
         setError('This venue pass is missing required fields.');
         setPhase('error');
@@ -307,20 +307,17 @@ export default function HandshakeClient() {
       }
 
       setError(null);
-      setGpsWarning(null);
       setResult(null);
 
-      let location: { lat: number; lng: number } | null = null;
-      if (mode === 'gps') {
+      let location: { lat: number; lng: number; accuracyMeters: number; locationTimestamp: number } | null = null;
+      {
         setPhase('locating');
         try {
           location = await getPosition();
         } catch (locationError) {
-          setGpsWarning(
-            locationError instanceof Error
-              ? `${locationError.message} Continuing as QR-only proof.`
-              : 'GPS unavailable. Continuing as QR-only proof.'
-          );
+          setError(locationError instanceof Error ? locationError.message : 'Allow location and try again.');
+          setPhase('error');
+          return;
         }
       }
 
@@ -354,6 +351,8 @@ export default function HandshakeClient() {
             tag: creatorTag.trim() || undefined,
             lat: location?.lat,
             lng: location?.lng,
+            accuracyMeters: location?.accuracyMeters,
+            locationTimestamp: location?.locationTimestamp,
           }),
         });
         const payload = await response.json();
@@ -513,20 +512,20 @@ export default function HandshakeClient() {
               </div>
             </div>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
+            <div className="mt-6 grid gap-3 ">
               <button
                 type="button"
                 disabled={!canSubmit}
-                onClick={() => void submitCheckIn('gps')}
+                onClick={() => void submitCheckIn()}
                 className="group relative min-h-14 overflow-hidden rounded-[22px] border border-cyan-200/20 bg-[linear-gradient(180deg,rgba(190,249,255,0.22),rgba(34,211,238,0.12)_46%,rgba(7,12,22,0.96)_100%)] px-5 py-4 text-left shadow-[0_18px_36px_rgba(0,0,0,0.32),0_0_24px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.16)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-45"
               >
                 <span className="relative z-10 flex items-center justify-between gap-3">
                   <span>
                     <span className="block text-sm font-black uppercase tracking-[0.16em] text-white">
-                      Check in with GPS + QR
+                      Check in
                     </span>
                     <span className="mt-1 block text-xs text-cyan-50/58">
-                      Highest-trust venue presence proof.
+                      Confirm your location at the venue.
                     </span>
                   </span>
                   {phase === 'locating' || phase === 'signing' || phase === 'submitting' ? (
@@ -536,14 +535,7 @@ export default function HandshakeClient() {
                   )}
                 </span>
               </button>
-              <button
-                type="button"
-                disabled={!canSubmit}
-                onClick={() => void submitCheckIn('qr-only')}
-                className="min-h-14 rounded-[22px] border border-white/12 bg-white/[0.045] px-5 py-4 text-sm font-black uppercase tracking-[0.14em] text-white/72 shadow-[0_16px_28px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-white/20 hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                QR only
-              </button>
+
             </div>
 
             <div className="mt-4 min-h-6 text-sm">
@@ -554,13 +546,6 @@ export default function HandshakeClient() {
                 <span className="ml-2 text-white/34">Checking session...</span>
               ) : null}
             </div>
-
-            {gpsWarning ? (
-              <div className="mt-4 flex gap-3 rounded-[22px] border border-amber-300/18 bg-amber-400/[0.07] p-4 text-sm leading-5 text-amber-100">
-                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{gpsWarning}</span>
-              </div>
-            ) : null}
 
             {error ? (
               <div className="mt-4 flex gap-3 rounded-[22px] border border-red-400/18 bg-red-500/[0.08] p-4 text-sm leading-5 text-red-100">
@@ -627,7 +612,7 @@ export default function HandshakeClient() {
                         ) : null}
                       </div>
                     </div>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+                    <div className="mt-4 grid gap-3 ">
                       <div className="rounded-[18px] border border-white/10 bg-black/22 px-4 py-3">
                         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/36">Staff code</p>
                         <p className="mt-1 font-mono text-2xl font-black tracking-[0.12em] text-[#f8dd72]">
@@ -697,7 +682,7 @@ export default function HandshakeClient() {
                   ]}
                   className="mt-4"
                 />
-                <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
+                <div className="mt-4 grid gap-2 ">
                   <Link
                     href={`/map?place=${encodeURIComponent(result.venueSlug)}&room=1&source=checkin`}
                     className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[20px] border border-cyan-200/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.2),rgba(7,12,22,0.94))] px-4 text-sm font-black uppercase tracking-[0.14em] text-cyan-50 shadow-[0_16px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1)] transition hover:-translate-y-[1px] hover:border-cyan-100/38"

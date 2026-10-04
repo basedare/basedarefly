@@ -1,3 +1,4 @@
+import { publicVenueDareWhere, getPublicVenueTagWhere } from '@/lib/public-venue-evidence';
 import { venueReportPeriod } from '@/lib/venue-reporting';
 import 'server-only';
 
@@ -655,6 +656,7 @@ async function getTopCreatorsForVenueIds(venueIds: string[]) {
     where: {
       venueId: { in: venueIds },
       status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
       creatorTag: { not: null },
     },
     select: {
@@ -896,7 +898,7 @@ function buildVenueTimelineMoments(input: {
       tag.status === 'PENDING'
         ? tag.caption ?? 'Your mark was submitted and is waiting for referee review.'
         : tag.caption ?? 'Verified place mark submitted through BaseDare.',
-    creatorLabel: tag.creatorTag ? `@${tag.creatorTag}` : compactWalletLabel(tag.walletAddress),
+    creatorLabel: tag.creatorTag ? `@${tag.creatorTag.replace(/^@+/, '')}` : compactWalletLabel(tag.walletAddress),
     sourceLabel:
       tag.status === 'PENDING'
         ? 'referee review queued'
@@ -1530,6 +1532,7 @@ export async function getBrandVenueRadar(input: {
       },
       dares: {
         where: {
+          ...publicVenueDareWhere,
           NOT: {
             OR: [
               { status: { in: [...TERMINAL_DARE_STATUSES] } },
@@ -1728,7 +1731,8 @@ async function getVenueMayorMap(venueIds: string[]): Promise<Map<string, VenueMa
   const since = new Date(Date.now() - MAYOR_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const grouped = await prisma.placeTag.groupBy({
     by: ['venueId', 'walletAddress'],
-    where: { venueId: { in: venueIds }, status: 'APPROVED', submittedAt: { gte: since } },
+    where: { venueId: { in: venueIds }, status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()), submittedAt: { gte: since } },
     _count: { _all: true },
     _max: { submittedAt: true },
   });
@@ -1837,6 +1841,7 @@ export async function getNearbyVenues(input: {
       },
       dares: {
         where: {
+          ...publicVenueDareWhere,
           NOT: {
             OR: [
               { status: { in: [...TERMINAL_DARE_STATUSES] } },
@@ -2058,6 +2063,7 @@ async function getVenueDetailBySlugFromDatabase(
       },
       dares: {
         where: {
+          ...publicVenueDareWhere,
           NOT: {
             OR: [
               { status: { in: [...TERMINAL_DARE_STATUSES] } },
@@ -2163,6 +2169,7 @@ async function getVenueDetailBySlugFromDatabase(
       where: {
         venueId: venue.id,
         status: { in: ['VERIFIED', 'PAID', 'COMPLETED', 'PENDING_PAYOUT'] },
+        ...publicVenueDareWhere,
       },
       orderBy: [{ verifiedAt: 'desc' }, { completed_at: 'desc' }, { updatedAt: 'desc' }],
       take: 8,
@@ -2237,6 +2244,7 @@ async function getVenueDetailBySlugFromDatabase(
               venueId: venue.id,
               walletAddress: normalizedCreatorWallet,
               status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
             },
             orderBy: { submittedAt: 'asc' },
             select: {
@@ -2251,6 +2259,7 @@ async function getVenueDetailBySlugFromDatabase(
             where: {
               venueId: venue.id,
               status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
             },
             _count: { _all: true },
           }),

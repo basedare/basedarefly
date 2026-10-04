@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { verifyInternalApiKey } from '@/lib/api-auth';
+import { authorizeVenueOperator } from '@/lib/venue-operator-auth';
 import {
   createVenueSessionKey,
   getActiveVenueSessionByVenueId,
@@ -20,11 +20,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = verifyInternalApiKey(request);
-  if (authError) return authError;
 
   try {
     const { id } = await params;
+    const authError = await authorizeVenueOperator(request, id);
+    if (authError) return authError;
     const venue = await getVenueById(id);
     if (!venue) {
       return NextResponse.json(
@@ -45,6 +45,7 @@ export async function POST(
     const now = new Date();
     let session = await getActiveVenueSessionByVenueId(venue.id);
 
+    if (!session && parsed.data.action === 'pause') return NextResponse.json({ success: false, error: 'No session is running.' }, { status: 409 });
     if (!session) {
       session = await prisma.venueQrSession.create({
         data: {
@@ -61,18 +62,17 @@ export async function POST(
       });
     } else {
       const nextStatus =
-        parsed.data.action === 'pause'
-          ? 'PAUSED'
-          : 'LIVE';
+        parsed.data.action === 'pause' ? 'PAUSED' : parsed.data.action === 'refresh' ? session.status : 'LIVE';
 
       session = await prisma.venueQrSession.update({
         where: { id: session.id },
         data: {
           status: nextStatus,
+          endsAt: parsed.data.action === 'start' ? null : session.endsAt,
           label: parsed.data.label ?? session.label,
           campaignLabel: parsed.data.campaignLabel ?? session.campaignLabel,
           rotationSeconds: parsed.data.rotationSeconds ?? session.rotationSeconds,
-          pausedAt: parsed.data.action === 'pause' ? now : null,
+          pausedAt: parsed.data.action === 'pause' ? now : parsed.data.action === 'refresh' ? session.pausedAt : null,
           lastRotatedAt:
             parsed.data.action === 'refresh' ||
             parsed.data.action === 'resume' ||

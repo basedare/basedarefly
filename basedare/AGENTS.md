@@ -14,6 +14,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex venue usability and evidence integrity (2026-10-05)
+- Venue pages and map pins use the same meetup composer with venue-local time and optional friend invitations. Visitor actions remain visible; history, chat and operator tools are disclosures. Keep physical buttons and branded backgrounds.
+- Public venue tags/counts/rankings exclude SEEDED_MEMORY, seeded proof hashes, linked known Phase5 fixtures, simulated and unfunded paid dares. Historical rows remain in storage. Do not infer current escrow solvency from the recorded-funding filter.
+- Only approved claimedBy operators or internal credentials may fetch rotating venue QR payloads or manage sessions. Visitors scan the venue's displayed QR; verified check-in requires fresh, sufficiently accurate GPS plus the live token. Temporary nearby presence remains separate.
+- No migrations or mainnet changes. Paid launch remains blocked by the existing missing mainnet contract bytecode. See docs/venue-readiness-release-2026-10-05.md for validation and limitations.
+
 ### Codex restore branded motion and remove unfunded active work (2026-10-03)
 - User explicitly wants the desktop node network and animated mobile PeeBear preserved. Brave's reported 4GB memory must lower desktop network density/frame rate, not remove it. Precompute neighboring node pairs and regenerate on resize. Keep hidden-tab cleanup and reduced-motion support.
 - Restore the original mobile OrbLiquidLoop.mp4 inside the circular clip. Play only while visible and calm; pause for burst/hidden/offscreen and respect reduced-motion/data-saving preferences. Do not restore the hidden desktop hero on phones.

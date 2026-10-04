@@ -78,7 +78,7 @@ const FAQ_ITEMS = [
   },
   {
     "q": "What do check-ins and receipts prove?",
-    "a": "At enabled venues, a Venue Pass and nearby location provide evidence of a visit. Approved records can contribute to your verified trail. A receipt records the evidence and review outcome; it is **not a guarantee against fraud** and does not prove every claim about a place. Self-reported adventure completions stay separate."
+    "a": "At enabled venues, scan the rotating QR displayed by staff with your phone camera, sign in and allow a fresh location check. The venue QR and nearby GPS together provide evidence of a visit. The public ‘I’m here’ option only shares temporary presence; it is not a verified check-in. Approved records can contribute to your verified trail. A receipt records the evidence and review outcome; it is **not a guarantee against fraud** and does not prove every claim about a place. Self-reported adventure completions stay separate."
   },
   {
     "q": "Can I message anyone?",

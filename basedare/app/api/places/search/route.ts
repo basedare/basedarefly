@@ -1,3 +1,4 @@
+import { getPublicVenueTagWhere } from '@/lib/public-venue-evidence';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
@@ -246,6 +247,7 @@ async function searchKnownPlaces(query: string, origin: SearchOrigin | null) {
             placeTags: {
               some: {
                 status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
                 vibeTags: { hasSome: categoryTokens },
               },
             },
@@ -325,6 +327,7 @@ async function searchKnownPlaces(query: string, origin: SearchOrigin | null) {
     by: ['venueId'],
     where: {
       status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
       venueId: { in: venues.map((venue) => venue.id) },
     },
     _count: {

@@ -352,6 +352,22 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
     };
   }, [tvModeOpen]);
 
+  const [sessionBusy, setSessionBusy] = useState(false);
+  async function changeQrSession(action: 'start' | 'pause') {
+    if (!sessionToken || sessionBusy) return;
+    setSessionBusy(true);
+    try {
+      const response = await fetch(`/api/venues/id/${venue.id}/console/session`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionToken}` },
+        body: JSON.stringify({ action }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) throw new Error(payload.error || 'Unable to update check-in.');
+      window.location.reload();
+    } catch (error) { setQrError(error instanceof Error ? error.message : 'Unable to update check-in.'); }
+    finally { setSessionBusy(false); }
+  }
+
   const loadQr = useCallback(async (options?: { manual?: boolean }) => {
     if (options?.manual) {
       setRefreshingQr(true);
@@ -1257,6 +1273,7 @@ export default function VenueConsoleClient({ venue }: { venue: VenueDetail }) {
                 </div>
               </div>
 
+              {sessionToken ? <button type="button" disabled={sessionBusy} onClick={() => void changeQrSession(isLive ? 'pause' : 'start')} className="mt-4 min-h-11 rounded-full border border-yellow-200/25 bg-yellow-300/10 px-5 text-sm font-bold text-yellow-100 disabled:opacity-50">{sessionBusy ? 'Updating…' : isLive ? 'Pause check-ins' : 'Start check-ins'}</button> : <p className="mt-4 text-sm text-white/60">Sign in with the approved venue account to display the QR.</p>}
               <div className="mt-8 flex flex-col items-center">
                 {hasLiveQr ? (
                   <div className="relative rounded-[30px] border border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(242,243,248,0.96)_100%)] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.45),0_0_22px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.7)]">

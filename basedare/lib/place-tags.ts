@@ -1,3 +1,4 @@
+import { getPublicVenueTagWhere } from '@/lib/public-venue-evidence';
 import 'server-only';
 
 import { Prisma } from '@prisma/client';
@@ -33,6 +34,7 @@ export async function getApprovedTagSummaryMap(venueIds: string[]) {
       where: {
         venueId: { in: venueIds },
         status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
       },
       _count: { _all: true },
       _sum: { heatContribution: true },
@@ -74,6 +76,7 @@ export async function getRecentApprovedPlaceTagsByVenueId(
       where: {
         venueId,
         status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
       },
       orderBy: { submittedAt: 'desc' },
       take: limit,

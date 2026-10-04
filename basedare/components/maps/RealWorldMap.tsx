@@ -33,7 +33,6 @@ import {
   Camera,
   ChevronDown,
   ChevronUp,
-  CreditCard,
   Eye,
   EyeOff,
   Flame,
@@ -243,6 +242,7 @@ type NearbyPlace = {
 };
 
 type SelectedPlace = {
+  timezone?: string;
   placeId?: string;
   slug?: string;
   handle?: string | null;
@@ -749,6 +749,7 @@ type VenueDetailResponse = {
   success: boolean;
   data?: {
     venue: {
+      timezone?: string;
       id: string;
       slug: string;
       handle: string | null;
@@ -821,14 +822,6 @@ type VenueDetailResponse = {
         claimRequestStatus: string | null;
       } | null;
     };
-  };
-};
-
-type VenueQrPayloadResponse = {
-  success: boolean;
-  error?: string;
-  data?: {
-    qrValue: string;
   };
 };
 
@@ -1313,7 +1306,7 @@ function getTrustColor({
 }
 
 // Marker words follow the trust ladder — status + neutral metrics only.
-// Review sentiment lives in the venue panel (Spot Vault), never on pins.
+// Review sentiment lives in the venue panel (Place history), never on pins.
 function getMapLibreSignalLabel({
   activeDareCount,
   matched,
@@ -5939,6 +5932,7 @@ export default function RealWorldMap() {
     setSelectedPlace({
       placeId: place.id,
       slug: place.slug,
+      timezone: place.timezone,
       handle: place.handle,
       baseCashEnabled: place.baseCashEnabled,
       name: place.name,
@@ -5991,6 +5985,7 @@ export default function RealWorldMap() {
             ...current,
             placeId: venue.id,
             slug: venue.slug,
+            timezone: venue.timezone,
             handle: venue.handle,
             baseCashEnabled: venue.baseCashEnabled,
             name: venue.name,
@@ -6246,7 +6241,7 @@ export default function RealWorldMap() {
     }
 
     if (!spotVault?.viewer.canLeaveSignal) {
-      setSpotVaultReviewState({ type: 'error', message: 'Check in here before writing to the vault.' });
+      setSpotVaultReviewState({ type: 'error', message: 'Scan venue QR before writing to the vault.' });
       triggerHaptic('warning');
       return;
     }
@@ -8275,20 +8270,7 @@ export default function RealWorldMap() {
             }
           : await resolveSelectedPlaceForCommand();
 
-      const response = await fetch(`/api/venues/id/${encodeURIComponent(resolvedPlace.id)}/qr`, {
-        cache: 'no-store',
-      });
-      const payload = (await response.json().catch(() => null)) as VenueQrPayloadResponse | null;
-
-      if (!response.ok || !payload?.success || !payload.data?.qrValue) {
-        throw new Error(
-          payload?.error ??
-            'This venue needs a live BaseDare QR before trusted check-ins open.'
-        );
-      }
-
-      const handshakeUrl = new URL(payload.data.qrValue, window.location.origin);
-      router.push(`${handshakeUrl.pathname}${handshakeUrl.search}`);
+      setCheckInLaunchState({ type: 'info', message: `At ${resolvedPlace.name}, scan the live BaseDare QR with your phone camera. Ask staff for the code, then allow location to verify your visit.` });
     } catch (error) {
       setCheckInLaunchState({
         type: 'error',
@@ -8301,7 +8283,7 @@ export default function RealWorldMap() {
     } finally {
       setCheckInLaunching(false);
     }
-  }, [checkInLaunching, resolveSelectedPlaceForCommand, router, selectedPlace]);
+  }, [checkInLaunching, resolveSelectedPlaceForCommand, selectedPlace]);
 
   const handleSignalPresence = useCallback(async () => {
     if (!selectedPlace || presenceSubmitting) {
@@ -9876,17 +9858,6 @@ export default function RealWorldMap() {
       />
     ) : null;
 
-  const selectedPlaceBaseCashButton =
-    selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlaceBaseCashHref ? (
-      <Link
-        href={selectedPlaceBaseCashHref}
-        className="map-primary-action-button map-primary-action-button--pay"
-        aria-label={`Open BaseCash for ${selectedPlace.name}`}
-      >
-        <CreditCard className="h-4 w-4" />
-        <span>BaseCash</span>
-      </Link>
-    ) : null;
 
   const selectedPlaceOpenVenueButton =
     selectedPlace && !selectedPlaceIsPrivateSpot && selectedPlace.slug && selectedVenueActionsHref ? (
@@ -9987,7 +9958,7 @@ export default function RealWorldMap() {
       >
         <span aria-hidden="true">🤙</span>{' '}
         <span className="venue-action-button__label">
-          {isMobileViewport ? 'Free meetup' : 'Start a free meetup here'}
+          Meet here
         </span>
       </button>
     ) : null;
@@ -10016,7 +9987,7 @@ export default function RealWorldMap() {
         ...selectedPlaceActionPolicy.tertiary,
       ].filter(
         (action): action is PlaceActionId =>
-          action !== null && action !== 'directions' && action !== 'open-venue'
+          action !== null && action !== 'directions' && action !== 'open-venue' && action !== 'fund-dare'
       )
     )
   );
@@ -10031,9 +10002,7 @@ export default function RealWorldMap() {
     ...(selectedPlaceMeetupButton
       ? [{ id: 'meetup', node: selectedPlaceMeetupButton }]
       : []),
-    ...(selectedPlaceBaseCashButton
-      ? [{ id: 'basecash', node: selectedPlaceBaseCashButton }]
-      : []),
+
   ];
   const selectedPlaceUtilityRailColumns =
     selectedPlaceUtilityActions.length >= 3
@@ -10075,7 +10044,7 @@ export default function RealWorldMap() {
         </span>
         <span className="venue-action-button__copy min-w-0 flex-1">
           <span className="venue-action-button__label block text-[11px] font-black uppercase tracking-[0.14em] text-white">
-            {checkInLaunching ? 'Opening venue pass…' : 'Check in here'}
+            {checkInLaunching ? 'Opening venue pass…' : 'Scan venue QR'}
           </span>
           <span className="venue-action-button__meta mt-0.5 block truncate text-[10px] font-semibold text-white/48">
             First QR + GPS visit +{VERIFIED_VENUE_CHECK_IN_POINTS} Signal Points · room · Crossed Paths
@@ -10093,32 +10062,6 @@ export default function RealWorldMap() {
     </p>
   ) : null;
 
-  const selectedPlacePresenceAction =
-    selectedPlace && !selectedPlaceIsPrivateSpot && !selectedCheckInLive ? (
-      <button
-        type="button"
-        onClick={userLocation ? handleSignalPresence : requestApproximateLocation}
-        disabled={presenceSubmitting}
-        className="venue-action-button--presence inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-emerald-300/24 bg-[linear-gradient(180deg,rgba(16,185,129,0.18)_0%,rgba(8,14,14,0.92)_100%)] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_12px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:-translate-y-[1px] hover:border-emerald-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
-        aria-label={
-          userLocation
-            ? activePresenceIsSelectedVenue
-              ? `Refresh your presence at ${selectedPlace.name}`
-              : `Show that you are at ${selectedPlace.name}`
-            : `Locate yourself near ${selectedPlace.name}`
-        }
-      >
-        <span className="venue-action-button__label">
-          {presenceSubmitting
-            ? 'Finding…'
-            : userLocation
-              ? activePresenceIsSelectedVenue
-                ? 'Refresh'
-                : "I'm here"
-              : 'Locate'}
-        </span>
-      </button>
-    ) : null;
 
   const selectedPlaceSecondaryActionRail =
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
@@ -10142,7 +10085,7 @@ export default function RealWorldMap() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-white/52">
             <Sparkles className="h-3.5 w-3.5 text-[#f5c518]" />
-            Latest from here
+            Photos and updates
           </div>
           <div className="flex items-center gap-2">
             <span className={mapPanelInsetChipClass}>
@@ -10153,10 +10096,10 @@ export default function RealWorldMap() {
                 type="button"
                 onClick={() => setProofReelOpen(true)}
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#f5c518]/30 bg-[#f5c518]/[0.1] px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#f8dd72] transition hover:border-[#f5c518]/55 hover:bg-[#f5c518]/[0.16]"
-                aria-label={`Watch clips from ${selectedPlace.name}`}
+                aria-label={`View updates from ${selectedPlace.name}`}
               >
                 <span aria-hidden="true">▶</span>
-                Watch clips
+                View updates
               </button>
             ) : null}
           </div>
@@ -10178,7 +10121,7 @@ export default function RealWorldMap() {
                     <div className="flex items-start justify-between gap-2">
                       <p className="truncate text-[13px] font-semibold text-white">
                         {tag.creatorTag
-                          ? `@${tag.creatorTag}`
+                          ? `@${tag.creatorTag.replace(/^@+/, '')}`
                           : `${tag.walletAddress.slice(0, 6)}...${tag.walletAddress.slice(-4)}`}
                       </p>
                       <p className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-white/34">
@@ -10411,7 +10354,7 @@ export default function RealWorldMap() {
               ? `You're here ${getExpiryLabel(activePresenceSignal?.expiresAt ?? null)}.`
               : selectedPresenceActiveCount > 0
                 ? `${selectedPresenceActiveCount} nearby now.`
-                : 'Show that you are here.'}
+                : 'Let nearby people know you’re here.'}
           </p>
         </div>
         <span className="rounded-full border border-emerald-300/20 bg-emerald-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-100">
@@ -10433,7 +10376,6 @@ export default function RealWorldMap() {
             {userLocation ? 'Approximate only. Exact location stays private.' : 'Location needed to signal.'}
           </p>
         </div>
-        {!isMobileViewport ? (
           <button
             type="button"
             onClick={userLocation ? handleSignalPresence : requestApproximateLocation}
@@ -10448,7 +10390,7 @@ export default function RealWorldMap() {
               'Locate'
             )}
           </button>
-        ) : null}
+
       </div>
 
       {presenceSubmitState ? (
@@ -10490,7 +10432,7 @@ export default function RealWorldMap() {
             Local Chat
           </div>
           <p className="mt-1.5 truncate text-sm font-semibold text-white">
-            {venueRoomUnlocked ? 'Chat unlocked here.' : 'Check in or get nearby.'}
+            {venueRoomUnlocked ? 'Chat unlocked here.' : 'Nearby chat'}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
@@ -10648,7 +10590,7 @@ export default function RealWorldMap() {
       ) : (
         <div className="mt-2 grid grid-cols-[1fr_auto] items-center gap-2 rounded-[18px] border border-white/8 bg-black/18 px-3 py-2.5">
           <p className="min-w-0 text-xs leading-5 text-white/52">
-            {venueRoomAccess?.reason ?? 'Check in or get nearby to open this room.'}
+            {venueRoomAccess?.reason ?? 'Allow location nearby, or scan the venue QR to join.'}
           </p>
           {userLocation ? (
             <button
@@ -10695,13 +10637,13 @@ export default function RealWorldMap() {
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-[#f8dd72]/82">
             <ShieldCheck className="h-3.5 w-3.5 text-[#f8dd72]" />
-            Spot Vault
+            Place history
           </div>
           <p className="mt-1.5 truncate text-sm font-semibold text-white">
             {spotVaultLoading
               ? 'Loading place history…'
               : spotVault?.timeline.length
-                ? 'Verified place history.'
+                ? 'Reviewed updates and completed activities.'
                 : 'No verified updates yet.'}
           </p>
         </div>
@@ -10890,7 +10832,7 @@ export default function RealWorldMap() {
         {spotVaultLoading ? (
           <div className="flex items-center gap-2 rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-3 text-xs text-white/48">
             <Loader2 className="h-3.5 w-3.5 animate-spin text-[#f8dd72]" />
-            Reading the vault...
+            Loading place history…
           </div>
         ) : spotVaultError ? (
           <p className="rounded-[18px] border border-rose-300/14 bg-rose-500/[0.08] px-3 py-3 text-xs leading-5 text-rose-100/78">
@@ -10904,11 +10846,12 @@ export default function RealWorldMap() {
               className="block rounded-[18px] border border-white/8 bg-white/[0.035] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-[#f5c518]/18 hover:bg-white/[0.05]"
             >
               <div className="flex items-start gap-3">
-                {item.mediaUrl ? (
+                {item.mediaUrl && !/\.(mp4|webm|mov)(?:[?#]|$)/i.test(item.mediaUrl) && !item.badges.includes('video') ? (
                   <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[14px] border border-white/10 bg-black/30">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={item.mediaUrl}
+                      onError={event => { event.currentTarget.style.visibility = 'hidden'; }}
                       alt=""
                       loading="lazy"
                       className="h-full w-full object-cover opacity-90"
@@ -10957,7 +10900,7 @@ export default function RealWorldMap() {
           ))
         ) : spotVaultIsEmpty ? null : (
           <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-3">
-            <p className="text-sm font-semibold text-white">Vault is empty.</p>
+            <p className="text-sm font-semibold text-white">No reviewed updates yet.</p>
             <p className="mt-1.5 text-xs leading-5 text-white/54">
               A verified update or completed paid mission starts this place&apos;s BaseDare history.
             </p>
@@ -12312,7 +12255,6 @@ export default function RealWorldMap() {
                   {!selectedPlaceIsPrivateSpot ? (
                     <div className="selected-place-context-actions mt-2 space-y-2">
                       {selectedPlaceCheckInAction}
-                      {selectedPlacePresenceAction}
                       {selectedPlaceSecondaryActionRail}
                     </div>
                   ) : null}
@@ -12329,7 +12271,7 @@ export default function RealWorldMap() {
                     <div className="map-panel-section mt-1 rounded-[22px] border border-violet-200/14 bg-[radial-gradient(circle_at_92%_0%,rgba(139,92,246,0.16),transparent_34%),linear-gradient(180deg,rgba(34,24,53,0.62),rgba(8,8,17,0.9))] px-4 py-3.5 shadow-[0_18px_34px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.07)]">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-[9px] font-black uppercase tracking-[0.24em] text-violet-100/64">
-                          Local lore
+                          About this place
                         </p>
                         <span className="rounded-full border border-violet-100/14 bg-violet-300/[0.07] px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/66">
                           {(selectedPlace.approvedCount ?? 0) > 0
@@ -12362,11 +12304,16 @@ export default function RealWorldMap() {
 
                   {selectedSaveSpotRail}
 
-                  {selectedPlacePresenceRail}
+                  <details className="map-panel-section mt-3 rounded-[22px] border border-white/10 bg-black/25 p-3">
+                    <summary className="min-h-10 cursor-pointer text-sm font-bold text-white">People and chat · {selectedPresenceActiveCount} nearby</summary>
+                    {selectedPlacePresenceRail}
+                    {selectedVenueRoomRail}
+                  </details>
 
-                  {selectedVenueRoomRail}
-
-                  {selectedSpotVaultRail}
+                  <details className="map-panel-section mt-3 rounded-[22px] border border-white/10 bg-black/25 p-3">
+                    <summary className="min-h-10 cursor-pointer text-sm font-bold text-white">Place history</summary>
+                    {selectedSpotVaultRail}
+                  </details>
 
                   <div className="map-command-console hidden">
                     <div className="map-command-console-header">
@@ -12916,7 +12863,7 @@ export default function RealWorldMap() {
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center justify-between gap-3">
                                   <p className="truncate text-sm font-semibold text-white">
-                                    {tag.creatorTag ? `@${tag.creatorTag}` : 'Your pending update'}
+                                    {tag.creatorTag ? `@${tag.creatorTag.replace(/^@+/, '')}` : 'Your pending update'}
                                   </p>
                                   <span className="rounded-full border border-amber-300/18 bg-amber-500/[0.1] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-amber-100">
                                     pending
@@ -13165,6 +13112,7 @@ export default function RealWorldMap() {
 
       {meetupComposerOpen && selectedPlace?.slug ? (
         <MeetupComposerSheet
+          timeZone={selectedPlace.timezone ?? recommendationTimeZone}
           venueSlug={selectedPlace.slug}
           venueName={selectedPlace.name}
           latitude={selectedPlace.latitude}

@@ -1,4 +1,6 @@
 'use client';
+import { venueLocalInput, venueLocalToIso } from '@/lib/venue-local-time';
+import { normalizeMeetupInviteTags } from '@/lib/meetup-plan';
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -28,25 +30,19 @@ const TYPE_EMOJI: Record<MeetupType, string> = {
 
 type WhenChoice = '30m' | '2h' | 'tonight' | 'custom';
 
-function computeStartTime(choice: WhenChoice, customValue: string): Date | null {
+function computeStartTime(choice: WhenChoice, customValue: string, timeZone: string): Date | null {
   const now = Date.now();
   if (choice === '30m') return new Date(now + 30 * 60_000);
   if (choice === '2h') return new Date(now + 2 * 60 * 60_000);
   if (choice === 'tonight') {
-    const tonight = new Date();
-    tonight.setHours(19, 0, 0, 0);
-    // Past 6:45pm already? Tonight means tomorrow night.
-    if (tonight.getTime() < now + 15 * 60_000) tonight.setDate(tonight.getDate() + 1);
-    return tonight;
+    const day = venueLocalInput(new Date(now), timeZone).slice(0, 10);
+    const seven = venueLocalToIso(`${day}T19:00`, timeZone);
+    if (!seven) return null;
+    const target = new Date(Math.max(Date.parse(seven), now + 30 * 60_000));
+    return venueLocalInput(target, timeZone).startsWith(day) ? target : null;
   }
-  if (!customValue) return null;
-  const parsed = new Date(customValue);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function toDatetimeLocal(date: Date): string {
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  const iso = venueLocalToIso(customValue, timeZone);
+  return iso ? new Date(iso) : null;
 }
 
 /**
@@ -60,6 +56,7 @@ export default function MeetupComposerSheet({
   venueName,
   latitude,
   longitude,
+  timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone,
   onClose,
   onCreated,
 }: {
@@ -67,6 +64,7 @@ export default function MeetupComposerSheet({
   venueName: string;
   latitude: number;
   longitude: number;
+  timeZone?: string;
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -107,6 +105,7 @@ export default function MeetupComposerSheet({
   const [when, setWhen] = useState<WhenChoice>('tonight');
   const [customTime, setCustomTime] = useState('');
   const [note, setNote] = useState('');
+  const [inviteInput, setInviteInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState(false);
@@ -134,8 +133,8 @@ export default function MeetupComposerSheet({
   const datetimeBounds = useMemo(() => {
     const min = new Date(Date.now() + 10 * 60_000);
     const max = new Date(Date.now() + 72 * 60 * 60_000);
-    return { min: toDatetimeLocal(min), max: toDatetimeLocal(max) };
-  }, []);
+    return { min: venueLocalInput(min, timeZone), max: venueLocalInput(max, timeZone) };
+  }, [timeZone]);
 
   // Session OR connected wallet: the API accepts signed wallet-actions (same
   // auth as proofs/verdicts), so wallet users host without any session dance —
@@ -145,7 +144,7 @@ export default function MeetupComposerSheet({
 
   const handleSubmit = async () => {
     setError(null);
-    const startTime = computeStartTime(when, customTime);
+    const startTime = computeStartTime(when, customTime, timeZone);
     if (!startTime) {
       setError('Pick a time for the meetup.');
       return;
@@ -192,6 +191,7 @@ export default function MeetupComposerSheet({
           approxLat: latitude,
           approxLng: longitude,
           startTime: startTime.toISOString(),
+          inviteTags: normalizeMeetupInviteTags(inviteInput.split(/[\s,]+/)),
           ...(note.trim() ? { note: note.trim() } : {}),
           ...(bodyWallet ? { walletAddress: bodyWallet } : {}),
         }),
@@ -257,7 +257,7 @@ export default function MeetupComposerSheet({
               Claim your @tag once and you can post meetups anywhere on the island.
             </p>
             <Link
-              href="/claim-tag"
+              href={`/claim-tag?returnTo=${encodeURIComponent(`/map?place=${venueSlug}&meetup=1`)}`}
               className="mt-3 inline-flex rounded-full border border-amber-300/28 bg-amber-500/[0.12] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-amber-100"
             >
               Claim your @tag
@@ -299,7 +299,7 @@ export default function MeetupComposerSheet({
                 [
                   ['30m', 'In 30 min'],
                   ['2h', 'In 2 hours'],
-                  ['tonight', 'Tonight 7pm'],
+                  ['tonight', 'Tonight'],
                   ['custom', 'Pick a time'],
                 ] as [WhenChoice, string][]
               ).map(([choice, label]) => (
@@ -317,6 +317,7 @@ export default function MeetupComposerSheet({
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-xs text-white/55">Times shown in {timeZone.replace(/_/g, ' ')}.</p>
             {when === 'custom' ? (
               <input
                 type="datetime-local"
@@ -336,6 +337,10 @@ export default function MeetupComposerSheet({
               rows={2}
               className="mt-3 w-full resize-none rounded-[14px] border border-white/10 bg-black/30 px-3.5 py-3 text-sm text-white placeholder:text-white/25 focus:border-white/25 focus:outline-none"
             />
+
+            <label className="mt-3 block text-xs font-bold text-white/65">Invite friends · optional
+              <input value={inviteInput} onChange={event => setInviteInput(event.target.value)} maxLength={180} placeholder="@maya, @kai" className="mt-2 min-h-11 w-full rounded-2xl border border-white/10 bg-black/25 px-4 text-sm text-white" />
+            </label>
 
             {error ? (
               <p className="mt-3 rounded-[12px] border border-rose-400/25 bg-rose-500/[0.1] px-3 py-2 text-xs leading-5 text-rose-200">

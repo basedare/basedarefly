@@ -1,3 +1,4 @@
+import { publicVenueDareWhere, getPublicVenueTagWhere } from '@/lib/public-venue-evidence';
 import 'server-only';
 
 import { Prisma } from '@prisma/client';
@@ -93,7 +94,7 @@ export function isVenueReviewTableMissingError(error: unknown) {
 
 function creatorLabel(input: { creatorTag?: string | null; walletAddress?: string | null }) {
   if (input.creatorTag?.trim()) {
-    return `@${input.creatorTag.trim()}`;
+    return `@${input.creatorTag.trim().replace(/^@+/, '')}`;
   }
 
   return input.walletAddress ? compactWallet(input.walletAddress) : null;
@@ -107,28 +108,6 @@ function proofBody(caption: string | null, firstMark: boolean) {
   return firstMark
     ? 'First approved mark turned this pin into a readable spot.'
     : 'Verified place proof was added to the vault.';
-}
-
-function buildMemoryBody(memory: {
-  checkInCount: number;
-  uniqueVisitorCount: number;
-  completedDareCount: number;
-  proofCount: number;
-}) {
-  const parts = [
-    `${memory.uniqueVisitorCount} verified visitor${memory.uniqueVisitorCount === 1 ? '' : 's'}`,
-    `${memory.checkInCount} check-in${memory.checkInCount === 1 ? '' : 's'}`,
-  ];
-
-  if (memory.proofCount > 0) {
-    parts.push(`${memory.proofCount} proof${memory.proofCount === 1 ? '' : 's'}`);
-  }
-
-  if (memory.completedDareCount > 0) {
-    parts.push(`${memory.completedDareCount} completed dare${memory.completedDareCount === 1 ? '' : 's'}`);
-  }
-
-  return parts.join(' · ');
 }
 
 export async function getVenueReviewEligibility(input: {
@@ -298,7 +277,6 @@ export async function getSpotVaultSnapshot(input: {
     completedDaresCount,
     recentProofs,
     completedDares,
-    memories,
     reviews,
     placeObservations,
   ] = await Promise.all([
@@ -328,12 +306,14 @@ export async function getSpotVaultSnapshot(input: {
       where: {
         venueId: venue.id,
         status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
       },
     }),
     prisma.placeTag.count({
       where: {
         venueId: venue.id,
         status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
         firstMark: true,
       },
     }),
@@ -341,12 +321,14 @@ export async function getSpotVaultSnapshot(input: {
       where: {
         venueId: venue.id,
         status: { in: COMPLETED_DARE_STATUSES },
+        ...publicVenueDareWhere,
       },
     }),
     prisma.placeTag.findMany({
       where: {
         venueId: venue.id,
         status: 'APPROVED',
+        ...(await getPublicVenueTagWhere()),
       },
       orderBy: { submittedAt: 'desc' },
       take: 8,
@@ -367,6 +349,7 @@ export async function getSpotVaultSnapshot(input: {
       where: {
         venueId: venue.id,
         status: { in: COMPLETED_DARE_STATUSES },
+        ...publicVenueDareWhere,
       },
       orderBy: [{ verifiedAt: 'desc' }, { completed_at: 'desc' }, { updatedAt: 'desc' }],
       take: 6,
@@ -394,21 +377,6 @@ export async function getSpotVaultSnapshot(input: {
             },
           },
         },
-      },
-    }),
-    prisma.venueMemory.findMany({
-      where: { venueId: venue.id },
-      orderBy: { bucketStartAt: 'desc' },
-      take: 4,
-      select: {
-        id: true,
-        bucketType: true,
-        bucketStartAt: true,
-        checkInCount: true,
-        uniqueVisitorCount: true,
-        completedDareCount: true,
-        proofCount: true,
-        topCreatorTag: true,
       },
     }),
     getVenueReviewSnapshot({
@@ -477,26 +445,7 @@ export async function getSpotVaultSnapshot(input: {
     };
   });
 
-  const memoryItems: SpotVaultTimelineItem[] = memories
-    .filter((memory) => memory.checkInCount > 0 || memory.proofCount > 0 || memory.completedDareCount > 0)
-    .map((memory) => ({
-      id: `memory:${memory.id}`,
-      kind: 'MEMORY',
-      title: memory.bucketType === 'DAY' ? 'Daily venue memory' : `${memory.bucketType.toLowerCase()} memory`,
-      body: buildMemoryBody(memory),
-      actorLabel: memory.topCreatorTag ? `@${memory.topCreatorTag}` : null,
-      sourceLabel: 'venue memory',
-      occurredAt: memory.bucketStartAt.toISOString(),
-      mediaUrl: null,
-      href: `/venues/${venue.slug}`,
-      badges: [
-        `${memory.uniqueVisitorCount} visitor${memory.uniqueVisitorCount === 1 ? '' : 's'}`,
-        memory.proofCount > 0 ? `${memory.proofCount} proof${memory.proofCount === 1 ? '' : 's'}` : null,
-      ].filter((badge): badge is string => Boolean(badge)),
-      tone: 'emerald',
-    }));
-
-  const timeline = [...proofItems, ...dareItems, ...memoryItems]
+  const timeline = [...proofItems, ...dareItems]
     .sort((left, right) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime())
     .slice(0, limit);
 
@@ -514,9 +463,9 @@ export async function getSpotVaultSnapshot(input: {
       lastCheckInAt: viewerCheckIn?.scannedAt.toISOString() ?? null,
       reason: canLeaveSignal
         ? viewerCheckIn?.proofLevel === 'QR_AND_GPS'
-          ? 'Vault write unlocked by QR + GPS proof.'
-          : 'Vault write unlocked by QR proof.'
-        : 'Check in with the venue pass to leave permanent signal.',
+          ? 'Your verified visit lets you leave a review.'
+          : 'Your venue check-in lets you leave a review.'
+        : 'Scan the live venue QR to leave a review.',
     },
     stats: {
       checkIns,
