@@ -1,3 +1,8 @@
+### Codex escrow preparation and email recovery (2026-10-09)
+- Mainnet preparation is read-only and uses explicit public owner, treasury and referee addresses. Mainnet signing requires a matching dedicated deployer key; never fall back to the referee. Follow the human-signed runbook. No contract was deployed or production chain configuration changed in this pass.
+- Mission Pass recovery uses an isolated journey and restores only explicitly emailed activities after the private link is opened. Do not promote unrelated browser journeys to an email identity. Email issuance limits require a database transaction lock; disabled/unconfigured sending must fail before issuance.
+- Production email remains disabled pending a verified Resend sender, API key and real inbox recovery trial. See docs/releases/mainnet-email-readiness-2026-10-09.md and the public candidate deployment plan. No schema changes.
+
 ### Codex venue chat continuity (2026-10-08)
 - Venue chat links use the existing map room=1 route. Open the enclosing disclosure as well as the inner chat; keep nearby GPS access distinct from a verified QR + GPS visit. Messages expire after 24 hours; confirmed check-in access lasts 24 hours for the authenticated wallet.
 - Venue page/check-in/help labels agree. Fallback-only places show chat unavailable. Do not restore automatic-payout promises in homepage copy.

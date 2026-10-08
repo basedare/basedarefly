@@ -13,11 +13,13 @@ const readline = require("readline");
 // because the repo's env is Sepolia-oriented (hardhat loads .env.local) and a
 // silent-fallback deploy would wire a mainnet escrow to Sepolia USDC — a dead
 // contract holding real money. Required env (set in shell, NOT .env.local):
+//   MAINNET_DEPLOYER_ADDRESS  — public address matching secure DEPLOYER_PRIVATE_KEY
 //   MAINNET_PLATFORM_WALLET   — receives the 4% platform fee
 //   MAINNET_REFEREE_ADDRESS   — signs verify/payout (address only; key stays off-repo)
 // Optional: BASE_MAINNET_RPC_URL, BASESCAN_API_KEY (for auto-verify)
 //
 // Recommended command:
+//   MAINNET_DEPLOYER_ADDRESS=0x... \
 //   MAINNET_PLATFORM_WALLET=0x... \
 //   MAINNET_REFEREE_ADDRESS=0x... \
 //   NEXT_PUBLIC_USDC_ADDRESS=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
@@ -92,7 +94,12 @@ async function main() {
     throw new Error("MAINNET_PLATFORM_WALLET and MAINNET_REFEREE_ADDRESS must be different wallets.");
   }
 
+  const expectedDeployer = requireAddress("MAINNET_DEPLOYER_ADDRESS", process.env.MAINNET_DEPLOYER_ADDRESS);
+  if (expectedDeployer === REFEREE_ADDRESS) throw new Error("The owner/deployer and referee must be separate wallets.");
   const [deployer] = await hre.ethers.getSigners();
+  if (!deployer || deployer.address.toLowerCase() !== expectedDeployer.toLowerCase()) {
+    throw new Error("Set an explicit DEPLOYER_PRIVATE_KEY matching MAINNET_DEPLOYER_ADDRESS in your secure local environment. Referee-key fallback is disabled.");
+  }
   const balance = await hre.ethers.provider.getBalance(deployer.address);
   const balanceEth = hre.ethers.formatEther(balance);
 
@@ -108,13 +115,18 @@ async function main() {
   console.log("AI Referee:      ", REFEREE_ADDRESS);
   console.log("-".repeat(70) + "\n");
 
+  const BaseDareBountyV2 = await hre.ethers.getContractFactory("BaseDareBountyV2");
+  const unsigned = await BaseDareBountyV2.getDeployTransaction(USDC_MAINNET, PLATFORM_WALLET);
+  const gas = await hre.ethers.provider.estimateGas({ ...unsigned, from: deployer.address });
+  console.log("Deployment data hash:", hre.ethers.keccak256(unsigned.data));
+  console.log("Estimated deployment gas:", gas.toString(), "(plus L1 data fee and referee setup)");
+
   const typed = await confirm('Type DEPLOY to deploy to MAINNET (anything else cancels): ');
   if (typed !== "DEPLOY") {
     console.log("Cancelled.");
     process.exit(0);
   }
 
-  const BaseDareBountyV2 = await hre.ethers.getContractFactory("BaseDareBountyV2");
   const bounty = await BaseDareBountyV2.deploy(USDC_MAINNET, PLATFORM_WALLET);
   console.log("\nTx:", bounty.deploymentTransaction()?.hash, "— waiting for confirmation…");
   await bounty.waitForDeployment();
@@ -127,6 +139,14 @@ async function main() {
   console.log("\nSetting AI Referee…");
   await (await bounty.setAIRefereeAddress(REFEREE_ADDRESS)).wait();
   console.log("AI Referee set:", REFEREE_ADDRESS);
+  if ((await bounty.USDC()) !== USDC_MAINNET ||
+      (await bounty.PLATFORM_WALLET()) !== PLATFORM_WALLET ||
+      (await bounty.AI_REFEREE_ADDRESS()) !== REFEREE_ADDRESS ||
+      (await bounty.owner()).toLowerCase() !== expectedDeployer.toLowerCase() ||
+      (await bounty.totalFeePercent()) !== 4n) {
+    throw new Error("Post-deploy role/token/fee checks failed. Do not switch app configuration.");
+  }
+  console.log("Post-deploy owner, token, fee and referee checks passed.");
 
   if (process.env.BASESCAN_API_KEY) {
     console.log("\nWaiting 30s for confirmations before verification…");

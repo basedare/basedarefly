@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import {
-  applyJourneyCookie,
   issueRecoveryMissionPass,
   markMissionPassDelivery,
 } from '@/lib/creator-attribution-server';
-import { sendMissionPassEmail } from '@/lib/mission-pass-email';
+import { assertMissionPassEmailConfigured, sendMissionPassEmail } from '@/lib/mission-pass-email';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 
-const RecoverySchema = z.object({ email: z.string().min(3).max(254) });
+const RecoverySchema = z.object({ email: z.string().trim().email().max(254) });
 
 export async function POST(request: NextRequest) {
   const throttle = checkRateLimit(`mission-pass:recover:${getClientIp(request)}`, {
@@ -23,8 +22,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const parsed = RecoverySchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ success: false, error: 'Enter a valid email address.' }, { status: 400 });
   try {
-    const { email } = RecoverySchema.parse(await request.json());
+    assertMissionPassEmailConfigured();
+  } catch {
+    return NextResponse.json({ success: false, error: 'Email recovery is unavailable right now. Keep your private continuation link.' }, { status: 503 });
+  }
+  try {
+    const { email } = parsed.data;
     const issued = await issueRecoveryMissionPass(request, email);
 
     if (issued.sent) {
@@ -51,11 +57,10 @@ export async function POST(request: NextRequest) {
       success: true,
       data: { message: 'If that email has saved missions, a private pass is on its way.' },
     });
-    applyJourneyCookie(response, issued.journeyToken);
     return response;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unable to send a recovery pass.';
-    const status = message.includes('not configured') ? 503 : 400;
-    return NextResponse.json({ success: false, error: message }, { status });
+  } catch {
+    // Rate limits and delivery failures must not disclose a saved email identity.
+    console.error('[MISSION_PASS] Recovery could not complete; check delivery status.');
+    return NextResponse.json({ success: true, data: { message: 'If that email has saved missions, a private pass is on its way.' } });
   }
 }

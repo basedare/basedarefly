@@ -30,7 +30,9 @@
     "push:keys": "node scripts/generate-vapid-keys.mjs",
     "safety:static": "node scripts/static-production-safety.mjs",
     "graphify:rebuild": "bash scripts/rebuild-graphify.sh",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "mainnet:prepare": "npm run contracts:compile && node scripts/prepare-mainnet-deployment.mjs",
+    "test:mission-pass:email": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/mission-pass-email-check.ts"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.6",

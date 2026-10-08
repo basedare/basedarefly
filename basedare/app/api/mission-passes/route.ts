@@ -6,7 +6,7 @@ import {
   issueMissionPass,
   markMissionPassDelivery,
 } from '@/lib/creator-attribution-server';
-import { sendMissionPassEmail } from '@/lib/mission-pass-email';
+import { assertMissionPassEmailConfigured, sendMissionPassEmail } from '@/lib/mission-pass-email';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 
 const MissionPassSchema = z.object({
@@ -29,6 +29,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = MissionPassSchema.parse(await request.json());
+    if (body.deliveryMethod === 'EMAIL') {
+      try { assertMissionPassEmailConfigured(); } catch {
+        return NextResponse.json({ success: false, error: 'Email is unavailable right now. Copy your private continuation link instead.' }, { status: 503 });
+      }
+    }
     const issued = await issueMissionPass({ request, ...body });
 
     if (body.deliveryMethod === 'EMAIL') {
@@ -44,9 +49,9 @@ export async function POST(request: NextRequest) {
           console.error('[MISSION_PASS] Delivery receipt write failed:', ledgerError);
           return null;
         });
-      } catch (deliveryError) {
+      } catch {
         await markMissionPassDelivery(issued.missionPass.id, false).catch(() => null);
-        throw deliveryError;
+        return NextResponse.json({ success: false, error: 'The email could not be sent. Try again later or copy your private link.' }, { status: 503 });
       }
     }
 

@@ -1,6 +1,6 @@
 # BaseDare Base Mainnet Cutover
 
-Updated: 2026-07-10
+Updated: 2026-10-09
 
 This runbook is for moving the bounty escrow from Base Sepolia to Base mainnet.
 The web app can be live while the money rails remain on testnet; do not treat a
@@ -30,12 +30,11 @@ The platform wallet and referee address must be different.
 1. Confirm `docs/FINANCIAL_CANON.md`, `lib/financial-canon.ts`, contract tests,
    creator copy, and dashboard definitions all agree on `96 / 4 / 0` with no
    Live Pot entitlement.
-2. Confirm the public Buyer Portal routes new managed work through the `$2,500`
-   invoice intake and cannot launch a partially funded campaign directly.
+2. Confirm managed invoice work remains separate from reward escrow and cannot launch a partially funded paid campaign.
 3. Confirm the required proof-attempt and payout-lease migrations have a reviewed
    deploy order. Migrations deploy before code.
-4. Create the fresh referee wallet and keep only its public address handy.
-5. Fund the deployer with Base mainnet ETH for gas.
+4. Confirm a dedicated referee wallet separate from both deployer/owner and platform treasury; keep only its public address in the plan.
+5. Review the deployer balance against the script’s 0.005 ETH operational reserve. This is a reserve requirement, not the deployment fee estimate.
 6. Run the public preflight:
 
 ```bash
@@ -46,12 +45,28 @@ This command checks public config, role separation, Base mainnet USDC, the known
 Sepolia V2 address, and whether any supplied `MAINNET_BOUNTY_ADDRESS` has
 mainnet bytecode. It does not print or inspect private key values.
 
+## Read-only deployment plan
+
+Compile standard artifacts after running coverage, then inspect the unsigned plan:
+
+```bash
+MAINNET_DEPLOYER_ADDRESS=0xOWNER_ADDRESS \
+MAINNET_PLATFORM_WALLET=0x60952546f6C6F092CA4866fC7cf6bf12269D002f \
+MAINNET_REFEREE_ADDRESS=0xREFEREE_ADDRESS \
+npm run mainnet:prepare
+```
+
+This needs only public addresses and an RPC. It checks Base mainnet and canonical USDC, estimates deployment gas, and prints deployment-data hashes and a nonce-dependent predicted address. The L2 fee estimate excludes Base L1 data fees and referee setup. A predicted address is **not a deployed contract**. Confirm roles before signing; keep ownership recoverable and referee privileges separate.
+
 ## Human-Signed Deploy
 
 Only the human operator runs this command because it signs a real Base mainnet
-transaction and deploys a contract that can custody real USDC.
+transaction and deploys a contract that can custody real USDC. Set `MAINNET_DEPLOYER_ADDRESS` and securely supply a matching `DEPLOYER_PRIVATE_KEY`; mainnet no longer falls back to a referee key. Never paste private keys into chat or commit them.
+
+If deployment succeeds but referee setup fails, keep the printed contract address and transaction hash. Do not blindly rerun deployment: the owner must finish referee setup on that existing contract, then rerun all post-deploy checks.
 
 ```bash
+MAINNET_DEPLOYER_ADDRESS=0xOWNER_ADDRESS \
 MAINNET_PLATFORM_WALLET=0x60952546f6C6F092CA4866fC7cf6bf12269D002f \
 MAINNET_REFEREE_ADDRESS=0xFRESH_REFEREE_ADDRESS \
 NEXT_PUBLIC_USDC_ADDRESS=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \

@@ -212,8 +212,9 @@ export async function recordAttributionRedirect(
   return resolved;
 }
 
-async function assertEmailDeliveryAllowed(emailHmac: string) {
-  const recent = await prisma.missionPass.count({
+async function assertEmailDeliveryAllowed(tx: Prisma.TransactionClient, emailHmac: string) {
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`mission-email:${emailHmac}`}))::text`;
+  const recent = await tx.missionPass.count({
     where: {
       emailHmac,
       issuedAt: { gte: new Date(Date.now() - 15 * 60 * 1000) },
@@ -356,10 +357,10 @@ export async function issueMissionPass(input: {
   const secret = getMissionPassSecret();
   const normalizedEmail = input.deliveryMethod === 'EMAIL' ? normalizeEmail(input.email ?? '') : null;
   const emailHmac = normalizedEmail ? hmacEmail(normalizedEmail, secret) : null;
-  if (emailHmac) await assertEmailDeliveryAllowed(emailHmac);
   const token = createOpaqueToken();
   const expiresAt = new Date(Date.now() + MISSION_PASS_TTL_MS);
   const missionPass = await prisma.$transaction(async (tx) => {
+    if (emailHmac) await assertEmailDeliveryAllowed(tx, emailHmac);
     const created = await tx.missionPass.create({
       data: {
         journeyId: resolved.journey.id,
@@ -437,68 +438,40 @@ export async function markMissionPassDelivery(passId: string, delivered: boolean
   });
 }
 
-export async function issueRecoveryMissionPass(request: NextRequest, email: string) {
+export async function issueRecoveryMissionPass(_request: NextRequest, email: string) {
   const secret = getMissionPassSecret();
   const normalizedEmail = normalizeEmail(email);
   const emailHmac = hmacEmail(normalizedEmail, secret);
-  await assertEmailDeliveryAllowed(emailHmac);
-  const resolved = await ensureAttributionJourney(request);
-
-  const currentIntent = await prisma.actionIntent.findFirst({
-    where: { journeyId: resolved.journey.id, state: { in: [...ACTIVE_INTENT_STATES] } },
-    include: { primaryTouch: true, stationTouch: true },
-    orderBy: { updatedAt: 'desc' },
-  });
-  const priorPass = currentIntent
-    ? null
-    : await prisma.missionPass.findFirst({
-        where: { emailHmac, state: { not: 'REVOKED' } },
-        orderBy: { issuedAt: 'desc' },
-      });
-  const journeyId = currentIntent?.journeyId ?? priorPass?.journeyId ?? resolved.journey.id;
-
   const token = createOpaqueToken();
+  const expiresAt = new Date(Date.now() + MISSION_PASS_TTL_MS);
   const missionPass = await prisma.$transaction(async (tx) => {
+    await assertEmailDeliveryAllowed(tx, emailHmac);
+    // Recovery is tied to an earlier email save, never the requesting browser.
+    const priorPass = await tx.missionPass.findFirst({
+      where: { emailHmac, deliveryMethod: 'EMAIL', purpose: 'ACTION', revokedAt: null, state: { not: 'REVOKED' } },
+      select: { id: true },
+    });
+    if (!priorPass) return null;
+    // Isolate recovery from both the caller's and the original browser's history.
+    const journey = await tx.attributionJourney.create({
+      data: { cookieHash: hashOpaqueToken(createOpaqueToken()), expiresAt: new Date(Date.now() + JOURNEY_TTL_MS) },
+    });
     const created = await tx.missionPass.create({
-      data: {
-        journeyId,
-        actionIntentId: currentIntent?.id ?? null,
-        tokenHash: hashOpaqueToken(token),
-        emailHmac,
-        purpose: 'RECOVERY',
-        deliveryMethod: 'EMAIL',
-        expiresAt: new Date(Date.now() + MISSION_PASS_TTL_MS),
-      },
+      data: { journeyId: journey.id, tokenHash: hashOpaqueToken(token), emailHmac, purpose: 'RECOVERY', deliveryMethod: 'EMAIL', expiresAt },
     });
     await tx.attributionEvent.create({
       data: {
         eventType: 'MISSION_PASS_ISSUED',
         dedupeKey: `mission-pass-issued:${created.id}`,
-        journeyId,
-        actionIntentId: currentIntent?.id ?? null,
+        journeyId: journey.id,
         missionPassId: created.id,
-        touchId: currentIntent?.primaryTouchId ?? null,
-        creatorCode: currentIntent?.primaryTouch?.creatorCode ?? null,
-        contentCode: currentIntent?.primaryTouch?.contentCode ?? null,
-        campaignCode: currentIntent?.primaryTouch?.campaignCode ?? null,
-        stationCode: currentIntent?.stationTouch?.stationCode ?? null,
-        stationHostVenueId: currentIntent?.stationTouch?.stationHostVenueId ?? null,
-        attentionMode: currentIntent?.stationTouch?.attentionMode ?? null,
-        destinationVenueId: currentIntent?.destinationVenueId ?? null,
-        targetType: currentIntent?.targetType ?? null,
-        targetId: currentIntent?.targetId ?? null,
         metadataJson: { deliveryMethod: 'EMAIL', purpose: 'RECOVERY' },
       },
     });
     return created;
   });
-  return {
-    sent: true as const,
-    missionPass,
-    normalizedEmail,
-    continueUrl: `${publicAppUrl()}/continue/${token}`,
-    journeyToken: resolved.rawToken,
-  };
+  if (!missionPass) return { sent: false as const };
+  return { sent: true as const, missionPass, normalizedEmail, continueUrl: `${publicAppUrl()}/continue/${token}` };
 }
 
 export async function consumeMissionPass(token: string) {
@@ -517,12 +490,14 @@ export async function consumeMissionPass(token: string) {
   const participantKey = existing.emailHmac ? participantKeyForEmailHmac(existing.emailHmac) : null;
   const nextJourneyToken = createOpaqueToken();
   const result = await prisma.$transaction(async (tx) => {
-    const missionPass = await tx.missionPass.update({
-      where: { id: existing.id },
+    const consumed = await tx.missionPass.updateMany({
+      where: { id: existing.id, revokedAt: null, state: { not: 'REVOKED' }, expiresAt: { gt: now } },
       data: { state: 'OPENED', openedAt: existing.openedAt ?? now },
-      include: {
-        actionIntent: { include: { primaryTouch: true, stationTouch: true } },
-      },
+    });
+    if (consumed.count !== 1) return null;
+    const missionPass = await tx.missionPass.findUniqueOrThrow({
+      where: { id: existing.id },
+      include: { actionIntent: { include: { primaryTouch: true, stationTouch: true } } },
     });
     await tx.attributionJourney.update({
       where: { id: missionPass.journeyId },
@@ -535,17 +510,14 @@ export async function consumeMissionPass(token: string) {
 
     if (participantKey && existing.emailHmac) {
       const relatedPasses = await tx.missionPass.findMany({
-        where: { emailHmac: existing.emailHmac, state: { not: 'REVOKED' } },
-        select: { journeyId: true },
-        distinct: ['journeyId'],
+        where: { emailHmac: existing.emailHmac, deliveryMethod: 'EMAIL', purpose: 'ACTION', actionIntentId: { not: null }, revokedAt: null, state: { not: 'REVOKED' } },
+        select: { actionIntentId: true },
       });
-      const journeyIds = relatedPasses.map((pass) => pass.journeyId);
-      await tx.attributionJourney.updateMany({
-        where: { id: { in: journeyIds } },
-        data: { participantKey, lastSeenAt: now },
-      });
+      // Email ownership grants only explicitly emailed activities. Do not upgrade
+      // other browser sessions or expose unrelated activities from their journeys.
+      const intentIds = relatedPasses.flatMap((pass) => pass.actionIntentId ? [pass.actionIntentId] : []);
       await tx.actionIntent.updateMany({
-        where: { journeyId: { in: journeyIds }, participantKey: null },
+        where: { id: { in: intentIds }, participantKey: null },
         data: { participantKey },
       });
     }
@@ -596,6 +568,7 @@ export async function consumeMissionPass(token: string) {
     return missionPass;
   });
 
+  if (!result) return { status: 'INVALID' as const };
   return {
     status: 'OPENED' as const,
     missionPass: result,

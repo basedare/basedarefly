@@ -17,7 +17,16 @@ type MissionPassEmailInput = {
   idempotencyKey: string;
 };
 
+export function assertMissionPassEmailConfigured(): void {
+  if (process.env.NEXT_PUBLIC_MISSION_PASS_EMAIL_ENABLED !== 'true' ||
+      !process.env.RESEND_API_KEY?.trim() || !process.env.MISSION_PASS_FROM_EMAIL?.trim() ||
+      (process.env.MISSION_PASS_HMAC_SECRET?.length ?? 0) < 32) {
+    throw new Error('Email recovery is unavailable right now. Keep your private continuation link.');
+  }
+}
+
 export async function sendMissionPassEmail(input: MissionPassEmailInput): Promise<void> {
+  assertMissionPassEmailConfigured();
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.MISSION_PASS_FROM_EMAIL;
   if (!apiKey || !from) {
@@ -29,6 +38,7 @@ export async function sendMissionPassEmail(input: MissionPassEmailInput): Promis
   const expiry = input.expiresAt.toLocaleDateString('en', { month: 'short', day: 'numeric' });
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
+    signal: AbortSignal.timeout(10_000),
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
@@ -52,7 +62,7 @@ export async function sendMissionPassEmail(input: MissionPassEmailInput): Promis
             <div style="padding:28px 28px 14px;color:#f5c518;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase">BaseDare Mission Pass</div>
             <div style="padding:0 28px 28px">
               <h1 style="font-size:26px;line-height:1.15;margin:8px 0 12px;color:#fff">${safeTitle}</h1>
-              <p style="color:#b8b5c3;margin:0 0 22px">Your place is saved. Open this pass in Safari or Chrome when you are ready to continue.</p>
+              <p style="color:#b8b5c3;margin:0 0 22px">Your activity link is saved. Open this pass in Safari or Chrome when you are ready to continue.</p>
               <a href="${safeUrl}" style="display:inline-block;background:#f5c518;color:#15120c;text-decoration:none;font-weight:900;border-radius:12px;padding:14px 20px">Open mission</a>
               <p style="color:#777383;font-size:12px;margin:22px 0 0">Private link · expires ${expiry} · restores intent only · never authorizes a claim or payment</p>
             </div>
@@ -62,7 +72,7 @@ export async function sendMissionPassEmail(input: MissionPassEmailInput): Promis
   });
 
   if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    throw new Error(`Mission Pass email failed (${response.status})${detail ? `: ${detail.slice(0, 180)}` : ''}`);
+    // Provider bodies can contain recipient addresses; never send them to clients.
+    throw new Error(`Mission Pass email provider rejected delivery (${response.status}).`);
   }
 }

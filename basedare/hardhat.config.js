@@ -46,7 +46,9 @@ module.exports = {
     // Mainnet
     "base-mainnet": {
       url: process.env.BASE_MAINNET_RPC_URL || "https://mainnet.base.org",
-      accounts: getPrivateKey(),
+      // Mainnet deployment must never silently use a production referee key.
+      accounts: normalizePrivateKey(process.env.DEPLOYER_PRIVATE_KEY)
+        ? [normalizePrivateKey(process.env.DEPLOYER_PRIVATE_KEY)] : [],
       chainId: 8453,
       gasPrice: "auto",
     },

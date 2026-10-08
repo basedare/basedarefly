@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 
 import {
   consumeMissionPass,
+  ensureAttributionJourney,
   issueMissionPass,
   issueRecoveryMissionPass,
   listSavedMissions,
@@ -87,7 +88,16 @@ async function main() {
     'Opening the Mission Pass must recover the saved mission in a new browser.'
   );
 
-  const recovery = await issueRecoveryMissionPass(secondBrowser, email);
+  // A different browser's unrelated activity must not hijack email recovery.
+  const unrelated = await lockActionIntent(new NextRequest('https://www.basedare.xyz/map'), {
+    targetType: 'PAGE', targetId: `${targetId}-unrelated`, targetHref: '/map', title: 'Unrelated browser activity',
+  });
+  const countBeforeUnknown = await prisma.missionPass.count();
+  const unknownRecovery = await issueRecoveryMissionPass(requestWithJourney(unrelated.journeyToken), `unknown-${runId}@example.com`);
+  assert.equal(unknownRecovery.sent, false);
+  assert.equal(await prisma.missionPass.count(), countBeforeUnknown, 'Unknown email must not create or send a recovery pass.');
+  const recovery = await issueRecoveryMissionPass(requestWithJourney(unrelated.journeyToken), email);
+  assert.ok(recovery.sent);
   const recoveryToken = tokenFromContinueUrl(recovery.continueUrl);
   const openedRecoveryPass = await consumeMissionPass(recoveryToken);
   assert.equal(openedRecoveryPass.status, 'OPENED');
@@ -102,15 +112,17 @@ async function main() {
     'A recovery Mission Pass must restore the same saved mission across browsers.'
   );
 
+  assert.ok(!recoveredMissions.some(mission => mission.id === unrelated.intent.id), 'Recovery must not adopt the requesting browser history.');
+
   const [intentEvents, issuedEvents, openedEvents] = await Promise.all([
     prisma.attributionEvent.count({
       where: { actionIntentId: locked.intent.id, eventType: 'INTENT_LOCKED' },
     }),
     prisma.attributionEvent.count({
-      where: { actionIntentId: locked.intent.id, eventType: 'MISSION_PASS_ISSUED' },
+      where: { missionPassId: { in: [issued.missionPass.id, recovery.missionPass.id] }, eventType: 'MISSION_PASS_ISSUED' },
     }),
     prisma.attributionEvent.count({
-      where: { actionIntentId: locked.intent.id, eventType: 'MISSION_PASS_OPENED' },
+      where: { missionPassId: { in: [issued.missionPass.id, recovery.missionPass.id] }, eventType: 'MISSION_PASS_OPENED' },
     }),
   ]);
   assert.equal(intentEvents, 1, 'Intent locking must be recorded once.');
@@ -127,7 +139,32 @@ async function main() {
   `;
   assert.equal(leakedEmail[0]?.leaked, false, 'Mission Pass rows must not contain a raw email address.');
 
-  console.log('Mission Pass DB integration passed: lock -> issue -> open -> recover -> list.');
+  const otherEmail = `isolated-${runId}@example.com`;
+  const browserA = await lockActionIntent(new NextRequest('https://www.basedare.xyz/map'), { targetType: 'PAGE', targetId: `${targetId}-A`, targetHref: '/map' });
+  const browserB = await lockActionIntent(new NextRequest('https://www.basedare.xyz/map'), { targetType: 'PAGE', targetId: `${targetId}-B`, targetHref: '/map' });
+  const hidden = await lockActionIntent(requestWithJourney(browserB.journeyToken), { targetType: 'PAGE', targetId: `${targetId}-private`, targetHref: '/map' });
+  const emailA = await issueMissionPass({ request: requestWithJourney(browserA.journeyToken), actionIntentId: browserA.intent.id, deliveryMethod: 'EMAIL', email: otherEmail });
+  await issueMissionPass({ request: requestWithJourney(browserB.journeyToken), actionIntentId: browserB.intent.id, deliveryMethod: 'EMAIL', email: otherEmail });
+  const openedA = await consumeMissionPass(tokenFromContinueUrl(emailA.continueUrl));
+  assert.equal(openedA.status, 'OPENED');
+  assert.ok(openedA.participantKey);
+  const originalB = await ensureAttributionJourney(requestWithJourney(browserB.journeyToken));
+  assert.equal(originalB.journey.participantKey, null, 'Sending to an email must not upgrade another browser session.');
+  const emailRecovery = await issueRecoveryMissionPass(new NextRequest('https://www.basedare.xyz/missions'), otherEmail);
+  assert.ok(emailRecovery.sent);
+  const openedEmailRecovery = await consumeMissionPass(tokenFromContinueUrl(emailRecovery.continueUrl));
+  assert.equal(openedEmailRecovery.status, 'OPENED');
+  assert.ok(openedEmailRecovery.participantKey);
+  const emailMissions = await listSavedMissions(requestWithMissionIdentity(openedEmailRecovery.journeyToken, openedEmailRecovery.participantKey));
+  assert.ok(emailMissions.some(m => m.id === browserA.intent.id));
+  assert.ok(emailMissions.some(m => m.id === browserB.intent.id));
+  assert.ok(!emailMissions.some(m => m.id === hidden.intent.id), 'Only explicitly emailed activities are recoverable.');
+
+  const concurrent = await Promise.allSettled(Array.from({ length: 5 }, () => issueMissionPass({
+    request: secondBrowser, actionIntentId: locked.intent.id, deliveryMethod: 'EMAIL', email: `race-${runId}@example.com`,
+  })));
+  assert.equal(concurrent.filter(r => r.status === 'fulfilled').length, 3, 'Email throttling must serialize across concurrent requests.');
+  console.log('Mission Pass DB integration passed: recovery, unknown email, browser isolation, explicit-email scope and concurrent rate limits.');
 }
 
 main()

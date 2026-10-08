@@ -1,0 +1,22 @@
+{
+  "mode": "READ_ONLY_PLAN",
+  "chainId": 8453,
+  "contract": "BaseDareBountyV2",
+  "deployerAndOwner": "0xd5764683C464cAA1B23e97a2D63B1e46Dd59ebfd",
+  "platformWallet": "0x60952546f6C6F092CA4866fC7cf6bf12269D002f",
+  "refereeWallet": "0x4C39D9c061C064D72df2C7e314186A8dBBeE45eC",
+  "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "creatorPercent": 96,
+  "platformPercent": 4,
+  "creationBytecodeHash": "0x8a55a2e1cd8af9c258878710d74eddae06534030080d0d2064aac6b79b0339d8",
+  "deploymentDataHash": "0xb706b7c4fccf83fe614f2c28a38cc97f9db952866d0804d3e2404167541e6253",
+  "pendingNonce": 2,
+  "predictedAddress": "0x6e86208600E7801F9eab27261acF812EC55288a2",
+  "deployerEth": "0.004890921759141415",
+  "refereeEth": "0.002315552639299848",
+  "estimatedDeploymentGas": "971310",
+  "deploymentGasWith20PercentMargin": "1165572",
+  "estimatedL2DeploymentFeeEth": "0.000046397675171592",
+  "feeNote": "Estimate only; excludes Base L1 data fee and the separate referee-configuration transaction. Refresh before signing.",
+  "next": "Review wallet roles and artifact hash. The human operator signs deployment and referee setup, then verifies the deployed contract before runtime cutover."
+}
