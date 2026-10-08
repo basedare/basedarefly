@@ -82,7 +82,7 @@ const FAQ_ITEMS = [
   },
   {
     "q": "Can I message anyone?",
-    "a": "You can find public profiles and request friends in Community. Direct messaging still follows the existing crossed-paths eligibility rules; becoming friends does not automatically open a private chat. Venue rooms require nearby presence or an eligible check-in. Report harassment or suspicious content through Contact or support."
+    "a": "You can find public profiles and request friends in Community. Direct messaging still follows the existing crossed-paths eligibility rules; becoming friends does not automatically open a private chat. For group chat, open a venue on the map and expand **Venue chat & people**, or choose **Venue chat** on its page. Chat unlocks nearby or for 24 hours after a confirmed check-in using the same signed-in wallet. Sign in to post. Messages expire after 24 hours; visibility in the people list is optional. Nearby chat access is not a verified visit. Report harassment or suspicious content through Contact or support."
   },
   {
     "q": "What happens if my submission is rejected?",

@@ -58,7 +58,7 @@ const DEEPER_PATHS = [
   },
   {
     id: 'meeting-people', title: 'Meet people', icon: Users,
-    body: 'Choose Start a meetup on Now, or Meet here on a map pin or venue page. Pick the place and time, sign in and publish your plan. Share its link or invite friends. Joining a meetup does not require filming. Check for any separate ticket, transport or venue cost.',
+    body: 'Choose Start a meetup on Now, or Meet here on a map pin or venue page. Pick the place and time, sign in and publish your plan. Share its link or invite friends. Open Venue chat on a place’s page to talk nearby or within 24 hours of a confirmed check-in. Chat messages expire after 24 hours. Joining a meetup does not require filming. Check for any separate ticket, transport or venue cost.',
     href: '/community', action: 'Find people and meetups',
   },
   {

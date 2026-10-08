@@ -3634,6 +3634,7 @@ export default function RealWorldMap() {
   const [venueRoomDraft, setVenueRoomDraft] = useState('');
   const [venueRoomVisible, setVenueRoomVisible] = useState(false);
   const [venueRoomExpanded, setVenueRoomExpanded] = useState(false);
+  const venueChatRef = useRef<HTMLDetailsElement | null>(null);
   const [venueRoomState, setVenueRoomState] = useState<{ type: 'info' | 'error'; message: string } | null>(null);
   const [spotVault, setSpotVault] = useState<SpotVaultSnapshot | null>(null);
   const [spotVaultLoading, setSpotVaultLoading] = useState(false);
@@ -4130,6 +4131,11 @@ export default function RealWorldMap() {
     }
 
     setVenueRoomExpanded(deepLinkedRoomOpen);
+    if (!deepLinkedRoomOpen) return;
+    const frame = requestAnimationFrame(() => {
+      venueChatRef.current?.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [deepLinkedRoomOpen, selectedPlaceIdentity]);
 
   // Venue-page parity: /map?place=x&meetup=1 lands with the meetup composer
@@ -10419,7 +10425,7 @@ export default function RealWorldMap() {
   const venueRoomUnlocked = Boolean(venueRoomAccess?.unlocked);
   const visibleVenueRoomPeople = venueRoomWhoHere.slice(0, venueRoomExpanded ? 8 : 5);
   const visibleVenueRoomMessages = venueRoomMessages.slice(venueRoomExpanded ? -10 : -4);
-  const selectedVenueRoomRail = selectedPlace?.slug ? (
+  const selectedVenueRoomRail = selectedPlace?.slug && !isCuratedFallbackVenueId(selectedPlace.placeId) ? (
     <div
       className={`map-panel-section mt-3 rounded-[22px] border border-violet-300/16 bg-[linear-gradient(180deg,rgba(168,85,247,0.12)_0%,rgba(10,8,18,0.92)_100%)] px-3 py-3 shadow-[0_14px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-10px_16px_rgba(0,0,0,0.2)] ${
         venueRoomExpanded ? 'ring-1 ring-violet-200/18' : ''
@@ -10429,7 +10435,7 @@ export default function RealWorldMap() {
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-violet-100/82">
             <Users className="h-3.5 w-3.5 text-violet-200" />
-            Local Chat
+            Venue chat
           </div>
           <p className="mt-1.5 truncate text-sm font-semibold text-white">
             {venueRoomUnlocked ? 'Chat unlocked here.' : 'Nearby chat'}
@@ -10437,7 +10443,7 @@ export default function RealWorldMap() {
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <span className="rounded-full border border-violet-300/20 bg-violet-500/[0.1] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-100">
-            {venueRoomAccess?.ttlHours ?? 24}h
+            Messages: {venueRoomAccess?.ttlHours ?? 24}h
           </span>
           <button
             type="button"
@@ -10592,17 +10598,15 @@ export default function RealWorldMap() {
           <p className="min-w-0 text-xs leading-5 text-white/52">
             {venueRoomAccess?.reason ?? 'Allow location nearby, or scan the venue QR to join.'}
           </p>
-          {userLocation ? (
-            <button
-              type="button"
-              onClick={requestApproximateLocation}
-              disabled={locating}
-              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-violet-300/24 bg-violet-500/[0.1] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-100 transition hover:-translate-y-[1px] hover:border-violet-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
+          <button
+            type="button"
+            onClick={requestApproximateLocation}
+            disabled={locating}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-violet-300/24 bg-violet-500/[0.1] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-100 transition hover:-translate-y-[1px] hover:border-violet-200/40 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
             >
               {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
-              Refresh
+              {userLocation ? 'Refresh GPS' : 'Check location'}
             </button>
-          ) : null}
         </div>
       )}
 
@@ -12304,10 +12308,12 @@ export default function RealWorldMap() {
 
                   {selectedSaveSpotRail}
 
-                  <details className="map-panel-section mt-3 rounded-[22px] border border-white/10 bg-black/25 p-3">
-                    <summary className="min-h-10 cursor-pointer text-sm font-bold text-white">People and chat · {selectedPresenceActiveCount} nearby</summary>
+                  <details ref={venueChatRef} open={deepLinkedRoomOpen} className="map-panel-section mt-3 rounded-[22px] border border-white/10 bg-black/25 p-3">
+                    <summary className="min-h-11 cursor-pointer text-sm font-bold text-white">Venue chat & people · {selectedPresenceActiveCount} nearby</summary>
+                    {selectedVenueRoomRail ?? (
+                      <p className="py-3 text-sm leading-6 text-white/65">Chat is unavailable for this place right now. Try again later.</p>
+                    )}
                     {selectedPlacePresenceRail}
-                    {selectedVenueRoomRail}
                   </details>
 
                   <details className="map-panel-section mt-3 rounded-[22px] border border-white/10 bg-black/25 p-3">

@@ -5,22 +5,22 @@ import MapRouteChromeGuard from './MapRouteChromeGuard';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'BaseDare Map — Find Live Dares Near You',
+  title: 'BaseDare Map — Places, Adventures & Meetups',
   description:
-    'Explore the BaseDare map for live IRL dares, active sparks, recent marks, and place memory near you.',
+    'Find local places, meetups, shared adventures and available paid dares. Open a place to make a plan or join its venue chat.',
   openGraph: {
-    title: 'BaseDare Map — Find Live Dares Near You',
+    title: 'BaseDare Map — Places, Adventures & Meetups',
     description:
-      'Explore the BaseDare map for live IRL dares, active sparks, recent marks, and place memory near you.',
+      'Find local places, meetups, shared adventures and available paid dares. Open a place to make a plan or join its venue chat.',
     url: 'https://www.basedare.xyz/map',
     siteName: 'BaseDare',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BaseDare Map — Find Live Dares Near You',
+    title: 'BaseDare Map — Places, Adventures & Meetups',
     description:
-      'Explore the BaseDare map for live IRL dares, active sparks, recent marks, and place memory near you.',
+      'Find local places, meetups, shared adventures and available paid dares. Open a place to make a plan or join its venue chat.',
   },
   alternates: {
     canonical: '/map',

@@ -12,28 +12,28 @@ export default function TruthProtocol() {
       id: 'verification',
       badge: '01 // PROOF',
       title: 'VERIFICATION',
-      description: 'QR + GPS check-ins prove a real human showed up. The referee layer reviews every proof before anything pays.',
+      description: 'A staff QR and fresh GPS provide evidence of a venue visit. Paid submissions are reviewed against the dare’s requirements.',
       color: '#A855F7'
     },
     {
       id: 'settlement',
       badge: '02 // ESCROW',
       title: 'SETTLEMENT',
-      description: 'USDC locks in escrow when a dare is funded and releases by smart contract the moment proof clears.',
+      description: 'Funded paid dares use USDC escrow. Approval and payment are separate steps: check the payment status for confirmation.',
       color: '#FACC15'
     },
     {
       id: 'network',
       badge: '03 // SCALE',
       title: 'NETWORK',
-      description: 'Immutable, low-fee execution powered by Base L2, secured by Ethereum mainnet.',
+      description: 'Paid funding uses Base when payment checks pass. Free adventures and meetups do not require funding.',
       color: '#3B82F6'
     },
     {
       id: 'location',
       badge: '04 // PLACE',
       title: 'LOCATION',
-      description: 'Every dare is anchored to a real venue — proof lives on the map, tied to the place it happened.',
+      description: 'Discover activities around real places. Optional adventure photos and clips appear publicly after review.',
       color: '#22D3EE'
     }
   ];

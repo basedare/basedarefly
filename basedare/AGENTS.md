@@ -1,3 +1,8 @@
+### Codex venue chat continuity (2026-10-08)
+- Venue chat links use the existing map room=1 route. Open the enclosing disclosure as well as the inner chat; keep nearby GPS access distinct from a verified QR + GPS visit. Messages expire after 24 hours; confirmed check-in access lasts 24 hours for the authenticated wallet.
+- Venue page/check-in/help labels agree. Fallback-only places show chat unavailable. Do not restore automatic-payout promises in homepage copy.
+- See docs/venue-chat-release-2026-10-08.md. No migration or payment-state changes; operator-signed mainnet cutover and real payment/recovery trial remain outstanding.
+
 ## graphify
 
 This project has a graphify knowledge graph at graphify-out/.

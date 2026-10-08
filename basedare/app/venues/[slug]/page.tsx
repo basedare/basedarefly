@@ -665,12 +665,13 @@ export default async function VenueDetailPage(
                         longitude={venue.longitude}
                       />
                       <Link
-                        href={mapHref}
-                        className="inline-flex min-h-9 w-full items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/40 transition hover:text-white/70"
+                        href={`${mapHref}&room=1`}
+                        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-violet-300/20 bg-violet-500/10 px-4 text-xs font-bold text-violet-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_3px_0_rgba(0,0,0,0.4)] transition hover:bg-violet-500/20 active:translate-y-px"
                       >
-                        Who&apos;s here
+                        Venue chat
                         <ArrowRight className="h-3 w-3" />
                       </Link>
+                      <p className="text-xs leading-5 text-white/60">Join nearby, or within 24 hours of a confirmed check-in. Messages expire after 24 hours.</p>
                     </div>
                   </div>
                   <details id="venue-management" className={`${softCardClass} scroll-mt-28 px-5 py-4`}>

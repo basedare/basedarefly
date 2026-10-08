@@ -688,7 +688,7 @@ export default function HandshakeClient() {
                     className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[20px] border border-cyan-200/24 bg-[linear-gradient(180deg,rgba(34,211,238,0.2),rgba(7,12,22,0.94))] px-4 text-sm font-black uppercase tracking-[0.14em] text-cyan-50 shadow-[0_16px_30px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.1)] transition hover:-translate-y-[1px] hover:border-cyan-100/38"
                   >
                     <MessageSquare className="h-4 w-4" />
-                    Enter venue room
+                    Open venue chat
                   </Link>
                   <Link
                     href={`/venues/${encodeURIComponent(result.venueSlug)}`}
