@@ -50,7 +50,7 @@ const FAQ_ITEMS = [
   },
   {
     "q": "Can I share a photo or video from an adventure?",
-    "a": "After finishing, choose **Share what you made**. Select a public place, add one photo or short clip under 4 MB and a caption, and accept public display. A person reviews it before it appears in discovery. Approved posts have a hashtag and a B pin on the map. You can withdraw your listing from My submissions."
+    "a": "After finishing, choose **Share what you made**. Select a public place, add one photo or short clip under 4 MB and a caption, and accept public display. A person reviews it before it appears in discovery. Approved posts have a hashtag and a PeeBear pin on the map. You can withdraw your listing from My submissions."
   },
   {
     "q": "Who can use the content I upload?",

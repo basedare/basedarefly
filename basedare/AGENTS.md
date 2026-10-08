@@ -14,6 +14,12 @@ Financial authority is `docs/FINANCIAL_CANON.md` plus its executable mirror `lib
 
 ## Multi-agent coordination (Claude Code + Codex in parallel)
 
+### Codex discovery entry and public explanation (2026-10-05)
+- Area controls on the homepage reuse the raised activity-filter material, show selection/feedback and request fresh location instead of silently reusing stale coordinates. Now has an explicit Start an adventure link preserving the selected area.
+- Shared product copy describes real-world adventures, meetups and paid dares across homepage/metadata/About. About is a real product page again; How It Works uses current terms and visible deep-linked sections, including optional sharing and QR + GPS check-in.
+- Site metadata and WebSite structured data are aligned; the sitemap includes discovery/help routes and excludes test/simulated/unfunded paid dares. Google AI summaries are controlled by Google, not an editable BaseDare field.
+- This does not enable payments or change paid-work verification. See docs/discovery-clarity-release-2026-10-05.md.
+
 ### Codex venue usability and evidence integrity (2026-10-05)
 - Venue pages and map pins use the same meetup composer with venue-local time and optional friend invitations. Visitor actions remain visible; history, chat and operator tools are disclosures. Keep physical buttons and branded backgrounds.
 - Public venue tags/counts/rankings exclude SEEDED_MEMORY, seeded proof hashes, linked known Phase5 fixtures, simulated and unfunded paid dares. Historical rows remain in storage. Do not infer current escrow solvency from the recorded-funding filter.

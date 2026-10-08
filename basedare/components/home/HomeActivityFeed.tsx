@@ -4,7 +4,7 @@ import SharedAdventures from '@/components/adventures/SharedAdventures';
 import Link from '@/components/DiscoveryLink';
 import { useDiscovery } from '@/components/DiscoveryProvider';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowRight, MapPin, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, LocateFixed, MapPin, RefreshCw, Sparkles } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { trackClientEvent } from '@/lib/analytics';
 import type { LivePlanSnapshot } from '@/lib/live-plans';
@@ -39,18 +39,22 @@ export default function HomeActivityFeed() {
   const [rotation, setRotation] = useState(0);
   const [expanded, setExpanded] = useState<string | null>(null);
   const { progress } = useAdventureProgress();
-  const { coordinates, requestLocation, loading: locating, error: locationError } = useGeolocation();
+  const { coordinates, requestLocation, loading: locating, error: locationError } = useGeolocation({ maximumAge: 0, cacheTimeMs: 0 });
   const requestedLocation = useRef(false);
+  const [areaNotice, setAreaNotice] = useState('');
+  const [showLocationError, setShowLocationError] = useState(false);
+  const siargaoSelected = area.lat === SIARGAO_ACTIVITY_AREA.lat && area.lng === SIARGAO_ACTIVITY_AREA.lng;
   const areaKey = `${area.lat}:${area.lng}:${area.radiusKm}`;
   const data = snapshot?.areaKey === areaKey ? snapshot.data : null;
   const effectiveArea = { ...area, timeZone: data?.window.tz ?? area.timeZone };
 
   useEffect(() => {
-    if (requestedLocation.current && coordinates) {
+    if (requestedLocation.current && coordinates && !locating && !locationError) {
       setArea({ lat: Math.round(coordinates.lat * 1000) / 1000, lng: Math.round(coordinates.lng * 1000) / 1000, label: 'Near my location' });
       requestedLocation.current = false;
+      setAreaNotice('Showing activities near your location.');
     }
-  }, [coordinates, setArea]);
+  }, [coordinates, locating, locationError, setArea]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -116,15 +120,22 @@ export default function HomeActivityFeed() {
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
       <div><p className="text-sm font-bold text-white/80">Open BaseDare and find your next move.</p><p className="mt-1 flex items-center gap-1 text-xs text-cyan-100/60"><MapPin size={13} />{area.label} · within {area.radiusKm} km</p></div>
       <div className="flex flex-wrap gap-2 text-xs">
-        <button className="min-h-11 rounded-full border border-white/10 px-3 text-white/70" onClick={() => { requestedLocation.current = false; setArea(SIARGAO_ACTIVITY_AREA); }}>Browse Siargao</button>
-        <button className="min-h-11 rounded-full border border-white/10 px-3 text-white/70" disabled={locating} onClick={() => {
+        <button type="button" aria-pressed={siargaoSelected} className={`premium-filter-chip home-area-button rounded-full gap-2 px-4 ${siargaoSelected ? 'premium-filter-chip--active' : ''}`} onClick={() => {
+          requestedLocation.current = false;
+          setShowLocationError(false);
+          setArea(SIARGAO_ACTIVITY_AREA);
+          setAreaNotice('Showing General Luna, Siargao. Choose Play, Meet or Earn below.');
+        }}>{siargaoSelected ? <Check size={15} /> : <MapPin size={15} />}{siargaoSelected ? 'Siargao selected' : 'Browse Siargao'}</button>
+        <button type="button" className="premium-filter-chip home-area-button rounded-full gap-2 px-4" disabled={locating} onClick={() => {
           requestedLocation.current = true;
-          if (coordinates) { setArea({ lat: Math.round(coordinates.lat * 1000) / 1000, lng: Math.round(coordinates.lng * 1000) / 1000, label: 'Near my location' }); requestedLocation.current = false; }
-          else requestLocation();
-        }}>{locating ? 'Locating…' : 'Use my location'}</button>
+          setShowLocationError(true);
+          setAreaNotice('');
+          requestLocation();
+        }}><LocateFixed size={15} />{locating ? 'Locating…' : 'Use my location'}</button>
       </div>
     </div>
-    {locationError ? <p role="status" className="mb-3 text-xs text-amber-100/70">{locationError} Still browsing {area.label}.</p> : null}
+    {showLocationError && locationError ? <p role="status" className="mb-3 text-xs text-amber-100/70">{locationError} Still browsing {area.label}.</p> : null}
+    {areaNotice ? <p role="status" className="mb-3 text-xs text-cyan-100/80">{areaNotice}</p> : null}
     <div className="premium-bounties-controls relative mb-5 flex flex-wrap items-center justify-between gap-2 p-2 md:p-3">
       <div className="premium-filter-shell flex gap-1 p-1" role="group" aria-label="Activity filters">
         {(['ALL', 'PLAY', 'MEET', 'EARN'] as const).map((item) => <button key={item} aria-pressed={filter === item} onClick={() => setFilter(item)} className={`premium-filter-chip rounded-full px-3 text-[10px] font-black tracking-widest md:px-4 ${filter === item ? 'premium-filter-chip--active text-yellow-200' : ''}`}>{item}</button>)}

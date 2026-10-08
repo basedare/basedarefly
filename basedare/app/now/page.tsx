@@ -9,8 +9,8 @@ import {
 } from '@/lib/world-pulse';
 
 export const metadata: Metadata = {
-  title: 'World Pulse | BaseDare',
-  description: 'See what is happening now, what needs people, and what you can join next on BaseDare.',
+  title: 'Things to do nearby | BaseDare',
+  description: 'Find local plans, start a free adventure or arrange a meetup. See what is happening in your selected area on BaseDare.',
   alternates: { canonical: '/now' },
 };
 

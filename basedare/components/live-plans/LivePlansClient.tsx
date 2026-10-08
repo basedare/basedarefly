@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
 import AdventureSuggestions from '@/components/adventures/AdventureSuggestions';
+import { adventureHref } from '@/lib/adventure-progress';
 import PeeBearDecisionCard from '@/components/live-plans/PeeBearDecisionCard';
 import {
   LIVE_PLANS_INTRO_KEY,
@@ -323,6 +324,8 @@ export default function LivePlansClient({
     scrollToGuideTarget(nextStep);
   }, [guideStep, rememberIntro, scrollToGuideTarget]);
 
+  const startAdventureHref = adventureHref(undefined, undefined, area);
+
   return (
     <main className="relative min-h-screen overflow-hidden px-4 pb-36 pt-8 text-white sm:px-6 md:pt-12 lg:px-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_8%,rgba(34,211,238,0.13),transparent_31%),radial-gradient(circle_at_84%_18%,rgba(139,92,246,0.15),transparent_34%)]" />
@@ -352,6 +355,9 @@ export default function LivePlansClient({
 </div></details>
               <Link href="/community/rally/new" className="bd-action bd-action--gold inline-flex min-h-11 items-center gap-2 rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-[#171006]">
                 <Plus className="h-4 w-4" /> Start a meetup
+              </Link>
+              <Link href={startAdventureHref} className="bd-action inline-flex min-h-11 items-center gap-2 rounded-full border border-violet-200/25 bg-violet-300/10 px-5 text-[10px] font-black uppercase tracking-[0.13em] text-violet-100">
+                <Sparkles className="h-4 w-4" /> Start an adventure
               </Link>
             </div>
           </div>
@@ -429,10 +435,10 @@ export default function LivePlansClient({
             <section className={`mt-6 rounded-[1.75rem] border border-dashed border-white/14 bg-black/24 text-center ${participation === 'all' || participation === 'play' ? 'p-5' : 'p-10'}`}>
               {participation !== 'all' && participation !== 'play' ? <UsersIcon /> : null}
               <h2 className="mt-4 text-2xl font-black">{snapshot ? participation === 'earn' ? 'No paid dares in this window.' : participation === 'play' ? 'No free challenges in this window.' : 'No suitable plans in this window.' : 'Plans couldn’t load.'}</h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-white/44">{snapshot ? "Try another time window, browse plans for later, or start a public plan nearby." : "Refresh to check what is available in this area."}</p>
+              <p className="mx-auto mt-2 max-w-md text-sm text-white/44">{snapshot ? "Browse another time, start a meetup, or try a free adventure at your own pace." : "Refresh to check what is available in this area."}</p>
               {!snapshot ? <button type="button" onClick={() => void load()} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Try again</button> : mode !== 'ALL' ? <button type="button" onClick={() => setMode('ALL')} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Browse all plans</button> : null}
               {snapshot && participation !== 'all' ? <button type="button" onClick={() => setParticipation('all')} className="mx-auto mt-4 block min-h-11 text-sm font-bold text-cyan-100">See other activity types</button> : null}
-              <Link href="/community/rally/new" className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006]">Start a meetup</Link>
+              <Link href={participation === 'meet' ? '/community/rally/new' : startAdventureHref} className="bd-action bd-action--gold mt-5 inline-flex min-h-11 items-center rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006]">{participation === 'meet' ? 'Start a meetup' : 'Try a free adventure'}</Link>
             </section>
           )}
         </div>

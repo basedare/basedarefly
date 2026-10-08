@@ -1,9 +1,16 @@
 import type { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
+import { publicVenueDareWhere } from '@/lib/public-venue-evidence';
 
 export const dynamic = 'force-dynamic';
 
 const staticRoutes: MetadataRoute.Sitemap = [
+  ...['now', 'adventures', 'community', 'how-it-works', 'trust'].map((route) => ({
+    url: `https://www.basedare.xyz/${route}`,
+    lastModified: new Date('2026-10-05T00:00:00Z'),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  })),
   {
     url: 'https://www.basedare.xyz',
     lastModified: new Date(),
@@ -93,6 +100,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }),
       prisma.dare.findMany({
         where: {
+          ...publicVenueDareWhere,
           shortId: { not: null },
           status: { not: 'PENDING' },
         },

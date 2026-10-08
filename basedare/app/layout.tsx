@@ -1,3 +1,4 @@
+import { BASEDARE_TITLE, BASEDARE_DESCRIPTION } from '@/lib/product-copy';
 import type { Metadata, Viewport } from "next";
 import "@fontsource/figtree/400.css";
 import "@fontsource/figtree/500.css";
@@ -101,8 +102,8 @@ try {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.basedare.xyz"),
-  title: "BaseDare — Own the Grid",
-  description: "Discover local challenges and meetups. Join for fun, bring your friends, or earn from paid dares on BaseDare.",
+  title: BASEDARE_TITLE,
+  description: BASEDARE_DESCRIPTION,
   applicationName: "BaseDare",
   manifest: "/manifest.webmanifest",
   formatDetection: {
@@ -114,22 +115,22 @@ export const metadata: Metadata = {
     title: "BaseDare",
   },
   openGraph: {
-    title: "BaseDare — Own the Grid",
-    description: "Discover local challenges and meetups. Join for fun, bring your friends, or earn from paid dares on BaseDare.",
+    title: BASEDARE_TITLE,
+    description: BASEDARE_DESCRIPTION,
     url: "https://www.basedare.xyz",
     siteName: "BaseDare",
     images: [
       {
         url: "/assets/basedarenew.png",
-        alt: "BaseDare — Own the Grid",
+        alt: BASEDARE_TITLE,
       },
     ],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "BaseDare — Own the Grid",
-    description: "Discover local challenges and meetups. Join for fun, bring your friends, or earn from paid dares on BaseDare.",
+    title: BASEDARE_TITLE,
+    description: BASEDARE_DESCRIPTION,
     images: ["/assets/basedarenew.png"],
   },
 };
@@ -148,6 +149,11 @@ export default function RootLayout({
     <html lang="en" className="dark" data-bd-bg="dark" suppressHydrationWarning>
       <body className={`${figtree.variable} ${alphaLyrae.variable} font-sans bg-[#020204] text-white min-h-screen overflow-x-hidden`} data-bd-bg="dark" suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: backgroundToneBootScript }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org', '@type': 'WebSite',
+          '@id': 'https://www.basedare.xyz/#website', url: 'https://www.basedare.xyz',
+          name: 'BaseDare', description: BASEDARE_DESCRIPTION,
+        }).replace(/</g, '\\u003c') }} />
         <LiquidFilter />
         <div className="bd-mobile-background-base fixed inset-0 z-0 pointer-events-none md:hidden" />
         <div className="hidden md:block">
