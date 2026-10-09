@@ -17,6 +17,8 @@ import {
   isBaseCashDenomination,
   quoteBaseCashVenueCredit,
 } from '@/lib/basecash-shared';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
+import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 import { alertBaseCashCreditPending } from '@/lib/telegram';
 
 const CreateCreditSchema = z.object({
@@ -73,6 +75,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const throttle = checkRateLimit(`basecash-request:${getClientIp(request)}`, { windowMs: 15 * 60 * 1000, limit: 10 });
+  if (!throttle.allowed) return NextResponse.json({ success: false, error: 'Too many credit requests. Try again later.' }, { status: 429, headers: createRateLimitHeaders(throttle) });
   try {
     const { slug } = await params;
     const venue = await getBaseCashVenueBySlug(slug);
@@ -104,9 +108,18 @@ export async function POST(
       );
     }
 
+    const buyerWallet = await getAuthorizedWalletForRequest(request, {
+      walletAddress: parsed.data.buyerWallet,
+      action: 'basecash-credit-request',
+      resource: `${slug}:${parsed.data.denominationPhp}`,
+    });
+    if (!buyerWallet) return NextResponse.json({ success: false, error: 'Connect and verify your wallet to request venue credit.' }, { status: 401 });
+    const walletLimit = checkRateLimit(`basecash-request-wallet:${buyerWallet}`, { windowMs: 15 * 60 * 1000, limit: 3 });
+    if (!walletLimit.allowed) return NextResponse.json({ success: false, error: 'You have recently requested venue credit. Try again later.' }, { status: 429, headers: createRateLimitHeaders(walletLimit) });
+
     const credit = await createBaseCashVenueCredit({
       venue,
-      buyerWallet: parsed.data.buyerWallet,
+      buyerWallet,
       buyerTag: parsed.data.buyerTag,
       denominationPhp: parsed.data.denominationPhp,
       source: parsed.data.source,

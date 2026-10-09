@@ -238,6 +238,13 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
         <p className="text-sm text-white font-mono">{truncatedAddress}</p>
       </div>
       <Link
+        href="/dashboard#wallet"
+        onClick={() => setShowDropdown(false)}
+        className="block w-full px-4 py-3 text-left text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+      >
+        Your wallet
+      </Link>
+      <Link
         href="/action-center"
         onClick={() => setShowDropdown(false)}
         className="block w-full px-4 py-3 text-left text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"

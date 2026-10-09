@@ -1,3 +1,9 @@
+### Codex wallet and Philippine payments assessment (2026-10-09)
+- My activity has a collapsible wallet balance/receive panel and the account menu links to it. Show only native USDC on the configured supported network; keep demo/test funds distinct. Unsupported provider networks cannot expose receive controls. Never count pending rewards or BaseCash credit as wallet money.
+- BaseCash credit requests now require the existing verified wallet session/action signature. Remove manually typed buyer addresses. Coarse per-process IP/wallet throttles are additional abuse friction, not a distributed/global guarantee or settlement verification.
+- Yodl remains an external, manually evidenced venue pilot with a separate wallet balance. No embedded checkout, fiat top-up, automatic GCash payout, conversion, new currency or production partner activation was added. See docs/releases/philippines-payments-decision-2026-10-09.md for provider/licence evidence, unresolved commercial scope and release checks.
+- Mainnet human-signed deployment and Mission Pass email sender/inbox trial remain outstanding. This release does not clear the paid-launch gate.
+
 ### Codex escrow preparation and email recovery (2026-10-09)
 - Mainnet preparation is read-only and uses explicit public owner, treasury and referee addresses. Mainnet signing requires a matching dedicated deployer key; never fall back to the referee. Follow the human-signed runbook. No contract was deployed or production chain configuration changed in this pass.
 - Mission Pass recovery uses an isolated journey and restores only explicitly emailed activities after the private link is opened. Do not promote unrelated browser journeys to an email identity. Email issuance limits require a database transaction lock; disabled/unconfigured sending must fail before issuance.

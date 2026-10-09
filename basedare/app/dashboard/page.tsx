@@ -11,6 +11,7 @@ import PushActivationCard from "@/components/PushActivationCard";
 import SignalRoomCard from "@/components/SignalRoomCard";
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import CosmicButton from "@/components/ui/CosmicButton";
+import { WalletOverview } from "@/components/wallet/WalletOverview";
 import InitProtocolButton from "@/components/InitProtocolButton";
 import SquircleButton from "@/components/ui/SquircleButton";
 import { useAccount, useConnect, useSignMessage } from 'wagmi';
@@ -1409,6 +1410,7 @@ export default function Dashboard() {
         <nav aria-label="Your activity sections" className="order-1 mb-5 flex flex-wrap gap-2">
           <Link href="/now" className="bd-action">Plans</Link><Link href="/action-center" className="bd-action">Paid work &amp; actions</Link><Link href="/missions" className="bd-action">Saved</Link><Link href="/adventures" className="bd-action">Journal</Link><Link href="/my-dares" className="bd-action">Funded by me</Link>
         </nav>
+        <WalletOverview key={address || 'disconnected'} />
         {primaryDashboardMove || dashboardQuickActions.length > 0 ? (
           <div className="order-2 mb-6">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

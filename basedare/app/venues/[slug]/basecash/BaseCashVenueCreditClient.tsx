@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Clock3, CreditCard, Loader2, ShieldCheck } from 'lucide-react';
-import { useAccount } from 'wagmi';
+import { useAccount, useSignMessage } from 'wagmi';
+import { useSession } from 'next-auth/react';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
 import {
   BASECASH_DENOMINATIONS_PHP,
@@ -49,13 +51,15 @@ export default function BaseCashVenueCreditClient({
 }: BaseCashVenueCreditClientProps) {
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState<BaseCashDenominationPhp>(500);
-  const [walletInput, setWalletInput] = useState('');
+  const { signMessageAsync } = useSignMessage();
+  const { data: session } = useSession();
   const [buyerTag, setBuyerTag] = useState('');
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<CreatedCredit | null>(null);
   const [error, setError] = useState<string | null>(null);
   const quote = useMemo(() => quoteBaseCashVenueCredit(amount), [amount]);
-  const buyerWallet = (address || walletInput).trim();
+  const buyerWallet = address || '';
+  const walletSession = session as { token?: string; walletAddress?: string; user?: { walletAddress?: string } } | null;
 
   const createCredit = async () => {
     if (ledgerUnavailableReason) {
@@ -63,14 +67,21 @@ export default function BaseCashVenueCreditClient({
       return;
     }
 
+    if (!address || !isConnected) { window.dispatchEvent(new Event('basedare:sign-in')); return; }
     setCreating(true);
     setError(null);
     setCreated(null);
 
     try {
+      const authHeaders = await buildWalletActionAuthHeaders({
+        walletAddress: address, sessionToken: walletSession?.token,
+        sessionWallet: walletSession?.walletAddress || walletSession?.user?.walletAddress,
+        action: 'basecash-credit-request', resource: `${venue.slug}:${amount}`,
+        signatureScope: 'action', allowSignPrompt: true, signMessageAsync,
+      });
       const response = await fetch(`/api/venues/${encodeURIComponent(venue.slug)}/basecash/credits`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
           denominationPhp: amount,
           buyerWallet,
@@ -150,17 +161,7 @@ export default function BaseCashVenueCreditClient({
             </div>
           </div>
 
-          {!isConnected ? (
-            <label className="mt-5 block">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/42">Wallet</span>
-              <input
-                value={walletInput}
-                onChange={(event) => setWalletInput(event.target.value)}
-                placeholder="0x wallet"
-                className="mt-2 w-full rounded-[18px] border border-white/10 bg-black/34 px-4 py-3 text-sm font-semibold text-white outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] placeholder:text-white/28 focus:border-cyan-300/30"
-              />
-            </label>
-          ) : null}
+          {!isConnected ? <button type="button" className="bd-action mt-5" onClick={() => window.dispatchEvent(new Event('basedare:sign-in'))}>Connect wallet to request credit</button> : <p className="mt-5 break-all text-xs text-white/65">Credit for your connected wallet: {address}</p>}
 
           <label className="mt-4 block">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/42">Optional tag</span>
