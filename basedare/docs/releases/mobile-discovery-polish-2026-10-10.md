@@ -32,3 +32,9 @@ Push the reviewed commit to main; verify the matching Vercel production deployme
 The surf boat action stays secondary and says Find surf boat crew. Siargao Beach Club is an existing Cemetery launch context; a boat action should only appear for places with that capability.
 
 Public profiles already live at /creators. The account menu now exposes People & friends, with existing handle search, requests and private connections. Interest-based recommendations are a follow-up requiring explicit interests and an explainable match reason; no location-based friendship inference was added.
+
+## Place action color follow-up — 2026-10-11
+
+Directions uses smoked cyan/navy and View place uses deeper electric violet. Broad glossy bars become a one-pixel edge highlight; both retain raised depth, visible keyboard focus and a pressed state. The two actions keep their labels, destinations and responsive touch areas. This is a CSS-only follow-up; map rendering, data, wallet and chat behavior are unchanged.
+
+The optimized production build and targeted ESLint pass (three existing map image warnings). Browser checks at 1280px and 390px confirm the rendered palette, one-pixel highlight, 48px mobile touch areas, both keyboard focus outlines, unchanged destination links and no horizontal overflow. Conservative lightest-surface text contrast is 9.48:1 for Directions and 4.60:1 for View place. Graphify is rebuilt. Confirm the matching production deployment after pushing main. Revert this follow-up commit if action contrast, keyboard focus or sheet layout regresses.

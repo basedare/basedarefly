@@ -15523,12 +15523,13 @@ export default function RealWorldMap() {
             linear-gradient(180deg, #ffe36a 0%, #f5c518 52%, #8a5a00 100%) !important;
         }
 
+        /* Smoked cyan utility + electric violet destination, with a fine edge light. */
         :global(.venue-action-rail--primary .map-primary-action-button--directions) {
-          color: #eaffff !important;
-          border-color: rgba(91, 230, 246, 0.52) !important;
+          color: #dff4f7 !important;
+          border-color: rgba(130, 201, 212, 0.38) !important;
           background:
-            radial-gradient(circle at 50% 0%, rgba(178, 250, 255, 0.2), transparent 40%),
-            linear-gradient(180deg, rgba(10, 91, 108, 0.88), rgba(5, 27, 38, 0.97)) !important;
+            radial-gradient(ellipse at 25% 0%, rgba(167, 225, 239, 0.08), transparent 65%),
+            linear-gradient(165deg, #193341 0%, #101e2c 55%, #0b131f 100%) !important;
         }
 
         :global(.venue-action-rail--primary .map-primary-action-button--fund) {
@@ -15548,20 +15549,61 @@ export default function RealWorldMap() {
         }
 
         :global(.venue-action-rail--primary .map-primary-action-button--venue) {
-          color: #fff6ff !important;
-          border-color: rgba(236, 189, 255, 0.62) !important;
+          color: #f5f1ff !important;
+          border-color: rgba(166, 143, 255, 0.62) !important;
           background:
-            radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.38), transparent 36%),
-            linear-gradient(180deg, #c785ff 0%, #934fd7 52%, #4b1d78 100%) !important;
+            radial-gradient(ellipse at 25% 0%, rgba(202, 190, 255, 0.12), transparent 65%),
+            linear-gradient(165deg, #6b4bca 0%, #49318c 55%, #2a1b51 100%) !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button--directions),
+        :global(.venue-action-rail--primary .map-primary-action-button--venue) {
+          box-shadow:
+            0 3px 0 #05070e,
+            0 8px 18px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(225, 231, 255, 0.12),
+            inset 0 -3px 6px rgba(0, 0, 0, 0.28) !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button--directions::before),
+        :global(.venue-action-rail--primary .map-primary-action-button--venue::before) {
+          inset: 1px 12% auto;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(225, 231, 255, 0.32), transparent);
+          opacity: 0.7;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button--directions:hover),
+        :global(.venue-action-rail--primary .map-primary-action-button--venue:hover) {
+          box-shadow:
+            0 4px 0 #05070e,
+            0 10px 22px rgba(0, 0, 0, 0.34),
+            inset 0 1px 0 rgba(225, 231, 255, 0.24),
+            inset 0 -3px 6px rgba(0, 0, 0, 0.24) !important;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button--directions:focus-visible),
+        :global(.venue-action-rail--primary .map-primary-action-button--venue:focus-visible) {
+          outline: 2px solid #c4b5fd;
+          outline-offset: 4px;
+        }
+
+        :global(.venue-action-rail--primary .map-primary-action-button--directions:active),
+        :global(.venue-action-rail--primary .map-primary-action-button--venue:active) {
+          transform: translateY(1px) translateZ(0);
+          box-shadow:
+            0 1px 0 #05070e,
+            inset 0 2px 6px rgba(0, 0, 0, 0.32) !important;
         }
 
         :global(.venue-action-rail--primary .map-primary-action-button--venue.is-opening) {
           cursor: progress;
-          border-color: rgba(236, 189, 255, 0.82) !important;
+          border-color: rgba(196, 181, 253, 0.82) !important;
           box-shadow:
-            0 0 24px rgba(199, 133, 255, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.38),
-            inset 0 -12px 16px rgba(0, 0, 0, 0.28) !important;
+            0 3px 0 #05070e,
+            0 0 18px rgba(139, 92, 246, 0.18),
+            inset 0 1px 0 rgba(225, 231, 255, 0.24),
+            inset 0 -3px 6px rgba(0, 0, 0, 0.28) !important;
         }
 
         :global(.venue-action-rail--primary .map-primary-action-button--venue.is-opening > svg) {
@@ -16071,16 +16113,16 @@ export default function RealWorldMap() {
         }
 
         .venue-action-slot--primary :global(.map-primary-action-button--directions) {
-          color: #eaffff !important;
-          border-color: rgba(91, 230, 246, 0.62) !important;
+          color: #dff4f7 !important;
+          border-color: rgba(130, 201, 212, 0.38) !important;
           background:
-            radial-gradient(circle at 50% 0%, rgba(178, 250, 255, 0.2), transparent 42%),
-            linear-gradient(180deg, rgba(9, 92, 109, 0.9), rgba(5, 29, 40, 0.98)) !important;
+            radial-gradient(ellipse at 25% 0%, rgba(167, 225, 239, 0.08), transparent 65%),
+            linear-gradient(165deg, #193341 0%, #101e2c 55%, #0b131f 100%) !important;
           box-shadow:
-            0 13px 25px rgba(0, 0, 0, 0.4),
-            0 0 20px rgba(34, 211, 238, 0.13),
-            inset 0 1px 0 rgba(188, 252, 255, 0.2),
-            inset 0 -10px 18px rgba(0, 0, 0, 0.24) !important;
+            0 3px 0 #05070e,
+            0 8px 18px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(225, 231, 255, 0.12),
+            inset 0 -3px 6px rgba(0, 0, 0, 0.28) !important;
         }
 
         .venue-action-slot--primary :global(.map-primary-action-button--fund) {
@@ -16097,16 +16139,16 @@ export default function RealWorldMap() {
         }
 
         .venue-action-slot--primary :global(.map-primary-action-button--venue) {
-          color: #fff7ff !important;
-          border-color: rgba(202, 151, 244, 0.58) !important;
+          color: #f5f1ff !important;
+          border-color: rgba(166, 143, 255, 0.62) !important;
           background:
-            radial-gradient(circle at 50% 0%, rgba(222, 188, 255, 0.16), transparent 42%),
-            linear-gradient(180deg, rgba(77, 42, 108, 0.9), rgba(29, 20, 45, 0.97)) !important;
+            radial-gradient(ellipse at 25% 0%, rgba(202, 190, 255, 0.12), transparent 65%),
+            linear-gradient(165deg, #6b4bca 0%, #49318c 55%, #2a1b51 100%) !important;
           box-shadow:
-            0 13px 25px rgba(0, 0, 0, 0.4),
-            0 0 18px rgba(168, 85, 247, 0.11),
-            inset 0 1px 0 rgba(238, 213, 255, 0.18),
-            inset 0 -10px 18px rgba(0, 0, 0, 0.24) !important;
+            0 3px 0 #05070e,
+            0 8px 18px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(225, 231, 255, 0.12),
+            inset 0 -3px 6px rgba(0, 0, 0, 0.28) !important;
         }
 
         .venue-action-slot--primary :global(.map-primary-action-button--checkin) {
@@ -19200,9 +19242,9 @@ export default function RealWorldMap() {
           }
 
           :global(.selected-place-mobile-action-deck .map-primary-action-button--directions) {
-            color: #ecfeff !important;
-            border-color: rgba(91, 230, 246, 0.46) !important;
-            background: linear-gradient(180deg, rgba(13, 121, 142, 0.8), rgba(5, 42, 57, 0.98)) !important;
+            color: #dff4f7 !important;
+            border-color: rgba(130, 201, 212, 0.38) !important;
+            background: linear-gradient(165deg, #193341 0%, #101e2c 55%, #0b131f 100%) !important;
           }
 
           :global(.selected-place-mobile-action-deck .map-primary-action-button--fund) {
