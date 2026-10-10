@@ -3222,7 +3222,8 @@ button[data-testid='ockConnectWalletButton']:hover {
   }
 
   .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--expanded {
-    top: 0.75rem !important;
+    /* Keep the title and close control below the Surf / Tonight controls. */
+    top: 4.75rem !important;
     right: 0 !important;
     bottom: calc(5.8rem + env(safe-area-inset-bottom)) !important;
     left: auto !important;

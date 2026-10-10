@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAccount, useBalance, useConfig, useReadContract, useSwitchChain } from 'wagmi';
 import { erc20Abi, formatUnits } from 'viem';
+import { QRCodeSVG } from 'qrcode.react';
 import { Copy, RefreshCw, Wallet } from 'lucide-react';
 import { getBaseNetworkConfig } from '@/lib/base-chain';
 
@@ -54,10 +55,13 @@ export function WalletOverview() {
         <p className="text-xs font-bold uppercase tracking-widest text-cyan-100">{network.chainName}{!network.isMainnet ? ' · test funds only' : ''}{simulation ? ' · demo mode' : ''}</p>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <p className="break-all text-2xl font-black sm:text-3xl" title={balance.data === undefined ? undefined : `${formatUnits(balance.data, 6)} USDC`} aria-live="polite">{simulation ? 'Demo mode' : !supportedNetwork ? 'Wallet unavailable on this network' : balance.isError ? 'Balance unavailable' : balance.data === undefined ? 'Loading…' : `${displayAmount(balance.data, 6, 2)} USDC`}</p>
-          {!simulation && supportedNetwork && <button className="bd-action" disabled={balance.isFetching || gas.isFetching} onClick={() => { void balance.refetch(); void gas.refetch(); }}><RefreshCw className="mr-2 h-4 w-4" />Refresh</button>}
+          {!simulation && supportedNetwork && <button className="bd-action" disabled={balance.isFetching || gas.isFetching} onClick={() => { void balance.refetch(); void gas.refetch(); }}><RefreshCw className={`mr-2 h-4 w-4 ${balance.isFetching || gas.isFetching ? 'animate-spin motion-reduce:animate-none' : ''}`} />{balance.isFetching || gas.isFetching ? 'Refreshing…' : 'Refresh'}</button>}
         </div>
         <p className="mt-2 text-sm leading-6 text-white/70">Held in your connected wallet. Pending rewards and BaseCash venue credit are separate.</p>
-        {!simulation && supportedNetwork && <p className="mt-2 text-xs text-white/60">Network fees: {gas.isError ? 'ETH balance unavailable' : gas.data ? `${displayAmount(gas.data.value, gas.data.decimals, 4)} ETH` : 'loading ETH balance…'}</p>}
+        {!simulation && supportedNetwork && <p className="mt-2 text-xs text-white/60">Available for network fees: {gas.isError ? 'ETH balance unavailable' : gas.data ? `${displayAmount(gas.data.value, gas.data.decimals, 4)} ETH` : 'loading ETH balance…'}</p>}
+        {!simulation && supportedNetwork && balance.isError && <p role="status" className="mt-3 text-sm text-amber-100">We couldn’t refresh your balance. Check your connection and try Refresh.</p>}
+        {!simulation && !balance.isError && balance.data === BigInt(0) && <p className="mt-3 text-xs leading-5 text-white/60">No native USDC found on {network.chainName}. Tokens on other networks and balances in other wallets won’t appear here.</p>}
+        {!simulation && balance.dataUpdatedAt > 0 && <p className="mt-2 text-xs text-white/50">Last checked {new Date(balance.dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>}
         {!correctNetwork && !simulation && supportedNetwork && <button className="bd-action mt-4" disabled={switching} onClick={async () => {
           try { await switchChainAsync({ chainId: network.chainId }); setFeedback(null); }
           catch { if (address) setFeedback({ address, text: `Switch to ${network.chainName} in your wallet to receive funds here.` }); }
@@ -66,6 +70,12 @@ export function WalletOverview() {
         {canReceive && receiving && <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
           <p className="text-sm font-bold">{network.isMainnet ? 'Send native USDC on Base to this address.' : 'Use Base Sepolia test USDC only. Do not send real funds.'}</p>
           <p className="mt-2 text-xs leading-5 text-white/65">Choose {network.chainName} as the sending network. This is your wallet address, not a BaseDare deposit account. A small amount of ETH may be needed for future transactions.</p>
+          <figure className="my-5 flex flex-col items-center gap-3">
+            <div className="rounded-2xl bg-white p-3">
+              <QRCodeSVG value={address} size={192} level="M" marginSize={4} title={`Receive address on ${network.chainName}`} />
+            </div>
+            <figcaption className="text-center text-xs text-white/70">Scan to copy your address · select {network.chainName} when sending</figcaption>
+          </figure>
           <code className="mt-3 block break-all text-sm text-cyan-100">{address}</code>
           <button className="bd-action mt-3" onClick={async () => {
             try { await navigator.clipboard.writeText(address); setFeedback({ address, text: 'Wallet address copied.' }); }

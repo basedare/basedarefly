@@ -27,7 +27,7 @@ test('paid Dares, free Sparks, crews, events, and updates resolve into one signa
       challengeLiveCount: 1,
       communitySparkLive: true,
     }),
-    { kind: 'spark', label: 'SPARK', ring: 'cyan', actionable: true },
+    { kind: 'spark', label: 'FREE', ring: 'cyan', actionable: true },
   );
   assert.equal(resolveMapRelicSignal({ ...quietPlace, localSignalLabel: 'HANG' }).kind, 'crew');
   assert.equal(resolveMapRelicSignal({ ...quietPlace, liveTonight: true }).kind, 'event');
@@ -76,7 +76,7 @@ test('selection changes the ring without replacing the underlying signal', () =>
   });
 
   assert.equal(signal.kind, 'spark');
-  assert.equal(signal.label, 'SPARK');
+  assert.equal(signal.label, 'FREE');
   assert.equal(signal.ring, 'selected');
 });
 

@@ -3,7 +3,7 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
-import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
+import { findPrimaryCreatorTagForWallet, findPrimaryCreatorTagsForWallets } from '@/lib/creator-tag-resolver';
 import { createWalletNotification } from '@/lib/notifications';
 
 export const VENUE_ROOM_MESSAGE_TTL_HOURS = 24;
@@ -166,7 +166,7 @@ async function getActor(walletAddress: string): Promise<VenueRoomActor> {
   const primaryTag = await findPrimaryCreatorTagForWallet(walletAddress);
 
   return {
-    displayName: primaryTag?.tag || shortWallet(walletAddress),
+    displayName: primaryTag?.tag || 'Guest',
     avatarUrl: primaryTag?.pfpUrl ?? null,
   };
 }
@@ -341,10 +341,10 @@ async function getWhoHere(venueId: string, now: Date): Promise<VenueRoomPresence
   }
 
   const optedInCheckIns = publicCheckIns.filter((checkIn) => isPublicCheckIn(checkIn.metadataJson));
-  const checkInActors = await Promise.all(
-    optedInCheckIns.map(async (checkIn) => [checkIn.walletAddress, await getActor(checkIn.walletAddress)] as const)
-  );
-  const actorMap = new Map(checkInActors);
+  const actorMap = await findPrimaryCreatorTagsForWallets([
+    ...roomPresences.map((presence) => presence.walletAddress),
+    ...optedInCheckIns.map((checkIn) => checkIn.walletAddress),
+  ]);
 
   for (const checkIn of optedInCheckIns) {
     if (entries.has(checkIn.walletAddress)) continue;
@@ -353,8 +353,8 @@ async function getWhoHere(venueId: string, now: Date): Promise<VenueRoomPresence
     entries.set(checkIn.walletAddress, {
       id: `checkin:${checkIn.id}`,
       walletAddress: checkIn.walletAddress,
-      displayName: checkIn.tag?.trim() || actor?.displayName || shortWallet(checkIn.walletAddress),
-      avatarUrl: actor?.avatarUrl ?? null,
+      displayName: actor?.tag || 'Guest',
+      avatarUrl: actor?.pfpUrl ?? null,
       source: checkIn.source,
       lastSeenAt: checkIn.scannedAt,
       expiresAt: checkIn.windowEndAt && checkIn.windowEndAt > now ? checkIn.windowEndAt : addHours(checkIn.scannedAt, VENUE_ROOM_WHO_HERE_WINDOW_HOURS),
@@ -367,8 +367,8 @@ async function getWhoHere(venueId: string, now: Date): Promise<VenueRoomPresence
     .map((entry) => ({
       id: entry.id,
       walletLabel: shortWallet(entry.walletAddress),
-      displayName: entry.displayName,
-      avatarUrl: entry.avatarUrl,
+      displayName: actorMap.get(entry.walletAddress.toLowerCase())?.tag || 'Guest',
+      avatarUrl: actorMap.get(entry.walletAddress.toLowerCase())?.pfpUrl ?? null,
       source: entry.source,
       lastSeenAt: entry.lastSeenAt.toISOString(),
       expiresAt: entry.expiresAt.toISOString(),
@@ -478,6 +478,12 @@ export async function getVenueRoomSnapshot(input: VenueRoomSnapshotInput) {
     getWhoHere(venue.id, now),
   ]);
 
+  // Stored labels are snapshots; resolve current usernames for ordinary chat.
+  // System receipts keep the actor label recorded with their evidence.
+  const actors = await findPrimaryCreatorTagsForWallets(messages
+    .filter((message) => mapRoomMessage(message, walletAddress).kind === 'message')
+    .map((message) => message.walletAddress));
+
   return {
     venue: {
       id: venue.id,
@@ -485,7 +491,12 @@ export async function getVenueRoomSnapshot(input: VenueRoomSnapshotInput) {
       name: venue.name,
     },
     access,
-    messages: messages.reverse().map((message) => mapRoomMessage(message, walletAddress)),
+    messages: messages.reverse().map((message) => {
+      const summary = mapRoomMessage(message, walletAddress);
+      if (summary.kind !== 'message') return summary;
+      const actor = actors.get(message.walletAddress.toLowerCase());
+      return { ...summary, displayName: actor?.tag || 'Guest', avatarUrl: actor?.pfpUrl ?? null };
+    }),
     whoHere,
     viewer: {
       visible: Boolean(viewerPresence?.visibility === 'PUBLIC' && viewerPresence.expiresAt > now),

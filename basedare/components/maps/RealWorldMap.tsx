@@ -118,6 +118,7 @@ import {
 import type { VenueLegend, VenueMemorySummary, VenueProfileSummary, VenueSessionSummary } from '@/lib/venue-types';
 import { buildVenueActivationIntakeHref, buildVenueChallengeCreateHref } from '@/lib/venue-launch';
 import ProofReel from '@/components/maps/ProofReel';
+import MapLegend from '@/components/maps/MapLegend';
 import ProofMomentSheet from '@/components/maps/ProofMomentSheet';
 import MeetupComposerSheet from '@/components/maps/MeetupComposerSheet';
 import LayerReelBar from '@/components/maps/LayerReelBar';
@@ -2741,9 +2742,9 @@ const LOCAL_SIARGAO_EVENT_TEMPLATES: LocalEventTemplate[] = [
     windows: ['morning', 'day'],
     placePatterns: [SURF_SIGNAL_PATTERN],
     strictCategoryMatch: true,
-    eyebrow: 'Local event',
+    eyebrow: 'Surf idea',
     title: (placeName) => `Surf check around ${placeName}`,
-    detail: 'A simple first stop for wave checks, lessons, or boardwalk energy.',
+    detail: 'Check the surf or ask about lessons. This is a suggestion, not a scheduled event.',
     actionLabel: 'Open',
     tone: 'cyan',
   },
@@ -2751,9 +2752,9 @@ const LOCAL_SIARGAO_EVENT_TEMPLATES: LocalEventTemplate[] = [
     id: 'catangnan-coffee-food',
     windows: ['morning', 'day'],
     placePatterns: [/cat\s*&?\s*gun/i, /catangnan/i, /coffee/i, /cafe/i, /food/i],
-    eyebrow: 'Food route',
+    eyebrow: 'Food & coffee',
     title: (placeName) => `Coffee or food near ${placeName}`,
-    detail: 'A quick "what do we do now?" stop before beach, surf, or nightlife.',
+    detail: 'A suggested stop for coffee or a meal. Check opening hours with the venue.',
     actionLabel: 'Open',
     tone: 'gold',
   },
@@ -2761,9 +2762,9 @@ const LOCAL_SIARGAO_EVENT_TEMPLATES: LocalEventTemplate[] = [
     id: 'general-luna-sunset',
     windows: ['sunset'],
     placePatterns: [/cloud\s*9/i, /boardwalk/i, /dock/i, /hideaway/i, /beach/i, /bar/i],
-    eyebrow: 'Sunset happening',
+    eyebrow: 'Sunset idea',
     title: (placeName) => `Sunset session near ${placeName}`,
-    detail: 'A visible sunset plan instead of guessing where to go.',
+    detail: 'A suggested sunset stop. Invite a friend and choose a time.',
     actionLabel: 'Open',
     tone: 'gold',
   },
@@ -2772,7 +2773,7 @@ const LOCAL_SIARGAO_EVENT_TEMPLATES: LocalEventTemplate[] = [
     windows: ['late'],
     placePatterns: [/nightlife/i, /music/i, /bar/i, /sports/i, /beach-club/i, /hideaway/i, /cat\s*&?\s*gun/i],
     eyebrow: 'Tonight',
-    title: (placeName) => `Night signal around ${placeName}`,
+    title: (placeName) => `An evening at ${placeName}`,
     detail: 'Bars, games, music, and late food nearby.',
     actionLabel: 'Open',
     tone: 'rose',
@@ -2873,7 +2874,7 @@ function getLocalEventHappenings(input: {
           best.distanceKm !== null
             ? formatDistanceMeters(Math.round(best.distanceKm * 1000))
             : best.place.distanceDisplay || null,
-        rewardLabel: 'Plan',
+        rewardLabel: 'Suggestion',
         actionLabel: template.actionLabel,
         href: null,
         place: best.place,
@@ -2890,8 +2891,8 @@ function getLocalEventHappenings(input: {
       detail: 'Live tips, venue notes, and BaseDare plans.',
       timingLabel: input.window.label,
       distanceLabel: 'Siargao',
-      rewardLabel: 'Board',
-      actionLabel: 'Open board',
+      rewardLabel: 'Local chat',
+      actionLabel: 'Ask locals',
       href: SIGNAL_ROOM_URL,
       place: null,
       tone: 'purple',
@@ -3153,7 +3154,8 @@ function createBoatCrewMarkerHtml(crew: BoatCrewSummary) {
 function getMarkerVenueLabel(value?: string | null) {
   const normalized = value?.replace(/\s+/g, ' ').trim();
   if (!normalized) return null;
-  return normalized.length > 30 ? `${normalized.slice(0, 27).trim()}...` : normalized;
+  // Let the label's responsive CSS truncate; selected places can show the full name.
+  return normalized;
 }
 
 function isVenueNightTonight(name?: string | null, slug?: string | null) {
@@ -3381,7 +3383,7 @@ function createPlaceClusterMarkerHtml({
     <div class="place-cluster-marker place-cluster-marker--${pulse} place-cluster-marker--${visualState} place-cluster-marker--${tone} ${matched ? 'is-matched' : ''} ${challengeLiveCount > 0 ? 'has-live' : ''}" aria-label="${count} nearby places${challengeLiveCount > 0 ? `, ${challengeLiveCount} live` : ''}">
       <span class="place-cluster-aura"></span>
       ${matched ? '<span class="place-cluster-match">MATCH</span>' : ''}
-      ${challengeLiveCount > 0 ? `<span class="place-cluster-live">${challengeLiveCount > 9 ? '9+' : challengeLiveCount} LIVE</span>` : ''}
+      ${challengeLiveCount > 0 ? `<span class="place-cluster-live">${challengeLiveCount > 9 ? '9+' : challengeLiveCount} to do</span>` : ''}
       <span class="place-cluster-core">
         <span class="place-cluster-count">${count > 99 ? '99+' : count}</span>
       </span>
@@ -8499,13 +8501,13 @@ export default function RealWorldMap() {
   const selectedPrimaryAction = useMemo(() => {
     if (selectedBoatLaunch) {
       return {
-        label: 'Find a boat crew',
+        label: 'Find a surf boat crew',
         detail: selectedBoatCrew
           ? `${selectedBoatCrew.confirmedCount}/${selectedBoatCrew.minimumCrew} confirmed · about ₱${selectedBoatCrew.projectedSharePhp} each`
           : 'Start the first shared surf boat for today or tomorrow.',
         tone: 'gold' as const,
         href: selectedBoatLaunch.boardPath,
-        actionLabel: 'Open Boat Board',
+        actionLabel: 'View surf boat crews',
         resolveAction: null as SelectedCommandAction | null,
       };
     }
@@ -9686,7 +9688,7 @@ export default function RealWorldMap() {
       : 'NOT VERIFIED YET';
   const selectedPlaceStateActivityWord = selectedPlaceHasLiveDare
     ? 'PAID MISSION LIVE'
-    : 'NO PAID MISSION RIGHT NOW';
+    : 'NO PAID DARES RIGHT NOW';
   const selectedPlaceStateTone = selectedPlaceHasLiveDare
     ? 'venue-state-card--live'
     : selectedPlaceHasVerifiedTrace
@@ -9944,10 +9946,10 @@ export default function RealWorldMap() {
     selectedBoatLaunch ? (
       <Link
         href={selectedBoatLaunch.boardPath}
-        className="map-primary-action-button map-primary-action-button--proof"
+        className="venue-action-button--meetup flex min-h-11 w-full items-center justify-center rounded-full border border-white/15 bg-white/5 px-3 py-2 text-xs font-bold text-white/75"
         aria-label={`Find a surf boat crew at ${selectedBoatLaunch.label}`}
       >
-        <span>Find a boat crew</span>
+        <span>Find a surf boat crew</span>
       </Link>
     ) : null;
 
@@ -9964,7 +9966,7 @@ export default function RealWorldMap() {
       >
         <span aria-hidden="true">🤙</span>{' '}
         <span className="venue-action-button__label">
-          Meet here
+          Start a meetup
         </span>
       </button>
     ) : null;
@@ -11490,60 +11492,9 @@ export default function RealWorldMap() {
                 verticalColor="rgba(245, 197, 24, 0.82)"
               />
             ) : null}
+            <MapLegend className={showNearbyDareTray && !nearbyDarePanelCollapsed ? 'hidden md:block' : ''} />
             {showStartProofDock ? (
               <>
-                <div className="map-activation-legend pointer-events-none absolute bottom-5 right-5 z-[10] hidden w-[16.5rem] rounded-[28px] border border-white/12 bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_36%),radial-gradient(circle_at_94%_18%,rgba(245,197,24,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(12,13,24,0.9)_26%,rgba(5,6,13,0.965)_100%)] px-3.5 py-3.5 shadow-[0_24px_58px_rgba(0,0,0,0.44),0_0_28px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-14px_22px_rgba(0,0,0,0.2)] backdrop-blur-xl md:block">
-                  <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/42 to-transparent" />
-                  <div className="flex items-center justify-between gap-3 px-1">
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.26em] text-cyan-100/55">
-                        Map legend
-                      </p>
-                      <p className="mt-1 text-[10px] font-bold text-white/38">Read pins fast</p>
-                    </div>
-                    <span className="rounded-full border border-white/10 bg-white/[0.045] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.18em] text-white/48 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                      Live grid
-                    </span>
-                  </div>
-                  <div className="mt-3 space-y-2">
-                    <div className="map-legend-row map-legend-row--activated">
-                      <span className="map-legend-hologram map-legend-hologram--activated" aria-hidden="true">
-                        <span className="adventure-sprite adventure-sprite--cafe" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="map-legend-title text-[#f8dd72]">Activated venue</p>
-                        <p className="map-legend-detail">Funded venue</p>
-                      </div>
-                    </div>
-                    <div className="map-legend-row map-legend-row--live">
-                      <span className="map-legend-hologram map-legend-hologram--live" aria-hidden="true">
-                        <span className="map-legend-relic-signal map-legend-relic-signal--dare">ϟ</span>
-                      </span>
-                      <div className="min-w-0">
-                        <p className="map-legend-title text-[#f8dd72]">Paid Dare signal</p>
-                        <p className="map-legend-detail">Attached to the place relic</p>
-                      </div>
-                    </div>
-                    <div className="map-legend-row map-legend-row--community">
-                      <span className="map-legend-hologram map-legend-hologram--community" aria-hidden="true">
-                        <span className="map-legend-relic-signal map-legend-relic-signal--spark">✦</span>
-                      </span>
-                      <div className="min-w-0">
-                        <p className="map-legend-title text-emerald-200">Community Spark</p>
-                        <p className="map-legend-detail">Free activity at this place</p>
-                      </div>
-                    </div>
-                    <div className="map-legend-row map-legend-row--open">
-                      <span className="map-legend-hologram map-legend-hologram--open" aria-hidden="true">
-                        <span className="adventure-sprite adventure-sprite--rumor" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="map-legend-title text-white/78">Open place</p>
-                        <p className="map-legend-detail">Claim or fund the first move</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
                 <div className="map-first-proof-dock absolute right-3 top-[4.25rem] z-[11] w-[min(calc(100%-1.5rem),21rem)] rounded-[28px] border border-[#f5c518]/22 bg-[radial-gradient(circle_at_12%_0%,rgba(245,197,24,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.095)_0%,rgba(9,10,18,0.94)_34%,rgba(4,5,11,0.985)_100%)] p-3 shadow-[0_20px_48px_rgba(0,0,0,0.42),0_0_28px_rgba(245,197,24,0.1),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-12px_18px_rgba(0,0,0,0.24)] backdrop-blur-xl md:right-5 md:top-[4.75rem]">
                   <button
                     type="button"
@@ -11626,9 +11577,9 @@ export default function RealWorldMap() {
                           {happeningLoading
                             ? 'Scanning nearby...'
                             : poppingNowSpike
-                              ? `⚡ Popping now: ${poppingNowSpike.label}`
+                              ? `Popular nearby: ${poppingNowSpike.label}`
                               : featuredMapHappening
-                                ? `Best next: ${featuredMapHappening.title}`
+                                ? `Try: ${featuredMapHappening.title}`
                                 : 'Move the map or verify a place'}
                         </p>
                       </div>
@@ -11675,17 +11626,17 @@ export default function RealWorldMap() {
                         }`}
                       >
                         {poppingNowSpike
-                          ? `⚡ Popping now: ${poppingNowSpike.label}`
+                          ? `Popular nearby: ${poppingNowSpike.label}`
                           : featuredMapHappening
-                            ? `Best next: ${featuredMapHappening.title}`
+                            ? `Try: ${featuredMapHappening.title}`
                             : userLocation
-                              ? 'Closest useful moves.'
+                              ? 'Ideas and activities near you.'
                               : `${happeningWindow.dateLabel} around the map`}
                       </p>
                     </div>
-                    <div className="rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                      {happeningLoading ? 'scanning' : `${mapHappenings.length} nearby`}
-                    </div>
+                    <button type="button" onClick={() => setNearbyDarePanelCollapsed(true)} aria-label="Close nearby activities" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
                 {!nearbyDarePanelCollapsed ? (
@@ -11809,7 +11760,7 @@ export default function RealWorldMap() {
                       return (
                         <div
                           key={`map-happening:${happening.id}`}
-                          className="flex items-center justify-between gap-3 rounded-[18px] border border-transparent px-3 py-2 transition hover:border-white/10 hover:bg-white/[0.04]"
+                          className="flex flex-col items-stretch gap-3 rounded-[18px] border border-transparent px-3 py-2 transition hover:border-white/10 hover:bg-white/[0.04]"
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start gap-2">
@@ -11847,14 +11798,14 @@ export default function RealWorldMap() {
                               ) : null}
                             </div>
                           </div>
-                          <div className="flex shrink-0 flex-col items-end gap-2">
-                            {happening.place ? (
+                          <div className="flex flex-wrap items-center gap-2 pl-[18px]">
+                            {happening.place && happening.href ? (
                               <button
                                 type="button"
                                 onClick={() => focusExistingPlace(happening.place!)}
-                                className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/72 transition hover:border-white/16 hover:text-white"
+                                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/72 transition hover:border-white/16 hover:text-white"
                               >
-                                Place
+                                On map
                               </button>
                             ) : null}
                             {happening.href && isExternalHappeningHref ? (
@@ -11862,32 +11813,32 @@ export default function RealWorldMap() {
                                 href={happening.href}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition ${toneClasses.action}`}
+                                className={`inline-flex min-h-11 items-center justify-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition ${toneClasses.action}`}
                               >
-                                {happening.actionLabel}
+                                {happening.actionLabel === 'Open' ? 'View details' : happening.actionLabel}
                               </a>
                             ) : happening.href ? (
                               <Link
                                 href={happening.href}
-                                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition ${toneClasses.action}`}
+                                className={`inline-flex min-h-11 items-center justify-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition ${toneClasses.action}`}
                               >
-                                {happening.actionLabel}
+                                {happening.actionLabel === 'Open' ? 'View details' : happening.actionLabel}
                               </Link>
                             ) : happening.place ? (
                               <button
                                 type="button"
                                 onClick={() => focusExistingPlace(happening.place!)}
-                                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition ${toneClasses.action}`}
+                                className={`inline-flex min-h-11 items-center justify-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition ${toneClasses.action}`}
                               >
-                                {happening.actionLabel}
+                                {happening.actionLabel === 'Open' ? 'View details' : happening.actionLabel}
                               </button>
                             ) : null}
                             {signalFundConfig ? (
                               <Link
                                 href={signalFundConfig.href}
-                                className="rounded-full border border-[#f5c518]/22 bg-[#f5c518]/[0.1] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#f8dd72] transition hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.16]"
+                                className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#f5c518]/22 bg-[#f5c518]/[0.1] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#f8dd72] transition hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.16]"
                               >
-                                {signalFundConfig.label}
+                                Start paid dare
                               </Link>
                             ) : null}
                           </div>
@@ -15002,16 +14953,6 @@ export default function RealWorldMap() {
           }
         }
 
-        .map-activation-legend {
-          position: absolute;
-          right: 1.25rem;
-          bottom: 1.25rem;
-          left: auto;
-          top: auto;
-          transform-origin: 100% 100%;
-          animation: mapLegendSettle 260ms ease-out;
-        }
-
         @media (min-width: 768px) {
           .nearby-dare-tray {
             position: absolute;
@@ -15021,143 +14962,10 @@ export default function RealWorldMap() {
             top: auto !important;
             max-width: min(23rem, calc(100% - 18rem));
           }
-
-          .map-activation-legend {
-            right: 1.25rem !important;
-            bottom: 1.25rem !important;
-            left: auto !important;
-            top: auto !important;
-          }
         }
 
         @media (min-width: 768px) and (max-width: 1120px) {
-          .map-activation-legend {
-            display: none;
-          }
-
-          .nearby-dare-tray {
-            max-width: 22rem;
-          }
-        }
-
-        .map-mobile-legend {
-          transform-origin: 50% 0%;
-          animation: mapLegendSettle 220ms ease-out;
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-        }
-
-        .map-legend-row {
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: 0.72rem;
-          overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.085);
-          border-radius: 18px;
-          padding: 0.62rem 0.68rem;
-          background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018) 38%, rgba(4, 5, 12, 0.56));
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.07),
-            inset 0 -8px 14px rgba(0, 0, 0, 0.18),
-            0 12px 22px rgba(0, 0, 0, 0.14);
-        }
-
-        .map-legend-row::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          opacity: 0.74;
-        }
-
-        .map-legend-row--activated::before {
-          background: radial-gradient(circle at 8% 12%, rgba(245, 197, 24, 0.15), transparent 42%);
-        }
-
-        .map-legend-row--live::before {
-          background: radial-gradient(circle at 8% 12%, rgba(34, 211, 238, 0.16), transparent 42%);
-        }
-
-        .map-legend-row--community::before {
-          background: radial-gradient(circle at 8% 12%, rgba(52, 211, 153, 0.18), transparent 42%);
-        }
-
-        .map-legend-row--open::before {
-          background: radial-gradient(circle at 8% 12%, rgba(255, 255, 255, 0.08), transparent 42%);
-        }
-
-        .map-legend-hologram {
-          --holo-rgb: 245, 197, 24;
-          position: relative;
-          z-index: 1;
-          display: grid;
-          height: 2.85rem;
-          width: 2.85rem;
-          flex: 0 0 auto;
-          place-items: center;
-          border: 0;
-          background: transparent;
-          filter: drop-shadow(0 7px 6px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 7px rgba(var(--holo-rgb), 0.34));
-        }
-
-        .map-legend-hologram::before {
-          content: '';
-          position: absolute;
-          left: 50%;
-          bottom: 0;
-          width: 30px;
-          height: 7px;
-          transform: translateX(-50%) perspective(30px) rotateX(60deg);
-          border: 1px solid rgba(var(--holo-rgb), 0.7);
-          border-radius: 9999px;
-          background: radial-gradient(ellipse, rgba(var(--holo-rgb), 0.38), transparent 72%);
-          box-shadow: 0 0 9px rgba(var(--holo-rgb), 0.48);
-        }
-
-        .map-legend-hologram--live {
-          --holo-rgb: 34, 211, 238;
-        }
-
-        .map-legend-hologram--community {
-          --holo-rgb: 52, 211, 153;
-        }
-
-        .map-legend-hologram--open {
-          --holo-rgb: 168, 85, 247;
-        }
-
-        .map-legend-hologram .adventure-sprite {
-          width: 48px;
-          height: 48px;
-          flex-basis: 48px;
-          transform: translateY(-3px) scale(1.08);
-          filter: saturate(1.05) drop-shadow(0 5px 4px rgba(0, 0, 0, 0.48));
-        }
-
-        .map-legend-hologram--community .adventure-sprite--flag {
-          filter: hue-rotate(72deg) saturate(1.35) drop-shadow(0 5px 4px rgba(0, 0, 0, 0.48));
-        }
-
-        .map-legend-title {
-          position: relative;
-          z-index: 1;
-          font-size: 0.66rem;
-          font-weight: 950;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          line-height: 1.1;
-        }
-
-        .map-legend-detail {
-          position: relative;
-          z-index: 1;
-          margin-top: 0.18rem;
-          font-size: 0.63rem;
-          font-weight: 700;
-          color: rgba(255, 255, 255, 0.42);
-          line-height: 1.2;
+          .nearby-dare-tray { max-width: 22rem; }
         }
 
         .place-panel-popup {
@@ -19662,7 +19470,7 @@ export default function RealWorldMap() {
            footprint remains the same touch target.
            ================================================================ */
         .basedare-maplibre-map :global(.peebear-marker) {
-          --relic-rgb: 168, 85, 247;
+          --relic-rgb: 157, 161, 186;
         }
 
         .basedare-maplibre-map :global(.peebear-marker.relic-ring--active) {
@@ -19689,42 +19497,35 @@ export default function RealWorldMap() {
           transform: translateX(-50%) translateY(-7px);
           scale: 0.94;
           filter:
-            saturate(0.94)
+            saturate(0.9)
             drop-shadow(0 10px 7px rgba(0, 0, 0, 0.48))
-            drop-shadow(0 0 6px rgba(var(--relic-rgb), 0.18));
+            drop-shadow(0 0 3px rgba(var(--relic-rgb), 0.12));
           animation: none;
         }
 
         .basedare-maplibre-map :global(.peebear-marker .adventure-place-object::before) {
-          width: 39px;
-          height: 9px;
-          border-color: rgba(var(--relic-rgb), 0.48);
-          background: radial-gradient(ellipse, rgba(var(--relic-rgb), 0.28), rgba(4, 5, 14, 0.68) 56%, transparent 76%);
-          box-shadow:
-            0 0 4px rgba(var(--relic-rgb), 0.42),
-            0 0 11px rgba(var(--relic-rgb), 0.22),
-            inset 0 0 5px rgba(var(--relic-rgb), 0.3);
+          width: 34px;
+          height: 7px;
+          border-color: rgba(var(--relic-rgb), 0.4);
+          background: rgba(8, 10, 20, 0.8);
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(var(--relic-rgb), 0.24);
           animation: none;
         }
 
         .basedare-maplibre-map :global(.peebear-marker .adventure-place-object::after) {
-          width: 29px;
-          height: 36px;
-          background: linear-gradient(180deg, transparent, rgba(var(--relic-rgb), 0.14));
-          opacity: 0.34;
-          animation: none;
+          display: none;
         }
 
         .basedare-maplibre-map :global(.peebear-marker .adventure-place-object .adventure-sprite) {
-          width: 60px;
-          height: 60px;
-          flex-basis: 60px;
+          width: 52px;
+          height: 52px;
+          flex-basis: 52px;
           transform: translateY(-7px) scale(1.03);
           filter:
             saturate(1.02)
             contrast(1.02)
             drop-shadow(0 7px 5px rgba(0, 0, 0, 0.54))
-            drop-shadow(0 0 4px rgba(var(--relic-rgb), 0.2));
+            drop-shadow(0 0 3px rgba(var(--relic-rgb), 0.12));
         }
 
         /* Cups and glasses share the system without overpowering activity. */
@@ -19745,8 +19546,8 @@ export default function RealWorldMap() {
           filter:
             saturate(1.05)
             drop-shadow(0 11px 8px rgba(0, 0, 0, 0.5))
-            drop-shadow(0 0 9px rgba(var(--relic-rgb), 0.34));
-          animation: relicObjectFloat 5.8s ease-in-out infinite;
+            drop-shadow(0 0 6px rgba(var(--relic-rgb), 0.26));
+          animation: none;
         }
 
         .basedare-maplibre-map :global(.peebear-marker.is-active .adventure-place-object) {
@@ -19781,9 +19582,9 @@ export default function RealWorldMap() {
           padding: 2px 7px 2px 4px;
           color: rgba(255, 255, 255, 0.92);
           font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-          font-size: 6.5px;
+          font-size: 8px;
           font-weight: 950;
-          letter-spacing: 0.14em;
+          letter-spacing: 0.04em;
           line-height: 1;
           white-space: nowrap;
           box-shadow:
@@ -19802,15 +19603,15 @@ export default function RealWorldMap() {
           color: rgb(var(--relic-rgb));
           font-size: 9px;
           letter-spacing: 0;
-          text-shadow: 0 0 7px rgba(var(--relic-rgb), 0.72);
+          text-shadow: none;
         }
 
         .basedare-maplibre-map :global(.relic-signal-tab--spark .relic-signal-emblem) {
           border-radius: 2px 5px 5px 2px;
-          background: rgba(52, 211, 153, 0.2);
-          color: #86efac;
+          background: rgba(34, 211, 238, 0.16);
+          color: #67e8f9;
           clip-path: polygon(0 0, 100% 8%, 78% 50%, 100% 92%, 0 100%);
-          animation: relicPennantFlick 9s ease-in-out infinite;
+          animation: none;
         }
 
         .basedare-maplibre-map :global(.relic-signal-tab--dare) {
@@ -19843,8 +19644,10 @@ export default function RealWorldMap() {
           border-color: rgba(var(--relic-rgb, 168, 85, 247), 0.3);
           background: linear-gradient(180deg, rgba(18, 20, 31, 0.94), rgba(4, 6, 13, 0.97));
           padding: 4px 8px;
-          font-size: 7px;
-          letter-spacing: 0.14em;
+          font-size: 9px;
+          letter-spacing: 0.01em;
+          text-transform: none;
+          font-family: var(--font-figtree), sans-serif;
           box-shadow:
             0 7px 14px rgba(0, 0, 0, 0.32),
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -19954,6 +19757,38 @@ export default function RealWorldMap() {
           animation: none !important;
         }
 
+        /* Close inspection needs readable names; keep distant decluttering intact.
+           Repeated marker class outranks the legacy activated/compact variants. */
+        .basedare-maplibre-map[data-zoom-band='near']
+          :global(.peebear-marker.peebear-marker.peebear-marker .peebear-venue-label) {
+          max-width: 168px;
+          min-height: 24px;
+          padding: 5px 10px;
+          font-size: 10px;
+          letter-spacing: 0.06em;
+          line-height: 1.2;
+        }
+
+        @media (min-width: 1024px) {
+          .basedare-maplibre-map[data-zoom-band='near']
+            :global(.peebear-marker.peebear-marker.peebear-marker .peebear-venue-label) {
+            max-width: 210px;
+            min-height: 28px;
+            font-size: 12px;
+          }
+
+          .basedare-maplibre-map[data-zoom-band='near']
+            :global(.peebear-marker:not(.is-active) .adventure-place-object) {
+            scale: 1.02;
+          }
+        }
+
+        .basedare-maplibre-map[data-zoom-band='near']
+          :global(.peebear-marker.is-active .peebear-venue-label-name) {
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+
         /* Surf breaks now live on the same energy plinth as place relics. */
         .basedare-maplibre-map :global(.surf-break-relic-plinth) {
           position: absolute;
@@ -19976,90 +19811,61 @@ export default function RealWorldMap() {
           z-index: 2;
         }
 
-        /* Density is information, not a second dashboard widget. */
+        /* Compact glass counters use the same material as the map controls. */
         .basedare-maplibre-map :global(.place-cluster-marker) {
+          --cluster-rgb: 178, 156, 226;
           width: 62px;
           height: 62px;
         }
 
-        .basedare-maplibre-map :global(.place-cluster-aura) {
-          inset: 9px;
-          background: radial-gradient(circle, rgba(168, 85, 247, 0.17), transparent 72%);
-          filter: blur(5px);
-          opacity: 0.72;
+        .basedare-maplibre-map :global(.place-cluster-marker--cyan) {
+          --cluster-rgb: 103, 232, 249;
         }
 
-        .basedare-maplibre-map :global(.place-cluster-core) {
-          width: 48px;
-          height: 48px;
+        .basedare-maplibre-map :global(.place-cluster-marker--gold) {
+          --cluster-rgb: 245, 214, 107;
+        }
+
+        .basedare-maplibre-map :global(.place-cluster-aura) { display: none; }
+
+        .basedare-maplibre-map :global(.place-cluster-marker.place-cluster-marker .place-cluster-core) {
+          width: 43px;
+          height: 43px;
           gap: 0;
-          border-color: rgba(184, 127, 255, 0.34);
-          box-shadow:
-            0 10px 20px rgba(0, 0, 0, 0.34),
-            0 0 0 2px rgba(168, 85, 247, 0.06),
-            inset 0 1px 0 rgba(255, 255, 255, 0.11),
-            inset 0 -9px 13px rgba(0, 0, 0, 0.22) !important;
+          border-color: rgba(var(--cluster-rgb), 0.6);
+          background: linear-gradient(155deg, rgba(39, 39, 55, 0.97), rgba(10, 12, 23, 0.98) 65%);
+          box-shadow: 0 6px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.14), inset 0 0 0 3px rgba(var(--cluster-rgb),0.055) !important;
         }
 
         .basedare-maplibre-map :global(.place-cluster-count) {
-          font-size: 18px;
+          font-family: var(--font-figtree), sans-serif;
+          font-size: 17px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          text-shadow: none;
         }
 
-        .basedare-maplibre-map :global(.place-cluster-label) {
-          display: none;
-        }
-
-        .basedare-maplibre-map :global(.place-cluster-marker--cyan .place-cluster-core) {
-          border-color: rgba(34, 211, 238, 0.64);
-          box-shadow:
-            0 10px 20px rgba(0, 0, 0, 0.34),
-            0 0 12px rgba(34, 211, 238, 0.18),
-            inset 0 1px 0 rgba(255, 255, 255, 0.11),
-            inset 0 -9px 13px rgba(0, 0, 0, 0.22) !important;
-        }
-
-        .basedare-maplibre-map :global(.place-cluster-marker--gold .place-cluster-core) {
-          border-color: rgba(245, 197, 24, 0.7);
-          box-shadow:
-            0 10px 20px rgba(0, 0, 0, 0.34),
-            0 0 14px rgba(245, 197, 24, 0.22),
-            inset 0 1px 0 rgba(255, 255, 255, 0.11),
-            inset 0 -9px 13px rgba(0, 0, 0, 0.22) !important;
-        }
+        .basedare-maplibre-map :global(.place-cluster-label) { display: none; }
 
         .basedare-maplibre-map :global(.place-cluster-live) {
           right: -4px;
-          bottom: 0;
-          padding: 3px 5px;
-          font-size: 5.5px;
+          bottom: -1px;
+          min-height: 16px;
+          padding: 3px 6px;
+          border-color: rgba(245, 214, 107, 0.5);
+          background: #201c12;
+          color: #f5d66b;
+          font-family: var(--font-figtree), sans-serif;
+          font-size: 8px;
+          letter-spacing: 0;
+          box-shadow: 0 3px 7px rgba(0,0,0,0.35);
         }
 
         .basedare-maplibre-map :global(.place-cluster-shadow) {
-          bottom: 5px;
-          width: 34px;
-          height: 9px;
-          filter: blur(7px);
-        }
-
-        .basedare-maplibre-map :global(.map-legend-relic-signal) {
-          display: grid;
-          width: 23px;
-          height: 23px;
-          place-items: center;
-          border: 1px solid currentColor;
-          border-radius: 7px;
-          background: rgba(6, 8, 16, 0.86);
-          font-size: 14px;
-          font-weight: 950;
-          box-shadow: 0 0 12px currentColor;
-        }
-
-        .basedare-maplibre-map :global(.map-legend-relic-signal--dare) {
-          color: #f5c518;
-        }
-
-        .basedare-maplibre-map :global(.map-legend-relic-signal--spark) {
-          color: #6ee7b7;
+          bottom: 8px;
+          width: 27px;
+          height: 5px;
+          filter: blur(4px);
         }
 
         @keyframes relicObjectFloat {

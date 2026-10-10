@@ -21,11 +21,11 @@ import type { LivePlan } from '@/lib/live-plans';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'The Board | BaseDare',
-  description: 'The BaseDare map in list form: boats, meetups, published venue events, free Sparks, and paid Dares near you.',
+  title: 'List view | BaseDare',
+  description: 'The BaseDare map in list form: surf boats, meetups, events, free challenges and paid dares near you.',
   openGraph: {
-    title: 'The Board | BaseDare',
-    description: 'Boats, meetups, venue events, Sparks, and paid Dares—the BaseDare map in list form.',
+    title: 'List view | BaseDare',
+    description: 'Meetups, surf boats, events, free challenges and paid dares in list view.',
     url: 'https://www.basedare.xyz/board',
     siteName: 'BaseDare',
     type: 'website',
@@ -403,10 +403,10 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
           </div>
           <h1 className="mt-4 text-4xl font-black uppercase italic tracking-tight text-white md:text-6xl">
             What&apos;s on<br />
-            <span className="text-[#f5c518]">the Board</span>
+            <span className="text-[#f5c518]">nearby</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm font-bold leading-6 text-white/55">
-            The map in list form: live plans, paid dares, venue nights, and verified activity. Open a card to act, or jump back to see where it is.
+            Browse meetups, events and paid dares in list view. Open a card for details or switch to the map.
           </p>
         </div>
 
@@ -514,15 +514,15 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
               </div>
             ) : null}
             <LivePlanBoardSection title="Needs people" subtitle="Join and help it happen" plans={formingPlans} />
-            <LivePlanBoardSection title="Live plans" subtitle="Boats · rallies · events · Sparks · paid Dares" plans={readyPlans} />
+            <LivePlanBoardSection title="Things to do" subtitle="Meetups · surf boats · events · challenges" plans={readyPlans} />
             {!livePlans.length ? (
               <>
                 <BoardSection title="Tonight" subtitle="Live now" flyers={sections.tonight} tone="cyan" fieldStation={fieldStation} />
                 <BoardSection title="Rewards" subtitle="Open paid dares" flyers={sections.rewards} tone="gold" fieldStation={fieldStation} />
               </>
             ) : null}
-            <BoardSection title="Receipts" subtitle="Recently verified" flyers={sections.receipts} tone="emerald" fieldStation={fieldStation} />
-            <BoardSection title="Place memory" subtitle="Recent verified activity" flyers={sections.placesLitUp} tone="violet" fieldStation={fieldStation} />
+            <BoardSection title="Completed dares" subtitle="Recently verified" flyers={sections.receipts} tone="emerald" fieldStation={fieldStation} />
+            <BoardSection title="Recent activity" subtitle="Verified updates at places" flyers={sections.placesLitUp} tone="violet" fieldStation={fieldStation} />
           </>
         )}
       </section>

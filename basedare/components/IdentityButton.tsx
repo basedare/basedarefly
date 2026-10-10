@@ -6,6 +6,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { resolveCommunityIdentity } from '@/lib/community-identity';
 import { useFeedback } from '@/hooks/useFeedback';
 import { MissionPassSheet } from '@/components/mission-pass/MissionPassSheet';
 import { useSocialWebview } from '@/components/mission-pass/SocialWebviewProvider';
@@ -82,6 +83,23 @@ type IdentityButtonProps = {
 export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButtonProps = {}) {
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
+  const [identity, setIdentity] = useState<{ wallet: string; tag: string | null } | null>(null);
+  const username = identity?.wallet === address?.toLowerCase() ? identity?.tag : null;
+  useEffect(() => {
+    if (!address || !isConnected) return;
+    const controller = new AbortController();
+    const loadIdentity = () => {
+      void fetch(`/api/tags?wallet=${encodeURIComponent(address)}`, { signal: controller.signal })
+        .then((response) => response.ok ? response.json() : Promise.reject(new Error('Identity unavailable')))
+        .then((payload) => {
+          const resolved = resolveCommunityIdentity(Array.isArray(payload.tags) ? payload.tags : []);
+          setIdentity({ wallet: address.toLowerCase(), tag: resolved.status === 'ready' ? resolved.tag : null });
+        }).catch(() => {});
+    };
+    loadIdentity();
+    window.addEventListener('focus', loadIdentity);
+    return () => { controller.abort(); window.removeEventListener('focus', loadIdentity); };
+  }, [address, isConnected]);
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -235,8 +253,13 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
     >
       <div className="px-4 py-3 border-b border-white/10">
         <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Connected As</p>
-        <p className="text-sm text-white font-mono">{truncatedAddress}</p>
+        <p className="truncate text-sm font-bold text-white">{username || 'My account'}</p>
+        <p className="mt-1 text-xs font-mono text-white/50">{truncatedAddress}</p>
       </div>
+      <Link href={username ? `/creator/${encodeURIComponent(username.replace(/^@/, ''))}` : '/claim-tag'} onClick={() => setShowDropdown(false)} className="block px-4 py-3 text-sm text-white/70 hover:bg-white/5">
+        {username ? 'My profile' : 'Choose a username'}
+      </Link>
+      <Link href="/community?people=1#people" onClick={() => setShowDropdown(false)} className="block px-4 py-3 text-sm text-white/70 hover:bg-white/5">People & friends</Link>
       <Link
         href="/dashboard#wallet"
         onClick={() => setShowDropdown(false)}
@@ -295,10 +318,10 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
             className="w-full rounded-xl border border-[#ffe87a]/70 bg-[linear-gradient(180deg,#ffe36a_0%,#f5c518_55%,#8a5a00_100%)] px-4 py-3 text-left shadow-[0_10px_22px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.6)] transition hover:-translate-y-[1px] disabled:cursor-wait disabled:opacity-70"
           >
             <span className="block text-sm font-black uppercase tracking-[0.08em] text-[#15120c]">
-              {connectingSmartWallet ? 'Opening…' : '✦ Continue with phone'}
+              {connectingSmartWallet ? 'Opening…' : '✦ Continue with passkey'}
             </span>
             <span className="mt-0.5 block text-[10px] font-semibold text-[#3d2f05]">
-              one-tap passkey · no app · no seed phrase
+              Fingerprint, face or device screen lock
             </span>
           </button>
         ) : (
@@ -361,7 +384,7 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
             {isConnected ? (
               <>
                 <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px rgba(74,222,128,0.8)' }} />
-                <span className="truncate">{truncatedAddress}</span>
+                <span className="max-w-[9rem] truncate normal-case tracking-normal">{username || 'My account'}</span>
               </>
             ) : webviewChecked && isSocialWebview ? 'Mission Pass' : disconnectedLabel}
           </span>

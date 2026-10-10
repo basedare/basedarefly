@@ -18,6 +18,7 @@ import BackgroundToneToggle from './BackgroundToneToggle';
 const NAV_LINKS = [
   { name: "NOW", href: "/now", activePrefixes: ["/now"] },
   { name: "MAP", href: "/map", activePrefixes: ["/map"] },
+  { name: "LIST VIEW", href: "/board", activePrefixes: ["/board"] },
   {
     name: "CREATE",
     href: "/start",

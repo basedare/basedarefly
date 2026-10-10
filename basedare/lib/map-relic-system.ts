@@ -57,7 +57,7 @@ export function resolveMapRelicSignal(input: {
   if (input.challengeLiveCount > 0 && input.communitySparkLive) {
     return {
       kind: 'spark',
-      label: input.challengeLiveCount > 1 ? `SPARK ${Math.min(input.challengeLiveCount, 9)}+` : 'SPARK',
+      label: input.challengeLiveCount > 1 ? `FREE ${Math.min(input.challengeLiveCount, 9)}+` : 'FREE',
       ring: 'cyan',
       actionable: true,
     };

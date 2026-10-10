@@ -98,7 +98,6 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
     const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
     const primaryAction = actionItems[0] ?? null;
     const secondaryActionItems = actionItems.slice(1, 4);
-    const primaryNotification = notifications[0] ?? null;
     const {
         disablePushSubscription,
         nearbyRadiusKm,
@@ -135,12 +134,6 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
         : pushEnabled
             ? `This device gets BaseDare alerts. Nearby uses ${nearbyRadiusKm} km by default.`
             : 'Enable browser push for nearby and wallet alerts.';
-
-    const formatNotificationTime = (value: string) =>
-        new Date(value).toLocaleDateString([], {
-            month: 'short',
-            day: 'numeric',
-        });
 
     const updateDropdownPosition = useCallback(() => {
         if (typeof window === 'undefined') return;
@@ -339,11 +332,12 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
 
         try {
             const headers = await getWalletAuthHeaders('notifications:write', true);
-            await fetch('/api/notifications', {
+            const response = await fetch('/api/notifications', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', ...headers },
                 body: JSON.stringify({ wallet: address, notificationIds: ids })
             });
+            if (!response.ok) throw new Error('Could not mark notifications as read');
         } catch (err) {
             console.error('Failed to mark notifications as read', err);
             // Re-fetch to restore state on error
@@ -368,7 +362,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                 }}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                className="relative p-2 rounded-full border border-white/10 bg-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_24px_rgba(0,0,0,0.22)] transition-colors hover:bg-white/10"
+                className="relative grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_24px_rgba(0,0,0,0.22)] transition-colors hover:bg-white/10"
                 aria-expanded={isOpen}
                 aria-label="Open notifications"
             >
@@ -379,9 +373,9 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                     <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center border-2 border-[#121214]"
+                        className="absolute top-0 right-0 w-4 h-4 bg-[#f5c518] rounded-full flex items-center justify-center border-2 border-[#121214]"
                     >
-                        <span className="text-[9px] font-bold text-white">{attentionCount > 9 ? '9+' : attentionCount}</span>
+                        <span className="text-[9px] font-bold text-black">{attentionCount > 9 ? '9+' : attentionCount}</span>
                     </motion.div>
                 )}
             </button>
@@ -397,11 +391,9 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
                         style={dropdownPosition ? { top: dropdownPosition.top, right: dropdownPosition.right } : undefined}
-                        className="bd-notification-panel fixed inset-x-2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-[12000] isolate flex h-[calc(100svh-5.25rem)] max-h-[calc(100svh-5.25rem)] w-auto flex-col overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(31,34,45,0.78)_0%,rgba(12,14,24,0.82)_48%,rgba(5,6,13,0.92)_100%)] shadow-[0_34px_110px_rgba(0,0,0,0.72),0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.24),inset_0_-34px_52px_rgba(0,0,0,0.34)] ring-1 ring-white/[0.04] backdrop-blur-2xl md:inset-x-auto md:right-4 md:top-20 md:h-auto md:max-h-[min(78vh,42rem)] md:w-[27rem] md:rounded-[34px]"
+                        className="bd-notification-panel fixed inset-x-3 top-[calc(env(safe-area-inset-top)+4.5rem)] z-[12000] isolate flex max-h-[calc(100dvh-5.5rem-env(safe-area-inset-top))] w-auto flex-col overflow-hidden rounded-[26px] border border-white/15 bg-[#0d0e17] shadow-[0_28px_90px_rgba(0,0,0,.7),inset_0_1px_0_rgba(255,255,255,.12)] md:inset-x-auto md:right-4 md:top-20 md:max-h-[min(78vh,42rem)] md:w-[27rem]"
                     >
-                        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_-5%,rgba(255,255,255,0.24),transparent_26%),radial-gradient(circle_at_18%_8%,rgba(34,211,238,0.22),transparent_38%),radial-gradient(circle_at_88%_8%,rgba(250,204,21,0.18),transparent_30%),radial-gradient(circle_at_80%_76%,rgba(168,85,247,0.18),transparent_42%),linear-gradient(135deg,rgba(255,255,255,0.12),transparent_34%)]" />
-                        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-                        <div className="pointer-events-none absolute left-6 right-16 top-3 h-10 rounded-full bg-white/10 blur-2xl" />
+                        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-300/60 to-transparent" />
                         {/* Header */}
                         <div className="shrink-0 border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.035))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-18px_24px_rgba(0,0,0,0.16)]">
                             <div className="flex items-start justify-between gap-3">
@@ -409,10 +401,10 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                 <h3 className="text-2xl font-black tracking-[-0.04em] text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.55)]">
                                     Notifications
                                 </h3>
-                                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/40">
+                                <p className="mt-1 text-xs font-medium text-white/60">
                                     {actionCount || inboxUnreadCount || unreadCount
-                                        ? `${actionCount} actions · ${inboxUnreadCount} chats · ${unreadCount} alerts`
-                                        : 'All quiet'}
+                                        ? `${actionCount} to do · ${inboxUnreadCount} unread ${inboxUnreadCount === 1 ? 'message' : 'messages'} · ${unreadCount} ${unreadCount === 1 ? 'update' : 'updates'}`
+                                        : 'You’re up to date'}
                                 </p>
                             </div>
                                 <button
@@ -444,6 +436,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                             </div>
                         </div>
 
+                        {primaryAction && (
                         <div className="shrink-0 border-b border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018))] px-4 py-3">
                             <div className="overflow-hidden rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(0,0,0,0.32))] shadow-[0_18px_34px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-14px_20px_rgba(0,0,0,0.18)]">
                                 {primaryAction ? (
@@ -455,7 +448,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="min-w-0">
                                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-100/75">
-                                                    Next best action
+                                                    Needs your attention
                                                 </p>
                                                 <h4 className="mt-1 truncate text-sm font-black text-white">
                                                     {primaryAction.title}
@@ -469,45 +462,17 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                             </span>
                                         </div>
                                     </Link>
-                                ) : primaryNotification ? (
-                                    <div className="p-3">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/72">
-                                            Latest alert
-                                        </p>
-                                        <h4 className="mt-1 truncate text-sm font-black text-white">
-                                            {primaryNotification.title}
-                                        </h4>
-                                        <div className="mt-1 flex items-start justify-between gap-3">
-                                            <p className="line-clamp-2 text-xs leading-relaxed text-white/48">
-                                                {primaryNotification.message}
-                                            </p>
-                                            <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] text-white/34">
-                                                {formatNotificationTime(primaryNotification.createdAt)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-3 p-3">
-                                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-emerald-200/20 bg-emerald-300/10 text-emerald-100">
-                                            <Check className="h-4 w-4" />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-black text-white">All clear</p>
-                                            <p className="text-xs leading-relaxed text-white/45">
-                                                No urgent alerts or action-center items are waiting.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
+                                ) : null}
                             </div>
 
                         </div>
+                        )}
 
-                        <div className="bd-notification-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain touch-pan-y [-webkit-overflow-scrolling:touch]">
-                            <div className="sticky top-0 z-10 h-4 bg-gradient-to-b from-[#151521]/90 to-transparent pointer-events-none" />
+                        <div className="bd-notification-scroll flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain touch-pan-y [-webkit-overflow-scrolling:touch]">
+
 
                             {pushSupported && (
-                                <div className="-mt-4 border-b border-white/5 bg-[linear-gradient(180deg,rgba(34,211,238,0.07),rgba(255,255,255,0.018))] px-4 py-3">
+                                <div className="order-4 border-t border-white/10 bg-[linear-gradient(180deg,rgba(34,211,238,0.07),rgba(255,255,255,0.018))] px-4 py-3">
                                     <button
                                         type="button"
                                         onClick={() => setShowPushControls((current) => !current)}
@@ -614,7 +579,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                 </div>
                             )}
 
-                            <div className="border-b border-white/5 bg-[linear-gradient(180deg,rgba(16,185,129,0.055),rgba(255,255,255,0.018))] px-3 py-3">
+                            <div className="order-2 border-b border-white/5 bg-[linear-gradient(180deg,rgba(16,185,129,0.055),rgba(255,255,255,0.018))] px-3 py-3">
                                 <div className="mb-3 flex items-center justify-between gap-3">
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-emerald-100/80">
@@ -627,7 +592,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                             ) : null}
                                         </div>
                                         <p className="mt-1 text-xs text-gray-400">
-                                            Bids, support, venue replies.
+                                            Your conversations and venue replies.
                                         </p>
                                     </div>
                                     <Link
@@ -683,7 +648,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                     </div>
                                 ) : (
                                     <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-3">
-                                        <p className="text-sm font-black text-white">No chats yet.</p>
+                                        <p className="text-sm font-black text-white">No conversations yet.</p>
                                         <p className="mt-1 text-xs leading-relaxed text-white/42">
                                             Messages will land here.
                                         </p>
@@ -703,13 +668,13 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                         onClick={() => setIsOpen(false)}
                                         className="rounded-full border border-yellow-300/20 bg-yellow-300/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100/75 transition hover:bg-yellow-300/15"
                                     >
-                                        Start support
+                                        Get help
                                     </Link>
                                 </div>
                             </div>
 
                             {secondaryActionItems.length > 0 && (
-                                <div className="border-b border-white/5 bg-white/[0.025] px-3 py-3">
+                                <div className="order-1 border-b border-white/5 bg-white/[0.025] px-3 py-3">
                                     <div className="mb-3 flex items-center justify-between gap-3 px-1">
                                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/46">
                                             Up next
@@ -752,7 +717,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                             )}
 
                             {/* List */}
-                            <div className="p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                            <div className="order-3 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                                 {notifications.length === 0 ? (
                                     <div className="flex min-h-[9rem] flex-col items-center justify-center p-6 text-center">
                                         <BellRing className="w-8 h-8 text-white/20 mb-3" />
@@ -761,33 +726,19 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                         </p>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col gap-1">
+                                    <div className="space-y-2">
+                                        <p className="mb-3 text-xs font-semibold text-white/60">Updates</p>
                                         {notifications.map((notif) => (
-                                            <div
-                                                key={notif.id}
-                                                className="group relative p-3 rounded-xl hover:bg-white/5 active:bg-white/[0.08] active:scale-[0.99] transition cursor-pointer"
-                                                onClick={() => markAsRead([notif.id])}
-                                            >
-                                                {notif.link ? (
-                                                    <Link href={notif.link} className="block">
-                                                        <h4 className="font-bold text-sm text-white mb-1">{notif.title}</h4>
-                                                        <p className="text-xs text-gray-400 leading-relaxed">{notif.message}</p>
-                                                        <span className="text-[10px] text-gray-500 mt-2 block">
-                                                            {new Date(notif.createdAt).toLocaleDateString()}
-                                                        </span>
-                                                    </Link>
-                                                ) : (
-                                                    <div>
-                                                        <h4 className="font-bold text-sm text-white mb-1">{notif.title}</h4>
-                                                        <p className="text-xs text-gray-400 leading-relaxed">{notif.message}</p>
-                                                        <span className="text-[10px] text-gray-500 mt-2 block">
-                                                            {new Date(notif.createdAt).toLocaleDateString()}
-                                                        </span>
-                                                    </div>
-                                                )}
-
-                                                {/* Read indicator dot */}
-                                                <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                                            <div key={notif.id} className="group flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.025] p-3 transition hover:bg-white/[0.05]">
+                                                <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-violet-200/15 bg-violet-300/10 text-violet-200"><Bell className="h-4 w-4" /></span>
+                                                <div className="min-w-0 flex-1">
+                                                    {notif.link ? <Link href={notif.link} onClick={() => { void markAsRead([notif.id]); setIsOpen(false); }} className="block rounded-lg focus-visible:outline focus-visible:outline-cyan-200">
+                                                        <h4 className="text-sm font-bold leading-5 text-white">{notif.title}</h4>
+                                                        <p className="mt-1 text-xs leading-5 text-white/65">{notif.message}</p>
+                                                    </Link> : <><h4 className="text-sm font-bold leading-5 text-white">{notif.title}</h4><p className="mt-1 text-xs leading-5 text-white/65">{notif.message}</p></>}
+                                                    <time dateTime={notif.createdAt} className="mt-2 block text-[11px] text-white/45">{new Date(notif.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</time>
+                                                </div>
+                                                <button type="button" aria-label={`Mark ${notif.title} as read`} onClick={() => void markAsRead([notif.id])} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white"><Check className="h-4 w-4" /></button>
                                             </div>
                                         ))}
                                     </div>

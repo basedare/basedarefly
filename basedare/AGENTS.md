@@ -1,3 +1,9 @@
+### Codex mobile discovery polish (2026-10-10)
+- Preserve map renderer/camera/tile behavior. Category objects are quieter, close-zoom labels readable, cluster counters compact and Map key explicit. Free signal badges read FREE; never infer live events from suggestions.
+- List view is the public wording for /board. Now drawer and map key have close controls. Wallet QR contains the actual address only and requires existing receive/network/simulation guards; zero/error/refresh states remain truthful.
+- Public account and ordinary venue chat use current ACTIVE/VERIFIED usernames or neutral Guest fallback. System receipt actors and room access policy are unchanged; identity reads are batched.
+- Gados is curated beside Sibol with an externally checked coordinate. People & friends reuses existing profile/friend flows; interest matching is not added. Includes the parallel passkey and map-label legibility edits. See docs/releases/mobile-discovery-polish-2026-10-10.md. No migrations or payment/auth changes.
+
 ### Codex wallet and Philippine payments assessment (2026-10-09)
 - My activity has a collapsible wallet balance/receive panel and the account menu links to it. Show only native USDC on the configured supported network; keep demo/test funds distinct. Unsupported provider networks cannot expose receive controls. Never count pending rewards or BaseCash credit as wallet money.
 - BaseCash credit requests now require the existing verified wallet session/action signature. Remove manually typed buyer addresses. Coarse per-process IP/wallet throttles are additional abuse friction, not a distributed/global guarantee or settlement verification.

@@ -20,6 +20,21 @@ type CuratedVenue = {
 
 export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
   {
+    slug: 'gados',
+    name: 'Gados',
+    description: 'A small live-music bar on Tourism Road, next to Sibol. Stop by for music and a relaxed evening with friends; check with the venue for tonight’s schedule.',
+    address: 'Tourism Road, next to Sibol, General Luna, 8419 Surigao del Norte, Philippines',
+    city: 'General Luna',
+    country: 'Philippines',
+    // Public listing and its directions pin checked 2026-10-10:
+    // https://www.siargaolocal.com/business/gados/
+    latitude: 9.7867894,
+    longitude: 126.1621528,
+    timezone: 'Asia/Manila',
+    categories: ['nightlife', 'music', 'live-music', 'bar', 'siargao', 'general-luna'],
+    locationConfidence: 'externally-checked-anchor',
+  },
+  {
     slug: 'hideaway',
     name: 'Hideaway',
     description:
@@ -36,7 +51,7 @@ export const CURATED_SIARGAO_VENUES: CuratedVenue[] = [
     slug: 'siargao-beach-club',
     name: 'Siargao Beach Club',
     description:
-      'Nightlife and beach-club pilot venue for BaseDare venue-memory and QR-console testing in General Luna.',
+      'A beach club in General Luna for music, evenings by the sea and meeting friends.',
     address: 'Tourism Road, Purok 3, General Luna, Surigao del Norte, Philippines',
     city: 'General Luna',
     country: 'Philippines',
@@ -1158,6 +1173,7 @@ const SIARGAO_QUERY_TOKENS = [
   'nalu',
   'back road',
   'saging',
+  'gados',
   'purok 3',
   'las barricas',
   'barrel',
@@ -1255,7 +1271,7 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v13',
+            curatedSet: 'siargao-v14',
             locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
             coordinatePolicy:
               'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
@@ -1281,7 +1297,7 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
           checkInRadiusMeters: 120,
           metadataJson: {
             curated: true,
-            curatedSet: 'siargao-v13',
+            curatedSet: 'siargao-v14',
             locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
             coordinatePolicy:
               'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',

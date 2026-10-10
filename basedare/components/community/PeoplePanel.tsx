@@ -90,7 +90,7 @@ export default function PeoplePanel() {
   const btn =
     "bd-action min-h-11 rounded-full border border-white/15 bg-white/5 px-4 text-xs font-bold disabled:opacity-40";
   return (
-    <section className="my-5 rounded-[1.7rem] border border-white/10 bg-black/40 p-5 text-white">
+    <section id="people" className="scroll-mt-28 my-5 rounded-[1.7rem] border border-white/10 bg-black/40 p-5 text-white">
       <button
         className="flex min-h-11 w-full items-center justify-between text-left font-bold"
         aria-expanded={open}
