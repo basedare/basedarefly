@@ -3131,24 +3131,11 @@ button[data-testid='ockConnectWalletButton']:hover {
   -webkit-backdrop-filter: blur(18px) saturate(116%);
 }
 
-.bd-map-route-active .map-navigation-controls > div,
 .bd-map-route-active .basedare-maplibre-map button[aria-label='Orbit map left'],
 .bd-map-route-active .basedare-maplibre-map button[aria-label='Orbit map right'],
 .bd-map-route-active .basedare-maplibre-map button[aria-label='Tilt map down'],
 .bd-map-route-active .basedare-maplibre-map button[aria-label='Tilt map up'] {
   border-color: rgba(103, 232, 249, 0.14) !important;
-}
-
-.bd-map-route-active .map-navigation-controls > div {
-  border-radius: 1rem !important;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(103, 232, 249, 0.1), transparent 38%),
-    linear-gradient(180deg, rgba(19, 23, 38, 0.94), rgba(5, 7, 15, 0.97)) !important;
-  box-shadow:
-    0 14px 30px rgba(0, 0, 0, 0.4),
-    0 0 18px rgba(34, 211, 238, 0.055),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -12px 18px rgba(0, 0, 0, 0.22) !important;
 }
 
 .bd-map-route-active .map-navigation-controls button:hover,
@@ -3440,23 +3427,6 @@ button[data-testid='ockConnectWalletButton']:hover {
       inset 0 -1px 0 rgba(255, 255, 255, 0.06) !important;
   }
 
-  /* PeeBear's field card reads as an inset instrument screen inside a frame. */
-  .bd-map-route-active .basedare-maplibre-map .map-attention-card {
-    border-color: rgba(245, 197, 24, 0.25) !important;
-    border-top-color: rgba(255, 235, 142, 0.38) !important;
-    background:
-      radial-gradient(circle at 93% 0%, rgba(34, 211, 238, 0.14), transparent 30%),
-      radial-gradient(circle at 8% -5%, rgba(245, 197, 24, 0.15), transparent 34%),
-      linear-gradient(155deg, rgba(22, 27, 40, 0.985), rgba(5, 7, 14, 0.99)) !important;
-    box-shadow:
-      0 28px 64px rgba(0, 0, 0, 0.58),
-      0 4px 0 rgba(0, 0, 0, 0.72),
-      0 0 28px rgba(245, 197, 24, 0.055),
-      inset 0 1px 0 rgba(255, 255, 255, 0.17),
-      inset 0 -18px 28px rgba(0, 0, 0, 0.24),
-      inset 0 0 0 3px rgba(0, 0, 0, 0.18) !important;
-  }
-
   .bd-map-route-active .basedare-maplibre-map .map-attention-choice {
     border-color: rgba(255, 255, 255, 0.075) !important;
     border-top-color: rgba(255, 255, 255, 0.13) !important;
@@ -3485,32 +3455,7 @@ button[data-testid='ockConnectWalletButton']:hover {
       inset 0 3px 8px rgba(0, 0, 0, 0.58) !important;
   }
 
-  /* Locate and zoom sit in a small machined pedestal rather than loose glass. */
-  .bd-map-route-active .basedare-maplibre-map .map-navigation-controls {
-    gap: 0.52rem !important;
-    padding: 0.42rem;
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-top-color: rgba(255, 255, 255, 0.13);
-    border-radius: 1.65rem;
-    background:
-      radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.08), transparent 34%),
-      linear-gradient(180deg, rgba(17, 21, 32, 0.96), rgba(5, 7, 14, 0.985));
-    box-shadow:
-      0 18px 34px rgba(0, 0, 0, 0.48),
-      inset 0 2px 5px rgba(0, 0, 0, 0.72),
-      inset 0 0 0 1px rgba(0, 0, 0, 0.3),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.035);
-  }
 
-  .bd-map-route-active .basedare-maplibre-map .map-navigation-controls > button,
-  .bd-map-route-active .basedare-maplibre-map .map-navigation-controls > div {
-    border-top-color: rgba(255, 255, 255, 0.2) !important;
-    box-shadow:
-      0 8px 14px rgba(0, 0, 0, 0.56),
-      0 2px 0 rgba(0, 0, 0, 0.68),
-      inset 0 1px 0 rgba(255, 255, 255, 0.13),
-      inset 0 -10px 16px rgba(0, 0, 0, 0.27) !important;
-  }
 
   .bd-map-route-active .basedare-maplibre-map .map-navigation-controls button:active {
     transform: translateY(1px) scale(0.96) !important;
