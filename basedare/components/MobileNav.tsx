@@ -71,12 +71,12 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
               <div className="absolute -inset-2 bg-purple-500/10 blur-xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
               <img
-                src="/assets/BASEDAREGOO.webp"
+                src="/assets/basedare-wordmark-graffiti-v1.webp"
                 alt="BASEDARE"
                 className="relative h-8 w-auto object-contain transition-all duration-300 hover:scale-105"
                 style={{
-                  filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.25))',
-                  WebkitFilter: 'drop-shadow(0 0 8px rgba(139,92,246,0.25))',
+                  filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.45))',
+                  WebkitFilter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.45))',
                 }}
               />
             </div>

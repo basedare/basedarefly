@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, MessageCircle, Sparkles, X } from "lucide-react";
 import Image from "next/image";
@@ -12,6 +12,7 @@ import { IdentityButton } from './IdentityButton';
 import { DeferredNotificationBell } from './ui/DeferredNotificationBell';
 import { DeferredGlobalSearch } from './ui/DeferredGlobalSearch';
 import BackgroundToneToggle from './BackgroundToneToggle';
+import styles from './Navbar.module.css';
 
 // Primary nav uses ordinary consumer language. Product vocabulary can appear
 // inside the experience after the user understands the action it represents.
@@ -32,6 +33,7 @@ const NAV_LINK_PREFETCH = false;
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const sweepId = useId();
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setIsOpen(false); };
@@ -105,9 +107,33 @@ export default function Navbar() {
       {/* === NAVBAR (Z-50 to stay above everything) === */}
       <nav className="fixed top-0 left-0 right-0 z-50 overflow-x-hidden px-4 py-4 md:px-6">
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-full border-b border-white/[0.035] bg-[linear-gradient(180deg,rgba(4,5,12,0.88)_0%,rgba(4,5,12,0.58)_58%,rgba(4,5,12,0)_100%)] backdrop-blur-[2px]"
+          className={styles.backdrop}
           aria-hidden="true"
         />
+        <svg
+          className={styles.sweep}
+          viewBox="0 0 1440 36"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <defs>
+            <linearGradient id={sweepId} x1="0" y1="0" x2="1440" y2="0" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#6de7df" stopOpacity="0" />
+              <stop offset="0.14" stopColor="#6de7df" stopOpacity="0.3" />
+              <stop offset="0.42" stopColor="#a78bfa" stopOpacity="0.08" />
+              <stop offset="0.73" stopColor="#e752bb" stopOpacity="0.23" />
+              <stop offset="1" stopColor="#e752bb" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M-20 24C150 26 196 4 358 10S700 34 920 18S1240 6 1460 22"
+            fill="none"
+            stroke={`url(#${sweepId})`}
+            strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
         <div className="relative z-10 mx-auto flex max-w-[92rem] items-center justify-between gap-2 md:gap-4">
 
           {/* 1. LOGO */}
@@ -122,10 +148,10 @@ export default function Navbar() {
               <div className="absolute inset-1 rounded-lg bg-purple-500/10 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 md:inset-2" />
 
               <Image
-                src="/assets/BASEDAREGOO.webp"
+                src="/assets/basedare-wordmark-graffiti-v1.webp"
                 alt="BaseDare"
-                width={620}
-                height={161}
+                width={1024}
+                height={241}
                 priority
                 sizes="(min-width: 768px) 224px, 112px"
                 className={`relative h-8 w-auto max-w-full object-contain transition-all duration-300 hover:scale-105 md:h-[56px] ${isControlMode
@@ -134,11 +160,11 @@ export default function Navbar() {
                   }`}
                 style={{
                   filter: isControlMode
-                    ? 'grayscale(1) contrast(1.1) brightness(0.95) drop-shadow(0 0 8px rgba(139,92,246,0.3))'
-                    : 'drop-shadow(0 0 8px rgba(139,92,246,0.25))',
+                    ? 'grayscale(1) contrast(1.1) brightness(0.95) drop-shadow(0 2px 2px rgba(0,0,0,0.45))'
+                    : 'drop-shadow(0 2px 2px rgba(0,0,0,0.45))',
                   WebkitFilter: isControlMode
-                    ? 'grayscale(1) contrast(1.1) brightness(0.95) drop-shadow(0 0 8px rgba(139,92,246,0.3))'
-                    : 'drop-shadow(0 0 8px rgba(139,92,246,0.25))',
+                    ? 'grayscale(1) contrast(1.1) brightness(0.95) drop-shadow(0 2px 2px rgba(0,0,0,0.45))'
+                    : 'drop-shadow(0 2px 2px rgba(0,0,0,0.45))',
                 }}
               />
             </Link>

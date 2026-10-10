@@ -9759,7 +9759,7 @@
       "label": "onKey()",
       "file_type": "code",
       "source_file": "components/Navbar.tsx",
-      "source_location": "L37",
+      "source_location": "L39",
       "id": "navbar_onkey",
       "community": 474
     },
@@ -51325,7 +51325,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "components/Navbar.tsx",
-      "source_location": "L37",
+      "source_location": "L39",
       "weight": 1.0,
       "_src": "components_navbar_tsx",
       "_tgt": "navbar_onkey",

@@ -47,15 +47,12 @@ export default function Footer() {
               {/* BASEDARE LOGO - Centered on mobile */}
               <div className="mb-4 md:mb-6 flex flex-col items-center md:items-start">
                 <Image
-                  src="/assets/BASEDAREGOO.webp"
+                  src="/assets/basedare-wordmark-graffiti-v1.webp"
                   alt="BaseDare"
-                  width={620}
-                  height={161}
-                  className={`h-8 sm:h-10 md:h-14 w-auto mb-3 md:mb-4 object-contain mx-auto md:mx-0 transition-all duration-500 ${
-                    isControlMode
-                      ? 'drop-shadow-[0_0_20px_rgba(100,100,100,0.4)]'
-                      : 'drop-shadow-[0_0_20px_rgba(255,215,0,0.4)]'
-                  }`}
+                  width={1024}
+                  height={241}
+                  sizes="(min-width: 768px) 238px, (min-width: 640px) 170px, 136px"
+                  className="h-8 sm:h-10 md:h-14 w-auto mb-3 md:mb-4 object-contain mx-auto md:mx-0 drop-shadow-[0_3px_3px_rgba(0,0,0,0.45)]"
                   style={{
                     filter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
                     WebkitFilter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
