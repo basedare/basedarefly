@@ -58,23 +58,20 @@ export default function Footer() {
                     WebkitFilter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
                   }}
                 />
-                <p className="text-[11px] sm:text-xs text-gray-300 font-mono leading-relaxed max-w-sm text-center md:text-left">
-                  Discover places. Join challenges. Meet people.
+                <p className="max-w-sm text-center text-sm leading-6 text-gray-300 md:text-left">
+                  Find your next move.
                   <br />
-                  <span className="text-purple-200">Play for fun. Meet people. Find paid dares.</span>
+                  <span className="text-purple-200">Free adventures, local meetups and paid dares.</span>
                 </p>
               </div>
 
-              {/* WAITLIST BUTTON - Touch optimized */}
+              {/* Match the discovery controls used throughout the site. */}
               <Link
                 href="/map"
-                className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-white text-black font-black italic uppercase rounded-xl hover:bg-purple-400 active:bg-purple-500 transition-all transform hover:scale-105 active:scale-[0.98] tracking-tighter text-xs sm:text-sm touch-manipulation"
-                style={{
-                  boxShadow: '0 0 20px rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.3)',
-                }}
+                className="bd-action bd-action--cyan px-6"
               >
-                <span>Open the Map</span>
-                <span className="text-purple-600">→</span>
+                <span>Open map</span>
+                <span aria-hidden="true">→</span>
               </Link>
             </div>
 
@@ -113,7 +110,7 @@ export default function Footer() {
               <h3 className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-widest mb-4 md:mb-6 flex items-center gap-2">
                 <span className="hidden md:block w-0.5 h-3 bg-[#FFD700] rounded-full" />
                 <span className="md:hidden">—</span>
-                Legal
+                Help &amp; info
                 <span className="md:hidden">—</span>
               </h3>
               <ul className="space-y-3 sm:space-y-4">

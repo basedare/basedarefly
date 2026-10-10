@@ -18,7 +18,6 @@ import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
 import {
   controlHairline,
-  controlMicroLabel,
   controlPanel,
   controlSoftCard,
 } from '@/components/control/tokens';
@@ -85,7 +84,7 @@ const DEEPER_PATHS = [
 
 export default function HowItWorksPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-8 text-white sm:px-6 md:pt-12">
+    <main className="relative min-h-screen overflow-hidden bd-page-top px-4 pb-24 text-white sm:px-6">
       <HelpPageAnchor />
       <LiquidBackground />
       <div className="pointer-events-none fixed inset-0 z-10 hidden md:block"><GradualBlurOverlay /></div>
@@ -94,19 +93,19 @@ export default function HowItWorksPage() {
       <div className="relative z-20 mx-auto max-w-6xl">
         <section className={`${controlPanel} px-6 py-10 text-center sm:px-10 md:py-14`}>
           <div className={controlHairline} />
-          <p className={controlMicroLabel}>How BaseDare works</p>
-          <h1 className="mx-auto mt-4 max-w-4xl text-4xl font-black leading-[0.96] sm:text-6xl md:text-7xl">
+          <p className="bd-page-kicker">How BaseDare works</p>
+          <h1 className="bd-page-title mx-auto mt-4 max-w-4xl">
             Find your next move.<br /><span className="text-yellow-300">Go and do it.</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/58 md:text-lg">
+          <p className="bd-page-copy mx-auto mt-5 max-w-2xl">
             {BASEDARE_INTRO}
           </p>
           <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link href="/now" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-yellow-300 px-6 text-[11px] font-black uppercase tracking-[0.15em] text-black transition hover:bg-yellow-200">
-              See what is happening <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            <Link href="/now" className="bd-action bd-action--gold min-h-12 px-6">
+              See what’s happening now <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-            <Link href="/map?source=how-it-works" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-white/12 bg-white/[0.045] px-6 text-[11px] font-black uppercase tracking-[0.15em] text-white/70 transition hover:border-white/22 hover:text-white">
-              Explore the map
+            <Link href="/map?source=how-it-works" className="bd-action bd-action--cyan min-h-12 px-6">
+              Open map
             </Link>
           </div>
         </section>

@@ -142,7 +142,7 @@ export default function Navbar() {
               href="/"
               prefetch={NAV_LINK_PREFETCH}
               aria-label="Open BaseDare home"
-              className="relative group inline-flex h-10 w-[112px] items-center justify-center md:h-14 md:w-[224px]"
+              className={`${styles.brandLink} relative group inline-flex h-10 w-[112px] items-center justify-center md:h-14 md:w-[224px]`}
             >
               {/* Very subtle ambient glow */}
               <div className="absolute inset-1 rounded-lg bg-purple-500/10 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 md:inset-2" />
@@ -170,8 +170,8 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* 2. DESKTOP MENU (Hidden on Mobile) - With GlassSurface */}
-          <div className="hidden min-w-0 flex-1 justify-center md:flex">
+          {/* 2. DESKTOP MENU (Compact navigation below 1280px) - With GlassSurface */}
+          <div className="hidden min-w-0 flex-1 justify-center xl:flex">
             {useQuietNavSurface ? (
               <div className="max-w-full overflow-hidden rounded-full border border-white/[0.08] bg-[linear-gradient(180deg,rgba(12,15,28,0.94)_0%,rgba(5,7,16,0.9)_100%)] shadow-[0_18px_54px_rgba(0,0,0,0.42),0_0_0_1px_rgba(120,150,255,0.05),inset_0_1px_0_rgba(255,255,255,0.1)]">
                 {desktopNavItems}
@@ -196,7 +196,7 @@ export default function Navbar() {
           </div>
 
           {/* 3. RIGHT SIDE ACTIONS */}
-          <div className="flex items-center gap-2 md:gap-3 z-50">
+          <div className={`${styles.headerActions} flex items-center gap-2 md:gap-3 z-50`}>
             <div className="order-1 hidden md:flex">
               <BackgroundToneToggle />
             </div>
@@ -216,17 +216,17 @@ export default function Navbar() {
             <div className="order-3">
               <DeferredNotificationBell />
             </div>
-            <div className="order-4 w-[108px] min-w-0 sm:w-[140px] md:w-auto">
+            <div className={`${styles.accountSlot} order-4 w-[108px] min-w-0 sm:w-[140px] md:w-auto`}>
               <IdentityButton />
             </div>
 
-            {/* === MOBILE HAMBURGER (Visible ONLY on Mobile via 'md:hidden') === */}
+            {/* === COMPACT NAVIGATION TOGGLE (Phones and tablets) === */}
             <button
               aria-label={isOpen ? "Close menu" : "Open menu"}
               aria-expanded={isOpen}
               aria-controls="mobile-navigation"
               onClick={() => setIsOpen(!isOpen)}
-              className="order-5 md:hidden w-10 h-10 flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-white active:scale-90 transition-transform"
+              className="order-5 xl:hidden h-11 w-11 shrink-0 flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-white active:scale-90 transition-transform"
             >
               {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -252,7 +252,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             id="mobile-navigation"
-            className="fixed inset-0 z-40 bg-[#050505]/95 backdrop-blur-xl md:hidden flex flex-col overflow-y-auto pt-24 px-6 pb-8"
+            className="fixed inset-0 z-40 bg-[#050505]/95 backdrop-blur-xl xl:hidden flex flex-col overflow-y-auto pt-24 px-6 pb-8"
           >
             {/* Mobile Links - Liquid Metal Chrome */}
             <div className="flex flex-col gap-4">

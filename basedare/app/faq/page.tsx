@@ -161,7 +161,7 @@ export default function FAQPage() {
         <div className="absolute bottom-0 left-1/2 h-[420px] w-[520px] -translate-x-1/2 rounded-full bg-yellow-400/10 blur-[140px]" />
       </div>
 
-      <div className="relative z-20 mt-12 px-4 pb-32 pt-16 md:pt-20">
+      <div className="bd-page-top relative z-20 px-4 pb-32">
         <div className="mx-auto max-w-5xl">
           <motion.div
             initial={{ opacity: 0, y: -20 }}

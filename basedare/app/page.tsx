@@ -192,7 +192,7 @@ function HomeContent() {
               <div className="w-full relative">
                 <div className="relative z-[60] mx-auto max-w-lg px-4 pt-4 text-center" aria-label="Discover BaseDare">
                   <p className="text-sm font-bold leading-6 text-white/80">{BASEDARE_INTRO}</p>
-                  <Link href="/now?source=home-intro" prefetch={false} className="mt-3 inline-flex min-h-11 items-center rounded-full border border-yellow-300/35 bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.12em] text-[#171006] shadow-[0_0_18px_rgba(245,197,24,0.14)] transition hover:bg-yellow-200">Find something nearby →</Link>
+                  <Link href="/now?source=home-intro" prefetch={false} className="bd-action bd-action--gold mt-3 px-5 uppercase tracking-[0.12em]">Find something nearby →</Link>
                 </div>
                 {/* Desktop: Full 3D Hero with orbiting cards */}
                 <div className="hidden lg:block">

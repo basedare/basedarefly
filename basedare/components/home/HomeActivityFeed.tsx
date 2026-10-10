@@ -13,11 +13,12 @@ import { useAdventureProgress } from '@/hooks/useAdventureProgress';
 import { activeAdventure, adventureHref } from '@/lib/adventure-progress';
 import '@/components/PremiumBentoGrid.css';
 import ActivityRail from './ActivityRail';
+import { PARTICIPATION_FILTERS } from '@/lib/participation-filter';
 
 const OPEN_KEY = 'basedare:home-activity-open:v1';
 const cardClass = 'flex min-w-0 flex-col rounded-[1.55rem] border border-white/10 bg-[linear-gradient(145deg,rgba(36,26,59,0.8),rgba(6,7,14,0.98))] p-5 shadow-[0_12px_28px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]';
-const actionClass = 'mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 text-xs font-black text-white hover:bg-white/10';
-const labels = { boat: 'Boat crew', meetup: 'Community plan', venue_event: 'Published event', community_spark: 'Free dare', paid_dare: 'Paid dare' };
+const actionClass = 'bd-action mt-5';
+const labels = { boat: 'Boat crew', meetup: 'Community plan', venue_event: 'Published event', community_spark: 'Free challenge', paid_dare: 'Paid dare' };
 
 function recordOpen(id: string, kind: string, planId?: string) {
   trackClientEvent('home_activity_opened', { activity_id: id, activity_kind: kind, plan_id: planId, plan_type: planId ? kind : undefined, source: 'home' });
@@ -124,7 +125,7 @@ export default function HomeActivityFeed() {
           requestedLocation.current = false;
           setShowLocationError(false);
           setArea(SIARGAO_ACTIVITY_AREA);
-          setAreaNotice('Showing General Luna, Siargao. Choose Play, Meet or Earn below.');
+          setAreaNotice('Showing General Luna, Siargao. Choose an activity type below.');
         }}>{siargaoSelected ? <Check size={15} /> : <MapPin size={15} />}{siargaoSelected ? 'Siargao selected' : 'Browse Siargao'}</button>
         <button type="button" className="premium-filter-chip home-area-button rounded-full gap-2 px-4" disabled={locating} onClick={() => {
           requestedLocation.current = true;
@@ -137,8 +138,11 @@ export default function HomeActivityFeed() {
     {showLocationError && locationError ? <p role="status" className="mb-3 text-xs text-amber-100/70">{locationError} Still browsing {area.label}.</p> : null}
     {areaNotice ? <p role="status" className="mb-3 text-xs text-cyan-100/80">{areaNotice}</p> : null}
     <div className="premium-bounties-controls relative mb-5 flex flex-wrap items-center justify-between gap-2 p-2 md:p-3">
-      <div className="premium-filter-shell flex gap-1 p-1" role="group" aria-label="Activity filters">
-        {(['ALL', 'PLAY', 'MEET', 'EARN'] as const).map((item) => <button key={item} aria-pressed={filter === item} onClick={() => setFilter(item)} className={`premium-filter-chip rounded-full px-3 text-[10px] font-black tracking-widest md:px-4 ${filter === item ? 'premium-filter-chip--active text-yellow-200' : ''}`}>{item}</button>)}
+      <div className="home-activity-filters premium-filter-shell grid w-full grid-cols-2 gap-1 p-1 sm:flex sm:w-auto sm:flex-wrap" role="group" aria-label="Activity filters">
+        {PARTICIPATION_FILTERS.map(({ id, label }) => {
+          const value = id.toUpperCase() as ActivityFilter;
+          return <button key={id} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} className={`premium-filter-chip rounded-full px-3 text-[10px] font-black tracking-widest md:px-4 ${filter === value ? 'premium-filter-chip--active text-yellow-200' : ''}`}>{label}</button>;
+        })}
       </div>
       <Link href={mapHref} className="inline-flex min-h-11 items-center gap-2 px-3 text-xs font-bold text-cyan-100">Open map <ArrowRight size={14} /></Link>
     </div>
@@ -153,7 +157,7 @@ export default function HomeActivityFeed() {
     </div> : null}
     {!loading && !failed && !live.length && !posts.length && filter !== 'ALL' && filter !== 'PLAY' ? <p className="mb-4 text-sm text-white/60">{filter === 'EARN' ? 'No available paid missions in this area right now.' : 'No published group plans in this area right now.'} <Link href="/adventures" className="ml-2 underline text-cyan-100">Try a free activity instead →</Link></p> : null}
     {ideas.length ? <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <p className="flex items-center gap-2 text-xs text-white/50"><Sparkles size={14} />Suggested dares are free to try · no hosted event or cash reward</p>
+      <p className="flex items-center gap-2 text-xs text-white/50"><Sparkles size={14} />Suggested adventures are free to try · no hosted event or cash reward</p>
       <button className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-white/70" onClick={() => setRotation((v) => v + 1)}><RefreshCw size={13} />Give me another idea</button>
     </div> : null}
     <ActivityRail key={[filter, ...live.map((p) => p.id), ...posts.map((p) => p.id), ...ideas.map((p) => p.id)].join(':')} count={live.length + posts.length + ideas.length}>{live.map((plan) => <article key={plan.id} className={cardClass}>
@@ -181,7 +185,7 @@ export default function HomeActivityFeed() {
         <ol className="list-inside list-decimal space-y-3 text-sm text-white/70">{idea.steps.map((step) => <li key={step}>{step}</li>)}</ol>
         <Link href={mapHref} onClick={() => recordOpen(idea.id, 'suggestion_map')} className="mt-3 inline-flex min-h-11 items-center text-xs font-bold text-cyan-100">Explore places on the map →</Link>
         <Link className={`${actionClass} w-full`} href={adventureHref(idea.id, undefined, effectiveArea)}>{active?.activityId === idea.id ? 'Continue adventure' : 'Open this adventure'} <ArrowRight size={14} /></Link>
-      </div> : <button className={`${actionClass} w-full`} onClick={() => { setExpanded(idea.id); recordOpen(idea.id, 'suggestion'); }}>Try this dare <ArrowRight size={14} /></button>}</div>
+      </div> : <button className={`${actionClass} w-full`} onClick={() => { setExpanded(idea.id); recordOpen(idea.id, 'suggestion'); }}>Try this adventure <ArrowRight size={14} /></button>}</div>
     </article>)}</ActivityRail>
     <div className="mt-5 flex flex-wrap gap-x-5 text-xs font-bold text-white/55">
       <Link className="min-h-11 py-3" href={adventureHref(undefined, undefined, effectiveArea)}>Free adventures & your journal →</Link>

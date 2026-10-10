@@ -64,9 +64,6 @@ const ghostButtonClass =
 const goldButtonClass =
   "bd-tactile-button bd-tactile-button--gold inline-flex min-h-11 items-center justify-center rounded-full border px-3 py-2 text-center text-[11px] font-black uppercase tracking-[0.14em]";
 
-const sectionLabelClass =
-  "inline-flex items-center gap-2 rounded-full border border-fuchsia-400/25 bg-[linear-gradient(180deg,rgba(217,70,239,0.16)_0%,rgba(88,28,135,0.08)_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-100 shadow-[0_12px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-10px_14px_rgba(0,0,0,0.22)]";
-
 const createMissionHref = "/create?source=creator-directory";
 
 function clamp(value: number, min: number, max: number): number {
@@ -248,12 +245,12 @@ export default function CreatorsPage() {
         <GradualBlurOverlay />
       </div>
 
-      <div className="container mx-auto max-w-6xl px-4 py-24 sm:px-6 flex-grow relative z-20">
+      <div className="container mx-auto max-w-6xl bd-page-top px-4 pb-24 sm:px-6 flex-grow relative z-20">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
+          className="mb-8"
         >
           <div className={`${raisedPanelClass} px-5 py-8 sm:px-8 sm:py-10 text-center`}>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(34,211,238,0.1),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
@@ -261,40 +258,30 @@ export default function CreatorsPage() {
             <HoneyGooAccent className="absolute right-4 top-[-2px] hidden xl:block" size="sm" />
 
             <div className="relative">
-              <div className={sectionLabelClass}>
+              <div className="bd-page-kicker">
                 <Users className="w-4 h-4 text-fuchsia-300" />
                 CREATOR DIRECTORY
               </div>
 
-              <h1 className="mt-5 text-4xl md:text-6xl font-black text-white tracking-tight">
+              <h1 className="bd-page-title mt-4 text-white">
                 Find people who{" "}
-                <span className="mt-1 block whitespace-nowrap text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.2)] sm:mt-0 sm:inline sm:bg-gradient-to-r sm:from-yellow-300 sm:via-yellow-400 sm:to-amber-500 sm:bg-clip-text sm:text-transparent sm:drop-shadow-none">
+                <span className="mt-1 block text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.2)] sm:mt-0 sm:inline sm:bg-gradient-to-r sm:from-yellow-300 sm:via-yellow-400 sm:to-amber-500 sm:bg-clip-text sm:text-transparent sm:drop-shadow-none">
                   make it real
                 </span>
               </h1>
 
-              <p className="mt-4 text-gray-400 font-mono text-sm max-w-xl mx-auto mb-8">
+              <p className="bd-page-copy mx-auto mb-7 mt-4 max-w-xl">
                 Browse contributors by completed work, places reached, and local experience. Open a profile or invite someone to a paid mission.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-xl mx-auto">
-                <Link href={createMissionHref} className="flex-1">
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    className="bd-tactile-button bd-tactile-button--gold w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 hover:-translate-y-[1px]"
-                  >
-                    <Briefcase className="w-4 h-4" />
-                    Fund a mission
-                  </motion.button>
+                <Link href={createMissionHref} className="bd-action bd-action--gold flex-1">
+                  <Briefcase className="h-4 w-4" aria-hidden="true" />
+                  Fund a mission
                 </Link>
-                <Link href="/earn?source=creator-directory" className="flex-1">
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    className="bd-tactile-button bd-tactile-button--cyan w-full relative overflow-hidden px-6 py-3.5 rounded-[18px] border text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 hover:-translate-y-[1px]"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                    Find paid work
-                  </motion.button>
+                <Link href="/earn?source=creator-directory" className="bd-action bd-action--cyan flex-1">
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  Find paid work
                 </Link>
               </div>
             </div>

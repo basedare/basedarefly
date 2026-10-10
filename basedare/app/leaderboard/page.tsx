@@ -230,7 +230,7 @@ export default function LeaderboardPage() {
         <GradualBlurOverlay />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 py-16 sm:py-24 flex-grow relative z-20">
+      <div className="container mx-auto bd-page-top px-4 pb-24 sm:px-6 flex-grow relative z-20">
         {/* Header with Crown */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

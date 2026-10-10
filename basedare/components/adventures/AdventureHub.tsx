@@ -12,7 +12,7 @@ import { ACTIVITY_SUGGESTIONS, SIARGAO_ACTIVITY_AREA, suggestionsForArea, type A
 import { trackClientEvent } from '@/lib/analytics';
 
 const panel = 'rounded-[1.7rem] border border-white/10 bg-[linear-gradient(145deg,rgba(39,26,64,0.85),rgba(7,8,16,0.98))] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-7';
-const button = 'bd-action inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 text-xs font-bold text-white hover:bg-white/10 disabled:opacity-40';
+const button = 'bd-action';
 
 export default function AdventureHub({ activityId }: { activityId?: string }) {
   const query = useSearchParams();
@@ -66,16 +66,16 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
     setMessage('Adventure started. Your steps are saved as you go.');
     trackClientEvent('adventure_started', { activity_id: activity.id, company, source: 'adventures' });
   }
-  return <main className="relative min-h-screen overflow-hidden bg-transparent px-4 pb-32 pt-6 text-white sm:px-6">
+  return <main className="relative min-h-screen overflow-hidden bd-page-top bg-transparent px-4 pb-32 text-white sm:px-6">
     <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_18%_10%,rgba(34,211,238,0.06),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(168,85,247,0.08),transparent_36%)]" aria-hidden="true" />
     <div className="relative z-10 mx-auto max-w-3xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link href={activity ? href() : '/'} className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-white/65"><ArrowLeft size={16} />{activity ? 'All adventures' : 'Home'}</Link>
         <Link href={mapHref} className={button}><MapPin size={15} />Open map</Link>
       </div>
-      <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-violet-200">Explore · play · go together</p>
-      <h1 className="text-3xl font-black tracking-tight sm:text-5xl">{activity?.title ?? (viewingShared ? 'Adventures worth sharing.' : 'Make a little adventure.')}</h1>
-      <p className="mt-4 text-sm leading-6 text-white/65">{activity?.summary ?? (viewingShared ? 'See what people made, then try an adventure yourself.' : 'Free things to try, on your own or with friends. Pick one and go at your own pace.')}</p>
+      <p className="bd-page-kicker mb-3">Explore · play · go together</p>
+      <h1 className="bd-page-title">{activity?.title ?? (viewingShared ? 'Adventures worth sharing.' : 'Make a little adventure.')}</h1>
+      <p className="bd-page-copy mt-4">{activity?.summary ?? (viewingShared ? 'See what people made, then try an adventure yourself.' : 'Free things to try, on your own or with friends. Pick one and go at your own pace.')}</p>
       <p className="mt-3 flex items-center gap-2 text-xs text-cyan-100"><MapPin size={14} />{placeState === 'loading' ? 'Finding this place…' : placeState === 'failed' ? 'Place details unavailable — go back to the map and try again.' : area.label}</p>
       {!activity && !viewingShared ? <>
         <div className="my-6 flex flex-wrap items-center gap-3">

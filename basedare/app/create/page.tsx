@@ -302,7 +302,7 @@ function CreateDareContent() {
   );
   const normalizedWatchAmount = Math.max(0, Number.isFinite(Number(watchAmount)) ? Number(watchAmount) : 0);
   const checkoutRewardLabel = isCommunitySpark
-    ? 'Free Spark'
+    ? 'Free challenge'
     : `${normalizedWatchAmount.toLocaleString()} USDC`;
   const activeContentDelivery = !isCommunitySpark && !isSprintMission ? contentDelivery : null;
   const checkoutWindowLabel = activeContentDelivery ? `${activeContentDelivery.deadline.replace('T', ' ').slice(0, 16)} UTC` : `${watchTimeValue || 24} ${watchTimeUnit || 'Hours'}`;
@@ -315,7 +315,7 @@ function CreateDareContent() {
     ? {
         eyebrow: 'Free proof rail',
         title: 'No money leaves your wallet.',
-        body: 'Community Sparks create local proof and reputation, without payout or refund handling.',
+        body: 'Free challenges create local proof and reputation, without payout or refund handling.',
         toneClass: 'border-emerald-300/18 bg-emerald-500/[0.08] text-emerald-100',
         cards: [
           { label: 'Spend', value: '0 USDC', icon: Wallet },
@@ -909,7 +909,7 @@ function CreateDareContent() {
 
       toast({
         title: result.isCommunitySpark
-          ? '🌊 COMMUNITY SPARK LIVE'
+          ? 'Free challenge live'
           : result.syncPending
           ? '⏳ ONCHAIN DEPLOYED'
           : result.simulated
@@ -1001,7 +1001,7 @@ function CreateDareContent() {
   }, [dareImage]);
 
   return (
-    <div className="relative flex min-h-screen flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-14 md:px-8 md:py-24">
+    <div className="relative flex min-h-screen flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] bd-page-top md:px-8">
       <LiquidBackground performanceMode="quiet" veilOpacity={0.72} />
       <div className="fixed inset-0 z-10 pointer-events-none hidden md:block"><GradualBlurOverlay /></div>
       <div className="pointer-events-none fixed inset-0 z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.08),transparent_36%),linear-gradient(180deg,rgba(0,0,0,0.12),rgba(0,0,0,0.34))] md:hidden" />
@@ -1018,30 +1018,32 @@ function CreateDareContent() {
           <h1 className="mb-3 text-4xl font-display font-black uppercase italic tracking-tighter md:mb-4 md:text-7xl">
             {isVenueSignalCheckout ? 'FUND' : 'CREATE'}{' '}
             <span className="text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.22)]">
-              {isVenueSignalCheckout ? 'SIGNAL' : 'DARE'}
+              {isVenueSignalCheckout ? 'SIGNAL' : isCommunitySpark ? 'CHALLENGE' : 'DARE'}
             </span>
           </h1>
           <p className="text-gray-400 font-mono tracking-widest uppercase text-[10px] md:text-sm px-4">
             {isVenueSignalCheckout
               ? 'Turn this venue into a funded proof dare'
               : isCommunitySpark
-              ? 'Launch a free local proof dare'
+              ? 'Create a free challenge at a real place'
               : 'Set the dare, reward, proof, and deadline'}
           </p>
 
           <div className="mx-auto mt-5 max-w-2xl rounded-[22px] border border-white/[0.08] bg-white/[0.03] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_14px_28px_rgba(0,0,0,0.18)] md:mt-6">
             <p className="text-center text-[9px] font-black uppercase tracking-[0.26em] text-white/38 md:text-[10px]">
-              What you&apos;re funding
+              {isCommunitySpark ? 'How your challenge works' : 'What you’re funding'}
             </p>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/55">
-              {['Fund a dare', 'Someone shows up', 'Evidence is checked', 'They get paid', 'You get the receipt'].map((beat, index) => (
+              {(isCommunitySpark
+                ? ['Share a challenge', 'People take part', 'Evidence is checked', 'Activity is recorded']
+                : ['Fund a dare', 'Someone shows up', 'Evidence is checked', 'They get paid', 'You get the receipt']).map((beat, index) => (
                 <span key={beat} className="inline-flex items-center gap-2">
                   {index > 0 ? <span className="text-[#f5c518]/55">→</span> : null}
                   {beat}
                 </span>
               ))}
             </div>
-            <div className="mt-3 border-t border-white/[0.06] pt-3 text-center">
+            {!isCommunitySpark && <div className="mt-3 border-t border-white/[0.06] pt-3 text-center">
               <Link
                 href="/first-spark?source=fund-without-crypto#pilot-request"
                 className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#f5c518]/75 transition hover:text-[#ffe785]"
@@ -1049,7 +1051,7 @@ function CreateDareContent() {
                 Business without crypto? Fund by invoice
                 <span aria-hidden="true">→</span>
               </Link>
-            </div>
+            </div>}
           </div>
         </div>
 
@@ -1143,7 +1145,7 @@ function CreateDareContent() {
                   {successData.awaitingClaim
                     ? 'Awaiting Claim'
                     : successData.isCommunitySpark
-                      ? 'Community Spark Live'
+                      ? 'Free challenge live'
                     : successData.syncPending
                       ? 'Payment confirmation pending'
                     : successData.simulated
@@ -1170,7 +1172,7 @@ function CreateDareContent() {
               )}
               {successData.isCommunitySpark && (
                 <span className="hidden md:inline-flex ml-auto px-3 py-1 text-xs font-mono uppercase bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/30">
-                  Free Spark
+                  Free challenge
                 </span>
               )}
             </div>
@@ -1323,7 +1325,7 @@ function CreateDareContent() {
                     {
                       key: 'COMMUNITY' as const,
                       eyebrow: 'Free / pro bono',
-                      title: 'Community Spark',
+                      title: 'Free challenge',
                       body: 'Local help, meetups, cleanups, or crowd energy. No USDC.',
                     },
                   ].map((option) => {
@@ -1606,7 +1608,7 @@ function CreateDareContent() {
                       </div>
                       <p className="mt-1 text-[10px] md:text-xs text-gray-500 font-mono">
                         {isCommunitySpark
-                          ? 'Community Sparks use public proof, not paid payout review.'
+                          ? 'Free challenges use public proof, not paid payout review.'
                           : appSettings.sentinelEnabled
                           ? 'Manual referee check before payout. Best for venues, brands, or higher stakes.'
                           : formatSentinelPausedMessage(appSettings.sentinelPausedReason)}
@@ -1631,7 +1633,7 @@ function CreateDareContent() {
                   {isCommunitySpark ? (
                     <div className={`${dentGroupClass} flex h-12 items-center justify-between rounded-xl px-4 md:h-16 md:px-6`}>
                       <div>
-                        <p className="text-lg font-black text-emerald-200 md:text-2xl">Free Spark</p>
+                        <p className="text-lg font-black text-emerald-200 md:text-2xl">Free challenge</p>
                         <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-white/35">
                           reputation + community proof
                         </p>
@@ -1701,7 +1703,7 @@ function CreateDareContent() {
                     </p>
                   </div>
                   <span className="w-fit shrink-0 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/52">
-                    {isConnected ? 'Wallet connected' : 'Connect to fund'}
+                    {isConnected ? 'Wallet connected' : isCommunitySpark ? 'Sign in to create' : 'Connect to fund'}
                   </span>
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-2">
@@ -1816,7 +1818,7 @@ function CreateDareContent() {
                 <div className="pt-4 md:pt-6 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
                   <p className="text-yellow-400 text-xs md:text-sm font-bold text-center">
                     {isCommunitySpark
-                      ? '🌊 COMMUNITY SPARK - No USDC required, database-only proof mission'
+                      ? 'Free challenge · no USDC payment required'
                       : '🧪 SIMULATION MODE - No USDC required, database-only testing'}
                   </p>
                 </div>
@@ -1856,7 +1858,7 @@ function CreateDareContent() {
                       active={isSubmitting}
                       type="submit"
                       disabled={isSubmitting}
-                      idleLabel={isCommunitySpark ? 'Launch Community Spark' : isVenueSignalCheckout ? 'Fund Drop' : 'Initiate'}
+                      idleLabel={isCommunitySpark ? 'Launch free challenge' : isVenueSignalCheckout ? 'Fund Drop' : 'Initiate'}
                       className="w-full"
                       height={48}
                       buttonClassName="h-12"
@@ -1865,7 +1867,7 @@ function CreateDareContent() {
                           <Loader2 className="h-5 w-5 animate-spin text-yellow-400 md:h-6 md:w-6" />
                           <span className="relative text-sm font-black uppercase tracking-[0.12em] text-yellow-400">
                             {isCommunitySpark
-                              ? 'Launching Spark...'
+                              ? 'Launching challenge…'
                               : isVenueSignalCheckout
                               ? approvalStatus === 'approving'
                                 ? 'Approving USDC...'

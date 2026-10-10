@@ -6,6 +6,7 @@ import { useRecommendationClock } from '@/hooks/useRecommendationClock';
 import { assessRecommendation } from '@/lib/recommendation-policy';
 import { PARTICIPATION_FILTERS, filterParticipation, type ParticipationFilter } from '@/lib/participation-filter';
 import {
+  ChevronDown,
   CircleHelp,
   Crosshair,
   Dices,
@@ -327,36 +328,41 @@ export default function LivePlansClient({
   const startAdventureHref = adventureHref(undefined, undefined, area);
 
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 pb-36 pt-8 text-white sm:px-6 md:pt-12 lg:px-10">
+    <main className="relative min-h-screen overflow-hidden bd-page-top px-4 pb-36 text-white sm:px-6 lg:px-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_8%,rgba(34,211,238,0.13),transparent_31%),radial-gradient(circle_at_84%_18%,rgba(139,92,246,0.15),transparent_34%)]" />
       <div className="relative mx-auto max-w-7xl">
         <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(150deg,rgba(18,30,47,0.9),rgba(6,7,14,0.97))] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.09)] sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200/72"><Radio className="h-4 w-4" /> World Pulse</p>
-              <h1 className="mt-3 max-w-4xl text-3xl font-black leading-[0.96] sm:text-4xl">Find your next move. </h1>
+              <p className="bd-page-kicker"><Radio className="h-4 w-4" /> Happening now</p>
+              <h1 className="bd-page-title mt-3 max-w-4xl">Find your next move. </h1>
               <p className="mt-3 text-sm text-cyan-100/80">{area.label} · within {radiusKm} km</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => setPeebearOpen((current) => !current)} aria-expanded={peebearOpen} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-200/22 bg-yellow-300/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-yellow-100 hover:bg-yellow-300/[0.13]">
-                <Dices className="h-4 w-4" /> Poke PeeBear
+              <button type="button" onClick={() => setPeebearOpen((current) => !current)} aria-expanded={peebearOpen} className="bd-action bd-action--gold-quiet">
+                <Dices className="h-4 w-4" /> Ask PeeBear
               </button>
-              <button type="button" onClick={useMyLocation} disabled={locating} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-cyan-200/22 bg-cyan-300/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-cyan-100 disabled:opacity-50">
+              <button type="button" onClick={useMyLocation} disabled={locating} className="bd-action bd-action--cyan">
                 {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-                {usingDeviceLocation ? 'Near me' : 'Use my area'}
+                {usingDeviceLocation ? 'Near me' : 'Use my location'}
               </button>
-              <details className="relative"><summary className="bd-action cursor-pointer">More options</summary><div className="mt-2 flex flex-wrap gap-2">              <button type="button" onClick={startGuide} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/12 bg-white/[0.045] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-white/62 hover:text-white">
-                <CircleHelp className="h-4 w-4" /> How it works
-              </button>
-
-              <button type="button" onClick={() => void sharePulse()} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-violet-200/20 bg-violet-300/[0.07] px-4 text-[10px] font-black uppercase tracking-[0.13em] text-violet-100">
-                <Share2 className="h-4 w-4" /> Share view
-              </button>
-</div></details>
-              <Link href="/community/rally/new" className="bd-action bd-action--gold inline-flex min-h-11 items-center gap-2 rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-[#171006]">
+              <details className="group/options relative">
+                <summary className="bd-action cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  More options <ChevronDown className="h-4 w-4 group-open/options:rotate-180" aria-hidden="true" />
+                </summary>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button type="button" onClick={startGuide} className="bd-action">
+                    <CircleHelp className="h-4 w-4" /> How it works
+                  </button>
+                  <button type="button" onClick={() => void sharePulse()} className="bd-action bd-action--violet">
+                    <Share2 className="h-4 w-4" /> Share view
+                  </button>
+                </div>
+              </details>
+              <Link href="/community/rally/new" className="bd-action bd-action--gold">
                 <Plus className="h-4 w-4" /> Start a meetup
               </Link>
-              <Link href={startAdventureHref} className="bd-action inline-flex min-h-11 items-center gap-2 rounded-full border border-violet-200/25 bg-violet-300/10 px-5 text-[10px] font-black uppercase tracking-[0.13em] text-violet-100">
+              <Link href={startAdventureHref} className="bd-action bd-action--violet">
                 <Sparkles className="h-4 w-4" /> Start an adventure
               </Link>
             </div>
@@ -377,7 +383,7 @@ export default function LivePlansClient({
           {shareStatus ? <p role="status" className="mt-4 text-right text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100/60">{shareStatus}</p> : null}
         </section>
 
-        <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Choose an activity type">
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" role="group" aria-label="Choose an activity type">
           {PARTICIPATION_FILTERS.map((filter) => (
             <button key={filter.id} type="button" aria-pressed={participation === filter.id} onClick={() => { setParticipation(filter.id); setPickedPlanId(null); setPeebearDecision(null); }} className={`min-h-11 rounded-full border px-4 text-[10px] font-black ${participation === filter.id ? 'border-cyan-200/32 bg-cyan-300/[0.1] text-cyan-100' : 'border-white/10 bg-white/[0.035] text-white/55'}`}>{filter.label}</button>
           ))}

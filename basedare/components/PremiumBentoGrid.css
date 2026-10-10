@@ -574,3 +574,14 @@
 .premium-filter-chip.home-area-button:focus-visible { outline: 2px solid #a5f3fc; outline-offset: 3px; }
 .premium-filter-chip.home-area-button:active { transform: translateY(2px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, .7); }
 .premium-filter-chip.home-area-button:disabled { opacity: .55; cursor: wait; transform: none; }
+
+/* Long participation labels remain readable inside the homepage phone grid. */
+.home-activity-filters .premium-filter-chip {
+  min-height: 44px;
+  color: #c8c6d4;
+  font-size: .75rem;
+  line-height: 1.25;
+  letter-spacing: .01em;
+}
+.home-activity-filters .premium-filter-chip[aria-pressed="true"] { color: #fff0b0; }
+.home-activity-filters .premium-filter-chip:focus-visible { outline: 2px solid #a5f3fc; outline-offset: 3px; }

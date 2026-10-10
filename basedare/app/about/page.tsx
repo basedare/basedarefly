@@ -11,11 +11,11 @@ export const metadata: Metadata = {
 };
 
 export default function AboutPage() {
-  return <main className="relative mx-auto max-w-5xl px-4 pb-24 pt-8 text-white sm:px-6">
+  return <main className="relative mx-auto max-w-5xl bd-page-top px-4 pb-24 text-white sm:px-6">
     <section className={`${controlPanel} p-6 sm:p-10`}>
-      <p className="text-xs font-black uppercase tracking-widest text-violet-200">About BaseDare</p>
-      <h1 className="mt-4 text-4xl font-black sm:text-6xl">Open BaseDare.<br /><span className="text-yellow-300">Find your next move.</span></h1>
-      <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80">{BASEDARE_INTRO}</p>
+      <p className="bd-page-kicker">About BaseDare</p>
+      <h1 className="bd-page-title mt-4">Open BaseDare.<br /><span className="text-yellow-300">Find your next move.</span></h1>
+      <p className="bd-page-copy mt-5 max-w-2xl">{BASEDARE_INTRO}</p>
       <p className="mt-4 max-w-2xl text-sm leading-7 text-white/65">Explore a new place, try something on your own or find people to go with. The map connects activities to venues and public places. Photos and clips are one way to share an experience; filming is optional for free adventures and casual meetups.</p>
       <Link href="/now" className="bd-action bd-action--gold mt-6 inline-flex min-h-12 items-center gap-2 rounded-full px-6 text-sm font-bold">Find something to do <ArrowRight size={16} /></Link>
     </section>

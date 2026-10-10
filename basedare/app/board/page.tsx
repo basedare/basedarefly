@@ -380,12 +380,12 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
       {/* faint scrim only behind the hero so text stays legible over the live bg */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[46vh] bg-[radial-gradient(circle_at_50%_0%,rgba(5,5,12,0.55),transparent_70%)]" />
 
-      <section className="relative z-10 mx-auto max-w-6xl px-4 pb-24 pt-20 sm:px-6 md:pt-24">
+      <section className="relative z-10 mx-auto max-w-6xl bd-page-top px-4 pb-24 sm:px-6">
         {fieldStation ? <FieldStationEntryBeacon attentionMode={attentionMode} /> : null}
         <div className="mb-6">
           <Link
             href={`/map?${backToMapParams.toString()}`}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/68 transition hover:border-[#f5c518]/30 hover:text-[#f8dd72]"
+            className="bd-action bd-action--cyan"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to map
@@ -401,11 +401,11 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
             ) : <Radio className="h-3.5 w-3.5" />}
             {stationLabel ? `Node active · ${stationLabel} connected` : 'Map · list view'}
           </div>
-          <h1 className="mt-4 text-4xl font-black uppercase italic tracking-tight text-white md:text-6xl">
+          <h1 className="bd-page-title mt-4 uppercase italic text-white">
             What&apos;s on<br />
             <span className="text-[#f5c518]">nearby</span>
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm font-bold leading-6 text-white/55">
+          <p className="bd-page-copy mx-auto mt-4 max-w-xl">
             Browse meetups, events and paid dares in list view. Open a card for details or switch to the map.
           </p>
         </div>

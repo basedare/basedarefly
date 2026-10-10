@@ -3704,6 +3704,70 @@ button[data-testid='ockConnectWalletButton']:hover {
 .bd-action:disabled { opacity: .5; cursor: not-allowed; }
 .bd-action--gold { color: #211900; background: linear-gradient(160deg,#ffed76,#facc15 60%,#b48809); border-color: #ffe77d; box-shadow: inset 0 1px 2px #fff8, inset 0 -3px 3px #79540080, 0 3px 0 #614400, 0 6px 14px #0005; }
 
+/* Opt-in discovery typography and controls; leave the map and hero art alone. */
+.bd-page-top { padding-top: 2rem; }
+.bd-page-title {
+  font-size: clamp(2rem, 4.4vw, 3.5rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+.bd-page-copy {
+  color: #b9b7c7;
+  font-family: var(--font-alpha), Figtree, system-ui, sans-serif;
+  font-size: clamp(.875rem, 1.3vw, 1rem);
+  font-weight: 500;
+  line-height: 1.75;
+  text-wrap: pretty;
+}
+.bd-page-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  color: #b5edf5;
+  font-size: .625rem;
+  font-weight: 900;
+  line-height: 1.5;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.bd-page-kicker::before {
+  content: '';
+  flex: 0 0 16px;
+  height: 3px;
+  border-radius: 70% 25% 60% 30%;
+  background: #a5f3fc;
+  box-shadow: 2px 3px 0 #e879f9;
+  transform: rotate(-12deg);
+}
+.bd-action--cyan {
+  color: #cffafe;
+  border-color: #67e8f94d;
+  background: linear-gradient(160deg, #163b49, #0c202c 65%, #080e18);
+}
+.bd-action--violet {
+  color: #ede9fe;
+  border-color: #c4b5fd4d;
+  background: linear-gradient(160deg, #39254f, #1d142c 65%, #0e0b18);
+}
+.bd-action--gold-quiet {
+  color: #fef3c7;
+  border-color: #fde68a40;
+  background: linear-gradient(160deg, #38301d, #1b1815 65%, #0d0c13);
+}
+.bd-action--gold:hover { border-color: #fff0ad; }
+.bd-action--cyan:hover { border-color: #a5f3fc99; }
+.bd-action--violet:hover { border-color: #c4b5fd99; }
+.bd-action--gold-quiet:hover { border-color: #fde68a80; }
+/* Recover space lost to nested homepage padding without moving the hero. */
+@media (max-width: 767px) {
+  #active-bounties { width: calc(100% + 2rem); margin-inline: -1rem; padding-inline: .5rem; }
+  #active-bounties > div { padding-inline: .75rem; }
+}
+@media (min-width: 768px) { .bd-page-top { padding-top: 2.5rem; } }
+@media (prefers-reduced-motion: reduce) { .bd-action { transition: none; } }
+
 .activation-raised-gold { background: linear-gradient(160deg,#ffed76,#facc15 60%,#b48809); box-shadow: inset 0 1px 2px #fff8,inset 0 -3px 3px #79540080,0 3px 0 #614400,0 6px 14px #0005; }
 .activation-soft-button { background: linear-gradient(165deg,#242032,#100e18 65%,#08080d); box-shadow: inset 0 1px 1px #ffffff21,inset 0 -3px 4px #0009,0 3px 0 #050509,0 5px 12px #0005; }
 

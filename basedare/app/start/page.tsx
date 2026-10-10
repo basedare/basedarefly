@@ -5,39 +5,38 @@ import { OnboardingLink } from '@/components/onboarding/OnboardingLink';
 import {
   controlHairline,
   controlInset,
-  controlMicroLabel,
   controlPanel,
   controlSoftCard,
 } from '@/components/control/tokens';
 
 export const metadata: Metadata = {
   title: 'Create Something | BaseDare',
-  description: 'Create a paid Dare, free Community Spark, or social Rally.',
+  description: 'Create a paid dare, a free challenge, or a meetup.',
   alternates: { canonical: '/start' },
 };
 
 const START_OPTIONS = [
   {
-    title: 'Create a paid Dare',
+    title: 'Create a paid dare',
     description: 'Set a useful real-world task, reward and proof rule before it goes live.',
     href: '/create?sparkType=paid&source=start',
-    cta: 'Create the Dare',
+    cta: 'Create a paid dare',
     icon: Coins,
     accent: 'border-yellow-200/24 bg-yellow-300/[0.09] text-yellow-100',
   },
   {
-    title: 'Create a free Spark',
+    title: 'Create a free challenge',
     description: 'Give people one short, fun activity they can play at a real place.',
     href: '/create?sparkType=community&source=start',
-    cta: 'Make it playable',
+    cta: 'Create a free challenge',
     icon: Sparkles,
     accent: 'border-emerald-200/24 bg-emerald-300/[0.08] text-emerald-100',
   },
   {
-    title: 'Start a Rally',
+    title: 'Start a meetup',
     description: 'Choose a place and time, set the crew size, then share the live plan.',
     href: '/community/rally/new',
-    cta: 'Build the crew',
+    cta: 'Start a meetup',
     icon: Users,
     accent: 'border-cyan-200/24 bg-cyan-300/[0.08] text-cyan-100',
   },
@@ -45,17 +44,17 @@ const START_OPTIONS = [
 
 export default function StartPage() {
   return (
-    <main className="relative min-h-[calc(100svh-6rem)] overflow-hidden px-4 py-6 text-white sm:px-6 md:py-8">
+    <main className="relative min-h-[calc(100svh-6rem)] overflow-hidden bd-page-top px-4 pb-8 text-white sm:px-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(34,211,238,0.12),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(168,85,247,0.14),transparent_34%)]" />
       <div className="relative mx-auto flex min-h-[calc(100svh-9rem)] max-w-5xl flex-col justify-center md:min-h-[calc(100svh-10rem)]">
         <section className={`${controlPanel} px-6 py-8 text-center sm:px-10 md:py-10`}>
           <div className={controlHairline} />
-          <p className={controlMicroLabel}>Create</p>
-          <h1 className="mx-auto mt-3 max-w-3xl text-4xl font-black leading-[0.96] text-white sm:text-5xl">
+          <p className="bd-page-kicker">Create</p>
+          <h1 className="bd-page-title mx-auto mt-4 max-w-3xl text-white">
             What do you want to put on the map?
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm font-semibold leading-6 text-white/55 sm:text-base">
-            Paid Dare, free Spark or social Rally. Pick one lane and BaseDare keeps the rest out of the way.
+          <p className="bd-page-copy mx-auto mt-4 max-w-xl">
+            Set a paid task, share a free challenge or bring people together at a meetup.
           </p>
         </section>
 

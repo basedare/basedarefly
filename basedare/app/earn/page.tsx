@@ -44,20 +44,20 @@ export default async function EarnPage({
   if (city) alertsQuery.set('city', city);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-transparent px-4 pb-24 pt-7 text-white sm:px-6 md:pt-11">
+    <main className="relative min-h-screen overflow-hidden bg-transparent bd-page-top px-4 pb-24 text-white sm:px-6">
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_16%_8%,rgba(34,211,238,0.1),transparent_31%),radial-gradient(circle_at_84%_12%,rgba(250,204,21,0.1),transparent_34%)]" />
 
       <div className="relative z-20 mx-auto max-w-6xl">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
           <Link
             href="/map"
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-black/24 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-white/58 transition hover:border-white/20 hover:text-white"
+            className="bd-action bd-action--cyan"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to map
           </Link>
           <Link
             href="/create"
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-yellow-200/18 bg-yellow-300/[0.07] px-4 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100 transition hover:bg-yellow-300/[0.12]"
+            className="bd-action bd-action--gold"
           >
             <Plus className="h-4 w-4" aria-hidden="true" /> Create a paid mission
           </Link>
@@ -66,11 +66,11 @@ export default async function EarnPage({
           <div className={controlHairline} />
           <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
-              <p className={`${controlMicroLabel} text-cyan-100/62`}>Paid missions</p>
-              <h1 className="mt-3 max-w-4xl text-4xl font-black leading-[0.96] text-white sm:text-6xl">
+              <p className="bd-page-kicker">Paid missions</p>
+              <h1 className="bd-page-title mt-4 max-w-4xl text-white">
                 Pick a mission. Make it real. Get paid.
               </h1>
-              <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/55 sm:text-base">
+              <p className="bd-page-copy mt-4 max-w-2xl">
                 Check a place, capture a moment, or create something for a venue or brand. Once your work is approved, you get paid.
               </p>
             </div>

@@ -25,3 +25,12 @@
     opacity: 0.7;
   }
 }
+
+/* Keep the account, loaded bell and menu inside narrow phone viewports. */
+@media (max-width: 374px) {
+  .brandLink { width: 96px; }
+  .headerActions { gap: 4px; }
+  .headerActions > * { flex-shrink: 0; }
+  .accountSlot { width: 84px; }
+  .accountSlot > div > button { padding-inline: 8px; }
+}

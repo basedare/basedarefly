@@ -1222,10 +1222,11 @@ export default function Dashboard() {
     });
   }
 
-  if (!isConnected) return <div className="mx-auto min-h-screen max-w-4xl px-4 py-6 text-white">
+  if (!isConnected) return <div className="mx-auto min-h-screen max-w-4xl bd-page-top px-4 pb-24 text-white">
     <section className={`${raisedPanelClass} p-6`}>
-      <h1 className="text-3xl font-black">Your activity</h1>
-      <p className="mt-3 text-sm leading-6 text-white/70">Your plans, paid work and saved activities, together. Sign in to see work linked to your wallet.</p>
+      <p className="bd-page-kicker mb-3">My activity</p>
+      <h1 className="bd-page-title">Your activity</h1>
+      <p className="bd-page-copy mt-3">Your plans, paid work and saved activities, together. Sign in to see work linked to your wallet.</p>
       <button className="bd-action bd-action--gold mt-5" onClick={handleConnect} disabled={isConnecting}>{isConnecting ? 'Connecting…' : 'Sign in'}</button>
     </section>
     <div className="mt-5 grid gap-3 sm:grid-cols-2">{[
@@ -1242,7 +1243,7 @@ export default function Dashboard() {
         <GradualBlurOverlay />
       </div>
 
-      <div className="container relative z-20 mx-auto mb-12 flex flex-grow flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 md:py-10">
+      <div className="bd-page-top container relative z-20 mx-auto mb-12 flex flex-grow flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 md:py-10">
         <div className={`${raisedPanelClass} order-1 mb-8 px-5 py-6 sm:px-6`}>
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(250,204,21,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.1),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_36%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
           <HoneyGooAccent className="absolute right-5 top-[-2px] hidden xl:block" size="md" />

@@ -214,15 +214,15 @@ export default function CommunityHubClient() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 pb-24 pt-6 text-white sm:px-6 lg:px-10">
+    <main className="relative min-h-screen overflow-hidden bd-page-top px-4 pb-24 text-white sm:px-6 lg:px-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(16,185,129,0.12),transparent_30%),radial-gradient(circle_at_85%_18%,rgba(139,92,246,0.14),transparent_34%)]" />
       <div className="relative mx-auto max-w-6xl">
         <section className="rounded-[2rem] border border-white/10 bg-[linear-gradient(155deg,rgba(28,24,48,0.78),rgba(5,7,14,0.94))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] sm:p-8">
           <p className="text-xs font-bold text-emerald-100/80">{area.label} · within {area.radiusKm} km</p>
           <div className="mt-3 grid gap-7 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>
-              <h1 className="max-w-3xl text-3xl font-black leading-[0.98] sm:text-4xl">Find your people. Make a plan.</h1>
-              <p className="mt-5 max-w-2xl text-sm leading-relaxed text-white/56 sm:text-base">
+              <h1 className="bd-page-title max-w-3xl">Find your people. Make a plan.</h1>
+              <p className="bd-page-copy mt-4 max-w-2xl">
                 Meetups, local conversations and people looking for company.
               </p>
             </div>
