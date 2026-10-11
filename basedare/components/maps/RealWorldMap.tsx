@@ -16,6 +16,7 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type CSSProperties,
   type ReactNode,
 } from 'react';
 import maplibregl, {
@@ -33,6 +34,7 @@ import {
   Bike,
   Camera,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Eye,
   EyeOff,
@@ -303,12 +305,12 @@ type MapSheetDragTarget = 'selected-place' | 'nearby-dare';
 
 type MapSheetDragState = {
   target: MapSheetDragTarget;
-  offsetY: number;
+  offset: number;
 };
 
 type MapSheetDragSession = MapSheetDragState & {
-  startY: number;
-  rawY: number;
+  startCoordinate: number;
+  rawOffset: number;
   pointerId: number;
   moved: boolean;
 };
@@ -3551,6 +3553,14 @@ export default function RealWorldMap() {
   const [nearbyDareRadiusKm] = useState(5);
   const [nearbyDarePanelCollapsed, setNearbyDarePanelCollapsed] = useState(true);
   const [nearbyDareTrayDismissed, setNearbyDareTrayDismissed] = useState(false);
+  const openNearbyDareTray = useCallback(() => {
+    setNearbyDareTrayDismissed(false);
+    setNearbyDarePanelCollapsed(false);
+  }, []);
+  const dismissNearbyDareTray = useCallback(() => {
+    setNearbyDareTrayDismissed(true);
+    setNearbyDarePanelCollapsed(true);
+  }, []);
   const [showLocalSignalForm, setShowLocalSignalForm] = useState(false);
   const [localSignalDraft, setLocalSignalDraft] = useState<LocalSignalDraft>({
     title: '',
@@ -3932,6 +3942,7 @@ export default function RealWorldMap() {
     (intent: MapAttentionIntent | null) => {
       setMapAttentionIntent(intent);
       setNearbyDareTrayDismissed(false);
+      setNearbyDarePanelCollapsed(true);
       if (intent) {
         postFieldStationEvent({
           eventType: 'STATION_ATTENTION_SELECTED',
@@ -7863,6 +7874,14 @@ export default function RealWorldMap() {
     !nearbyDareTrayDismissed &&
     showNearbyDarePanel &&
     !(isMobileViewport && Boolean(selectedPlace));
+  useEffect(() => {
+    if (!showNearbyDareTray || nearbyDarePanelCollapsed) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') dismissNearbyDareTray();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [dismissNearbyDareTray, nearbyDarePanelCollapsed, showNearbyDareTray]);
   const hasSaveSpotPanel = Boolean(saveSpotDraft || selectedPrivateMapSpot);
   const showCompactSelectedPlacePanel = Boolean(
     isMobileViewport && selectedPlace && !selectedPlacePanelExpanded && !hasSaveSpotPanel
@@ -7881,13 +7900,13 @@ export default function RealWorldMap() {
       event.currentTarget.setPointerCapture?.(event.pointerId);
       mapSheetDragRef.current = {
         target,
-        startY: event.clientY,
-        rawY: 0,
-        offsetY: 0,
+        startCoordinate: target === 'nearby-dare' ? event.clientX : event.clientY,
+        rawOffset: 0,
+        offset: 0,
         pointerId: event.pointerId,
         moved: false,
       };
-      setMapSheetDrag({ target, offsetY: 0 });
+      setMapSheetDrag({ target, offset: 0 });
     },
     [isMobileViewport]
   );
@@ -7897,15 +7916,15 @@ export default function RealWorldMap() {
       return;
     }
 
-    const rawY = event.clientY - session.startY;
-    const offsetY = clampMapSheetDragOffset(rawY);
-    session.rawY = rawY;
-    session.offsetY = offsetY;
-    if (Math.abs(rawY) > 6) {
+    const rawOffset = (target === 'nearby-dare' ? event.clientX : event.clientY) - session.startCoordinate;
+    const offset = clampMapSheetDragOffset(rawOffset);
+    session.rawOffset = rawOffset;
+    session.offset = offset;
+    if (Math.abs(rawOffset) > 6) {
       session.moved = true;
       event.preventDefault();
     }
-    setMapSheetDrag({ target, offsetY });
+    setMapSheetDrag({ target, offset });
   }, []);
   const finishMapSheetDrag = useCallback(
     (target: MapSheetDragTarget, event: ReactPointerEvent<HTMLElement>) => {
@@ -7925,18 +7944,18 @@ export default function RealWorldMap() {
         }, 250);
       }
 
-      if (Math.abs(session.rawY) < MAP_SHEET_DRAG_TRIGGER_PX) {
+      if (Math.abs(session.rawOffset) < MAP_SHEET_DRAG_TRIGGER_PX) {
         return;
       }
 
       triggerHaptic('selection');
 
       if (target === 'nearby-dare') {
-        setNearbyDarePanelCollapsed(session.rawY > 0);
+        setNearbyDarePanelCollapsed(session.rawOffset > 0);
         return;
       }
 
-      if (session.rawY < -MAP_SHEET_DRAG_TRIGGER_PX) {
+      if (session.rawOffset < -MAP_SHEET_DRAG_TRIGGER_PX) {
         setSelectedPlacePanelExpanded(true);
         return;
       }
@@ -7950,7 +7969,7 @@ export default function RealWorldMap() {
         return;
       }
 
-      if (session.rawY > MAP_SHEET_DRAG_CLOSE_PX) {
+      if (session.rawOffset > MAP_SHEET_DRAG_CLOSE_PX) {
         closeSelectedPlace();
       }
     },
@@ -7974,15 +7993,15 @@ export default function RealWorldMap() {
     mapSheetSuppressClickRef.current = false;
     return true;
   }, []);
-  const selectedPlaceSheetDragOffset = mapSheetDrag?.target === 'selected-place' ? mapSheetDrag.offsetY : 0;
-  const nearbyDareSheetDragOffset = mapSheetDrag?.target === 'nearby-dare' ? mapSheetDrag.offsetY : 0;
+  const selectedPlaceSheetDragOffset = mapSheetDrag?.target === 'selected-place' ? mapSheetDrag.offset : 0;
+  const nearbyDareSheetDragOffset = mapSheetDrag?.target === 'nearby-dare' ? mapSheetDrag.offset : 0;
   const selectedPlacePanelDragStyle =
     isMobileViewport && selectedPlaceSheetDragOffset !== 0
       ? { transform: `translate3d(0, ${selectedPlaceSheetDragOffset}px, 0)` }
       : undefined;
   const nearbyDareTrayDragStyle =
     isMobileViewport && nearbyDareSheetDragOffset !== 0
-      ? { transform: `translate3d(0, ${nearbyDareSheetDragOffset}px, 0)` }
+      ? { '--nearby-drawer-drag-x': `${nearbyDareSheetDragOffset}px` } as CSSProperties
       : undefined;
   const selectedCommandCenter = selectedPlace?.commandCenter ?? null;
   const selectedMapModes = selectedPlace?.mapModes ?? DEFAULT_VENUE_MAP_MODES;
@@ -8680,7 +8699,7 @@ export default function RealWorldMap() {
           'data-[active=true]:border-[#f5c518]/42 data-[active=true]:bg-[#f5c518]/[0.13] data-[active=true]:text-[#f8dd72]',
         onClick: () => {
           setNearbyDareFilter('all');
-          setNearbyDarePanelCollapsed(false);
+          openNearbyDareTray();
           setPulseFilter('all');
           setShowMatchedLayer(false);
           setShowFootprintLayer(false);
@@ -8811,6 +8830,7 @@ export default function RealWorldMap() {
       mapVenueFocus,
       nearbyPlaceBySlug,
       nearbyDareCounts.all,
+      openNearbyDareTray,
       pulseFilter,
       venuePresenceLoading,
       venuePresenceSignals,
@@ -8963,7 +8983,7 @@ export default function RealWorldMap() {
 
   const handleOpenPersonalTrail = useCallback(() => {
     if (footprintMarks.length === 0) {
-      setNearbyDarePanelCollapsed(false);
+      openNearbyDareTray();
       triggerHaptic('warning');
       return;
     }
@@ -8972,7 +8992,7 @@ export default function RealWorldMap() {
     setShowMatchedLayer(false);
     setShowFootprintLayer(true);
     triggerHaptic('selection');
-  }, [footprintMarks.length]);
+  }, [footprintMarks.length, openNearbyDareTray]);
 
   const selectedPlaceMarkerHtml = useMemo(() => {
     if (!selectedPlace) {
@@ -9355,7 +9375,7 @@ export default function RealWorldMap() {
               setSelectedMeetup(null);
               setTargetCenter([latitude, longitude]);
               setTargetZoom(Math.max(14, Math.round(mapZoom)));
-              setNearbyDarePanelCollapsed(false);
+              openNearbyDareTray();
               triggerHaptic('selection');
             },
           });
@@ -9523,6 +9543,7 @@ export default function RealWorldMap() {
     handleAdventureActivitySelect,
     localSignals,
     localSignalVenueSlugSet,
+    openNearbyDareTray,
     relicSignalLabelByVenueSlug,
     activeBoatCrews,
     mapAttentionSuggestedSlugSet,
@@ -11169,7 +11190,7 @@ export default function RealWorldMap() {
                         onClick={() => {
                           closeSearchPopover();
                           setShowLocalSignalForm((current) => !current);
-                          setNearbyDarePanelCollapsed(false);
+                          openNearbyDareTray();
                           setShowAdvancedMapFilters(false);
                           triggerHaptic('selection');
                         }}
@@ -11489,7 +11510,7 @@ export default function RealWorldMap() {
                 style={nearbyDareTrayDragStyle}
                 data-sheet-dragging={mapSheetDrag?.target === 'nearby-dare' ? 'true' : undefined}
               >
-                {nearbyDarePanelCollapsed && <button type="button" onClick={() => setNearbyDareTrayDismissed(true)} aria-label="Close nearby activity" title="Close nearby activity" className="absolute right-2 top-2 z-20 hidden h-10 w-10 place-items-center rounded-full border border-white/15 bg-[#11131d] text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] hover:text-white md:grid">
+                {nearbyDarePanelCollapsed && <button type="button" onClick={dismissNearbyDareTray} aria-label="Close nearby activity" title="Close nearby activity" className="absolute right-2 top-2 z-20 hidden h-11 w-11 place-items-center rounded-full border border-white/15 bg-[#11131d] text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] hover:text-white md:grid">
                   <X className="h-4 w-4" />
                 </button>}
                 {nearbyDarePanelCollapsed ? (
@@ -11503,7 +11524,7 @@ export default function RealWorldMap() {
                       if (consumeMapSheetDragClick()) {
                         return;
                       }
-                      setNearbyDarePanelCollapsed(false);
+                      openNearbyDareTray();
                     }}
                     className="relative flex w-full flex-col gap-2 pb-3 pl-4 pr-14 pt-2 text-left"
                     aria-label="Expand nearby dare tray"
@@ -11556,36 +11577,23 @@ export default function RealWorldMap() {
                       }
                       setNearbyDarePanelCollapsed(true);
                     }}
-                    className="map-sheet-drag-handle mx-auto -mt-1 mb-2 flex h-6 w-28 items-center justify-center rounded-full"
-                    aria-label="Drag down to collapse nearby tray"
+                    className="map-sheet-drag-handle mx-auto -mt-1 mb-2 flex h-11 w-11 items-center justify-center rounded-full md:h-6 md:w-28"
+                    aria-label="Collapse nearby activity"
                     aria-expanded={true}
-                    title="Drag down to collapse"
+                    title={isMobileViewport ? 'Collapse or swipe right' : 'Collapse nearby activity'}
                   >
-                    <span className="map-sheet-drag-bar" />
+                    <span className="map-sheet-drag-bar hidden md:block" />
+                    <ChevronRight className="h-5 w-5 text-white/70 md:hidden" />
                   </button>
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
-                        Nearby now
-                      </p>
-                      <p
-                        className={`mt-1 text-[11px] ${
-                          poppingNowSpike ? 'font-semibold text-[#f8dd72]' : 'text-white/55'
-                        }`}
-                      >
-                        {poppingNowSpike
-                          ? `Popular nearby: ${poppingNowSpike.label}`
-                          : featuredMapHappening
-                            ? `Try: ${featuredMapHappening.title}`
-                            : userLocation
-                              ? 'Ideas near you. Suggested stops aren’t scheduled events.'
-                              : `${happeningWindow.dateLabel} around the map`}
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">Nearby now</p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-white/55">Suggestions around this map</p>
+                      <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#f8dd72]/70">
+                        {happeningLoading ? 'Scanning…' : `${mapHappenings.length} nearby`}
                       </p>
                     </div>
-                    <div className="shrink-0 rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
-                      {happeningLoading ? 'scanning' : `${mapHappenings.length} nearby`}
-                    </div>
-                    <button type="button" onClick={() => setNearbyDareTrayDismissed(true)} aria-label="Close nearby activity" title="Close nearby activity" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/15 bg-[#11131d] text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] hover:text-white">
+                    <button type="button" onClick={dismissNearbyDareTray} aria-label="Close nearby activity" title="Close nearby activity" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-[#11131d] text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] hover:text-white">
                       <X className="h-4 w-4" />
                     </button>
                   </div>

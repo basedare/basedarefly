@@ -3216,7 +3216,7 @@ button[data-testid='ockConnectWalletButton']:hover {
     left: auto !important;
     max-height: none !important;
     border-radius: 1.45rem 0 0 1.45rem !important;
-    transform: translate3d(0, 0, 0) !important;
+    transform: translate3d(var(--nearby-drawer-drag-x, 0px), 0, 0) !important;
     box-shadow:
       -18px 20px 46px rgba(0, 0, 0, 0.52),
       -1px 0 0 rgba(245, 197, 24, 0.14),
@@ -3225,22 +3225,22 @@ button[data-testid='ockConnectWalletButton']:hover {
 
   .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--expanded > div:first-child {
     position: relative;
-    padding-left: 2.55rem;
+    flex-shrink: 0;
+    padding-left: 3.35rem;
   }
 
   .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--expanded > div:first-child > .map-sheet-drag-handle {
     position: absolute;
     top: 50%;
-    left: 0.28rem;
-    width: 2rem;
-    height: 3.6rem;
+    left: 0.15rem;
+    width: 2.75rem;
+    height: 2.75rem;
     margin: 0 !important;
     transform: translateY(-50%);
   }
 
   .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray--expanded > div:first-child > .map-sheet-drag-handle .map-sheet-drag-bar {
-    width: 0.22rem;
-    height: 2rem;
+    display: none;
   }
 
   .bd-map-route-active .basedare-maplibre-map .nearby-dare-tray-list {
@@ -3255,7 +3255,7 @@ button[data-testid='ockConnectWalletButton']:hover {
     left: auto !important;
     height: 4.5rem;
     border-radius: 1.25rem 0 0 1.25rem !important;
-    transform: translate3d(calc(100% - 4.15rem), -50%, 0) !important;
+    transform: translate3d(calc(100% - 4.15rem + var(--nearby-drawer-drag-x, 0px)), -50%, 0) !important;
     box-shadow:
       -12px 12px 30px rgba(0, 0, 0, 0.42),
       -1px 0 0 rgba(245, 197, 24, 0.16),
@@ -3327,6 +3327,14 @@ button[data-testid='ockConnectWalletButton']:hover {
     .adventure-guide-dock
     > button:first-child {
     display: none !important;
+  }
+
+  /* The open drawer occupies this lane. Restore controls in their exact
+     previous position when it closes, rather than stacking through its header. */
+  body.bd-map-route-active:has(.nearby-dare-tray--expanded)
+    .basedare-maplibre-map .map-navigation-controls {
+    visibility: hidden;
+    pointer-events: none;
   }
 }
 

@@ -1,3 +1,8 @@
+### Codex Nearby now drawer repair (2026-10-12)
+- Expanded Nearby now uses a list-level header, never a pinned copy of its first activity. Close resets expansion as well as dismissal; explicit intent/action choices can reopen the tray. Keep passive refresh from reopening it.
+- Mobile drawer gestures follow the horizontal side-drawer axis. Selected-place sheets retain vertical gestures. Collapse and close are 44px targets. While the mobile drawer occupies the navigation lane, hide its map controls; restore them at the same position on collapse/dismissal. Do not move the camera or change data/paid activity semantics.
+- See docs/releases/nearby-drawer-2026-10-12.md. Verified pointer swipes, scroll, close/reopen, keyboard dismissal and responsive fit.
+
 ### Codex refined liquid wordmark (2026-10-12)
 - User authorized implementing the previously planned logo/X refinement and pushing to main. This supersedes the historical plan-only logo notes below. Preserve original upright lettering, braces and gold BASE / purple DARE, with PeeBear-like black contours, cream rim and sculpted depth.
 - Navbar, Footer and legacy MobileNav share BaseDareWordmark. Phones use the clear core; screens from 768px use the small black/cream X signature. Keep existing header link footprints, focus behavior, seam-free backdrop and business-mode grayscale. Control mode uses the existing quiet navigation material for readable labels on its light background.
