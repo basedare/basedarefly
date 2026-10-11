@@ -13606,19 +13606,6 @@ export default function RealWorldMap() {
           border-bottom-color: rgba(114, 239, 231, 0.22);
         }
 
-        .map-command-header::after {
-          content: '';
-          position: absolute;
-          bottom: -2px;
-          left: 1.25rem;
-          width: 5.5rem;
-          height: 3px;
-          background: #6de7df;
-          box-shadow: 18px 2px 0 #e752bb;
-          transform: skewX(-28deg);
-          pointer-events: none;
-        }
-
         .basedare-maplibre-map :global(.map-attention-card) {
           border-color: rgba(255, 247, 220, 0.32);
           border-radius: 22px 10px 22px 10px;
@@ -15767,7 +15754,9 @@ export default function RealWorldMap() {
         }
 
         :global(.venue-state-card--verified .venue-state-card__label) {
-          color: #f8dd72;
+          color: #b1efe0;
+          border-color: #8fe0ca66;
+          background: #84d4bf12;
         }
 
         :global(.venue-state-card--live .venue-state-card__label) {
@@ -19816,8 +19805,22 @@ export default function RealWorldMap() {
 
         .basedare-maplibre-map[data-zoom-band='near']
           :global(.peebear-marker.is-active .peebear-venue-label-name) {
-          white-space: normal;
-          overflow-wrap: anywhere;
+          white-space: nowrap;
+          overflow-wrap: normal;
+          text-overflow: ellipsis;
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-active .peebear-venue-label) {
+          width: max-content;
+          max-width: min(210px, 55vw);
+        }
+
+        .basedare-maplibre-map :global(.peebear-marker.is-activated-venue .peebear-venue-label) {
+          color: #dcf6ef;
+          border-color: #8fe0ca66;
+          background: linear-gradient(155deg,#294139,#142829);
+          text-shadow: none;
+          box-shadow: inset 0 1px 0 #ffffff24, 0 2px 0 #081414, 0 6px 14px #0005;
         }
 
         /* The water marker keeps its model signal without a fantasy pedestal. */

@@ -59,8 +59,11 @@ export async function resolveHostBaretag(
   claimedWallet?: string | null,
   authorization?: { action: string; resource: string }
 ): Promise<{ id: string; tag: string } | null> {
-  const sessionBaretag = await resolveSessionBaretag(request);
-  if (sessionBaretag) return sessionBaretag;
+  const sessionWallet = await getSessionWallet(request);
+  if (sessionWallet && (!claimedWallet || claimedWallet.toLowerCase() === sessionWallet)) {
+    const primary = await findPrimaryCreatorTagForWallet(sessionWallet);
+    if (primary) return { id: primary.id, tag: primary.tag };
+  }
 
   if (!claimedWallet || !isAddress(claimedWallet)) return null;
   const authorizedWallet = await getAuthorizedWalletForRequest(request, {

@@ -11,7 +11,7 @@ import { activeAdventure, adventureHref, completeAdventure, updateAdventureStep 
 import { ACTIVITY_SUGGESTIONS, SIARGAO_ACTIVITY_AREA, suggestionsForArea, type ActivityArea } from '@/lib/home-activities';
 import { trackClientEvent } from '@/lib/analytics';
 
-const panel = 'rounded-[1.7rem] border border-white/10 bg-[linear-gradient(145deg,rgba(39,26,64,0.85),rgba(7,8,16,0.98))] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-7';
+const panel = 'bd-surface p-5 sm:p-7';
 const button = 'bd-action';
 
 export default function AdventureHub({ activityId }: { activityId?: string }) {

@@ -51,7 +51,7 @@ export async function findPrimaryCreatorTagForWallet(
 
   const tags = await prisma.streamerTag.findMany({
     where: {
-      walletAddress: walletAddress.toLowerCase(),
+      walletAddress: { equals: walletAddress.toLowerCase(), mode: 'insensitive' },
       status: { in: statuses },
     },
     select: PRIMARY_CREATOR_TAG_SELECT,
@@ -72,7 +72,7 @@ export async function findPrimaryCreatorTagsForWallets(walletAddresses: string[]
   const result = new Map<string, PrimaryCreatorTag>();
   if (!wallets.length) return result;
   const tags = await prisma.streamerTag.findMany({
-    where: { walletAddress: { in: wallets }, status: { in: ['ACTIVE', 'VERIFIED'] } },
+    where: { walletAddress: { in: wallets, mode: 'insensitive' }, status: { in: ['ACTIVE', 'VERIFIED'] } },
     select: PRIMARY_CREATOR_TAG_SELECT,
     orderBy: { createdAt: 'desc' },
   });

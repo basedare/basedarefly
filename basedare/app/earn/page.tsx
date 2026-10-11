@@ -1,7 +1,8 @@
+import BackToMapButton from '@/app/venues/BackToMapButton';
 import RetryPage from '@/components/RetryPage';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, BriefcaseBusiness, CheckCircle2, Plus, Radio } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, CheckCircle2, Plus, Radio } from 'lucide-react';
 
 import { MissionAlertForm } from '@/components/creator-entry/MissionAlertForm';
 import { CreatorMissionCard } from '@/components/creators/CreatorMissionCard';
@@ -49,12 +50,7 @@ export default async function EarnPage({
 
       <div className="relative z-20 mx-auto max-w-6xl">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
-          <Link
-            href="/map"
-            className="bd-action bd-action--cyan"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to map
-          </Link>
+          <BackToMapButton mapHref="/map" />
           <Link
             href="/create"
             className="bd-action bd-action--gold"

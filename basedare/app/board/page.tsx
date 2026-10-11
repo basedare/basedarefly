@@ -1,3 +1,4 @@
+import BackToMapButton from '@/app/venues/BackToMapButton';
 import type { Metadata } from 'next';
 import Link from '@/components/DiscoveryLink';
 import { ArrowLeft, ArrowRight, Compass, Flag, MapPin, MoonStar, Radio, Sparkles, Users } from 'lucide-react';
@@ -43,7 +44,7 @@ const STAMP_LABEL: Record<FlyerStamp, string> = {
 const STAMP_CLASS: Record<FlyerStamp, string> = {
   LIVE_TONIGHT: 'border-rose-300/45 bg-rose-500/[0.16] text-rose-100',
   CHECK_IN_OPEN: 'border-cyan-300/35 bg-cyan-500/[0.12] text-cyan-100',
-  VERIFIED: 'border-emerald-300/45 bg-emerald-500/[0.16] text-emerald-100',
+  VERIFIED: 'bd-verified',
   REWARD: 'border-[#f5c518]/45 bg-[#f5c518]/[0.16] text-[#f8dd72]',
   HOSTED: 'border-violet-300/40 bg-violet-500/[0.16] text-violet-100',
 };
@@ -60,16 +61,14 @@ const NOTE_TONE: Record<FlyerTone, { wash: string; edge: string; pin: string }> 
 const PAPER_GRAIN =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
-const TILTS = [-1.5, 1.1, -0.7, 1.4, -1.2, 0.8];
 const SIARGAO_CENTER = { latitude: 9.803, longitude: 126.159 };
 
 function FlyerCard({ flyer, index, tone, fieldStation = false }: { flyer: Flyer; index: number; tone: FlyerTone; fieldStation?: boolean }) {
   const note = NOTE_TONE[tone];
-  const tilt = TILTS[index % TILTS.length];
   const usePin = index % 3 !== 0;
 
   return (
-    <div className="group relative pt-2" style={{ transform: `rotate(${tilt}deg)` }}>
+    <div className="group relative pt-2">
       {/* pushpin (most) / tape (some) — a real board mixes both */}
       {usePin ? (
         <span
@@ -90,7 +89,7 @@ function FlyerCard({ flyer, index, tone, fieldStation = false }: { flyer: Flyer;
         eventType="STATION_TARGET_OPENED"
         targetType="PAGE"
         targetId={`flyer:${flyer.id}`}
-        className={`relative flex flex-col overflow-hidden rounded-[18px] border ${note.edge} p-4 shadow-[0_24px_46px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_34px_64px_rgba(0,0,0,0.6)] sm:p-5`}
+        className={`relative flex flex-col overflow-hidden rounded-[22px] border ${note.edge} p-5 shadow-[0_12px_28px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_34px_64px_rgba(0,0,0,0.6)] sm:p-5`}
         style={{ background: note.wash }}
       >
         {/* paper grain */}
@@ -122,7 +121,7 @@ function FlyerCard({ flyer, index, tone, fieldStation = false }: { flyer: Flyer;
           </span>
         ) : null}
 
-        <p className="relative mt-2 text-xs font-semibold leading-5 text-white/60">{flyer.detail}</p>
+        <p className="relative mt-2 text-sm leading-6 text-slate-300">{flyer.detail}</p>
 
         <div className="relative mt-3 flex flex-wrap gap-1.5">
           {flyer.stamps.map((stamp) => (
@@ -148,9 +147,9 @@ function BoardSection({ title, subtitle, flyers, tone, fieldStation = false }: {
   if (flyers.length === 0) return null;
   return (
     <section className="mt-10">
-      <div className="mb-5 flex items-baseline gap-3">
-        <h2 className="text-xl font-black uppercase italic tracking-tight text-white">{title}</h2>
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">{subtitle}</span>
+      <div className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-xl font-bold tracking-tight text-white">{title}</h2>
+        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{subtitle}</span>
       </div>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {flyers.map((flyer, index) => (
@@ -174,8 +173,8 @@ function LivePlanBoardSection({
   return (
     <section className="mt-10">
       <div className="mb-5 flex flex-wrap items-baseline gap-3">
-        <h2 className="text-xl font-black uppercase italic tracking-tight text-white">{title}</h2>
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">{subtitle}</span>
+        <h2 className="text-xl font-bold tracking-tight text-white">{title}</h2>
+        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{subtitle}</span>
       </div>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {plans.map((plan) => (
@@ -383,30 +382,23 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
       <section className="relative z-10 mx-auto max-w-6xl bd-page-top px-4 pb-24 sm:px-6">
         {fieldStation ? <FieldStationEntryBeacon attentionMode={attentionMode} /> : null}
         <div className="mb-6">
-          <Link
-            href={`/map?${backToMapParams.toString()}`}
-            className="bd-action bd-action--cyan"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to map
-          </Link>
+          <BackToMapButton mapHref={`/map?${backToMapParams.toString()}`} />
         </div>
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[#f5c518]/[0.09] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#f8dd72]">
+        <div className="bd-surface p-6 sm:p-8">
+          <div className="bd-page-kicker">
             {fieldStation ? (
               <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-35 motion-reduce:animate-none" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full border border-cyan-100/70 bg-cyan-300" />
               </span>
             ) : <Radio className="h-3.5 w-3.5" />}
-            {stationLabel ? `Node active · ${stationLabel} connected` : 'Map · list view'}
+            {stationLabel ? `Node active · ${stationLabel} connected` : 'List view'}
           </div>
-          <h1 className="bd-page-title mt-4 uppercase italic text-white">
-            What&apos;s on<br />
-            <span className="text-[#f5c518]">nearby</span>
+          <h1 className="bd-page-title mt-4 text-white">
+            What&apos;s on <span className="text-cyan-100">nearby.</span>
           </h1>
-          <p className="bd-page-copy mx-auto mt-4 max-w-xl">
-            Browse meetups, events and paid dares in list view. Open a card for details or switch to the map.
+          <p className="bd-page-copy mt-4 max-w-2xl">
+            Meetups, events and paid dares around you. Open a card to see the details.
           </p>
         </div>
 

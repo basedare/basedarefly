@@ -5,18 +5,16 @@ import Link from '@/components/DiscoveryLink';
 import { useDiscovery } from '@/components/DiscoveryProvider';
 import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useState } from 'react';
-import { useAccount, useSignMessage } from 'wagmi';
+import { useSignMessage } from 'wagmi';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
+import { useBaretagIdentity } from '@/hooks/useBaretagIdentity';
 import { AtSign, BadgeCheck, Map, MessageCircle, Plus, ShieldCheck, ShipWheel, Sparkles, Store } from 'lucide-react';
 
 import CommunityActivityCard from '@/components/community/CommunityActivityCard';
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
 import AdventureSuggestions from '@/components/adventures/AdventureSuggestions';
 import { getLocalPostMapHref, type LocalPostType } from '@/lib/community-around-policy';
-import {
-  resolveCommunityIdentity,
-  type CommunityIdentityState,
-  type CommunityIdentityTag,
-} from '@/lib/community-identity';
+import { communityIdentityNotice } from '@/lib/community-identity';
 import type { LivePlan } from '@/lib/live-plans';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 
@@ -47,8 +45,6 @@ type LocalActivity = {
   submittedBy: string;
 };
 
-type IdentityCheckState = CommunityIdentityState | { status: 'disconnected' | 'checking' | 'unknown'; tag: null };
-
 function postTypeLabel(postType: 'ask' | 'offer') {
   return postType === 'ask' ? 'Ask nearby' : 'Offer nearby';
 }
@@ -56,11 +52,13 @@ function postTypeLabel(postType: 'ask' | 'offer') {
 export default function CommunityHubClient() {
   const { area } = useDiscovery();
   const { data: session } = useSession();
-  const { address } = useAccount();
+  const { address: actorWallet, isResolving } = useActiveWallet();
+  const { identity: identityState, retry: retryIdentity, refreshing: refreshingIdentity } = useBaretagIdentity(actorWallet, isResolving);
+  const identityNotice = communityIdentityNotice(identityState);
+  const openAccount = () => window.dispatchEvent(new Event('basedare:sign-in'));
   const { signMessageAsync } = useSignMessage();
   const sessionShape = session as CommunitySession | null;
   const sessionWallet = sessionShape?.walletAddress ?? sessionShape?.user?.walletAddress ?? null;
-  const actorWallet = address ?? sessionWallet;
 
   const [livePlans, setLivePlans] = useState<LivePlan[]>([]);
   const [localActivities, setLocalActivities] = useState<LocalActivity[]>([]);
@@ -73,7 +71,6 @@ export default function CommunityHubClient() {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [identityState, setIdentityState] = useState<IdentityCheckState>({ status: 'disconnected', tag: null });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -115,33 +112,6 @@ export default function CommunityHubClient() {
     window.addEventListener('basedare:live-plans-updated', refresh);
     return () => { controller.abort(); window.clearInterval(interval); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('basedare:live-plans-updated', refresh); };
   }, [area.lat, area.lng, area.radiusKm]);
-
-  useEffect(() => {
-    if (!actorWallet) {
-      setIdentityState({ status: 'disconnected', tag: null });
-      return;
-    }
-
-    const controller = new AbortController();
-    setIdentityState({ status: 'checking', tag: null });
-    void fetch(`/api/tags?wallet=${encodeURIComponent(actorWallet)}`, {
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        const payload = await response.json().catch(() => null);
-        if (!response.ok || !payload?.success || !Array.isArray(payload.tags)) {
-          throw new Error('Baretag check unavailable');
-        }
-        setIdentityState(resolveCommunityIdentity(payload.tags as CommunityIdentityTag[]));
-      })
-      .catch((error) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return;
-        setIdentityState({ status: 'unknown', tag: null });
-      });
-
-    return () => controller.abort();
-  }, [actorWallet]);
 
   const visibleLocalActivities = useMemo(
     () => localActivities.filter((activity) => activity.postType !== 'signal' || activity.category === 'community'),
@@ -214,10 +184,10 @@ export default function CommunityHubClient() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bd-page-top px-4 pb-24 text-white sm:px-6 lg:px-10">
+    <main className="community-page relative min-h-screen overflow-hidden bd-page-top px-4 pb-24 text-white sm:px-6 lg:px-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(16,185,129,0.12),transparent_30%),radial-gradient(circle_at_85%_18%,rgba(139,92,246,0.14),transparent_34%)]" />
       <div className="relative mx-auto max-w-6xl">
-        <section className="rounded-[2rem] border border-white/10 bg-[linear-gradient(155deg,rgba(28,24,48,0.78),rgba(5,7,14,0.94))] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] sm:p-8">
+        <section className="bd-surface p-5 sm:p-8">
           <p className="text-xs font-bold text-emerald-100/80">{area.label} · within {area.radiusKm} km</p>
           <div className="mt-3 grid gap-7 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>
@@ -317,7 +287,7 @@ export default function CommunityHubClient() {
               event.preventDefault();
               void submitPost();
             }}
-            className="scroll-mt-28 rounded-[1.75rem] border border-emerald-200/14 bg-[radial-gradient(circle_at_10%_0%,rgba(16,185,129,0.12),transparent_38%),rgba(5,10,13,0.72)] p-5 sm:p-6"
+            className="bd-surface scroll-mt-28 p-5 sm:p-6"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -327,7 +297,7 @@ export default function CommunityHubClient() {
               <Store className="h-6 w-6 text-emerald-200/72" aria-hidden="true" />
             </div>
 
-            <p className="mt-3 text-xs font-semibold leading-5 text-white/46">
+            <p className="mt-3 text-sm leading-6 text-slate-300">
               Pick a place once. After review, your post appears here and on that place&apos;s map room for 72 hours.
             </p>
 
@@ -335,38 +305,35 @@ export default function CommunityHubClient() {
               <span className="flex min-w-0 items-center gap-3">
                 {identityState.status === 'ready' ? <BadgeCheck className="h-5 w-5 shrink-0 text-emerald-200" aria-hidden="true" /> : <AtSign className="h-5 w-5 shrink-0 text-violet-200" aria-hidden="true" />}
                 <span className="min-w-0">
-                  <strong className="block truncate text-xs text-white/82">
-                    {identityState.status === 'ready'
-                      ? `Posting as ${identityState.tag}`
-                      : identityState.status === 'pending'
-                        ? `${identityState.tag ?? 'Baretag'} is in review`
-                        : identityState.status === 'checking'
-                          ? 'Checking your Baretag…'
-                          : 'Use your Baretag in the community'}
+                  <strong className="block text-sm leading-5 text-slate-100">
+                    {identityNotice.title}
                   </strong>
-                  <span className="mt-0.5 block text-[10px] leading-4 text-white/38">
-                    {identityState.status === 'ready'
-                      ? 'Your public name follows the post into its place room.'
-                      : identityState.status === 'pending'
-                        ? 'Posting unlocks after approval.'
-                        : 'It keeps replies recognizable without exposing phone numbers.'}
+                  <span className="mt-1 block text-xs leading-5 text-slate-300">
+                    {identityNotice.detail}
                   </span>
                 </span>
               </span>
-              {identityState.status !== 'ready' && identityState.status !== 'checking' ? (
-                <Link href="/claim-tag?source=community" className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-full border border-violet-200/18 bg-violet-300/[0.08] px-3 text-[9px] font-black uppercase tracking-[0.11em] text-violet-100">
-                  Claim @tag
-                </Link>
+              {identityNotice.action === 'claim' || identityNotice.action === 'review' ? (
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {identityNotice.action === 'claim' ? <button type="button" onClick={openAccount} className="bd-action text-xs">Check account</button> : null}
+                  <Link href="/claim-tag?source=community" className="bd-action text-xs">
+                    {identityNotice.action === 'review' ? 'View my tag' : 'Claim @tag'}
+                  </Link>
+                </div>
+              ) : identityNotice.action === 'retry' ? (
+                <button type="button" onClick={() => void retryIdentity()} disabled={refreshingIdentity} className="bd-action text-xs">{refreshingIdentity ? 'Checking…' : 'Retry lookup'}</button>
+              ) : identityNotice.action === 'sign-in' ? (
+                <button type="button" onClick={openAccount} className="bd-action text-xs">Sign in</button>
               ) : null}
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-2">
+            <div className="bd-segmented mt-5 grid grid-cols-2">
               {(['ask', 'offer'] as const).map((value) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() => setPostType(value)}
-                  className={`min-h-11 rounded-full border text-[10px] font-black uppercase tracking-[0.14em] transition ${postType === value ? 'border-emerald-200/34 bg-emerald-300/[0.12] text-emerald-100' : 'border-white/10 bg-black/24 text-white/42'}`}
+                  className="px-3"
                   aria-pressed={postType === value}
                 >
                   {postTypeLabel(value)}
@@ -375,16 +342,16 @@ export default function CommunityHubClient() {
             </div>
 
             <label className="mt-4 block text-[10px] font-black uppercase tracking-[0.14em] text-white/46" htmlFor="community-place">Place</label>
-            <select id="community-place" value={venueSlug} onChange={(event) => setVenueSlug(event.target.value)} className="mt-2 min-h-12 w-full rounded-2xl border border-white/10 bg-[#080b12] px-4 text-sm font-bold text-white outline-none focus:border-emerald-200/30">
+            <select id="community-place" value={venueSlug} onChange={(event) => setVenueSlug(event.target.value)} className="bd-field mt-2 px-4 text-sm font-semibold">
               <option value="">Choose a public place</option>
               {venues.map((venue) => <option key={venue.slug} value={venue.slug}>{venue.name} · {venue.area}</option>)}
             </select>
 
             <label className="mt-4 block text-[10px] font-black uppercase tracking-[0.14em] text-white/46" htmlFor="community-title">Short title</label>
-            <input id="community-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={140} placeholder={postType === 'ask' ? 'Anyone heading to Cloud 9 sunrise?' : 'Spare board bag available today'} className="mt-2 min-h-12 w-full rounded-2xl border border-white/10 bg-black/30 px-4 text-sm font-bold text-white outline-none placeholder:text-white/24 focus:border-emerald-200/30" />
+            <input id="community-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={140} placeholder={postType === 'ask' ? 'Anyone heading to Cloud 9 sunrise?' : 'Spare board bag available today'} className="bd-field mt-2 px-4 text-sm" />
 
             <label className="mt-4 block text-[10px] font-black uppercase tracking-[0.14em] text-white/46" htmlFor="community-notes">Useful detail</label>
-            <textarea id="community-notes" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={700} placeholder="Keep it specific, friendly, and easy to answer in the place room." className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm leading-relaxed text-white outline-none placeholder:text-white/24 focus:border-emerald-200/30" />
+            <textarea id="community-notes" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={700} placeholder="Keep it specific, friendly, and easy to answer in the place room." className="bd-field mt-2 min-h-28 resize-none px-4 py-3 text-sm leading-relaxed" />
 
             <div className="mt-4 rounded-2xl border border-amber-200/14 bg-amber-300/[0.055] p-3 text-[11px] leading-relaxed text-amber-50/62">
               <p className="flex items-center gap-2 font-black text-amber-100/78"><ShieldCheck className="h-4 w-4" aria-hidden="true" /> Keep it safe and local</p>
@@ -397,7 +364,7 @@ export default function CommunityHubClient() {
               </p>
             ) : null}
 
-            <button type="submit" disabled={submitting || venues.length === 0 || identityState.status === 'disconnected' || identityState.status === 'checking' || identityState.status === 'pending' || identityState.status === 'missing'} className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-full border border-emerald-100/25 bg-emerald-300 px-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#032018] transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-45">
+            <button type="submit" disabled={submitting || venues.length === 0 || identityState.status === 'disconnected' || identityState.status === 'checking' || identityState.status === 'pending' || identityState.status === 'missing'} className="bd-action bd-action--cyan mt-4 w-full">
               {submitting
                 ? 'Sending for review…'
                 : identityState.status === 'disconnected'

@@ -3689,20 +3689,46 @@ button[data-testid='ockConnectWalletButton']:hover {
   box-shadow: inset 0 1px 0 rgba(255, 235, 155, 0.1), 0 20px 50px rgba(0, 0, 0, 0.25);
 }
 
-/* Shared physical controls: the homepage segmented controls remain the reference. */
+/* Quiet physical materials: one surface language, expressive art, clear actions. */
+:root {
+  --bd-edge: rgba(211, 222, 244, .14);
+  --bd-ink: #f3f4fa;
+  --bd-muted: #b0b8ca;
+  --bd-panel: linear-gradient(145deg,rgba(34,43,61,.8),rgba(13,16,29,.88) 72%);
+  --bd-depth: inset 0 1px 0 #ffffff12, inset 0 -1px 0 #0008, 0 12px 28px #0003;
+}
+.bd-surface, .bd-card { border: 1px solid var(--bd-edge); background: var(--bd-panel); box-shadow: var(--bd-depth); }
+.bd-surface { position: relative; border-radius: 28px; }
+.bd-card { border-radius: 22px; }
+.bd-well { border: 1px solid #d3def418; border-radius: 18px; background: #0a0e19a6; box-shadow: inset 0 2px 5px #0005, 0 1px 0 #ffffff08; }
+.bd-field { width: 100%; min-height: 48px; border: 1px solid #d3def41f; border-radius: 15px; background: #090d17c7; color: var(--bd-ink); box-shadow: inset 0 2px 5px #0005, 0 1px 0 #ffffff08; }
+.bd-field::placeholder { color: #a0a9bf; }
+.bd-field:focus-visible { outline: 2px solid #92e3df; outline-offset: 3px; }
+.bd-back { display: inline-flex; align-items: center; gap: .7rem; min-height: 48px; padding: 5px 16px 5px 5px; border: 1px solid var(--bd-edge); border-radius: 17px; color: #dce5f0; background: linear-gradient(155deg,#242c3c,#141927); box-shadow: inset 0 1px 0 #ffffff18, 0 2px 0 #05080e, 0 7px 14px #0003; font-size: 13px; font-weight: 750; transition: transform .16s ease, border-color .16s ease; }
+.bd-back__icon { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid #d3def414; border-radius: 12px; background: #0c111b; box-shadow: inset 0 1px 3px #0007, 0 1px 0 #ffffff0c; color: #9ce5df; }
+.bd-back:hover { border-color: #92e3df80; transform: translateY(-1px); }
+.bd-back:active { transform: translateY(1px); }
+.bd-back:focus-visible { outline: 2px solid #92e3df; outline-offset: 4px; }
+.bd-segmented { padding: 5px; gap: 5px; border: 1px solid #d3def414; border-radius: 20px; background: #090d1799; box-shadow: inset 0 2px 4px #0004; }
+.bd-segmented button { min-height: 44px; border: 1px solid transparent; border-radius: 15px; color: #abb4c9; background: transparent; font-size: 12px; font-weight: 700; transition: background .15s, color .15s; }
+.bd-segmented button[aria-pressed='true'] { color: #ecfffd; border-color: #a8dedb38; background: linear-gradient(145deg,#2a3b49,#1b2736); box-shadow: inset 0 1px 0 #ffffff18, 0 2px 3px #0005; }
+.bd-segmented button:focus-visible { outline: 2px solid #92e3df; outline-offset: -2px; }
+.bd-empty { border-radius: 24px; border: 1px solid #d3def41a; background: linear-gradient(150deg,#1a223365,#0c101d80); box-shadow: inset 0 1px 0 #ffffff09; }
+.bd-verified { color: #b1efe0; border: 1px solid #8fe0ca3b; background: #84d4bf12; }
+
 .bd-action {
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
-  min-height: 44px; padding: .7rem 1.1rem; border-radius: 999px;
+  min-height: 46px; padding: .7rem 1.05rem; border-radius: 16px;
   border: 1px solid rgba(220,210,255,.16); color: #eeeaf5; font-size: .8rem; font-weight: 800;
-  background: linear-gradient(165deg, #242032, #100e18 65%, #08080d);
-  box-shadow: inset 0 1px 1px rgba(255,255,255,.13), inset 0 -3px 4px rgba(0,0,0,.6), 0 3px 0 #050509, 0 5px 12px rgba(0,0,0,.28);
+  background: linear-gradient(155deg, #2b3041, #171c2b 72%);
+  box-shadow: inset 0 1px 0 #ffffff21, inset 0 -1px 0 #0006, 0 2px 0 #080a12, 0 5px 12px #0003;
   transition: transform .15s, border-color .15s, box-shadow .15s;
 }
 .bd-action:hover { border-color: rgba(220,210,255,.35); }
 .bd-action:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 2px 6px #0009, 0 1px 0 #050509; }
 .bd-action:focus-visible { outline: 2px solid #a5f3fc; outline-offset: 4px; }
 .bd-action:disabled { opacity: .5; cursor: not-allowed; }
-.bd-action--gold { color: #211900; background: linear-gradient(160deg,#ffed76,#facc15 60%,#b48809); border-color: #ffe77d; box-shadow: inset 0 1px 2px #fff8, inset 0 -3px 3px #79540080, 0 3px 0 #614400, 0 6px 14px #0005; }
+.bd-action--gold { color: #211900; background: linear-gradient(155deg,#ffe477,#f4c83b 75%); border-color: #ffe494; box-shadow: inset 0 1px 0 #fff9, inset 0 -1px 0 #af7d2380, 0 2px 0 #715313, 0 5px 12px #0004; }
 
 /* Opt-in discovery typography and controls; leave the map and hero art alone. */
 .bd-page-top { padding-top: 2rem; }
@@ -3732,29 +3758,20 @@ button[data-testid='ockConnectWalletButton']:hover {
   letter-spacing: .18em;
   text-transform: uppercase;
 }
-.bd-page-kicker::before {
-  content: '';
-  flex: 0 0 16px;
-  height: 3px;
-  border-radius: 70% 25% 60% 30%;
-  background: #a5f3fc;
-  box-shadow: 2px 3px 0 #e879f9;
-  transform: rotate(-12deg);
-}
 .bd-action--cyan {
   color: #cffafe;
   border-color: #67e8f94d;
-  background: linear-gradient(160deg, #163b49, #0c202c 65%, #080e18);
+  background: linear-gradient(155deg, #29404d, #172633 72%);
 }
 .bd-action--violet {
   color: #ede9fe;
   border-color: #c4b5fd4d;
-  background: linear-gradient(160deg, #39254f, #1d142c 65%, #0e0b18);
+  background: linear-gradient(155deg, #3c3152, #241d36 72%);
 }
 .bd-action--gold-quiet {
   color: #fef3c7;
   border-color: #fde68a40;
-  background: linear-gradient(160deg, #38301d, #1b1815 65%, #0d0c13);
+  background: linear-gradient(155deg, #36362e, #21242c 72%);
 }
 .bd-action--gold:hover { border-color: #fff0ad; }
 .bd-action--cyan:hover { border-color: #a5f3fc99; }
@@ -3785,18 +3802,8 @@ button[data-testid='ockConnectWalletButton']:hover {
 @media (prefers-reduced-motion: reduce) { .peebear-speaking { animation: none; } }
 
 /* Shared neon street material: cream ink, short paint strokes, tactile depth. */
-.street-accent { display: block; height: auto; pointer-events: none; user-select: none; }
+.street-accent { display: none; }
 .bd-action { position: relative; isolation: isolate; }
-.bd-action::after {
-  content: ''; position: absolute; pointer-events: none; bottom: 4px; right: 15%;
-  width: 18px; height: 2px; border-radius: 1px; background: #67e8df;
-  box-shadow: 8px 1px 0 #ed65bf; opacity: .65; transform: skewX(-28deg);
-  transition: width .18s ease, opacity .18s ease;
-}
-.bd-action:hover::after, .bd-action:focus-visible::after { width: 28px; opacity: 1; }
-.bd-action--gold::after { background: #422724; box-shadow: 8px 1px 0 #9b267f; opacity: .45; }
-.bd-action--goldquiet::after { background: #f6d873; }
-.bd-action:disabled::after { opacity: .25; }
 .street-orbit-card .electric-card-body {
   border: 1px solid #fff3cd9c; border-radius: 21px 8px 21px 8px;
   box-shadow: 4px 4px 0 #080b15, 6px 6px 0 #ed65bf70;
@@ -3808,16 +3815,9 @@ button[data-testid='ockConnectWalletButton']:hover {
 .street-orbit-card .electric-card-footer {
   border-top: 2px solid #080b15; background: linear-gradient(130deg,#ffe66c,#f3bf32 65%,#df9c29);
 }
-.street-orbit-card .electric-card-footer::before {
-  content: ''; position: absolute; top: 0; left: 12%; width: 36px; height: 4px;
-  background: #67e8df; box-shadow: 18px 2px 0 #ed65bf; transform: skewX(-28deg);
-}
+
 .street-mode-toggle { border: 1px solid #fff3cd55; }
-.street-mode-toggle::after {
-  content: ''; position: absolute; pointer-events: none; right: 14px; bottom: 5px;
-  width: 30px; height: 3px; transform: rotate(-12deg); background: #67e8df;
-  box-shadow: -12px -3px 0 #ed65bf; opacity: .75;
-}
+
 .street-mode-toggle:focus-visible { outline: 2px solid #67e8df; outline-offset: 5px; }
 .street-reward-orb::after {
   content: ''; position: absolute; pointer-events: none; z-index: 28; inset: 7px;
@@ -3831,18 +3831,14 @@ button[data-testid='ockConnectWalletButton']:hover {
 }
 .market-glass-body { background: rgba(8,11,22,.24); border-top: 1px solid #fff3cd12; }
 .activity-page .activity-panel, .activity-page .activity-card, .activity-page .activity-tile, .activity-wallet {
-  border-color: #fff3cd38; border-radius: 26px 10px 26px 10px;
+  border-color: var(--bd-edge); border-radius: 26px;
   background: radial-gradient(ellipse at 0 0,#67e8df0b,transparent 50%),linear-gradient(150deg,#1b1d2be6,#0b0d19ed 70%);
-  box-shadow: 3px 3px 0 #8c3c8f50, inset 0 1px 0 #fff3cd14, 0 18px 38px #0004;
+  box-shadow: var(--bd-depth);
 }
-.activity-page .activity-hero { border-color: #fff3cd66; }
+.activity-page .activity-hero { border-color: var(--bd-edge); }
 .activity-page .activity-card:hover { border-color: #67e8df8c; }
 .activity-page .activity-card:focus-visible { outline: 2px solid #67e8df; outline-offset: 4px; }
-.activity-wallet::before {
-  content: ''; position: absolute; pointer-events: none; left: 24px; top: 0;
-  width: 64px; height: 3px; background: #67e8df; box-shadow: 18px 3px 0 #ed65bf;
-  transform: skewX(-25deg);
-}
+
 /* Instrument placement belongs to the map viewport, never to a guide state. */
 body.bd-map-route-active .basedare-maplibre-map .map-navigation-controls { top: 4rem; right: .75rem; left: auto; }
 @media (min-width: 768px) {
@@ -3871,10 +3867,7 @@ body.bd-map-route-active .basedare-maplibre-map .adventure-guide-speech {
   box-shadow: 2px 3px 0 #080b15, 4px 5px 0 #ed65bf80, inset 0 1px 0 #fff3cd24, 0 8px 18px #0005;
   font-size: 11px;
 }
-body.bd-map-route-active .basedare-maplibre-map .adventure-guide-speech::before {
-  content: ''; position: absolute; pointer-events: none; left: 10px; top: -2px;
-  width: 26px; height: 3px; background: #67e8df; box-shadow: 16px 2px 0 #ed65bf; transform: rotate(-5deg);
-}
+
 body.bd-map-route-active .basedare-maplibre-map .adventure-guide-orb { isolation: isolate; }
 body.bd-map-route-active .basedare-maplibre-map .adventure-guide-orb::before {
   content: ''; position: absolute; pointer-events: none; z-index: 0;
@@ -3883,11 +3876,7 @@ body.bd-map-route-active .basedare-maplibre-map .adventure-guide-orb::before {
   border: 2px solid #080b15;
   box-shadow: -2px -2px 0 #fff3cd, 2px 2px 0 #67e8df, 4px 4px 0 #ed65bf80;
 }
-body.bd-map-route-active .basedare-maplibre-map .adventure-guide-orb::after {
-  content: ''; position: absolute; pointer-events: none; z-index: 2; bottom: 0; left: 10px;
-  width: 30px; height: 3px; background: #67e8df; box-shadow: 12px 3px 0 #ed65bf;
-  border-radius: 60% 20% 40% 30%; transform: rotate(-12deg);
-}
+
 body.bd-map-route-active .basedare-maplibre-map .adventure-guide-face {
   position: relative; z-index: 1;
   filter: drop-shadow(1px 1px 0 #080b15) drop-shadow(-1px -1px 0 #fff3cd);
@@ -3904,11 +3893,7 @@ body.bd-map-route-active .basedare-maplibre-map .map-attention-card {
   border-color: #fff3cd80;
   box-shadow: 2px 3px 0 #080b15, 4px 5px 0 #ad458c8c, inset 0 1px 0 #fff3cd26, 0 14px 30px #0006;
 }
-body.bd-map-route-active .basedare-maplibre-map .map-attention-card::before {
-  content: ''; position: absolute; pointer-events: none; left: 18px; top: 0;
-  width: 35px; height: 3px; border-radius: 1px; background: #67e8df;
-  box-shadow: 18px 2px 0 #ed65bf; transform: skewX(-24deg);
-}
+
 body.bd-map-route-active .basedare-maplibre-map .map-guide-close {
   min-width: 44px; min-height: 44px; color: #f6f1df;
   background: linear-gradient(145deg,#27313f,#101420);
@@ -3940,7 +3925,7 @@ body.bd-map-route-active .basedare-maplibre-map[data-surf-signal-tier='unavailab
 body.bd-map-route-active .basedare-maplibre-map[data-surf-signal-tier='unavailable'] .surf-art-shade { fill: #596e7b; }
 body.bd-map-route-active .basedare-maplibre-map[data-map-moving='true'] .adventure-guide-orb::before { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
-  .bd-action::after, .map-orbit-console button svg { transition: none; }
+  .bd-back, .bd-segmented button, .map-orbit-console button svg { transition: none; }
   body.bd-map-route-active .basedare-maplibre-map .adventure-guide-orb:has(.peebear-speaking)::before { animation: none; }
 }
 

@@ -36,6 +36,9 @@ jobs:
 
       - name: Test wallet and venue usability flows
         run: npm run test:usability
+
+      - name: Community identity regression checks
+        run: npm run test:community-identity
       
       - name: Run linter
         run: npm run lint

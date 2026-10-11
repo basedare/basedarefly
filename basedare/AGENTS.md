@@ -1,3 +1,9 @@
+### Codex quiet physical design and Baretag recovery (2026-10-12)
+- Reuse bd-surface/card/well/field/back/segmented/empty for calm satin and smoked materials. The bear, orbital homepage and map artwork carry the graffiti identity; repeated two-line scribbles are removed. Use restrained mint for verified states, gold for main actions. Keep keyboard focus, 44px filter targets and the guide-independent map lane.
+- Now prioritizes meetup/adventure actions, with secondary discovery tools below. List view uses aligned physical cards and sentence case. Shared Community, My activity, adventure, creator and Control panels use the same depth. Selected long map labels stay horizontal and truncate.
+- Header and Community share wallet-keyed Baretag reads. Failed lookups offer retry; pending names show review; signed-out visitors see sign-in. Only a confirmed missing name offers Claim @tag with Check account. Legacy mixed-case wallet records resolve case-insensitively; explicit different actors cannot inherit a session account's name. Preserve server ownership/signature checks. No reset or migration was performed.
+- See docs/releases/quiet-materials-baretag-2026-10-12.md and npm run test:community-identity. Exact user account recovery still requires their @tag/account context. Logo/X remains plan-only.
+
 ### Codex surf illustration and PeeBear material follow-up (2026-10-11)
 - Surf pins and the surf model card share fixed vector artwork: an ink-outlined cyan crest, cream foam, dark facet and magenta paint base. Model-tier timing, unavailable state, map-movement pause and reduced-motion guards remain intact. The marker/camera/data behavior is unchanged.
 - PeeBear keeps the gold animated head, with a raised illustrated frame and a speaking-only paint sway. Guide panels share cream/ink edges and painted ticks; guide close controls are 44px. Keep the viewport-owned zoom lane and Free roam's existing camera-preserving dismissal.

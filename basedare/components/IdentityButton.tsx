@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { resolveCommunityIdentity } from '@/lib/community-identity';
+import { useBaretagIdentity } from '@/hooks/useBaretagIdentity';
 import { useFeedback } from '@/hooks/useFeedback';
 import { MissionPassSheet } from '@/components/mission-pass/MissionPassSheet';
 import { useSocialWebview } from '@/components/mission-pass/SocialWebviewProvider';
@@ -83,23 +83,8 @@ type IdentityButtonProps = {
 export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButtonProps = {}) {
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
-  const [identity, setIdentity] = useState<{ wallet: string; tag: string | null } | null>(null);
-  const username = identity?.wallet === address?.toLowerCase() ? identity?.tag : null;
-  useEffect(() => {
-    if (!address || !isConnected) return;
-    const controller = new AbortController();
-    const loadIdentity = () => {
-      void fetch(`/api/tags?wallet=${encodeURIComponent(address)}`, { signal: controller.signal })
-        .then((response) => response.ok ? response.json() : Promise.reject(new Error('Identity unavailable')))
-        .then((payload) => {
-          const resolved = resolveCommunityIdentity(Array.isArray(payload.tags) ? payload.tags : []);
-          setIdentity({ wallet: address.toLowerCase(), tag: resolved.status === 'ready' ? resolved.tag : null });
-        }).catch(() => {});
-    };
-    loadIdentity();
-    window.addEventListener('focus', loadIdentity);
-    return () => { controller.abort(); window.removeEventListener('focus', loadIdentity); };
-  }, [address, isConnected]);
+  const { identity } = useBaretagIdentity(isConnected ? address : null);
+  const username = identity.status === 'ready' ? identity.tag : null;
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const [showDropdown, setShowDropdown] = useState(false);

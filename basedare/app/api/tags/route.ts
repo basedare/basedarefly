@@ -100,8 +100,9 @@ export async function GET(request: NextRequest) {
 
     // Get tags for a specific wallet
     if (wallet) {
+      if (!normalizedWallet) return NextResponse.json({ success: false, error: 'Invalid wallet address' }, { status: 400 });
       const tags = await prisma.streamerTag.findMany({
-        where: { walletAddress: normalizedWallet ?? wallet.toLowerCase() }, // Normalize to lowercase
+        where: { walletAddress: { equals: normalizedWallet, mode: 'insensitive' } },
         select: {
           id: true,
           tag: true,

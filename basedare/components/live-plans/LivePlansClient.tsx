@@ -11,6 +11,7 @@ import {
   Crosshair,
   Dices,
   Loader2,
+  MoreHorizontal,
   Map,
   Plus,
   Radio,
@@ -328,43 +329,48 @@ export default function LivePlansClient({
   const startAdventureHref = adventureHref(undefined, undefined, area);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bd-page-top px-4 pb-36 text-white sm:px-6 lg:px-10">
+    <main className="now-page relative min-h-screen overflow-hidden bd-page-top px-4 pb-36 text-white sm:px-6 lg:px-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_8%,rgba(34,211,238,0.13),transparent_31%),radial-gradient(circle_at_84%_18%,rgba(139,92,246,0.15),transparent_34%)]" />
       <div className="relative mx-auto max-w-7xl">
-        <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(150deg,rgba(18,30,47,0.9),rgba(6,7,14,0.97))] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.09)] sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <section className="bd-surface p-5 sm:p-8">
+          <div className="flex flex-col gap-6">
             <div>
-              <p className="bd-page-kicker"><Radio className="h-4 w-4" /> Happening now</p>
+              <p className="bd-page-kicker"><Radio className="h-3.5 w-3.5" /> Happening now</p>
               <h1 className="bd-page-title mt-3 max-w-4xl">Find your next move. </h1>
-              <p className="mt-3 text-sm text-cyan-100/80">{area.label} · within {radiusKm} km</p>
+              <p className="mt-3 text-sm text-slate-300">{area.label} · within {radiusKm} km</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => setPeebearOpen((current) => !current)} aria-expanded={peebearOpen} className="bd-action bd-action--gold-quiet">
-                <Dices className="h-4 w-4" /> Ask PeeBear
-              </button>
-              <button type="button" onClick={useMyLocation} disabled={locating} className="bd-action bd-action--cyan">
-                {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-                {usingDeviceLocation ? 'Near me' : 'Use my location'}
-              </button>
-              <details className="group/options relative">
-                <summary className="bd-action cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                  More options <ChevronDown className="h-4 w-4 group-open/options:rotate-180" aria-hidden="true" />
-                </summary>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button type="button" onClick={startGuide} className="bd-action">
-                    <CircleHelp className="h-4 w-4" /> How it works
-                  </button>
-                  <button type="button" onClick={() => void sharePulse()} className="bd-action bd-action--violet">
-                    <Share2 className="h-4 w-4" /> Share view
-                  </button>
-                </div>
-              </details>
-              <Link href="/community/rally/new" className="bd-action bd-action--gold">
-                <Plus className="h-4 w-4" /> Start a meetup
-              </Link>
-              <Link href={startAdventureHref} className="bd-action bd-action--violet">
-                <Sparkles className="h-4 w-4" /> Start an adventure
-              </Link>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <Link href="/community/rally/new" className="bd-action bd-action--gold">
+                  <Plus className="h-4 w-4 shrink-0" /> Start a meetup
+                </Link>
+                <Link href={startAdventureHref} className="bd-action bd-action--violet">
+                  <Sparkles className="h-4 w-4 shrink-0" /> Start an adventure
+                </Link>
+              </div>
+              <div className="grid grid-cols-[1fr_1.2fr_auto] items-start gap-2 sm:flex sm:flex-wrap" aria-label="Discovery tools">
+                <button type="button" onClick={() => setPeebearOpen((current) => !current)} aria-expanded={peebearOpen} className="bd-action !px-3 !text-xs">
+                  <Dices className="h-4 w-4 shrink-0 text-amber-200" /> Ask PeeBear
+                </button>
+                <button type="button" onClick={useMyLocation} disabled={locating} className="bd-action !px-3 !text-xs">
+                  {locating ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Crosshair className="h-4 w-4 shrink-0 text-cyan-200" />}
+                  {usingDeviceLocation ? 'Near me' : 'Use my location'}
+                </button>
+                <details className="group/options relative">
+                  <summary aria-label="More options" className="bd-action cursor-pointer list-none !px-3 [&::-webkit-details-marker]:hidden">
+                    <MoreHorizontal className="h-5 w-5 sm:hidden" aria-hidden="true" />
+                    <span className="hidden sm:inline">More options</span><ChevronDown className="hidden h-4 w-4 group-open/options:rotate-180 sm:block" aria-hidden="true" />
+                  </summary>
+                  <div className="bd-card absolute right-0 z-30 mt-2 flex min-w-44 flex-col gap-2 p-2">
+                    <button type="button" onClick={startGuide} className="bd-action !text-xs">
+                      <CircleHelp className="h-4 w-4" /> How it works
+                    </button>
+                    <button type="button" onClick={() => void sharePulse()} className="bd-action !text-xs">
+                      <Share2 className="h-4 w-4" /> Share view
+                    </button>
+                  </div>
+                </details>
+              </div>
             </div>
           </div>
           {peebearOpen ? (
@@ -383,22 +389,22 @@ export default function LivePlansClient({
           {shareStatus ? <p role="status" className="mt-4 text-right text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100/60">{shareStatus}</p> : null}
         </section>
 
-        <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" role="group" aria-label="Choose an activity type">
+        <div className="bd-segmented mt-6 grid grid-cols-2 sm:grid-cols-4" role="group" aria-label="Choose an activity type">
           {PARTICIPATION_FILTERS.map((filter) => (
-            <button key={filter.id} type="button" aria-pressed={participation === filter.id} onClick={() => { setParticipation(filter.id); setPickedPlanId(null); setPeebearDecision(null); }} className={`min-h-11 rounded-full border px-4 text-[10px] font-black ${participation === filter.id ? 'border-cyan-200/32 bg-cyan-300/[0.1] text-cyan-100' : 'border-white/10 bg-white/[0.035] text-white/55'}`}>{filter.label}</button>
+            <button key={filter.id} type="button" aria-pressed={participation === filter.id} onClick={() => { setParticipation(filter.id); setPickedPlanId(null); setPeebearDecision(null); }} className="px-3">{filter.label}</button>
           ))}
         </div>
 
-        <div id="live-plan-filters" className={`scrollbar-hide scroll-mt-32 mt-5 flex items-center gap-2 overflow-x-auto rounded-2xl pb-1 transition ${guideStep === 0 ? 'ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70' : ''}`} role="group" aria-label="Filter live plans">
+        <div id="live-plan-filters" className={`bd-segmented scrollbar-hide scroll-mt-32 mt-3 flex items-center overflow-x-auto transition ${guideStep === 0 ? 'ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70' : ''}`} role="group" aria-label="Filter live plans">
           {FILTERS.map((item) => (
-            <button key={item.id} type="button" onClick={() => { setMode(item.id); setPickedPlanId(null); setPeebearOpen(false); setPeebearDecision(null); }} aria-pressed={mode === item.id} className={`min-h-10 shrink-0 rounded-full border px-4 text-[9px] font-black uppercase tracking-[0.13em] ${mode === item.id ? 'border-[#f5c518]/36 bg-[#f5c518]/[0.11] text-[#fff0a8]' : 'border-white/10 bg-white/[0.035] text-white/44'}`}>
+            <button key={item.id} type="button" onClick={() => { setMode(item.id); setPickedPlanId(null); setPeebearOpen(false); setPeebearDecision(null); }} aria-pressed={mode === item.id} className="shrink-0 px-4">
               {item.label}
             </button>
           ))}
-          <button type="button" onClick={() => { setNeedsPeopleOnly((current) => !current); setPickedPlanId(null); setPeebearOpen(false); setPeebearDecision(null); }} aria-pressed={needsPeopleOnly} className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-[9px] font-black uppercase tracking-[0.13em] ${needsPeopleOnly ? 'border-cyan-200/32 bg-cyan-300/[0.1] text-cyan-100' : 'border-white/10 bg-white/[0.035] text-white/44'}`}>
+          <button type="button" onClick={() => { setNeedsPeopleOnly((current) => !current); setPickedPlanId(null); setPeebearOpen(false); setPeebearDecision(null); }} aria-pressed={needsPeopleOnly} className="inline-flex shrink-0 items-center gap-2 px-4">
             <Users className="h-3.5 w-3.5" /> Needs people
           </button>
-          <button type="button" onClick={() => void load()} aria-label="Refresh live plans" className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.035] text-white/46">
+          <button type="button" onClick={() => void load()} aria-label="Refresh live plans" className="ml-auto flex w-11 shrink-0 items-center justify-center">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -406,9 +412,9 @@ export default function LivePlansClient({
 
         {snapshot ? (
           <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-[0.12em] text-white/42">
-            <span className="rounded-full border border-white/9 bg-black/22 px-3 py-1.5">{plans.length} matches</span>
-            <span className="rounded-full border border-white/9 bg-black/22 px-3 py-1.5">{plans.filter((plan) => plan.status.forming).length} need people</span>
-            <span className="rounded-full border border-white/9 bg-black/22 px-3 py-1.5">{plans.reduce((sum, plan) => sum + (plan.people?.going ?? 0), 0)} going</span>
+            <span className="px-1 py-1">{plans.length} matches</span>
+            <span className="px-1 py-1">{plans.filter((plan) => plan.status.forming).length} need people</span>
+            <span className="px-1 py-1">{plans.reduce((sum, plan) => sum + (plan.people?.going ?? 0), 0)} going</span>
             {snapshot.totals.completedTogether7d > 0 ? <span className="rounded-full border border-emerald-200/14 bg-emerald-300/[0.055] px-3 py-1.5 text-emerald-100/65">{snapshot.totals.completedTogether7d} completed together this week</span> : null}
           </div>
         ) : null}
@@ -438,10 +444,10 @@ export default function LivePlansClient({
               {plans.map((plan) => <LivePlanCard key={plan.id} plan={plan} />)}
             </section>
           ) : (
-            <section className={`mt-6 rounded-[1.75rem] border border-dashed border-white/14 bg-black/24 text-center ${participation === 'all' || participation === 'play' ? 'p-5' : 'p-10'}`}>
+            <section className={`bd-empty mt-6 text-center ${participation === 'all' || participation === 'play' ? 'p-5' : 'p-10'}`}>
               {participation !== 'all' && participation !== 'play' ? <UsersIcon /> : null}
-              <h2 className="mt-4 text-2xl font-black">{snapshot ? participation === 'earn' ? 'No paid dares in this window.' : participation === 'play' ? 'No free challenges in this window.' : 'No suitable plans in this window.' : 'Plans couldn’t load.'}</h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-white/44">{snapshot ? "Browse another time, start a meetup, or try a free adventure at your own pace." : "Refresh to check what is available in this area."}</p>
+              <h2 className="mt-4 text-xl font-bold">{snapshot ? participation === 'earn' ? 'No paid dares in this window.' : participation === 'play' ? 'No free challenges in this window.' : 'No suitable plans in this window.' : 'Plans couldn’t load.'}</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-300">{snapshot ? "Browse another time, start a meetup, or try a free adventure at your own pace." : "Refresh to check what is available in this area."}</p>
               {!snapshot ? <button type="button" onClick={() => void load()} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Try again</button> : mode !== 'ALL' ? <button type="button" onClick={() => setMode('ALL')} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Browse all plans</button> : null}
               {snapshot && participation !== 'all' ? <button type="button" onClick={() => setParticipation('all')} className="mx-auto mt-4 block min-h-11 text-sm font-bold text-cyan-100">See other activity types</button> : null}
               <Link href={participation === 'meet' ? '/community/rally/new' : startAdventureHref} className="bd-action bd-action--gold mt-5 inline-flex min-h-11 items-center rounded-full bg-[#f5c518] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006]">{participation === 'meet' ? 'Start a meetup' : 'Try a free adventure'}</Link>
