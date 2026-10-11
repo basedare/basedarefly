@@ -27,12 +27,13 @@ export default function MarketsSection() {
           return (
             <div
               key={market.slug}
-              className={`relative overflow-hidden rounded-[26px] border ${
+              className={`market-glass-card relative overflow-hidden rounded-[26px] border ${
                 market.live ? 'border-yellow-300/30' : 'border-white/10'
-              } bg-[#08080e] shadow-[0_22px_46px_rgba(0,0,0,0.34)]`}
+              } shadow-[0_22px_46px_rgba(0,0,0,0.34)]`}
             >
               {/* Gradient cover (image-led, no stock photo) */}
-              <div className={`relative h-36 overflow-hidden bg-gradient-to-br ${market.gradient}`}>
+              <div className="relative h-36 overflow-hidden">
+                <div aria-hidden="true" className={`absolute inset-0 bg-gradient-to-br opacity-30 ${market.gradient}`} />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.06)_1px,transparent_0)] [background-size:22px_22px]" />
                 <MapPin className={`absolute -bottom-4 -right-3 h-28 w-28 opacity-15 ${market.accent}`} />
                 <span
@@ -51,17 +52,13 @@ export default function MarketsSection() {
               </div>
 
               {/* Body */}
-              <div className="p-5">
-                <p className="text-sm font-bold leading-6 text-white/58">{market.blurb}</p>
+              <div className="market-glass-body p-5">
+                <p className="text-sm font-bold leading-6 text-white/75">{market.blurb}</p>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <Link
                     href={actions.contributor.href}
                     prefetch={false}
-                    className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[11px] font-black uppercase tracking-[0.14em] transition ${
-                      market.live
-                        ? 'border border-yellow-300/30 bg-yellow-300 text-black hover:bg-yellow-200'
-                        : 'border border-white/14 bg-white/[0.05] text-white/76 hover:bg-white/[0.09] hover:text-white'
-                    }`}
+                    className={`bd-action text-[11px] uppercase tracking-[0.12em] ${market.live ? 'bd-action--gold' : ''}`}
                   >
                     {actions.contributor.label}
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -70,14 +67,14 @@ export default function MarketsSection() {
                     <Link
                       href={actions.buyer.href}
                       prefetch={false}
-                      className="inline-flex min-h-10 items-center gap-2 rounded-full border border-cyan-200/24 bg-cyan-300/[0.07] px-4 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100/88 transition hover:bg-cyan-300/[0.12] hover:text-white"
+                      className="bd-action bd-action--cyan text-[11px] uppercase tracking-[0.12em]"
                     >
                       {actions.buyer.label}
                     </Link>
                   ) : null}
                 </div>
                 {actions.community && actions.identity ? (
-                  <p className="mt-3 text-xs font-semibold leading-5 text-white/42">
+                  <p className="mt-3 text-xs font-semibold leading-5 text-white/65">
                     Here for people and local plans?{' '}
                     <Link
                       href={actions.community.href}

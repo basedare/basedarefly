@@ -36,7 +36,7 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
           {/* The Switch Track */}
           <button
             onClick={flip}
-            className="relative cursor-pointer flex items-center w-[180px] h-[72px] rounded-full focus:outline-none"
+            className="street-mode-toggle relative cursor-pointer flex items-center w-[180px] h-[72px] rounded-full focus:outline-none"
             style={{
               background: 'linear-gradient(145deg, #0a0a0f, #15151f)',
               boxShadow: `

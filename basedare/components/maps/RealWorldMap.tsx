@@ -3120,10 +3120,11 @@ function createSurfBreakMarkerHtml(label: string) {
     <div class="surf-break-map-marker" title="${safeLabel} surf break">
       <span class="surf-break-map-label">${safeLabel}</span>
       <span class="surf-swell-flow" aria-hidden="true">
-        <svg viewBox="0 0 24 30" focusable="false">
-          <path class="surf-swell-crest surf-swell-crest--1" d="M2 7C5 3.5 8 3.5 11 7S17 10.5 22 5.5" />
-          <path class="surf-swell-crest surf-swell-crest--2" d="M1 16C4 12 7.5 12 10.5 16S17 19 23 13.5" />
-          <path class="surf-swell-crest surf-swell-crest--3" d="M3 25C6 21 9 21 12 25S18 28 22 22.5" />
+        <svg viewBox="0 0 30 32" focusable="false">
+          <path class="surf-swell-paint" d="m2 27 25-7-4 6-19 5Z" />
+          <path class="surf-swell-crest surf-swell-crest--1" d="M3 9C7 3 12 3 15 8S23 13 27 5" />
+          <path class="surf-swell-crest surf-swell-crest--2" d="M2 18C7 12 11 12 15 17S23 22 28 13" />
+          <path class="surf-swell-crest surf-swell-crest--3" d="M5 26C9 20 13 20 17 24S24 28 27 22" />
         </svg>
       </span>
       <span class="surf-break-relic-plinth" aria-hidden="true"></span>
@@ -11922,7 +11923,7 @@ export default function RealWorldMap() {
                 </button>
               </div>
             </div>
-            <div className="pointer-events-auto absolute right-5 top-6 z-[15] hidden overflow-hidden rounded-[18px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(16,25,36,0.88),rgba(5,8,15,0.94))] shadow-[0_18px_40px_rgba(0,0,0,0.42),0_0_22px_rgba(34,211,238,0.09),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl lg:block">
+            <div className="map-orbit-console pointer-events-auto absolute right-5 top-6 z-[15] hidden overflow-hidden rounded-[18px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(16,25,36,0.88),rgba(5,8,15,0.94))] shadow-[0_18px_40px_rgba(0,0,0,0.42),0_0_22px_rgba(34,211,238,0.09),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl lg:block">
               <div className="flex items-center justify-between border-b border-white/10 px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.16em] text-cyan-100/72">
                 <span>Orbit</span>
                 <span>{mapCameraPitchLabel}</span>
@@ -13726,20 +13727,7 @@ export default function RealWorldMap() {
           outline-offset: 3px;
         }
 
-        /* A stable control lane stays clear of Surf, Tonight and PeeBear cards. */
-        .map-navigation-controls {
-          top: 4rem;
-          right: 0.75rem;
-          left: auto;
-        }
-
         @media (min-width: 768px) {
-          .map-navigation-controls {
-            top: 1.25rem;
-            right: auto;
-            left: min(26rem, calc(100% - 5rem));
-          }
-
           .basedare-maplibre-map :global(.map-attention-card) {
             max-height: min(55dvh, calc(100dvh - 24rem));
           }

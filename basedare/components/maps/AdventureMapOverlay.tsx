@@ -406,7 +406,13 @@ export default function AdventureMapOverlay({
               </button>
               <button
                 type="button"
-                onClick={() => onGuideOpenChange(false)}
+                onClick={() => {
+                  setSurfPanelOpen(false);
+                  setGuideSpeechOpen(false);
+                  onPanelOpenChange(false);
+                  onIntentChange(null);
+                  onGuideOpenChange(false);
+                }}
                 className="group flex min-h-12 items-center gap-3 rounded-[18px] border border-emerald-100/14 bg-emerald-300/[0.045] px-3 text-left transition hover:border-emerald-100/28 hover:bg-emerald-300/[0.075]"
               >
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-emerald-100/14 bg-black/25">
@@ -655,7 +661,7 @@ export default function AdventureMapOverlay({
 
       {showGuideDock ? (
         <div
-          className={`pointer-events-auto absolute right-4 z-[16] max-w-[min(20rem,calc(100%-2rem))] items-end gap-2 text-left transition-[bottom] duration-200 md:right-6 ${
+          className={`adventure-guide-dock pointer-events-auto absolute right-4 z-[16] max-w-[min(20rem,calc(100%-2rem))] items-end gap-2 text-left transition-[bottom] duration-200 md:right-6 ${
             showIntentCard ? "hidden md:flex" : "flex"
           } ${
             obscured
@@ -674,7 +680,7 @@ export default function AdventureMapOverlay({
                 onGuideOpenChange(true);
               }}
               aria-label="Open the PeeBear guide"
-              className="mb-1 inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[linear-gradient(180deg,rgba(35,28,12,0.94),rgba(7,8,15,0.97))] px-3 text-[9px] font-black uppercase tracking-[0.12em] text-[#fff0a8] shadow-[0_14px_30px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl transition hover:border-[#f5c518]/42"
+              className="adventure-guide-ask bd-action bd-action--goldquiet mb-1 inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-[#f5c518]/24 bg-[linear-gradient(180deg,rgba(35,28,12,0.94),rgba(7,8,15,0.97))] px-3 text-[9px] font-black uppercase tracking-[0.12em] text-[#fff0a8] shadow-[0_14px_30px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl transition hover:border-[#f5c518]/42"
             >
               <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
               Ask PeeBear
@@ -698,7 +704,7 @@ export default function AdventureMapOverlay({
             className="flex items-end gap-2 text-left"
           >
             {(guideSpeechOpen || showPanel) && !showIntentCard ? (
-              <span className="mb-2 max-w-[12rem] rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.96),rgba(5,7,14,0.98))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/86 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl sm:max-w-[15rem]">
+              <span className="adventure-guide-speech mb-2 max-w-[12rem] rounded-[17px] border border-cyan-100/18 bg-[linear-gradient(180deg,rgba(15,24,37,0.96),rgba(5,7,14,0.98))] px-3 py-2 text-[10px] font-bold leading-4 text-cyan-50/86 shadow-[0_16px_34px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] backdrop-blur-xl sm:max-w-[15rem]">
                 <span className="sr-only">{guideText}</span><span aria-hidden="true" className="relative block"><span className="invisible">{guideText}</span><span className="absolute inset-0">{dialogue.visible}<span className="ml-1 text-yellow-200">{dialogue.speaking ? '·' : '▾'}</span></span></span>
               </span>
             ) : null}

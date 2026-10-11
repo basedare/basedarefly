@@ -63,7 +63,6 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
           {/* Header */}
           <div
             className="flex items-center justify-between p-5"
-            style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}
           >
             {/* Logo with subtle glow */}
             <div className="relative group">

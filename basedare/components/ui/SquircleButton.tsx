@@ -26,8 +26,8 @@ type SquircleTone = keyof typeof COLORS;
 
 const JELLY_FACE_HEIGHT = 40;
 const JELLY_FACE_RADIUS = 20;
-const JELLY_SHINE_WIDTH = 0.44;
-const JELLY_SHINE_HEIGHT = 4.4;
+const JELLY_SHINE_WIDTH = 0.28;
+const JELLY_SHINE_HEIGHT = 1.5;
 
 type SquircleButtonProps = {
   tone?: SquircleTone;

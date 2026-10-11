@@ -45,7 +45,7 @@ export function WalletOverview() {
   const canReceive = isConnected && !!address && correctNetwork && !simulation && supportedNetwork;
   const message = feedback && feedback.address === address ? feedback.text : '';
 
-  return <section id="wallet" className="order-2 mb-6 scroll-mt-28 rounded-3xl border border-white/15 bg-[linear-gradient(135deg,rgba(46,29,70,.8),rgba(8,10,18,.92))] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_10px_24px_rgba(0,0,0,.25)]">
+  return <section id="wallet" className="activity-wallet relative overflow-hidden order-2 mb-6 scroll-mt-28 rounded-3xl border border-white/15 bg-[linear-gradient(135deg,rgba(46,29,70,.8),rgba(8,10,18,.92))] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_10px_24px_rgba(0,0,0,.25)]">
     <button type="button" aria-expanded={open} aria-controls="wallet-content" onClick={() => setOpen(!open)} className="flex min-h-11 w-full items-center justify-between gap-3 text-left">
       <span className="flex items-center gap-3"><Wallet className="h-5 w-5 text-yellow-300" /><span className="font-black">Your wallet</span></span>
       <span className="text-xs text-white/65">{open ? 'Close' : 'Balance & receive'} {open ? '−' : '+'}</span>

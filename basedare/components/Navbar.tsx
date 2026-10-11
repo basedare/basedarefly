@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, MessageCircle, Sparkles, X } from "lucide-react";
 import Image from "next/image";
@@ -33,7 +33,6 @@ const NAV_LINK_PREFETCH = false;
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const sweepId = useId();
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setIsOpen(false); };
@@ -110,30 +109,6 @@ export default function Navbar() {
           className={styles.backdrop}
           aria-hidden="true"
         />
-        <svg
-          className={styles.sweep}
-          viewBox="0 0 1440 36"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <defs>
-            <linearGradient id={sweepId} x1="0" y1="0" x2="1440" y2="0" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#6de7df" stopOpacity="0" />
-              <stop offset="0.14" stopColor="#6de7df" stopOpacity="0.3" />
-              <stop offset="0.42" stopColor="#a78bfa" stopOpacity="0.08" />
-              <stop offset="0.73" stopColor="#e752bb" stopOpacity="0.23" />
-              <stop offset="1" stopColor="#e752bb" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M-20 24C150 26 196 4 358 10S700 34 920 18S1240 6 1460 22"
-            fill="none"
-            stroke={`url(#${sweepId})`}
-            strokeWidth="1"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
         <div className="relative z-10 mx-auto flex max-w-[92rem] items-center justify-between gap-2 md:gap-4">
 
           {/* 1. LOGO */}

@@ -9,6 +9,7 @@ import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LivePotLeaderboard from "@/components/LivePotLeaderboard";
 import PushActivationCard from "@/components/PushActivationCard";
 import SignalRoomCard from "@/components/SignalRoomCard";
+import StreetAccent from '@/components/ui/StreetAccent';
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import CosmicButton from "@/components/ui/CosmicButton";
 import { WalletOverview } from "@/components/wallet/WalletOverview";
@@ -228,16 +229,16 @@ function getDashboardIconClasses(tone: DashboardQuickAction['tone']): string {
 }
 
 const raisedPanelClass =
-  "relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
+  "activity-panel relative overflow-hidden rounded-[30px] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.025)_14%,rgba(10,9,18,0.9)_58%,rgba(7,6,14,0.96)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.4),0_0_28px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.24)]";
 
 const softCardClass =
-  "relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]";
+  "activity-card relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_12%,rgba(10,10,18,0.92)_100%)] shadow-[0_18px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-12px_18px_rgba(0,0,0,0.22)]";
 
 const insetCardClass =
   "bd-dent-surface bd-dent-surface--soft rounded-[22px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(4,5,10,0.72)_0%,rgba(11,11,18,0.92)_100%)]";
 
 const raisedTileClass =
-  "relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-[linear-gradient(160deg,rgba(34,32,56,0.92)_0%,rgba(18,18,30,0.98)_38%,rgba(10,10,18,1)_100%)] shadow-[0_20px_38px_rgba(0,0,0,0.32),0_0_22px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-14px_20px_rgba(0,0,0,0.26)]";
+  "activity-tile relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-[linear-gradient(160deg,rgba(34,32,56,0.92)_0%,rgba(18,18,30,0.98)_38%,rgba(10,10,18,1)_100%)] shadow-[0_20px_38px_rgba(0,0,0,0.32),0_0_22px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-14px_20px_rgba(0,0,0,0.26)]";
 
 const metricTileClass =
   `${raisedTileClass} before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/28 before:to-transparent`;
@@ -255,13 +256,11 @@ const pillClass =
   "inline-flex items-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(11,11,18,0.94)_100%)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-300 shadow-[0_12px_18px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.08)]";
 
 const volumetricButtonBase =
-  "relative isolate inline-flex min-h-[48px] items-center justify-center gap-2 overflow-hidden rounded-[16px] border px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] transition-[transform,box-shadow,border-color,background,color] duration-150 ease-out hover:-translate-y-[1px] active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-50 shadow-[0_12px_20px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.24)] before:pointer-events-none before:absolute before:inset-x-5 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/26 before:to-transparent after:pointer-events-none after:absolute after:inset-[1px] after:rounded-[15px] after:border after:border-white/8 hover:shadow-[0_14px_22px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-10px_14px_rgba(0,0,0,0.24)]";
+  "bd-action min-h-[48px] text-xs uppercase tracking-[0.14em]";
 
-const volumetricButtonPurple =
-  `${volumetricButtonBase} border-purple-300/18 bg-[linear-gradient(180deg,rgba(78,49,124,0.88)_0%,rgba(43,27,71,0.94)_28%,rgba(19,14,31,0.98)_100%)] text-purple-100 hover:border-purple-200/26 hover:bg-[linear-gradient(180deg,rgba(88,56,136,0.9)_0%,rgba(47,30,78,0.95)_28%,rgba(20,14,33,1)_100%)]`;
+const volumetricButtonPurple = `${volumetricButtonBase} bd-action--violet`;
 
-const volumetricButtonNeutral =
-  `${volumetricButtonBase} border-white/10 bg-[linear-gradient(180deg,rgba(62,72,90,0.24)_0%,rgba(35,40,53,0.68)_22%,rgba(18,20,31,0.98)_100%)] text-white/86 hover:border-white/16 hover:bg-[linear-gradient(180deg,rgba(68,79,98,0.26)_0%,rgba(38,44,58,0.72)_22%,rgba(20,22,34,1)_100%)]`;
+const volumetricButtonNeutral = `${volumetricButtonBase}`;
 
 const dashboardSquircleLabelClass =
   "relative z-10 inline-flex items-center justify-center gap-2 font-black uppercase tracking-[0.08em] text-[0.9rem] text-black/84";
@@ -1222,8 +1221,10 @@ export default function Dashboard() {
     });
   }
 
-  if (!isConnected) return <div className="mx-auto min-h-screen max-w-4xl bd-page-top px-4 pb-24 text-white">
-    <section className={`${raisedPanelClass} p-6`}>
+  if (!isConnected) return <div className="activity-page mx-auto min-h-screen max-w-4xl bd-page-top px-4 pb-24 text-white">
+    <section className={`${raisedPanelClass} activity-hero p-6`}>
+      <StreetAccent className="mb-3 w-24" />
+      <HoneyGooAccent className="absolute right-4 top-0" size="sm" />
       <p className="bd-page-kicker mb-3">My activity</p>
       <h1 className="bd-page-title">Your activity</h1>
       <p className="bd-page-copy mt-3">Your plans, paid work and saved activities, together. Sign in to see work linked to your wallet.</p>
@@ -1238,13 +1239,13 @@ export default function Dashboard() {
   </div>;
 
   return (
-    <div className="relative min-h-screen flex flex-col">
+    <div className="activity-page relative min-h-screen flex flex-col">
       <div className="fixed inset-0 z-10 pointer-events-none hidden md:block">
         <GradualBlurOverlay />
       </div>
 
       <div className="bd-page-top container relative z-20 mx-auto mb-12 flex flex-grow flex-col px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 md:py-10">
-        <div className={`${raisedPanelClass} order-1 mb-8 px-5 py-6 sm:px-6`}>
+        <div className={`${raisedPanelClass} activity-hero order-1 mb-8 px-5 py-6 sm:px-6`}>
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_0%,rgba(250,204,21,0.12),transparent_32%),radial-gradient(circle_at_88%_100%,rgba(168,85,247,0.1),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_36%,transparent_72%,rgba(0,0,0,0.24)_100%)]" />
           <HoneyGooAccent className="absolute right-5 top-[-2px] hidden xl:block" size="md" />
           <div className="relative flex flex-col gap-5">
@@ -1279,10 +1280,11 @@ export default function Dashboard() {
                   ) : null}
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[2.2rem] leading-none sm:text-5xl md:text-6xl font-black uppercase italic tracking-[-0.06em]">
+                <StreetAccent className="mt-3 w-24" />
+                <h1 className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[2.2rem] leading-none sm:text-5xl md:text-6xl font-black uppercase italic tracking-[-0.06em]">
                   <span className="text-[#FACC15] drop-shadow-[0_4px_18px_rgba(250,204,21,0.25)]">Your</span>
-                  <span className="text-[#A855F7] drop-shadow-[0_4px_18px_rgba(168,85,247,0.2)]">activity</span>
-                </div>
+                  <span className="text-[#e879f9] drop-shadow-[0_4px_18px_rgba(168,85,247,0.2)]">activity</span>
+                </h1>
                 <p className="mt-2 text-sm text-white/55">
                   {isConnected
                     ? identityHandle && identityPlatform

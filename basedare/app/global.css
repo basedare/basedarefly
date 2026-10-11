@@ -3306,7 +3306,7 @@ button[data-testid='ockConnectWalletButton']:hover {
      the Ask button remains a distinct target instead of hiding underneath. */
   body.bd-map-route-active:has(.creator-mission-tray-map-compact)
     .basedare-maplibre-map
-    div:has(> button > .adventure-guide-orb) {
+    .adventure-guide-dock {
     bottom: calc(8.3rem + env(safe-area-inset-bottom)) !important;
   }
 
@@ -3314,7 +3314,7 @@ button[data-testid='ockConnectWalletButton']:hover {
      text button yields temporarily; the familiar mascot remains actionable. */
   body.bd-map-route-active:has(.nearby-dare-tray--expanded)
     .basedare-maplibre-map
-    div:has(> button > .adventure-guide-orb) {
+    .adventure-guide-dock {
     right: auto !important;
     bottom: calc(5.9rem + env(safe-area-inset-bottom)) !important;
     left: 0.1rem !important;
@@ -3324,7 +3324,7 @@ button[data-testid='ockConnectWalletButton']:hover {
 
   body.bd-map-route-active:has(.nearby-dare-tray--expanded)
     .basedare-maplibre-map
-    div:has(> button > .adventure-guide-orb)
+    .adventure-guide-dock
     > button:first-child {
     display: none !important;
   }
@@ -3783,3 +3783,126 @@ button[data-testid='ockConnectWalletButton']:hover {
 }
 .peebear-speaking { animation: peebear-speak .48s ease-in-out infinite; transform-origin: 50% 85%; }
 @media (prefers-reduced-motion: reduce) { .peebear-speaking { animation: none; } }
+
+/* Shared neon street material: cream ink, short paint strokes, tactile depth. */
+.street-accent { display: block; height: auto; pointer-events: none; user-select: none; }
+.bd-action { position: relative; isolation: isolate; }
+.bd-action::after {
+  content: ''; position: absolute; pointer-events: none; bottom: 4px; right: 15%;
+  width: 18px; height: 2px; border-radius: 1px; background: #67e8df;
+  box-shadow: 8px 1px 0 #ed65bf; opacity: .65; transform: skewX(-28deg);
+  transition: width .18s ease, opacity .18s ease;
+}
+.bd-action:hover::after, .bd-action:focus-visible::after { width: 28px; opacity: 1; }
+.bd-action--gold::after { background: #422724; box-shadow: 8px 1px 0 #9b267f; opacity: .45; }
+.bd-action--goldquiet::after { background: #f6d873; }
+.bd-action:disabled::after { opacity: .25; }
+.street-orbit-card .electric-card-body {
+  border: 1px solid #fff3cd9c; border-radius: 21px 8px 21px 8px;
+  box-shadow: 4px 4px 0 #080b15, 6px 6px 0 #ed65bf70;
+}
+.street-orbit-card .electric-card-top {
+  background: radial-gradient(ellipse at 0 0,#67e8df15,transparent 65%),linear-gradient(145deg,#181b2a,#090b13 75%);
+}
+.street-orbit-card .electric-card-top h3 { text-shadow: 2px 2px 0 #080b15, -1px 0 #67e8df70; }
+.street-orbit-card .electric-card-footer {
+  border-top: 2px solid #080b15; background: linear-gradient(130deg,#ffe66c,#f3bf32 65%,#df9c29);
+}
+.street-orbit-card .electric-card-footer::before {
+  content: ''; position: absolute; top: 0; left: 12%; width: 36px; height: 4px;
+  background: #67e8df; box-shadow: 18px 2px 0 #ed65bf; transform: skewX(-28deg);
+}
+.street-mode-toggle { border: 1px solid #fff3cd55; }
+.street-mode-toggle::after {
+  content: ''; position: absolute; pointer-events: none; right: 14px; bottom: 5px;
+  width: 30px; height: 3px; transform: rotate(-12deg); background: #67e8df;
+  box-shadow: -12px -3px 0 #ed65bf; opacity: .75;
+}
+.street-mode-toggle:focus-visible { outline: 2px solid #67e8df; outline-offset: 5px; }
+.street-reward-orb::after {
+  content: ''; position: absolute; pointer-events: none; z-index: 28; inset: 7px;
+  border: 2px solid #fff3cd70; border-right-color: #67e8df; border-bottom-color: #ed65bf;
+  border-radius: 50%; transform: rotate(-28deg);
+}
+.market-glass-card {
+  background: linear-gradient(145deg,rgba(30,37,53,.42),rgba(12,15,28,.34));
+  backdrop-filter: blur(10px) saturate(.8); -webkit-backdrop-filter: blur(10px) saturate(.8);
+  box-shadow: inset 0 1px 0 #fff3cd26, 0 18px 36px #0003;
+}
+.market-glass-body { background: rgba(8,11,22,.24); border-top: 1px solid #fff3cd12; }
+.activity-page .activity-panel, .activity-page .activity-card, .activity-page .activity-tile, .activity-wallet {
+  border-color: #fff3cd38; border-radius: 26px 10px 26px 10px;
+  background: radial-gradient(ellipse at 0 0,#67e8df0b,transparent 50%),linear-gradient(150deg,#1b1d2be6,#0b0d19ed 70%);
+  box-shadow: 3px 3px 0 #8c3c8f50, inset 0 1px 0 #fff3cd14, 0 18px 38px #0004;
+}
+.activity-page .activity-hero { border-color: #fff3cd66; }
+.activity-page .activity-card:hover { border-color: #67e8df8c; }
+.activity-page .activity-card:focus-visible { outline: 2px solid #67e8df; outline-offset: 4px; }
+.activity-wallet::before {
+  content: ''; position: absolute; pointer-events: none; left: 24px; top: 0;
+  width: 64px; height: 3px; background: #67e8df; box-shadow: 18px 3px 0 #ed65bf;
+  transform: skewX(-25deg);
+}
+/* Instrument placement belongs to the map viewport, never to a guide state. */
+body.bd-map-route-active .basedare-maplibre-map .map-navigation-controls { top: 4rem; right: .75rem; left: auto; }
+@media (min-width: 768px) {
+  body.bd-map-route-active .basedare-maplibre-map .map-navigation-controls { top: 1.25rem; right: auto; left: min(26rem,calc(100% - 5rem)); }
+}
+body.bd-map-route-active .basedare-maplibre-map .map-orbit-console {
+  border: 1px solid #fff3cd66; border-radius: 18px 7px 18px 7px;
+  background: linear-gradient(145deg,#232738f5,#090d19fa);
+  box-shadow: 3px 3px 0 #ed65bf70, 0 8px 20px #0005, inset 0 1px 0 #67e8df50;
+}
+.map-orbit-console > div:first-child { color: #9cf5e9; border-bottom-color: #67e8df55; }
+.map-orbit-console button { min-width: 44px; min-height: 44px; position: relative; }
+.map-orbit-console button:focus-visible { outline: 2px solid #67e8df; outline-offset: -3px; }
+.map-orbit-console button:hover { background: #67e8df19; color: #fff3cd; }
+.map-orbit-console button svg { transition: transform .18s ease; }
+.map-orbit-console button[aria-label='Orbit map left']:hover svg { transform: rotate(-24deg); }
+.map-orbit-console button[aria-label='Orbit map right']:hover svg { transform: rotate(24deg); }
+.map-orbit-console button[aria-label='Tilt map up']:hover svg { transform: translateY(-2px); }
+.map-orbit-console button[aria-label='Tilt map down']:hover svg { transform: translateY(2px); }
+.map-orbit-console button:active { box-shadow: inset 0 2px 5px #0009; }
+body.bd-map-route-active .basedare-maplibre-map .adventure-guide-dock { bottom: calc(5rem + env(safe-area-inset-bottom)); }
+body.bd-map-route-active .basedare-maplibre-map:has(#basedare-map-key) .adventure-guide-dock { visibility: hidden; pointer-events: none; }
+body.bd-map-route-active .basedare-maplibre-map .adventure-guide-speech {
+  position: relative; border: 1px solid #fff3cd70; border-radius: 18px 7px 18px 7px;
+  background: linear-gradient(140deg,#243044f5,#0c101cf5); color: #f6f1df;
+  box-shadow: 3px 3px 0 #ed65bf80, 0 8px 18px #0005; font-size: 11px;
+}
+body.bd-map-route-active .basedare-maplibre-map .adventure-guide-speech::before {
+  content: ''; position: absolute; pointer-events: none; left: 10px; top: -2px;
+  width: 26px; height: 3px; background: #67e8df; transform: rotate(-5deg);
+}
+body.bd-map-route-active .basedare-maplibre-map .adventure-guide-orb::before {
+  content: ''; position: absolute; pointer-events: none; z-index: -1;
+  width: 68px; height: 50px; border-radius: 55% 35% 60% 30%; transform: rotate(-16deg);
+  background: radial-gradient(ellipse,#ed65bf28,transparent 68%);
+  border: 2px solid #67e8df9c; border-top-color: transparent; border-right-color: #ed65bf;
+  box-shadow: 2px 2px 0 #080b15;
+}
+body.bd-map-route-active .basedare-maplibre-map .adventure-guide-face { filter: drop-shadow(1px 1px 0 #fff3cd) drop-shadow(-1px -1px 0 #67e8df); }
+body.bd-map-route-active .basedare-maplibre-map .surf-break-map-label {
+  border-color: #fff3cda6; border-radius: 7px 3px 7px 3px; color: #fff3cd;
+  background: #101725ed; box-shadow: 2px 2px 0 #ed65bf8c; text-shadow: 1px 1px 0 #080b15;
+}
+body.bd-map-route-active .basedare-maplibre-map .surf-swell-flow {
+  width: 28px; height: 30px; color: #67e8df;
+  filter: drop-shadow(1px 1px 0 #080b15) drop-shadow(-1px 0 0 #fff3cd9c) drop-shadow(0 0 3px #67e8df55);
+}
+body.bd-map-route-active .basedare-maplibre-map .surf-swell-crest { stroke-width: 2.3; }
+body.bd-map-route-active .basedare-maplibre-map .surf-swell-crest--3 { color: #fff3cd; }
+body.bd-map-route-active .basedare-maplibre-map .surf-swell-paint { fill: #ed65bf; stroke: #080b15; stroke-width: 1.4; }
+body.bd-map-route-active .basedare-maplibre-map[data-surf-signal-tier='unavailable'] .surf-swell-flow { color: #a3b4b8; }
+@media (prefers-reduced-motion: reduce) {
+  .bd-action::after, .map-orbit-console button svg { transition: none; }
+}
+
+@media (max-width: 767px) {
+  body.bd-map-route-active .basedare-maplibre-map .adventure-guide-dock { bottom: calc(7.5rem + env(safe-area-inset-bottom)); }
+  body.bd-map-route-active .basedare-maplibre-map .adventure-guide-speech { max-width: calc(100vw - 8rem); }
+}
+
+.adventure-guide-dock:has(.adventure-guide-speech) .adventure-guide-ask { display: none; }
+.adventure-guide-dock > button { min-width: 0; max-width: 100%; }
+body.bd-map-route-active .basedare-maplibre-map .adventure-guide-speech { width: 14rem; flex: 1 1 auto; }

@@ -14,6 +14,7 @@ import GlitchText from "@/components/GlitchText";
 import { LiquidInput } from "@/components/LiquidInput";
 import InitProtocolButton from "@/components/InitProtocolButton";
 import ProtocolLoader from "@/components/ProtocolLoader";
+import StreetAccent from '@/components/ui/StreetAccent';
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import HomeGridRadar from "@/components/home/HomeGridRadar";
 import RoleChoiceCards from "@/components/home/RoleChoiceCards";
@@ -143,7 +144,7 @@ function HomeContent() {
   };
 
   return (
-    <main className="flex flex-col items-center min-h-screen bg-transparent font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
+    <main className="home-street flex flex-col items-center min-h-screen bg-transparent font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
       {view === 'FAN' ? (
         <div className="pointer-events-none fixed inset-0 z-[1] hidden lg:block" aria-hidden="true">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(34,211,238,0.08),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(168,85,247,0.11),transparent_34%),radial-gradient(circle_at_50%_30%,rgba(245,197,24,0.035),transparent_30%)]" />
@@ -191,6 +192,7 @@ function HomeContent() {
             <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
               <div className="w-full relative">
                 <div className="relative z-[60] mx-auto max-w-lg px-4 pt-4 text-center" aria-label="Discover BaseDare">
+                  <StreetAccent className="mx-auto mb-2 w-24" />
                   <p className="text-sm font-bold leading-6 text-white/80">{BASEDARE_INTRO}</p>
                   <Link href="/now?source=home-intro" prefetch={false} className="bd-action bd-action--gold mt-3 px-5 uppercase tracking-[0.12em]">Find something nearby →</Link>
                 </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import StreetAccent from '@/components/ui/StreetAccent';
 
 type CardProps = {
   badge: string;
@@ -37,10 +38,11 @@ export default function ElectricCard({
       />
 
       {/* 2. CARD BODY */}
-      <div className="relative w-full h-full bg-black rounded-xl overflow-hidden border border-white/10 flex flex-col">
+      <div className="electric-card-body relative w-full h-full bg-black rounded-xl overflow-hidden border border-white/10 flex flex-col">
         
         {/* Top Section: Glass */}
-        <div className="relative h-[65%] p-4 flex flex-col items-center justify-center text-center bg-white/5 backdrop-blur-md">
+        <div className="electric-card-top relative h-[65%] p-4 flex flex-col items-center justify-center text-center bg-white/5 backdrop-blur-md">
+           <StreetAccent className="absolute left-3 top-3 w-20 opacity-90" />
            <div className="px-3 py-1 rounded-full bg-purple-900/50 border border-purple-500/30 text-white font-mono text-xs font-bold mb-3 shadow-[0_0_10px_rgba(168,85,247,0.4)]">
              {badge}
            </div>
@@ -50,7 +52,7 @@ export default function ElectricCard({
         </div>
 
         {/* Bottom Section: Gold/Honey Block */}
-        <div className="relative h-[35%] bg-gradient-to-t from-yellow-700 to-[#FFD700] flex flex-col items-center justify-center p-2 border-t border-[#FFD700]">
+        <div className="electric-card-footer relative h-[35%] bg-gradient-to-t from-yellow-700 to-[#FFD700] flex flex-col items-center justify-center p-2 border-t border-[#FFD700]">
            <p className="text-[10px] text-black font-black uppercase tracking-widest opacity-60">{rewardLabel}</p>
            <p className="text-2xl font-black text-black tracking-tighter">{bounty}</p>
            <p className="text-xs font-mono font-bold text-black/70">{streamer}</p>

@@ -129,6 +129,7 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
               aria-label={dare.example ? `Example: ${dare.description}. See how it works` : `Open ${dare.description || dare.title}`}
             >
               <ElectricCard
+                className="street-orbit-card"
                 badge={dare.expiry_timer || "24H"}
                 title={dare.description || dare.title || "OPEN MISSION"}
                 description={dare.example ? `${dare.valueLabel} | ${dare.participationLabel}` : `${dare.stake_amount} USDC | ${dare.streamer_name || "@Anon"}`}

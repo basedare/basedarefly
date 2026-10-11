@@ -209,7 +209,7 @@ export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
         aria-expanded={isOpen}
         onClick={() => setIsOpen((value) => !value)}
         className={`
-          fixed z-40 will-change-transform origin-bottom-right
+          street-reward-orb fixed z-40 will-change-transform origin-bottom-right
           rounded-full hidden flex-col justify-center items-center p-2
           border-2 overflow-hidden cursor-pointer
           w-44 h-44

@@ -826,6 +826,20 @@ export default function HomeGridRadar({ compact = false, floating = false, class
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
+        .home-grid-radar-disc, .home-grid-radar-shell--floating .home-grid-radar-disc {
+          border-color: #fff3cd88;
+        }
+        .home-grid-radar-disc::before {
+          border: 2px solid #fff3cd55;
+          border-right-color: #67e8df;
+          border-bottom-color: #ed65bf;
+          transform: rotate(-24deg);
+        }
+        .home-grid-radar-action, .home-grid-radar-locate-button, .home-grid-radar-map-button {
+          border-color: #67e8df66;
+          box-shadow: 2px 2px 0 #ed65bf55, inset 0 1px 0 #fff3cd22;
+        }
+        .home-grid-radar-shell button:focus-visible { outline: 2px solid #67e8df; outline-offset: 4px; }
         @keyframes home-grid-radar-sweep {
           from {
             transform: rotate(-28deg);
