@@ -1,6 +1,7 @@
 "use client";
 
-import { Waves, X } from "lucide-react";
+import { X } from "lucide-react";
+import SurfSpotGlyph from "./SurfSpotGlyph";
 import type { SiargaoSurfSignal } from "@/lib/siargao-surf-signal";
 import { CLOUD_9_SURF_FORECAST_CROSS_CHECK, KANAWAY_SURF_LAUNCH } from "@/lib/siargao-surf-signal";
 import { SIARGAO_SURF_BREAK_POINTS } from "@/lib/siargao-surf-breaks";
@@ -31,15 +32,15 @@ export default function MapSurfGuide({ surfSignal, daylight, onSelectPlace, onCl
 }) {
   return (
     <section aria-label="Siargao surf guide" className="map-attention-card pointer-events-auto relative max-h-[min(30rem,55dvh)] w-[min(24rem,calc(100vw-4rem))] overflow-y-auto rounded-[24px] border border-cyan-200/20 bg-[linear-gradient(180deg,rgba(18,26,38,0.98),rgba(5,7,14,0.985))] p-3.5 shadow-[0_24px_54px_rgba(0,0,0,0.48)] backdrop-blur-xl">
-      <button type="button" onClick={onClose} aria-label="Close surf guide" className="absolute right-2.5 top-2.5 grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-black/30 text-white/60"><X className="h-3.5 w-3.5" /></button>
-      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100/60">PeeBear’s surf guide · Siargao</p>
-      <h2 className="mt-2 pr-8 text-lg font-black text-white">Surf, tides & boat access</h2>
+      <button type="button" onClick={onClose} aria-label="Close surf guide" className="map-guide-close absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-black/30 text-white/60"><X className="h-4 w-4" /></button>
+      <p className="pr-10 text-[9px] font-black uppercase tracking-[0.2em] text-cyan-100/60">PeeBear’s surf guide · Siargao</p>
+      <h2 className="mt-2 pr-12 text-lg font-black text-white">Surf, tides & boat access</h2>
       <p className="mt-2 text-xs leading-5 text-white/65">{daylight ? "Browse the breaks and check the latest model before choosing a session." : "Plan your next daylight session. It’s too late for a surf-now suggestion; this model describes current conditions, not tomorrow’s forecast."}</p>
             {surfSignal ? (
-              <div className="mt-3 block w-full rounded-[18px] border border-cyan-200/18 bg-[radial-gradient(circle_at_100%_0%,rgba(34,211,238,0.14),transparent_40%),rgba(34,211,238,0.055)] px-3 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+              <div className="surf-guide-model mt-3 block w-full rounded-[18px] border border-cyan-200/18 bg-[radial-gradient(circle_at_100%_0%,rgba(34,211,238,0.14),transparent_40%),rgba(34,211,238,0.055)] px-3 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
                 <span className="flex items-start gap-2.5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cyan-100/16 bg-black/25">
-                    <Waves className="h-4 w-4 text-cyan-100" />
+                    <SurfSpotGlyph className="h-8 w-8" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-cyan-100/58">

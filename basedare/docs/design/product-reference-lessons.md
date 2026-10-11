@@ -38,3 +38,17 @@ Sources: [Unconventional AI](https://unconv.ai/), [[un]CFO article](https://unco
 4. Source-linked PeeBear/place recommendations and a simple public progress log.
 
 These need their own product/data design and implementation pass; no new matching algorithm, outreach, campaign spend, feedback collection or AI integration was enabled by this visual release.
+
+## Follow-up decision — 2026-10-11
+
+Rechecked the official product pages, Hinge help articles and Unconventional AI's company-building article. The Instagram reel remains throttled; none of these findings describe its unseen video content.
+
+| Reference | Useful lesson | Small BaseDare experiment | Outcome to measure |
+| --- | --- | --- | --- |
+| HumanPost | Make human work, progress and evidence understandable | One venue brief with three approved creative angles and a visible brief → participation → evidence → review → recorded settlement sequence | Qualified place visits, opt-in joins and accepted evidence per brief |
+| Hinge | Give the first conversation context, then learn whether people actually met | An optional “I'm up for…” prompt and an invitation attached to an existing activity; later, a private “Did you meet / would you join again?” check | Invitation acceptance, self-reported meetups, repeat participation and unwanted-contact reports |
+| Unconventional AI | A clear thesis becomes credible through dated, source-linked artifacts | A concise discovery promise, real place stories and a progress log; recommendations label source, time and whether they are an idea or confirmed activity | Discovery-to-plan conversion and recommendation freshness/accuracy reports |
+
+Recommended first product pass: activity-based profile prompts and contextual invitations using the existing people/friend flows. They directly serve BaseDare's reason to exist—help people do things together—and can be explored without introducing an opaque matching system. Keep any outcome feedback private and explicitly self-reported, separate from QR/GPS attendance, reputation and payment evidence.
+
+The commercial lesson from HumanPost is operational clarity and bounded creative learning. Its dedicated-account distribution model and vendor-reported performance are not evidence that the same model would benefit a local venue network. The lesson from Unconventional AI is product focus and source-linked company knowledge, not a reason to adopt its research hardware or add an AI feature to every screen.

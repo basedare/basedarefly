@@ -1,3 +1,8 @@
+### Codex surf illustration and PeeBear material follow-up (2026-10-11)
+- Surf pins and the surf model card share fixed vector artwork: an ink-outlined cyan crest, cream foam, dark facet and magenta paint base. Model-tier timing, unavailable state, map-movement pause and reduced-motion guards remain intact. The marker/camera/data behavior is unchanged.
+- PeeBear keeps the gold animated head, with a raised illustrated frame and a speaking-only paint sway. Guide panels share cream/ink edges and painted ticks; guide close controls are 44px. Keep the viewport-owned zoom lane and Free roam's existing camera-preserving dismissal.
+- HumanPost, Hinge and Unconventional AI lessons remain sourced proposals in docs/design/product-reference-lessons.md. The Instagram reel could not be fetched. Logo/X work remains plan-only.
+
 ### Codex wallet and venue usability completion (2026-10-11)
 - Wallet reads use a bounded, chain-checked server RPC with canonical fallback. Missing readings remain unavailable, never zero. Preserve separate USDC/ETH results, refresh recovery and the address-only receive QR with network guards.
 - Public venue chat/presence uses current approved handles or a stable Explorer alias. Keep recorded receipt names and room access checks; replace only legacy wallet labels for display. Curated discovery inserts missing venues without rewriting operator metadata.

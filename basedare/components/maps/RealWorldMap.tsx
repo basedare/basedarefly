@@ -1,6 +1,7 @@
 'use client';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { SURF_SPOT_PATHS } from '@/lib/map-surf-art';
 import { useSharedAdventureMap } from '@/hooks/useSharedAdventureMap';
 import Image from 'next/image';
 import { useRecommendationClock } from '@/hooks/useRecommendationClock';
@@ -3060,11 +3061,8 @@ function createSurfBreakMarkerHtml(label: string) {
     <div class="surf-break-map-marker" title="${safeLabel} surf break">
       <span class="surf-break-map-label">${safeLabel}</span>
       <span class="surf-swell-flow" aria-hidden="true">
-        <svg viewBox="0 0 30 32" focusable="false">
-          <path class="surf-swell-paint" d="m2 27 25-7-4 6-19 5Z" />
-          <path class="surf-swell-crest surf-swell-crest--1" d="M3 9C7 3 12 3 15 8S23 13 27 5" />
-          <path class="surf-swell-crest surf-swell-crest--2" d="M2 18C7 12 11 12 15 17S23 22 28 13" />
-          <path class="surf-swell-crest surf-swell-crest--3" d="M5 26C9 20 13 20 17 24S24 28 27 22" />
+        <svg class="surf-spot-glyph" viewBox="0 0 48 44" focusable="false">
+          ${SURF_SPOT_PATHS.map((path) => `<path class="${path.className}" d="${path.d}" />`).join('')}
         </svg>
       </span>
       <span class="surf-break-relic-plinth" aria-hidden="true"></span>

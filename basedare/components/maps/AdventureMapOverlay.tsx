@@ -331,11 +331,11 @@ export default function AdventureMapOverlay({
               type="button"
               onClick={() => onGuideOpenChange(false)}
               aria-label="Close PeeBear suggestions"
-              className="absolute right-2.5 top-2.5 grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-black/30 text-white/48 transition hover:border-white/20 hover:text-white"
+              className="map-guide-close absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-black/30 text-white/48 transition hover:border-white/20 hover:text-white"
             >
               <X className="h-3.5 w-3.5" />
             </button>
-            <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#f8dd72]/70">
+            <p className="pr-10 text-[9px] font-black uppercase tracking-[0.24em] text-[#f8dd72]/70">
               {fieldStationLabel ? `${fieldStationLabel} · Field Station` : "PeeBear’s picks"}
             </p>
             <h2 className="mt-2 max-w-[18rem] pr-7 text-lg font-black leading-5 text-white sm:text-xl sm:leading-6">
