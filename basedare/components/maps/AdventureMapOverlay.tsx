@@ -77,7 +77,7 @@ const INTENT_OPTIONS: Array<{
   {
     id: "meet",
     label: "Meet people",
-    detail: "Public, bounded activities",
+    detail: "Meetups and things to do together",
     sprite: "gathering",
   },
   {
@@ -89,7 +89,7 @@ const INTENT_OPTIONS: Array<{
   {
     id: "now",
     label: "Do something now",
-    detail: "Live, nearby and low-friction",
+    detail: "Free challenges and nearby ideas",
     sprite: "flag",
   },
 ];
@@ -336,7 +336,7 @@ export default function AdventureMapOverlay({
               <X className="h-3.5 w-3.5" />
             </button>
             <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#f8dd72]/70">
-              {fieldStationLabel ? `${fieldStationLabel} · Field Station` : "PeeBear reads the field"}
+              {fieldStationLabel ? `${fieldStationLabel} · Field Station` : "PeeBear’s picks"}
             </p>
             <h2 className="mt-2 max-w-[18rem] pr-7 text-lg font-black leading-5 text-white sm:text-xl sm:leading-6">
               Where to next?
@@ -394,7 +394,7 @@ export default function AdventureMapOverlay({
                     See what’s on tonight
                   </span>
                   <span className="mt-0.5 line-clamp-1 block text-[9px] font-semibold text-white/44">
-                    Usual island rhythm + scheduled plans
+                    Nightlife ideas and published events
                   </span>
                 </span>
                 {scheduledTonightCount > 0 ? (

@@ -391,7 +391,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
                         style={dropdownPosition ? { top: dropdownPosition.top, right: dropdownPosition.right } : undefined}
-                        className="bd-notification-panel fixed inset-x-3 top-[calc(env(safe-area-inset-top)+4.5rem)] z-[12000] isolate flex max-h-[calc(100dvh-5.5rem-env(safe-area-inset-top))] w-auto flex-col overflow-hidden rounded-[26px] border border-white/15 bg-[#0d0e17] shadow-[0_28px_90px_rgba(0,0,0,.7),inset_0_1px_0_rgba(255,255,255,.12)] md:inset-x-auto md:right-4 md:top-20 md:max-h-[min(78vh,42rem)] md:w-[27rem]"
+                        className="bd-notification-panel fixed inset-x-3 top-[calc(env(safe-area-inset-top)+4.5rem)] z-[12000] isolate flex max-h-[calc(100dvh-5.5rem-env(safe-area-inset-top))] w-auto flex-col overflow-hidden rounded-[26px] border border-white/15 bg-[#0d0e17] shadow-[0_28px_90px_rgba(0,0,0,.7),inset_0_1px_0_rgba(255,255,255,.12)] md:inset-x-auto md:right-4 md:top-20 md:max-h-[min(78vh,42rem)] md:w-[25rem]"
                     >
                         <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-300/60 to-transparent" />
                         {/* Header */}
@@ -403,7 +403,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                 </h3>
                                 <p className="mt-1 text-xs font-medium text-white/60">
                                     {actionCount || inboxUnreadCount || unreadCount
-                                        ? `${actionCount} to do · ${inboxUnreadCount} unread ${inboxUnreadCount === 1 ? 'message' : 'messages'} · ${unreadCount} ${unreadCount === 1 ? 'update' : 'updates'}`
+                                        ? [actionCount && `${actionCount} to do`, inboxUnreadCount && `${inboxUnreadCount} unread ${inboxUnreadCount === 1 ? 'message' : 'messages'}`, unreadCount && `${unreadCount} ${unreadCount === 1 ? 'update' : 'updates'}`].filter(Boolean).join(' · ')
                                         : 'You’re up to date'}
                                 </p>
                             </div>
@@ -592,7 +592,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                             ) : null}
                                         </div>
                                         <p className="mt-1 text-xs text-gray-400">
-                                            Your conversations and venue replies.
+                                            Direct messages, bids and support. Venue group chats live on each place.
                                         </p>
                                     </div>
                                     <Link

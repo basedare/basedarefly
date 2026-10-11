@@ -33,6 +33,9 @@ jobs:
 
       - name: Test database release gate
         run: node --test scripts/database-release-check.test.mjs
+
+      - name: Test wallet and venue usability flows
+        run: npm run test:usability
       
       - name: Run linter
         run: npm run lint

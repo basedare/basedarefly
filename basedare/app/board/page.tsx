@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 const STAMP_LABEL: Record<FlyerStamp, string> = {
-  LIVE_TONIGHT: 'Live tonight',
+  LIVE_TONIGHT: 'Visited today',
   CHECK_IN_OPEN: 'Check-in open',
   VERIFIED: 'Verified',
   REWARD: 'Reward',
@@ -414,7 +414,7 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
           <div className="mx-auto mt-10 max-w-2xl rounded-[28px] border border-[#f5c518]/18 bg-[radial-gradient(circle_at_100%_0%,rgba(34,211,238,.11),transparent_35%),linear-gradient(180deg,rgba(18,20,31,.96),rgba(6,7,14,.98))] p-5 shadow-[0_28px_70px_rgba(0,0,0,.5)] sm:p-7">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#f8dd72]/70">PeeBear asks first</p>
             <h2 className="mt-2 text-2xl font-black text-white">What would make your next two hours better?</h2>
-            <p className="mt-2 text-sm leading-6 text-white/48">Choose one and BaseDare will answer with no more than three useful options around this station.</p>
+            <p className="mt-2 text-sm leading-6 text-white/48">Choose one and BaseDare will answer with no more than three useful options nearby.</p>
             {firstParam(params.fallback) === '1' || inventory?.isLowDensity || inventoryUnavailable ? (
               <div className="mt-4 rounded-2xl border border-cyan-200/12 bg-cyan-300/[0.045] px-4 py-3 text-xs leading-5 text-cyan-50/62">
                 That specific layer is thin or unavailable right now, so BaseDare did not invent weak suggestions. Pick another mood or explore freely.
@@ -422,10 +422,10 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
             ) : null}
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {[
-                ['social', 'Meet people', 'Public, bounded activities', Users],
+                ['social', 'Meet people', 'Meetups and things to do together', Users],
                 ['mystery', 'Find something interesting', 'Places with a story', Sparkles],
-                ['reward', 'Do something now', 'Live, nearby and low-friction', Flag],
-                ['tonight', 'See what’s on tonight', 'Usual rhythm + confirmed events', MoonStar],
+                ['reward', 'Do something now', 'Free challenges and nearby ideas', Flag],
+                ['tonight', 'See what’s on tonight', 'Nightlife ideas and published events', MoonStar],
               ].map(([mode, label, detail, Icon]) => {
                 const next = copyParams(params, {
                   attention: String(mode),
@@ -498,8 +498,8 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
         ) : total === 0 ? (
           <div className="mx-auto mt-12 max-w-md rounded-[24px] border border-white/10 bg-black/40 p-8 text-center backdrop-blur-md">
             <p className="text-sm font-bold leading-6 text-white/60">
-              {!liveSnapshot || sections.unavailable ? 'Some activities couldn’t load. Try refreshing, or browse another view.' : 'No published plans in this area yet.'}{' '}
-              <Link href="/community/rally/new" className="text-[#f8dd72] underline-offset-2 hover:underline">Start a meetup</Link>
+              {!liveSnapshot || sections.unavailable ? 'Some activities couldn’t load. Try refreshing, or browse another view.' : 'No activity published in this area yet.'}{' '}
+              <Link href="/community/rally/new" className="text-[#f8dd72] underline-offset-2 hover:underline">Start a meetup</Link>, <Link href={`/adventures?${copyParams(params, {}).toString()}`} className="text-[#f8dd72] underline-offset-2 hover:underline">try a free adventure</Link>
               {' '}or <Link href="/map" className="text-cyan-100 underline-offset-2 hover:underline">open the map</Link> to choose a place.
             </p>
           </div>
@@ -517,7 +517,7 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
             <LivePlanBoardSection title="Things to do" subtitle="Meetups · surf boats · events · challenges" plans={readyPlans} />
             {!livePlans.length ? (
               <>
-                <BoardSection title="Tonight" subtitle="Live now" flyers={sections.tonight} tone="cyan" fieldStation={fieldStation} />
+                <BoardSection title="Visited today" subtitle="Recorded check-ins" flyers={sections.tonight} tone="cyan" fieldStation={fieldStation} />
                 <BoardSection title="Rewards" subtitle="Open paid dares" flyers={sections.rewards} tone="gold" fieldStation={fieldStation} />
               </>
             ) : null}

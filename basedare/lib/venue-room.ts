@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
 import { findPrimaryCreatorTagForWallet, findPrimaryCreatorTagsForWallets } from '@/lib/creator-tag-resolver';
+import { roomDisplayName } from '@/lib/room-display-name';
 import { createWalletNotification } from '@/lib/notifications';
 
 export const VENUE_ROOM_MESSAGE_TTL_HOURS = 24;
@@ -94,17 +95,13 @@ function normalizeWallet(value?: string | null) {
   return value?.trim().toLowerCase() || null;
 }
 
-function shortWallet(wallet: string) {
-  return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
-}
-
 function roomWalletLabel(wallet: string, metadataJson?: Prisma.JsonValue | null) {
   const metadata = readMetadataRecord(metadataJson);
   if (metadata.kind === 'receipt') {
     return 'BaseDare';
   }
 
-  return shortWallet(wallet);
+  return roomDisplayName(wallet);
 }
 
 function roomRadiusMeters(venue: Pick<VenueRoomVenue, 'checkInRadiusMeters'>) {
@@ -166,7 +163,7 @@ async function getActor(walletAddress: string): Promise<VenueRoomActor> {
   const primaryTag = await findPrimaryCreatorTagForWallet(walletAddress);
 
   return {
-    displayName: primaryTag?.tag || 'Guest',
+    displayName: roomDisplayName(walletAddress, primaryTag?.tag),
     avatarUrl: primaryTag?.pfpUrl ?? null,
   };
 }
@@ -262,16 +259,21 @@ function mapRoomMessage(
     createdAt: Date;
     expiresAt: Date;
   },
-  viewerWallet: string | null
+  viewerWallet: string | null,
+  actor?: VenueRoomActor
 ): VenueRoomMessageSummary {
   const kind = readMetadataString(message.metadataJson, 'kind') === 'receipt' ? 'receipt' : 'message';
 
   return {
     id: message.id,
-    walletLabel: roomWalletLabel(message.walletAddress, message.metadataJson),
-    displayName: message.displayName,
-    avatarUrl: message.avatarUrl,
-    body: message.body,
+    walletLabel: actor?.displayName ?? roomWalletLabel(message.walletAddress, message.metadataJson),
+    displayName: kind === 'receipt' && !/^0x[\da-f]/i.test(message.displayName)
+      ? message.displayName
+      : actor?.displayName ?? roomDisplayName(message.walletAddress),
+    avatarUrl: actor?.avatarUrl ?? message.avatarUrl,
+    body: kind === 'receipt' && actor
+      ? message.body.replace(/0x[\da-f]{4,}(?:\.{3}|…)[\da-f]{4}/gi, actor.displayName)
+      : message.body,
     mine: kind === 'message' && Boolean(viewerWallet && message.walletAddress === viewerWallet),
     kind,
     receiptType: readMetadataString(message.metadataJson, 'receiptType'),
@@ -342,18 +344,18 @@ async function getWhoHere(venueId: string, now: Date): Promise<VenueRoomPresence
 
   const optedInCheckIns = publicCheckIns.filter((checkIn) => isPublicCheckIn(checkIn.metadataJson));
   const actorMap = await findPrimaryCreatorTagsForWallets([
-    ...roomPresences.map((presence) => presence.walletAddress),
-    ...optedInCheckIns.map((checkIn) => checkIn.walletAddress),
+    ...roomPresences.map(presence => presence.walletAddress),
+    ...optedInCheckIns.map(checkIn => checkIn.walletAddress),
   ]);
 
   for (const checkIn of optedInCheckIns) {
     if (entries.has(checkIn.walletAddress)) continue;
-    const actor = actorMap.get(checkIn.walletAddress);
+    const actor = actorMap.get(checkIn.walletAddress.toLowerCase());
 
     entries.set(checkIn.walletAddress, {
       id: `checkin:${checkIn.id}`,
       walletAddress: checkIn.walletAddress,
-      displayName: actor?.tag || 'Guest',
+      displayName: roomDisplayName(checkIn.walletAddress, actor?.tag),
       avatarUrl: actor?.pfpUrl ?? null,
       source: checkIn.source,
       lastSeenAt: checkIn.scannedAt,
@@ -366,9 +368,9 @@ async function getWhoHere(venueId: string, now: Date): Promise<VenueRoomPresence
     .slice(0, 12)
     .map((entry) => ({
       id: entry.id,
-      walletLabel: shortWallet(entry.walletAddress),
-      displayName: actorMap.get(entry.walletAddress.toLowerCase())?.tag || 'Guest',
-      avatarUrl: actorMap.get(entry.walletAddress.toLowerCase())?.pfpUrl ?? null,
+      walletLabel: roomDisplayName(entry.walletAddress, actorMap.get(entry.walletAddress.toLowerCase())?.tag),
+      displayName: roomDisplayName(entry.walletAddress, actorMap.get(entry.walletAddress.toLowerCase())?.tag),
+      avatarUrl: actorMap.get(entry.walletAddress.toLowerCase())?.pfpUrl ?? entry.avatarUrl,
       source: entry.source,
       lastSeenAt: entry.lastSeenAt.toISOString(),
       expiresAt: entry.expiresAt.toISOString(),
@@ -478,12 +480,8 @@ export async function getVenueRoomSnapshot(input: VenueRoomSnapshotInput) {
     getWhoHere(venue.id, now),
   ]);
 
-  // Stored labels are snapshots; resolve current usernames for ordinary chat.
-  // System receipts keep the actor label recorded with their evidence.
-  const actors = await findPrimaryCreatorTagsForWallets(messages
-    .filter((message) => mapRoomMessage(message, walletAddress).kind === 'message')
-    .map((message) => message.walletAddress));
-
+  // Keep recorded receipt names; only legacy wallet labels are replaced for display.
+  const actors = await findPrimaryCreatorTagsForWallets(messages.map(message => message.walletAddress).filter(wallet => !wallet.startsWith('system:')));
   return {
     venue: {
       id: venue.id,
@@ -492,10 +490,9 @@ export async function getVenueRoomSnapshot(input: VenueRoomSnapshotInput) {
     },
     access,
     messages: messages.reverse().map((message) => {
-      const summary = mapRoomMessage(message, walletAddress);
-      if (summary.kind !== 'message') return summary;
-      const actor = actors.get(message.walletAddress.toLowerCase());
-      return { ...summary, displayName: actor?.tag || 'Guest', avatarUrl: actor?.pfpUrl ?? null };
+      if (message.walletAddress.startsWith('system:')) return mapRoomMessage(message, walletAddress);
+      const tag = actors.get(message.walletAddress.toLowerCase());
+      return mapRoomMessage(message, walletAddress, { displayName: roomDisplayName(message.walletAddress, tag?.tag), avatarUrl: tag?.pfpUrl ?? null });
     }),
     whoHere,
     viewer: {

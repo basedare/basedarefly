@@ -1087,6 +1087,7 @@ const SIARGAO_QUERY_TOKENS = [
   'general luna',
   'surigao',
   'hideaway',
+  'gados',
   'cloud 9',
   'beach club',
   'shaka',
@@ -1251,62 +1252,38 @@ export async function ensureCuratedVenueRecords(slugs: string[]) {
   const selectedVenues = CURATED_SIARGAO_VENUES.filter((venue) => uniqueSlugs.includes(venue.slug));
   if (selectedVenues.length === 0) return;
 
-  await Promise.all(
-    selectedVenues.map((venue) =>
-      prisma.venue.upsert({
-        where: { slug: venue.slug },
-        update: {
-          name: venue.name,
-          description: venue.description,
-          address: venue.address,
-          city: venue.city,
-          country: venue.country,
-          latitude: venue.latitude,
-          longitude: venue.longitude,
-          geohash: encodeGeohash(venue.latitude, venue.longitude, 6),
-          timezone: venue.timezone,
-          categories: venue.categories,
-          placeSource: 'BASEDARE_CURATED',
-          externalPlaceId: `curated:${venue.slug}`,
-          checkInRadiusMeters: 120,
-          metadataJson: {
-            curated: true,
-            curatedSet: 'siargao-v14',
-            locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
-            coordinatePolicy:
-              'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
-            activationAngle:
-              'Food, surf, fitness, wellness, nightlife, and island-discovery missions.',
-            ...(venue.instagramHandle ? { instagramHandle: venue.instagramHandle } : {}),
-          },
-        },
-        create: {
-          slug: venue.slug,
-          name: venue.name,
-          description: venue.description,
-          address: venue.address,
-          city: venue.city,
-          country: venue.country,
-          latitude: venue.latitude,
-          longitude: venue.longitude,
-          geohash: encodeGeohash(venue.latitude, venue.longitude, 6),
-          timezone: venue.timezone,
-          categories: venue.categories,
-          placeSource: 'BASEDARE_CURATED',
-          externalPlaceId: `curated:${venue.slug}`,
-          checkInRadiusMeters: 120,
-          metadataJson: {
-            curated: true,
-            curatedSet: 'siargao-v14',
-            locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
-            coordinatePolicy:
-              'Pinned to externally checked venue/map anchors; unresolved venues use explicit approximate land anchors.',
-            activationAngle:
-              'Food, surf, fitness, wellness, nightlife, and island-discovery missions.',
-            ...(venue.instagramHandle ? { instagramHandle: venue.instagramHandle } : {}),
-          },
-        },
-      })
-    )
-  );
+  // Discovery must not rewrite venue/operator metadata or fan out one write per pin.
+  const existing = await prisma.venue.findMany({
+    where: { slug: { in: selectedVenues.map(venue => venue.slug) } },
+    select: { slug: true },
+  });
+  const existingSlugs = new Set(existing.map(venue => venue.slug));
+  const missing = selectedVenues.filter(venue => !existingSlugs.has(venue.slug));
+  if (!missing.length) return;
+  await prisma.venue.createMany({
+    skipDuplicates: true,
+    data: missing.map(venue => ({
+      slug: venue.slug,
+      name: venue.name,
+      description: venue.description,
+      address: venue.address,
+      city: venue.city,
+      country: venue.country,
+      latitude: venue.latitude,
+      longitude: venue.longitude,
+      geohash: encodeGeohash(venue.latitude, venue.longitude, 6),
+      timezone: venue.timezone,
+      categories: venue.categories,
+      placeSource: 'BASEDARE_CURATED',
+      externalPlaceId: `curated:${venue.slug}`,
+      checkInRadiusMeters: 120,
+      metadataJson: {
+        curated: true,
+        curatedSet: 'siargao-v14',
+        locationConfidence: venue.locationConfidence ?? 'externally-checked-anchor',
+        coordinatePolicy: 'Published map anchors; approximate locations are explicitly labelled.',
+        ...(venue.instagramHandle ? { instagramHandle: venue.instagramHandle } : {}),
+      },
+    })),
+  });
 }

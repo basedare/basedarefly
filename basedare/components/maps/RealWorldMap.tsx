@@ -3009,66 +3009,6 @@ function getSignalLayerKindMeta(kind: SignalLayerKind) {
   }
 }
 
-function truncateSignalMissionTitle(value: string) {
-  const compact = value.replace(/\s+/g, ' ').trim();
-  if (compact.length <= 96) return compact;
-  return `${compact.slice(0, 93).trimEnd()}...`;
-}
-
-function getSignalFundConfig(happening: MapHappening) {
-  const place = happening.place;
-  if (!place) return null;
-
-  const kind = getSignalLayerKind(happening);
-  const fundCopy: Record<
-    SignalLayerKind,
-    {
-      label: string;
-      title: string;
-      payout: number;
-    }
-  > = {
-    drop: {
-      label: 'Fund',
-      title: `Fund another challenge at ${place.name}`,
-      payout: 80,
-    },
-    first: {
-      label: 'Fund',
-      title: `Fund the first verified update at ${place.name}`,
-      payout: 60,
-    },
-    route: {
-      label: 'Fund',
-      title: `Fund a route check at ${place.name}`,
-      payout: 60,
-    },
-    relic: {
-      label: 'Fund',
-      title: `Fund the next verified update at ${place.name}`,
-      payout: 60,
-    },
-    intel: {
-      label: 'Fund',
-      title: `Fund this local tip at ${place.name}`,
-      payout: 60,
-    },
-  };
-  const copy = fundCopy[kind];
-
-  return {
-    label: copy.label,
-    href: buildVenueChallengeCreateHref({
-      venueId: place.id,
-      venueSlug: place.slug,
-      venueName: place.name,
-      title: truncateSignalMissionTitle(copy.title),
-      payout: copy.payout,
-      source: 'map',
-    }),
-  };
-}
-
 function escapeMarkerAttribute(value: string) {
   return value
     .replace(/&/g, '&amp;')
@@ -3612,6 +3552,7 @@ export default function RealWorldMap() {
   const [nearbyDareFilter, setNearbyDareFilter] = useState<NearbyDareFilter>('all');
   const [nearbyDareRadiusKm] = useState(5);
   const [nearbyDarePanelCollapsed, setNearbyDarePanelCollapsed] = useState(true);
+  const [nearbyDareTrayDismissed, setNearbyDareTrayDismissed] = useState(false);
   const [showLocalSignalForm, setShowLocalSignalForm] = useState(false);
   const [localSignalDraft, setLocalSignalDraft] = useState<LocalSignalDraft>({
     title: '',
@@ -3992,6 +3933,7 @@ export default function RealWorldMap() {
   const handleMapAttentionIntentChange = useCallback(
     (intent: MapAttentionIntent | null) => {
       setMapAttentionIntent(intent);
+      setNearbyDareTrayDismissed(false);
       if (intent) {
         postFieldStationEvent({
           eventType: 'STATION_ATTENTION_SELECTED',
@@ -6911,7 +6853,7 @@ export default function RealWorldMap() {
         ),
     [boatCrews],
   );
-  const selectedBoatLaunch = BOAT_LAUNCHES.find((launch) => launch.value === selectedPlace?.slug) ?? null;
+  const selectedBoatLaunch = BOAT_LAUNCHES.find((launch) => launch.value === KANAWAY_BOAT_VENUE_SLUG && launch.value === selectedPlace?.slug) ?? null;
   const selectedBoatCrew = selectedBoatLaunch
     ? activeBoatCrews.find((crew) => crew.venueSlug === selectedBoatLaunch.value) ?? null
     : null;
@@ -7078,7 +7020,7 @@ export default function RealWorldMap() {
         reason: assessment.reason,
         meta: place.tagSummary.approvedCount > 0
           ? `${place.tagSummary.approvedCount} verified ${place.tagSummary.approvedCount === 1 ? 'Spark' : 'Sparks'} in its history`
-          : 'No verified Sparks yet',
+          : 'No verified updates yet',
         sprite: getAdventurePlaceSprite({ challengeLiveCount: place.activeDareCount, categories: place.categories, venueName: place.name, venueSlug: place.slug }),
       }));
   }, [adventureCenter, mapAttentionIntent, nearbyPlaces, recommendationNow, recommendationTimeZone, userLocation]);
@@ -7376,8 +7318,8 @@ export default function RealWorldMap() {
         detail: place
           ? dare.isCommunitySpark
             ? dare.isPlayableHere
-              ? `${place.name} has a free Community Spark live. You’re inside the ${playRadiusLabel} play zone.`
-              : `${place.name} has a free Community Spark live. Get within ${playRadiusLabel} to unlock Play.`
+              ? `${place.name} has a free challenge. You’re inside the ${playRadiusLabel} play zone.`
+              : `${place.name} has a free challenge. Get within ${playRadiusLabel} to unlock Play.`
             : `${place.name} is active right now. Complete the brief before the window closes.`
           : dare.locationLabel
             ? `Active near ${dare.locationLabel}.`
@@ -7388,7 +7330,7 @@ export default function RealWorldMap() {
           ? dare.isPlayableHere ? 'Ready to play' : `Play within ${playRadiusLabel}`
           : `${formatMapUsd(dare.bounty)} USDC`,
         actionLabel: dare.isCommunitySpark
-          ? dare.isPlayableHere ? 'Play this Spark' : 'View Spark'
+          ? dare.isPlayableHere ? 'Play challenge' : 'View challenge'
           : 'Open dare',
         href: dare.shortId ? `/dare/${dare.shortId}` : '/board',
         place,
@@ -7920,6 +7862,7 @@ export default function RealWorldMap() {
       mapAttentionIntent === 'tonight') &&
     !mapAttentionGuideOpen &&
     !adventurePanelOpen &&
+    !nearbyDareTrayDismissed &&
     showNearbyDarePanel &&
     !(isMobileViewport && Boolean(selectedPlace));
   const hasSaveSpotPanel = Boolean(saveSpotDraft || selectedPrivateMapSpot);
@@ -11548,6 +11491,9 @@ export default function RealWorldMap() {
                 style={nearbyDareTrayDragStyle}
                 data-sheet-dragging={mapSheetDrag?.target === 'nearby-dare' ? 'true' : undefined}
               >
+                {nearbyDarePanelCollapsed && <button type="button" onClick={() => setNearbyDareTrayDismissed(true)} aria-label="Close nearby activity" title="Close nearby activity" className="absolute right-2 top-2 z-20 hidden h-10 w-10 place-items-center rounded-full border border-white/15 bg-[#11131d] text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] hover:text-white md:grid">
+                  <X className="h-4 w-4" />
+                </button>}
                 {nearbyDarePanelCollapsed ? (
                   <button
                     type="button"
@@ -11561,7 +11507,7 @@ export default function RealWorldMap() {
                       }
                       setNearbyDarePanelCollapsed(false);
                     }}
-                    className="relative flex w-full flex-col gap-2 px-4 pb-3 pt-2 text-left"
+                    className="relative flex w-full flex-col gap-2 pb-3 pl-4 pr-14 pt-2 text-left"
                     aria-label="Expand nearby dare tray"
                     aria-expanded={false}
                   >
@@ -11620,7 +11566,7 @@ export default function RealWorldMap() {
                     <span className="map-sheet-drag-bar" />
                   </button>
                   <div className="flex items-center justify-between gap-3">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f5c518]">
                         Nearby now
                       </p>
@@ -11634,11 +11580,14 @@ export default function RealWorldMap() {
                           : featuredMapHappening
                             ? `Try: ${featuredMapHappening.title}`
                             : userLocation
-                              ? 'Ideas and activities near you.'
+                              ? 'Ideas near you. Suggested stops aren’t scheduled events.'
                               : `${happeningWindow.dateLabel} around the map`}
                       </p>
                     </div>
-                    <button type="button" onClick={() => setNearbyDarePanelCollapsed(true)} aria-label="Close nearby activities" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">
+                    <div className="shrink-0 rounded-full border border-[#f5c518]/20 bg-[#f5c518]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#f8dd72]">
+                      {happeningLoading ? 'scanning' : `${mapHappenings.length} nearby`}
+                    </div>
+                    <button type="button" onClick={() => setNearbyDareTrayDismissed(true)} aria-label="Close nearby activity" title="Close nearby activity" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/15 bg-[#11131d] text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] hover:text-white">
                       <X className="h-4 w-4" />
                     </button>
                   </div>
@@ -11758,7 +11707,6 @@ export default function RealWorldMap() {
                     mapHappenings.map((happening) => {
                       const toneClasses = getHappeningToneClasses(happening.tone);
                       const signalKindMeta = getSignalLayerKindMeta(getSignalLayerKind(happening));
-                      const signalFundConfig = getSignalFundConfig(happening);
                       const isExternalHappeningHref = happening.href?.startsWith('http');
 
                       return (
@@ -11809,7 +11757,7 @@ export default function RealWorldMap() {
                                 onClick={() => focusExistingPlace(happening.place!)}
                                 className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/72 transition hover:border-white/16 hover:text-white"
                               >
-                                On map
+                                View place
                               </button>
                             ) : null}
                             {happening.href && isExternalHappeningHref ? (
@@ -11837,21 +11785,14 @@ export default function RealWorldMap() {
                                 {happening.actionLabel === 'Open' ? 'View details' : happening.actionLabel}
                               </button>
                             ) : null}
-                            {signalFundConfig ? (
-                              <Link
-                                href={signalFundConfig.href}
-                                className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#f5c518]/22 bg-[#f5c518]/[0.1] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#f8dd72] transition hover:border-[#f5c518]/38 hover:bg-[#f5c518]/[0.16]"
-                              >
-                                Start paid dare
-                              </Link>
-                            ) : null}
+
                           </div>
                         </div>
                       );
                     })
                     ) : (
                       <div className="px-3 py-5 text-center text-[11px] uppercase tracking-[0.18em] text-white/45">
-                        Nothing nearby yet. Move the map or verify a place.
+                        No activity found here. Move the map or start an adventure.
                       </div>
                     )
                   )}
@@ -11862,7 +11803,7 @@ export default function RealWorldMap() {
                       ? 'Scanning nearby...'
                       : mapHappenings.length > 0
                         ? `${mapHappenings[0].title}`
-                        : 'No nearby signals yet'}
+                        : 'No nearby activity yet'}
                   </div>
                 )}
                 </>

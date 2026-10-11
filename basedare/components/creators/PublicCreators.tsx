@@ -274,6 +274,7 @@ export default function CreatorsPage() {
                 Browse contributors by completed work, places reached, and local experience. Open a profile or invite someone to a paid mission.
               </p>
 
+              <Link href="/community?people=1" className={ghostButtonClass + " mb-4 text-cyan-100"}>Find people & friends <ArrowRight className="ml-2 h-4 w-4" /></Link>
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-xl mx-auto">
                 <Link href={createMissionHref} className="bd-action bd-action--gold flex-1">
                   <Briefcase className="h-4 w-4" aria-hidden="true" />

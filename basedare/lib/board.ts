@@ -147,7 +147,7 @@ export async function getBoardSections(opts: { city?: string } = {}): Promise<Bo
       const proofs = proofMap.get(venue.id) ?? 0;
       const recentCount = recent14.get(venue.id) ?? 0;
       const live = today > 0;
-      const stamps: FlyerStamp[] = live ? ['LIVE_TONIGHT', 'CHECK_IN_OPEN'] : ['CHECK_IN_OPEN'];
+      const stamps: FlyerStamp[] = live ? ['LIVE_TONIGHT'] : [];
       if (proofs > 0) stamps.push('VERIFIED');
       const flyer: Flyer = {
         id: `venue:${venue.id}`,
@@ -156,7 +156,7 @@ export async function getBoardSections(opts: { city?: string } = {}): Promise<Bo
         venueName: venue.name,
         venueSlug: venue.slug,
         city: venue.city,
-        detail: live ? 'Check-in is open at this venue.' : 'See recent verified visits and updates.',
+        detail: live ? 'Verified visits recorded today. Open the place for chat and current details.' : 'Recent verified visits and updates. Open the place to see its history.',
         stamps,
         metricValue: live ? String(today) : proofs > 0 ? String(proofs) : String(recentCount),
         metricLabel: live ? 'here today' : proofs > 0 ? 'verified updates' : 'recent check-ins',

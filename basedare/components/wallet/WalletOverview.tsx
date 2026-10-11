@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAccount, useBalance, useConfig, useReadContract, useSwitchChain } from 'wagmi';
-import { erc20Abi, formatUnits } from 'viem';
+import { useAccount, useConfig, useSwitchChain } from 'wagmi';
+import { formatUnits } from 'viem';
+import { useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
+import { NATIVE_BASE_USDC, type WalletBalances } from '@/lib/wallet-balance-types';
 import { Copy, RefreshCw, Wallet } from 'lucide-react';
 import { getBaseNetworkConfig } from '@/lib/base-chain';
 
 const network = getBaseNetworkConfig();
-const token = network.isMainnet
-  ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-  : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+const token = NATIVE_BASE_USDC[network.isMainnet ? 8453 : 84532];
 const simulation = process.env.NEXT_PUBLIC_SIMULATE_BOUNTIES === 'true';
 
 function displayAmount(value: bigint, decimals: number, digits: number) {
@@ -36,16 +36,34 @@ export function WalletOverview() {
   }, []);
   const [feedback, setFeedback] = useState<{ address: string; text: string } | null>(null);
   const enabled = open && isConnected && !!address && !simulation && supportedNetwork;
-  const balance = useReadContract({
-    address: token, abi: erc20Abi, functionName: 'balanceOf', args: address ? [address] : undefined,
-    chainId: network.chainId, query: { enabled, staleTime: 15_000, refetchOnWindowFocus: true },
+  const balance = useQuery({
+    queryKey: ['wallet-overview', network.chainId, address],
+    enabled, staleTime: 15_000, retry: false, refetchOnWindowFocus: true,
+    queryFn: async ({ signal }): Promise<WalletBalances> => {
+      const controller = new AbortController();
+      const abort = () => controller.abort();
+      const timer = setTimeout(abort, 10_000);
+      if (signal.aborted) abort();
+      else signal.addEventListener('abort', abort, { once: true });
+      try {
+        const response = await fetch(`/api/wallet/balance?address=${address}`, { cache: 'no-store', signal: controller.signal });
+        if (!response.ok) throw new Error('Balance unavailable');
+        const data: WalletBalances = await response.json();
+        if (data.chainId !== network.chainId) throw new Error('Unexpected wallet network');
+        return data;
+      } finally {
+        clearTimeout(timer);
+        signal.removeEventListener('abort', abort);
+      }
+    },
   });
-  const gas = useBalance({ address, chainId: network.chainId, query: { enabled, staleTime: 15_000 } });
+  const usdc = balance.data?.usdc;
+  const eth = balance.data?.eth;
   const correctNetwork = chainId === network.chainId;
   const canReceive = isConnected && !!address && correctNetwork && !simulation && supportedNetwork;
   const message = feedback && feedback.address === address ? feedback.text : '';
 
-  return <section id="wallet" className="activity-wallet relative overflow-hidden order-2 mb-6 scroll-mt-28 rounded-3xl border border-white/15 bg-[linear-gradient(135deg,rgba(46,29,70,.8),rgba(8,10,18,.92))] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_10px_24px_rgba(0,0,0,.25)]">
+  return <section id="wallet" className="bd-discovery-card order-2 mb-6 scroll-mt-28 rounded-3xl border border-white/15 bg-[linear-gradient(135deg,rgba(46,29,70,.8),rgba(8,10,18,.92))] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_10px_24px_rgba(0,0,0,.25)]">
     <button type="button" aria-expanded={open} aria-controls="wallet-content" onClick={() => setOpen(!open)} className="flex min-h-11 w-full items-center justify-between gap-3 text-left">
       <span className="flex items-center gap-3"><Wallet className="h-5 w-5 text-yellow-300" /><span className="font-black">Your wallet</span></span>
       <span className="text-xs text-white/65">{open ? 'Close' : 'Balance & receive'} {open ? '−' : '+'}</span>
@@ -54,13 +72,13 @@ export function WalletOverview() {
       {!isConnected ? <><p className="text-sm text-white/70">Connect your wallet to see your balance and receive USDC.</p><button className="bd-action mt-4" onClick={() => window.dispatchEvent(new Event('basedare:sign-in'))}>Connect wallet</button></> : <>
         <p className="text-xs font-bold uppercase tracking-widest text-cyan-100">{network.chainName}{!network.isMainnet ? ' · test funds only' : ''}{simulation ? ' · demo mode' : ''}</p>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="break-all text-2xl font-black sm:text-3xl" title={balance.data === undefined ? undefined : `${formatUnits(balance.data, 6)} USDC`} aria-live="polite">{simulation ? 'Demo mode' : !supportedNetwork ? 'Wallet unavailable on this network' : balance.isError ? 'Balance unavailable' : balance.data === undefined ? 'Loading…' : `${displayAmount(balance.data, 6, 2)} USDC`}</p>
-          {!simulation && supportedNetwork && <button className="bd-action" disabled={balance.isFetching || gas.isFetching} onClick={() => { void balance.refetch(); void gas.refetch(); }}><RefreshCw className={`mr-2 h-4 w-4 ${balance.isFetching || gas.isFetching ? 'animate-spin motion-reduce:animate-none' : ''}`} />{balance.isFetching || gas.isFetching ? 'Refreshing…' : 'Refresh'}</button>}
+          <p className="break-all text-2xl font-black sm:text-3xl" title={usdc == null ? undefined : `${formatUnits(BigInt(usdc), 6)} USDC`} aria-live="polite">{simulation ? 'Demo mode' : !supportedNetwork ? 'Wallet unavailable on this network' : balance.isError || usdc === null ? 'Balance unavailable' : usdc === undefined ? 'Loading…' : `${displayAmount(BigInt(usdc), 6, 2)} USDC`}</p>
+          {!simulation && supportedNetwork && <button className="bd-action" disabled={balance.isFetching} onClick={() => { void balance.refetch(); }}><RefreshCw className={`mr-2 h-4 w-4 ${balance.isFetching ? 'animate-spin motion-reduce:animate-none' : ''}`} />{balance.isFetching ? 'Checking…' : 'Refresh'}</button>}
         </div>
         <p className="mt-2 text-sm leading-6 text-white/70">Held in your connected wallet. Pending rewards and BaseCash venue credit are separate.</p>
-        {!simulation && supportedNetwork && <p className="mt-2 text-xs text-white/60">Available for network fees: {gas.isError ? 'ETH balance unavailable' : gas.data ? `${displayAmount(gas.data.value, gas.data.decimals, 4)} ETH` : 'loading ETH balance…'}</p>}
-        {!simulation && supportedNetwork && balance.isError && <p role="status" className="mt-3 text-sm text-amber-100">We couldn’t refresh your balance. Check your connection and try Refresh.</p>}
-        {!simulation && !balance.isError && balance.data === BigInt(0) && <p className="mt-3 text-xs leading-5 text-white/60">No native USDC found on {network.chainName}. Tokens on other networks and balances in other wallets won’t appear here.</p>}
+        {!simulation && supportedNetwork && <p className="mt-2 text-xs text-white/60">Network fees: {balance.isError || eth === null ? 'ETH balance unavailable' : eth !== undefined ? `${displayAmount(BigInt(eth), 18, 4)} ETH` : 'checking ETH balance…'}</p>}
+        {(balance.isError || usdc === null || eth === null) && <p role="status" className="mt-2 text-sm text-amber-100">The network didn’t respond. Refresh to retry; your funds stay in your wallet.</p>}
+        {!simulation && !balance.isError && usdc === '0' && <p className="mt-3 text-xs leading-5 text-white/60">No native USDC found on {network.chainName}. Tokens on other networks and balances in other wallets won’t appear here.</p>}
         {!simulation && balance.dataUpdatedAt > 0 && <p className="mt-2 text-xs text-white/50">Last checked {new Date(balance.dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>}
         {!correctNetwork && !simulation && supportedNetwork && <button className="bd-action mt-4" disabled={switching} onClick={async () => {
           try { await switchChainAsync({ chainId: network.chainId }); setFeedback(null); }
@@ -70,12 +88,11 @@ export function WalletOverview() {
         {canReceive && receiving && <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
           <p className="text-sm font-bold">{network.isMainnet ? 'Send native USDC on Base to this address.' : 'Use Base Sepolia test USDC only. Do not send real funds.'}</p>
           <p className="mt-2 text-xs leading-5 text-white/65">Choose {network.chainName} as the sending network. This is your wallet address, not a BaseDare deposit account. A small amount of ETH may be needed for future transactions.</p>
-          <figure className="my-5 flex flex-col items-center gap-3">
-            <div className="rounded-2xl bg-white p-3">
-              <QRCodeSVG value={address} size={192} level="M" marginSize={4} title={`Receive address on ${network.chainName}`} />
-            </div>
-            <figcaption className="text-center text-xs text-white/70">Scan to copy your address · select {network.chainName} when sending</figcaption>
+          <figure className="mt-4 w-fit rounded-2xl bg-white p-4 text-black">
+            <QRCodeSVG value={address!} size={176} level="M" marginSize={2} title={`${network.chainName} wallet receive address`} />
+            <figcaption className="mt-2 text-center text-xs font-bold">{network.chainName} · {network.isMainnet ? 'USDC' : 'test USDC'}</figcaption>
           </figure>
+          <p className="mt-3 text-xs text-white/65">Scan the address, then choose {network.chainName} and the supported USDC token in your sending wallet.</p>
           <code className="mt-3 block break-all text-sm text-cyan-100">{address}</code>
           <button className="bd-action mt-3" onClick={async () => {
             try { await navigator.clipboard.writeText(address); setFeedback({ address, text: 'Wallet address copied.' }); }

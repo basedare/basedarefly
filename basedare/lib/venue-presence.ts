@@ -1,5 +1,8 @@
 import 'server-only';
 
+import { roomDisplayName } from '@/lib/room-display-name';
+import { findPrimaryCreatorTagForWallet } from '@/lib/creator-tag-resolver';
+
 import { prisma } from '@/lib/prisma';
 import { calculateDistance, formatDistance, isValidCoordinates } from '@/lib/geo';
 import { publishVenueRoomReceipt } from '@/lib/venue-room';
@@ -61,10 +64,6 @@ function normalizeDuration(minutes: number): VenuePresenceDuration {
   if (minutes <= 30) return 30;
   if (minutes <= 60) return 60;
   return 120;
-}
-
-function shortWallet(wallet: string) {
-  return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
 }
 
 export async function createVenuePresenceSignal(input: {
@@ -226,7 +225,8 @@ export async function createVenuePresenceSignal(input: {
     return checkIn;
   });
 
-  const actorLabel = input.tag?.trim() || shortWallet(walletAddress);
+  const actor = await findPrimaryCreatorTagForWallet(walletAddress);
+  const actorLabel = roomDisplayName(walletAddress, actor?.tag);
   await publishVenueRoomReceipt({
     venueId: venue.id,
     actorWallet: walletAddress,

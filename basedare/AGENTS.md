@@ -1,3 +1,9 @@
+### Codex wallet and venue usability completion (2026-10-11)
+- Wallet reads use a bounded, chain-checked server RPC with canonical fallback. Missing readings remain unavailable, never zero. Preserve separate USDC/ETH results, refresh recovery and the address-only receive QR with network guards.
+- Public venue chat/presence uses current approved handles or a stable Explorer alias. Keep recorded receipt names and room access checks; replace only legacy wallet labels for display. Curated discovery inserts missing venues without rewriting operator metadata.
+- Preserve the integrated neon/graffiti design, passkey copy, larger close-zoom pins, List view navigation and mobile PeeBear. Nearby activity can be dismissed and reopened through mood/guide controls. Only the actual Kanaway launch gets the boat CTA. Recorded visits are not live-event or open-QR claims.
+- People & friends reuses existing bilateral connections. See docs/releases/wallet-map-usability-2026-10-11.md for checks and limitations. Mainnet deployment and the email sender/inbox trial remain separate paid-launch gates.
+
 ### Codex neon street materials (2026-10-11)
 - Continue the approved coffee-cup style through versioned graffiti honey, painted controls, homepage orbit cards/radar/reward rim, Map key, PeeBear hints, surf crests and My activity. Market cards are translucent matte glass; body text stays readable. Keep map, identity, payment and QR semantics intact.
 - Shared header sweep and legacy mobile seam are removed across pages. Map navigation has a guide-independent viewport lane; Free roam clears guide selection without resetting the camera. Map key temporarily hides the floating PeeBear dock to prevent overlap.

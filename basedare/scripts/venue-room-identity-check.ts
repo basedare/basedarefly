@@ -32,7 +32,7 @@ async function main() {
   const room = await getVenueRoomSnapshot({ slug: 'gados', walletAddress: wallet, latitude: 9.7867894, longitude: 126.1621528 });
   assert.equal(room.messages.find((m: {id: string}) => m.id === 'known').displayName, '@islander');
   assert.equal(room.messages.find((m: {id: string}) => m.id === 'known').mine, true);
-  assert.equal(room.messages.find((m: {id: string}) => m.id === 'guest').displayName, 'Guest');
+  assert.match(room.messages.find((m: {id: string}) => m.id === 'guest').displayName, /^Explorer [A-F0-9]{6}$/);
   assert.equal(room.messages.find((m: {id: string}) => m.id === 'receipt').displayName, 'Recorded actor');
   assert.equal(room.whoHere[0].displayName, '@islander');
   assert.equal(queries, 2, 'Batch identity reads once for presence and once for messages');

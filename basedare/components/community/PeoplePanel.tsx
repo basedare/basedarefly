@@ -20,8 +20,10 @@ export default function PeoplePanel() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  useEffect(() => { if (query.get("people") === "1") setOpen(true); }, [query]);
   useEffect(() => {
     if (!open) return;
+    setError("");
     const controller = new AbortController();
     const timer = setTimeout(() => {
       void fetch("/api/people?q=" + encodeURIComponent(search), {
@@ -30,6 +32,7 @@ export default function PeoplePanel() {
         .then((r) => r.json())
         .then((b) => {
           if (!b.success) throw Error(b.error);
+          setError("");
           setPeople(b.data);
         })
         .catch((e) => {
@@ -210,11 +213,10 @@ export default function PeoplePanel() {
                 </p>
                 {wallet &&
                 wallet !== p.walletAddress &&
-                loaded &&
                 !connections.some(
                   (c) =>
-                    c.requester === p.walletAddress ||
-                    c.recipient === p.walletAddress,
+                    c.status !== "CLOSED" && (c.requester === p.walletAddress ||
+                    c.recipient === p.walletAddress),
                 ) ? (
                   <button
                     disabled={busy}
