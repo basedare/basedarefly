@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, MessageCircle, Sparkles, X } from "lucide-react";
-import Image from "next/image";
+import BaseDareWordmark from './BaseDareWordmark';
 import Link from "@/components/DiscoveryLink";
 import { usePathname } from 'next/navigation';
 import { useView } from '@/app/context/ViewContext';
@@ -42,7 +42,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const { isControlMode } = useView();
   const isMapRoute = pathname === '/map' || pathname?.startsWith('/map/');
-  const useQuietNavSurface = isMapRoute || pathname?.startsWith('/field-sprints/');
+  const useQuietNavSurface = isControlMode || isMapRoute || pathname?.startsWith('/field-sprints/');
 
   const desktopNavItems = (
     <div className="flex min-w-0 items-center gap-1 p-1.5">
@@ -122,25 +122,11 @@ export default function Navbar() {
               {/* Very subtle ambient glow */}
               <div className="absolute inset-1 rounded-lg bg-purple-500/10 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 md:inset-2" />
 
-              <Image
-                src="/assets/basedare-wordmark-graffiti-v1.webp"
-                alt="BaseDare"
-                width={1024}
-                height={241}
+              <BaseDareWordmark
                 priority
+                isControlMode={isControlMode}
                 sizes="(min-width: 768px) 224px, 112px"
-                className={`relative h-8 w-auto max-w-full object-contain transition-all duration-300 hover:scale-105 md:h-[56px] ${isControlMode
-                  ? 'grayscale contrast-110 brightness-95'
-                  : ''
-                  }`}
-                style={{
-                  filter: isControlMode
-                    ? 'grayscale(1) contrast(1.1) brightness(0.95) drop-shadow(0 2px 2px rgba(0,0,0,0.45))'
-                    : 'drop-shadow(0 2px 2px rgba(0,0,0,0.45))',
-                  WebkitFilter: isControlMode
-                    ? 'grayscale(1) contrast(1.1) brightness(0.95) drop-shadow(0 2px 2px rgba(0,0,0,0.45))'
-                    : 'drop-shadow(0 2px 2px rgba(0,0,0,0.45))',
-                }}
+                className="relative h-full w-full object-contain transition-transform duration-300 hover:scale-105 motion-reduce:transition-none"
               />
             </Link>
           </div>

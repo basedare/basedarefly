@@ -14,9 +14,11 @@ My activity’s panels, tiles, wallet shell and buttons share the ink edge and p
 
 The shared header uses its masked backdrop without a visible decorative sweep. Legacy mobile header border is also removed.
 
-## Logo direction — plan only
+## Logo direction — implemented 12 October
 
-The current graffiti wordmark stays in production for this pass. A credible identity system needs a simpler master as well as an expressive illustration.
+The user authorized implementing the original-logo refinement and optional X signature. BaseDareWordmark now supplies the refined upright liquid lettering on phones and the small black/cream X signature from 768px. Header, footer and legacy mobile menu share it, preserving the gold BASE / purple DARE split, braces, thick PeeBear-like contours and sculpted depth. The shared header remains seam-free. Business mode keeps grayscale and uses the existing smoked navigation material for readable labels.
+
+The variants were compared at 96, 112 and 224px on dark/light surfaces and in grayscale. These are transparent raster exports, not editable vector or print masters. See basedare-wordmark-liquid-v2.md for current exports and generation prompts. The earlier broader identity-system proposal below remains future work:
 
 1. Refine the existing letterforms, spacing, braces and silhouette as editable vector artwork. Preserve recognition; simplify tiny chips and interior highlights that disappear at header size.
 2. Explore a small cream X beneath the BASE/DARE junction, with a dark outline and one restrained cyan or magenta offset. Use PeeBear’s rounded crossed strokes. Treat it as a signature, not a red error/cancel mark. Keep it within the existing logo footprint so header spacing stays stable.

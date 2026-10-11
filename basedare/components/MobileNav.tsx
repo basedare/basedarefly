@@ -3,6 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useView } from '@/app/context/ViewContext';
+import BaseDareWordmark from './BaseDareWordmark';
 import { X, Home, PlusCircle, Target, Trophy, Zap, LogOut, User, HelpCircle } from "lucide-react";
 
 interface MobileNavProps {
@@ -16,6 +18,7 @@ interface MobileNavProps {
 
 export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
   const pathname = usePathname();
+  const { isControlMode } = useView();
 
   const handleLogout = () => {
     window.location.reload();
@@ -69,14 +72,10 @@ export default function MobileNav({ isOpen, onClose, user }: MobileNavProps) {
               {/* Very subtle ambient glow on hover */}
               <div className="absolute -inset-2 bg-purple-500/10 blur-xl rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-              <img
-                src="/assets/basedare-wordmark-graffiti-v1.webp"
-                alt="BASEDARE"
-                className="relative h-8 w-auto object-contain transition-all duration-300 hover:scale-105"
-                style={{
-                  filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.45))',
-                  WebkitFilter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.45))',
-                }}
+              <BaseDareWordmark
+                isControlMode={isControlMode}
+                sizes="128px"
+                className="relative h-8 w-auto object-contain transition-transform duration-300 hover:scale-105 motion-reduce:transition-none"
               />
             </div>
 

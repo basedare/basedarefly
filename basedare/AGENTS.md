@@ -1,3 +1,8 @@
+### Codex refined liquid wordmark (2026-10-12)
+- User authorized implementing the previously planned logo/X refinement and pushing to main. This supersedes the historical plan-only logo notes below. Preserve original upright lettering, braces and gold BASE / purple DARE, with PeeBear-like black contours, cream rim and sculpted depth.
+- Navbar, Footer and legacy MobileNav share BaseDareWordmark. Phones use the clear core; screens from 768px use the small black/cream X signature. Keep existing header link footprints, focus behavior, seam-free backdrop and business-mode grayscale. Control mode uses the existing quiet navigation material for readable labels on its light background.
+- Artwork is versioned transparent raster output from built-in imagegen; originals remain available. See docs/design/basedare-wordmark-liquid-v2.md and docs/releases/liquid-wordmark-2026-10-12.md. No identity, map camera, database or payment behavior changes.
+
 ### Codex quiet physical design and Baretag recovery (2026-10-12)
 - Reuse bd-surface/card/well/field/back/segmented/empty for calm satin and smoked materials. The bear, orbital homepage and map artwork carry the graffiti identity; repeated two-line scribbles are removed. Use restrained mint for verified states, gold for main actions. Keep keyboard focus, 44px filter targets and the guide-independent map lane.
 - Now prioritizes meetup/adventure actions, with secondary discovery tools below. List view uses aligned physical cards and sentence case. Shared Community, My activity, adventure, creator and Control panels use the same depth. Selected long map labels stay horizontal and truncate.

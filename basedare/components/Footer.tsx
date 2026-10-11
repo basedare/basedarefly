@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Twitter, Shield, ShieldCheck, FileText, HelpCircle, Info, MessageSquare, Lightbulb, Users } from 'lucide-react';
-import Image from 'next/image';
+import BaseDareWordmark from './BaseDareWordmark';
 import Link from '@/components/DiscoveryLink';
 import { useView } from '@/app/context/ViewContext';
 
@@ -46,17 +46,10 @@ export default function Footer() {
             <div className="col-span-1 md:col-span-2 flex flex-col items-center md:items-start">
               {/* BASEDARE LOGO - Centered on mobile */}
               <div className="mb-4 md:mb-6 flex flex-col items-center md:items-start">
-                <Image
-                  src="/assets/basedare-wordmark-graffiti-v1.webp"
-                  alt="BaseDare"
-                  width={1024}
-                  height={241}
+                <BaseDareWordmark
+                  isControlMode={isControlMode}
                   sizes="(min-width: 768px) 238px, (min-width: 640px) 170px, 136px"
-                  className="h-8 sm:h-10 md:h-14 w-auto mb-3 md:mb-4 object-contain mx-auto md:mx-0 drop-shadow-[0_3px_3px_rgba(0,0,0,0.45)]"
-                  style={{
-                    filter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
-                    WebkitFilter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : undefined,
-                  }}
+                  className="h-8 sm:h-10 md:h-14 w-auto mb-3 md:mb-4 object-contain mx-auto md:mx-0"
                 />
                 <p className="max-w-sm text-center text-sm leading-6 text-gray-300 md:text-left">
                   Find your next move.
