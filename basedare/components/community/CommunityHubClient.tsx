@@ -185,7 +185,7 @@ export default function CommunityHubClient() {
 
   return (
     <main className="community-page relative min-h-screen overflow-hidden bd-page-top px-4 pb-24 text-white sm:px-6 lg:px-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(16,185,129,0.12),transparent_30%),radial-gradient(circle_at_85%_18%,rgba(139,92,246,0.14),transparent_34%)]" />
+      <div aria-hidden="true" className="bd-page-wash pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(16,185,129,0.12),transparent_30%),radial-gradient(circle_at_85%_18%,rgba(139,92,246,0.14),transparent_34%)]" />
       <div className="relative mx-auto max-w-6xl">
         <section className="bd-surface p-5 sm:p-8">
           <p className="text-xs font-bold text-emerald-100/80">{area.label} · within {area.radiusKm} km</p>

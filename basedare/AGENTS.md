@@ -1,3 +1,7 @@
+### Codex page-wash/header blend (2026-10-12)
+- The Create entry's visible seam was its page-local cyan/purple wash starting below the shared header, not a navbar border. List view, Now and Community had the same hard-start pattern. Use bd-page-wash on decorative page layers to fade their first 9rem; never mask content or controls.
+- Navbar geometry/material stays intact. Verified wide desktop, 390/320px fit, phone menu navigation and the other public header routes. See docs/releases/header-blend-2026-10-12.md. No data, identity, map or payment changes.
+
 ### Codex Nearby now drawer repair (2026-10-12)
 - Expanded Nearby now uses a list-level header, never a pinned copy of its first activity. Close resets expansion as well as dismissal; explicit intent/action choices can reopen the tray. Keep passive refresh from reopening it.
 - Mobile drawer gestures follow the horizontal side-drawer axis. Selected-place sheets retain vertical gestures. Collapse and close are 44px targets. While the mobile drawer occupies the navigation lane, hide its map controls; restore them at the same position on collapse/dismissal. Do not move the camera or change data/paid activity semantics.

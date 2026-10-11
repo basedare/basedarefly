@@ -377,7 +377,7 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
   return (
     <div className="relative min-h-screen">
       {/* faint scrim only behind the hero so text stays legible over the live bg */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[46vh] bg-[radial-gradient(circle_at_50%_0%,rgba(5,5,12,0.55),transparent_70%)]" />
+      <div aria-hidden="true" className="bd-page-wash pointer-events-none absolute inset-x-0 top-0 h-[46vh] bg-[radial-gradient(circle_at_50%_0%,rgba(5,5,12,0.55),transparent_70%)]" />
 
       <section className="relative z-10 mx-auto max-w-6xl bd-page-top px-4 pb-24 sm:px-6">
         {fieldStation ? <FieldStationEntryBeacon attentionMode={attentionMode} /> : null}

@@ -45,7 +45,7 @@ const START_OPTIONS = [
 export default function StartPage() {
   return (
     <main className="relative min-h-[calc(100svh-6rem)] overflow-hidden bd-page-top px-4 pb-8 text-white sm:px-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(34,211,238,0.12),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(168,85,247,0.14),transparent_34%)]" />
+      <div aria-hidden="true" className="bd-page-wash pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(34,211,238,0.12),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(168,85,247,0.14),transparent_34%)]" />
       <div className="relative mx-auto flex min-h-[calc(100svh-9rem)] max-w-5xl flex-col justify-center md:min-h-[calc(100svh-10rem)]">
         <section className={`${controlPanel} px-6 py-8 text-center sm:px-10 md:py-10`}>
           <div className={controlHairline} />

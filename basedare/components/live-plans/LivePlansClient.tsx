@@ -330,7 +330,7 @@ export default function LivePlansClient({
 
   return (
     <main className="now-page relative min-h-screen overflow-hidden bd-page-top px-4 pb-36 text-white sm:px-6 lg:px-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_8%,rgba(34,211,238,0.13),transparent_31%),radial-gradient(circle_at_84%_18%,rgba(139,92,246,0.15),transparent_34%)]" />
+      <div aria-hidden="true" className="bd-page-wash pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_8%,rgba(34,211,238,0.13),transparent_31%),radial-gradient(circle_at_84%_18%,rgba(139,92,246,0.15),transparent_34%)]" />
       <div className="relative mx-auto max-w-7xl">
         <section className="bd-surface p-5 sm:p-8">
           <div className="flex flex-col gap-6">

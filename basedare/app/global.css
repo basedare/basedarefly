@@ -3740,6 +3740,12 @@ button[data-testid='ockConnectWalletButton']:hover {
 
 /* Opt-in discovery typography and controls; leave the map and hero art alone. */
 .bd-page-top { padding-top: 2rem; }
+/* Page washes begin below the fixed header. Fade only their decorative paint,
+   so that boundary cannot become a full-width band over the shared world. */
+.bd-page-wash {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 9rem);
+  mask-image: linear-gradient(180deg, transparent, #000 9rem);
+}
 .bd-page-title {
   font-size: clamp(2rem, 4.4vw, 3.5rem);
   font-weight: 900;
