@@ -36,7 +36,8 @@
     "test:basecash:auth": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/basecash-request-auth-check.ts",
     "test:usability": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/usability-flow-check.ts",
     "test:community-identity": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/community-identity-check.ts",
-    "test:discovery": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ts-node/register --test lib/home-activities.test.ts lib/adventure-progress.test.ts lib/recommendation-policy.test.ts"
+    "test:discovery": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ts-node/register --test lib/home-activities.test.ts lib/adventure-progress.test.ts lib/recommendation-policy.test.ts",
+    "test:creator-onboarding": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/creator-onboarding-check.ts"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.6",
@@ -68,8 +69,8 @@
     "livepeer": "^3.5.0",
     "lucide-react": "^0.559.0",
     "maplibre-gl": "^5.21.0",
-    "next": "^16.2.4",
-    "next-auth": "^4.24.13",
+    "next": "^16.3.8",
+    "next-auth": "^4.24.15",
     "ogl": "^1.0.11",
     "pinata": "^2.5.2",
     "posthog-js": "^1.387.0",
@@ -108,7 +109,7 @@
     "chai": "^4.5.0",
     "dotenv": "^17.2.3",
     "eslint": "^9",
-    "eslint-config-next": "16.0.8",
+    "eslint-config-next": "^16.3.8",
     "ethers": "^6.16.0",
     "hardhat": "^2.28.0",
     "hardhat-gas-reporter": "^1.0.10",

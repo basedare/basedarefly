@@ -1,3 +1,9 @@
+### Codex investor/creator readiness audit (2026-10-13)
+- Production discovery is deployed, but the live preflight still blocks paid launch: configured mainnet bounty has no bytecode. Preserve financial guards and the human-signed cutover. Old FUNDING rows require chain evidence, not relabeling.
+- Candidate runtime hardening updates Next/NextAuth within their major versions; remaining MapLibre/transitive security advisories require separate triage. Do not claim a clean security audit or 100% readiness.
+- Sign-in picker supports explicit close/Escape/focus restoration. Creator onboarding resets per wallet, waits for successful saves, exposes load/save failures, and uses mission-specific request scopes. Run npm run test:creator-onboarding; no live wallet/payment state is mocked as success.
+- See docs/releases/investor-creator-readiness-2026-10-13.md for verified demo scope and unresolved escrow, email, QR, real-device, first funded brief and operating-rights gates.
+
 ### Codex liquid honey and quick adventure discovery (2026-10-12)
 - User approved the liquid logo and asked to remove rainbow/candy colors from the honey. HoneyGooAccent shares honey-drip-liquid-v2.webp: sculpted gold, black/cream contour and restrained violet. Keep the approved logo intact and original artwork available.
 - Home, Now and the adventure catalogue share time/mood controls for free authored ideas. Apply local-time eligibility before preferences; rotate only within matches and never pad a short list. Carry selected area/place/time/mood through adventure links. Published plans and paid work keep their own semantics; approximate activity time excludes travel.

@@ -43,6 +43,9 @@ jobs:
       - name: Adventure discovery regression checks
         run: npm run test:discovery
 
+      - name: Creator onboarding authorization regression
+        run: npm run test:creator-onboarding
+
       - name: Run linter
         run: npm run lint
       
