@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { LivePlan } from './live-plans';
-import { SIARGAO_ACTIVITY_AREA, suggestionsForArea, visibleHomePlans, visibleHomePosts, readSavedActivity, homePlanTime } from './home-activities';
+import { ADVENTURE_MOODS, ADVENTURE_TIME_OPTIONS, SIARGAO_ACTIVITY_AREA, matchingAdventureSuggestions, readAdventurePreferences, suggestionsForArea, visibleHomePlans, visibleHomePosts, readSavedActivity, homePlanTime } from './home-activities';
+import { adventureHref } from './adventure-progress';
 import { eventPosterError, eventPosterMatchesBytes } from './event-poster';
 import { inferVenueEventDraft } from './venue-events';
 
@@ -34,6 +35,45 @@ test('feed expires stale records, deduplicates and preserves upcoming sourced ev
   assert.equal(visibleHomePlans([current], SIARGAO_ACTIVITY_AREA, now, 'MEET').length, 1);
   assert.doesNotMatch(homePlanTime(current, now, 'Asia/Manila'), /now|Started/);
   assert.match(homePlanTime(current, now, 'Asia/Manila'), /9:00/);
+});
+
+test('time and mood never override local daylight eligibility, in either hemisphere', () => {
+  for (const area of [SIARGAO_ACTIVITY_AREA, { lat: -33.89, lng: 151.27, label: 'Bondi', timeZone: 'Australia/Sydney' }]) {
+    for (let hour = 0; hour < 24; hour++) {
+      const date = new Date(Date.UTC(2026, 9, 12, hour));
+      const eligible = new Set(suggestionsForArea(area, date).map((item) => item.id));
+      for (const minutes of ADVENTURE_TIME_OPTIONS) for (const { id: mood } of ADVENTURE_MOODS) {
+        const matches = matchingAdventureSuggestions(area, date, { minutes, mood });
+        assert.ok(matches.every((item) => eligible.has(item.id) && item.minutes <= minutes
+          && (mood === 'any' || item.moods.includes(mood))));
+        assert.equal(new Set(matches.map((item) => item.id)).size, matches.length);
+      }
+    }
+  }
+  const shortExplore = matchingAdventureSuggestions(SIARGAO_ACTIVITY_AREA, now, { minutes: 10, mood: 'explore' });
+  assert.deepEqual(shortExplore.map((item) => item.id), ['tomorrow-pick']); // Do not pad to three with mismatches.
+});
+
+test('rotating ideas stays within the chosen preferences without dropping or duplicating options', () => {
+  const preferences = { minutes: 30 as const, mood: 'create' as const };
+  const first = matchingAdventureSuggestions(SIARGAO_ACTIVITY_AREA, now, preferences);
+  const rotated = matchingAdventureSuggestions(SIARGAO_ACTIVITY_AREA, now, preferences, 1);
+  assert.notEqual(first[0].id, rotated[0].id);
+  assert.deepEqual(first.map((item) => item.id).sort(), rotated.map((item) => item.id).sort());
+});
+
+test('adventure links preserve selected area, place and preferences and ignore unsupported query values', () => {
+  const preferences = { minutes: 120 as const, mood: 'unwind' as const };
+  const areaLink = new URL(adventureHref('postcard', undefined, SIARGAO_ACTIVITY_AREA, preferences), 'https://basedare.xyz');
+  assert.equal(areaLink.searchParams.get('lat'), String(SIARGAO_ACTIVITY_AREA.lat));
+  assert.deepEqual(readAdventurePreferences(areaLink.searchParams), preferences);
+  const placeLink = new URL(adventureHref(undefined, 'hideaway', SIARGAO_ACTIVITY_AREA, preferences), 'https://basedare.xyz');
+  assert.equal(placeLink.searchParams.get('place'), 'hideaway');
+  assert.equal(placeLink.searchParams.has('lat'), false);
+  assert.deepEqual(readAdventurePreferences(placeLink.searchParams), preferences);
+  for (const input of ['', 'minutes=-1&mood=unknown', 'minutes=Infinity&mood=__proto__']) {
+    assert.deepEqual(readAdventurePreferences(new URLSearchParams(input)), { minutes: 30, mood: 'any' });
+  }
 });
 test('local posts without expiry cannot stay around indefinitely or leak between areas', () => {
   const post = { id: 'x', title: 'Hang', notes: '', venueName: 'Venue', venueSlug: 'venue', city: 'Siargao', startsAt: '2026-09-25T13:00:00Z', endsAt: null, updatedAt: now.toISOString(), distanceKm: 2, sourceAttribution: 'Venue schedule', postType: 'hang' };

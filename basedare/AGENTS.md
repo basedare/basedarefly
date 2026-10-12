@@ -1,3 +1,8 @@
+### Codex liquid honey and quick adventure discovery (2026-10-12)
+- User approved the liquid logo and asked to remove rainbow/candy colors from the honey. HoneyGooAccent shares honey-drip-liquid-v2.webp: sculpted gold, black/cream contour and restrained violet. Keep the approved logo intact and original artwork available.
+- Home, Now and the adventure catalogue share time/mood controls for free authored ideas. Apply local-time eligibility before preferences; rotate only within matches and never pad a short list. Carry selected area/place/time/mood through adventure links. Published plans and paid work keep their own semantics; approximate activity time excludes travel.
+- Existing device-local adventure progress, optional sharing and self-reported journal remain intact. Run npm run test:discovery; this suite also runs in Build and Test CI. See docs/releases/gold-and-adventure-discovery-2026-10-12.md.
+
 ### Codex page-wash/header blend (2026-10-12)
 - The Create entry's visible seam was its page-local cyan/purple wash starting below the shared header, not a navbar border. List view, Now and Community had the same hard-start pattern. Use bd-page-wash on decorative page layers to fade their first 9rem; never mask content or controls.
 - Navbar geometry/material stays intact. Verified wide desktop, 390/320px fit, phone menu navigation and the other public header routes. See docs/releases/header-blend-2026-10-12.md. No data, identity, map or payment changes.

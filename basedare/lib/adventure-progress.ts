@@ -1,4 +1,4 @@
-import { ACTIVITY_SUGGESTIONS, type ActivityArea } from './home-activities';
+import { ACTIVITY_SUGGESTIONS, type ActivityArea, type AdventurePreferences } from './home-activities';
 
 export type AdventureRun = {
   runId: string; activityId: string; startedAt: number; completedAt?: number;
@@ -49,9 +49,10 @@ export function completeAdventure(progress: AdventureProgress, runId: string, no
   return { runs: progress.runs.map((r) => r.runId !== runId ? r : { ...r, completedAt: now }) };
 }
 
-export function adventureHref(id?: string, placeSlug?: string, area?: ActivityArea) {
+export function adventureHref(id?: string, placeSlug?: string, area?: ActivityArea, preferences?: AdventurePreferences) {
   const query = new URLSearchParams();
   if (placeSlug) query.set('place', placeSlug);
   else if (area) { query.set('lat', String(area.lat)); query.set('lng', String(area.lng)); }
+  if (preferences) { query.set('minutes', String(preferences.minutes)); query.set('mood', preferences.mood); }
   return `/adventures${id ? '/' + encodeURIComponent(id) : ''}${query.size ? '?' + query : ''}`;
 }

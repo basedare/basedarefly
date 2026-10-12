@@ -1,4 +1,5 @@
 'use client';
+import AdventurePreferenceControls from './AdventurePreferenceControls';
 import ShareAdventure from './ShareAdventure';
 import SharedAdventures from './SharedAdventures';
 import Link from '@/components/DiscoveryLink';
@@ -8,7 +9,7 @@ import { ArrowLeft, Check, Compass, MapPin, Sparkles } from 'lucide-react';
 import PlanShareButton from '@/components/community/PlanShareButton';
 import { useAdventureProgress } from '@/hooks/useAdventureProgress';
 import { activeAdventure, adventureHref, completeAdventure, updateAdventureStep } from '@/lib/adventure-progress';
-import { ACTIVITY_SUGGESTIONS, SIARGAO_ACTIVITY_AREA, suggestionsForArea, type ActivityArea } from '@/lib/home-activities';
+import { ACTIVITY_SUGGESTIONS, SIARGAO_ACTIVITY_AREA, suggestionsForArea, matchingAdventureSuggestions, readAdventurePreferences, type ActivityArea } from '@/lib/home-activities';
 import { trackClientEvent } from '@/lib/analytics';
 
 const panel = 'bd-surface p-5 sm:p-7';
@@ -20,7 +21,12 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
   const viewingShared = Boolean(query.get('post') || query.get('shared') === 'public' || query.get('shared') === 'mine');
   const [area, setArea] = useState<ActivityArea>(SIARGAO_ACTIVITY_AREA);
   const [placeState, setPlaceState] = useState<'none' | 'loading' | 'ready' | 'failed'>('none');
-  const [minutes, setMinutes] = useState(60);
+  const [preferences, setPreferences] = useState(() => readAdventurePreferences(query));
+  const preferenceMinutes = query.get('minutes');
+  const preferenceMood = query.get('mood');
+  useEffect(() => {
+    setPreferences(readAdventurePreferences(new URLSearchParams({ minutes: preferenceMinutes ?? '', mood: preferenceMood ?? '' })));
+  }, [preferenceMinutes, preferenceMood]);
   const [company, setCompany] = useState<'solo' | 'friends'>('solo');
   const [now, setNow] = useState(() => new Date());
   const [message, setMessage] = useState('');
@@ -49,6 +55,7 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
   }, [placeSlug, lat, lng]);
   const activity = ACTIVITY_SUGGESTIONS.find((a) => a.id === activityId);
   const eligible = suggestionsForArea(area, now);
+  const matches = matchingAdventureSuggestions(area, now, preferences);
   const run = activeAdventure(progress, now.getTime());
   const sameArea = (saved: { placeSlug?: string; area: ActivityArea }) => saved.placeSlug === placeSlug && (placeSlug || (saved.area.lat === area.lat && saved.area.lng === area.lng));
   const current = run && run.activityId === activityId && sameArea(run) ? run : null;
@@ -57,7 +64,7 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
   const placeReady = !placeSlug || placeState === 'ready';
   const canStart = Boolean(activity && eligible.some((a) => a.id === activity.id) && placeReady);
   const mapHref = placeSlug && placeReady ? '/map?place=' + encodeURIComponent(placeSlug) : `/map?lat=${area.lat}&lng=${area.lng}`;
-  const href = (id?: string) => adventureHref(id, placeReady ? placeSlug : undefined, area);
+  const href = (id?: string) => adventureHref(id, placeReady ? placeSlug : undefined, area, preferences);
   function start() {
     if (!activity || !canStart) return;
     const startedAt = Date.now();
@@ -78,13 +85,17 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
       <p className="bd-page-copy mt-4">{activity?.summary ?? (viewingShared ? 'See what people made, then try an adventure yourself.' : 'Free things to try, on your own or with friends. Pick one and go at your own pace.')}</p>
       <p className="mt-3 flex items-center gap-2 text-xs text-cyan-100"><MapPin size={14} />{placeState === 'loading' ? 'Finding this place…' : placeState === 'failed' ? 'Place details unavailable — go back to the map and try again.' : area.label}</p>
       {!activity && !viewingShared ? <>
-        <div className="my-6 flex flex-wrap items-center gap-3">
-          <label className="text-xs text-white/60">Time available <select aria-label="Time available" value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="ml-2 min-h-11 rounded-xl border border-white/15 bg-[#141222] px-3 text-white"><option value={10}>10 minutes</option><option value={15}>15 minutes</option><option value={30}>30 minutes</option><option value={60}>Any time</option></select></label>
+        <div className="mt-6"><AdventurePreferenceControls value={preferences} onChange={(next) => {
+          setPreferences(next);
+          trackClientEvent('adventure_preferences_changed', { ...next, source: 'adventures' });
+        }} /></div>
+        <div className="my-4 flex flex-wrap items-center gap-3">
           <label className="text-xs text-white/60">Going <select aria-label="Going" value={company} onChange={(e) => setCompany(e.target.value as 'solo' | 'friends')} className="ml-2 min-h-11 rounded-xl border border-white/15 bg-[#141222] px-3 text-white"><option value="solo">Solo</option><option value="friends">With friends</option></select></label>
           <span className="text-xs text-emerald-100">All free · no purchase required</span>
         </div>
+        <p role="status" className="mb-4 text-xs leading-5 text-white/55">{matches.length ? `${matches.length} ${matches.length === 1 ? 'idea fits' : 'ideas fit'} · activity time excludes travel` : 'No ideas fit right now. Try another mood or a little more time.'}</p>
         {run ? <Link href={adventureHref(run.activityId, run.placeSlug, run.area)} className={panel + ' mb-5 block border-yellow-200/25'}><p className="text-xs text-yellow-200">Continue your adventure · {run.steps.length} steps done</p><p className="mt-2 font-bold">{ACTIVITY_SUGGESTIONS.find((a) => a.id === run.activityId)?.title} →</p></Link> : null}
-        <div className="grid gap-4 sm:grid-cols-2">{eligible.filter((a) => a.minutes <= minutes).map((a, index) => <article key={a.id} className={panel}>
+        <div className="grid gap-4 sm:grid-cols-2">{matches.map((a, index) => <article key={a.id} className={panel}>
           <p className="text-[10px] font-black uppercase tracking-widest text-violet-200">{index === 0 ? 'A good next move' : 'Another idea'} · free activity</p>
           <h2 className="mt-3 text-xl font-black">{a.title}</h2><p className="mt-3 text-sm leading-6 text-white/60">{a.summary}</p>
           <p className="mt-4 text-xs text-cyan-100">{a.minutes} min · {a.daylight ? 'Daylight activity' : a.evening ? 'Evening activity' : 'Fits any time'}</p>

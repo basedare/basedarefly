@@ -4,7 +4,7 @@ Preserve BaseDare’s bear, orbital homepage, gold BASE / purple DARE identity a
 
 ## Material and motion
 
-Shared bd-action controls use satin shading, a restrained edge and a tactile press. The physical mode switch stays intact. The homepage orbit cards keep their motion and example labels, with ink edges and a quieter gold footer. Radar and reward orb retain complementary rims. HoneyGooAccent uses the versioned transparent honey-drip-graffiti-v1.webp (960×422, about 92KB); the original remains available.
+Shared bd-action controls use satin shading, a restrained edge and a tactile press. The physical mode switch stays intact. The homepage orbit cards keep their motion and example labels, with ink edges and a quieter gold footer. Radar and reward orb retain complementary rims. HoneyGooAccent now uses the versioned transparent honey-drip-liquid-v2.webp (960×422, about 71KB): sculpted gold and restrained violet matching the approved liquid wordmark. The earlier rainbow version and original remain available. See honey-drip-liquid-v2.md for the final prompt and asset details.
 
 Map orbit/tilt buttons are at least 44px and animate their icon only on interaction. The key separates category illustrations from activity-state symbols. PeeBear gets an ink/cream/cyan edge and a painted speech card. The dock reserves space above Map key; opening the key hides the dock until the key closes. Structural dock selectors become an explicit class.
 

@@ -40,6 +40,9 @@ jobs:
       - name: Community identity regression checks
         run: npm run test:community-identity
       
+      - name: Adventure discovery regression checks
+        run: npm run test:discovery
+
       - name: Run linter
         run: npm run lint
       
