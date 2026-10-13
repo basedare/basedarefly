@@ -246,6 +246,7 @@ function CreatorOnboardFlow() {
           <SignalPointsBadge points={signalPoints} routeReady={routeReady} />
         </div>
         {connected && !server && !loadError ? <p role="status" className="text-sm text-white/60">Loading your creator record…</p> : null}
+        {!connected ? <p className="bd-well p-4 text-sm leading-6 text-white/60">Preview only. Sign in to load or save your creator record. Preview points are not saved.</p> : null}
         {loadError ? <div role="alert" className="bd-well p-4 text-sm text-amber-100">{loadError} <button type="button" className="min-h-11 underline" onClick={() => setLoadAttempt((value) => value + 1)}>Retry</button></div> : null}
         {saveError ? <p role="alert" className="bd-well p-4 text-sm text-amber-100">{saveError}</p> : null}
         {saving ? <p role="status" className="text-sm text-white/60">Saving your creator record…</p> : null}
@@ -437,6 +438,8 @@ function CreatorOnboardFlow() {
               ) : (
                 <Link
                   href="/dashboard"
+                  aria-disabled={saving}
+                  onClick={(event) => { if (saving) event.preventDefault(); }}
                   className="inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-300/30 bg-yellow-300 px-6 text-xs font-black uppercase tracking-[0.16em] text-black transition hover:bg-yellow-200"
                 >
                   Finish
