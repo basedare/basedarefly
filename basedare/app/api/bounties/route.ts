@@ -1,7 +1,7 @@
 import { contentRightsReleaseEnabled } from '@/lib/content-rights-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { Livepeer } from 'livepeer';
+import { getLivepeerStream } from '@/lib/livepeer-stream';
 import {
   createPublicClient,
   createWalletClient,
@@ -253,8 +253,7 @@ async function verifyStreamActive(streamId: string): Promise<StreamVerificationR
   }
 
   try {
-    const livepeer = new Livepeer({ apiKey: LIVEPEER_API_KEY });
-    const response = await livepeer.stream.get(streamId);
+    const response = await getLivepeerStream(streamId, LIVEPEER_API_KEY);
 
     if (!response.stream) {
       return { active: false, error: 'Stream not found in Livepeer' };

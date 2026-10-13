@@ -19,7 +19,8 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
-import maplibregl, {
+import * as maplibregl from 'maplibre-gl';
+import {
   type GeoJSONSource,
   type LayerSpecification,
   type Map as MapLibreMap,
@@ -29,6 +30,9 @@ import maplibregl, {
   type StyleSpecification,
 } from 'maplibre-gl';
 import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson';
+
+// MapLibre 6 requires an explicit, bundled module worker in Next/webpack.
+maplibregl.setWorkerUrl(new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).toString());
 import {
   ArrowLeft,
   Bike,
@@ -1030,7 +1034,7 @@ function getDefaultMapCamera(isMobileViewport: boolean) {
 
 function browserCanStartMapRenderer() {
   if (typeof window === 'undefined') return false;
-  return 'WebGLRenderingContext' in window || 'WebGL2RenderingContext' in window;
+  return 'WebGL2RenderingContext' in window;
 }
 
 function isDesktopChromiumMapRenderer(isMobileRenderer: boolean) {

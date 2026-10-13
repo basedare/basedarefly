@@ -2,7 +2,7 @@
 
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import type { Connector } from 'wagmi';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -97,6 +97,8 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
   const dropdownRef = useRef<HTMLDivElement>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const walletPickerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const pickerId = useId();
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 8 });
   // Lazy + SSR-safe: only affects the wallet picker (closed on first paint),
   // so no hydration mismatch even though the server resolves this to false.
@@ -150,6 +152,20 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
       window.removeEventListener('scroll', updateMenuPosition, true);
     };
   }, [showDropdown, showWalletPicker, updateMenuPosition]);
+
+  useEffect(() => {
+    if (!showDropdown && !showWalletPicker) return;
+    if (showWalletPicker) walletPickerRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setShowDropdown(false);
+      setShowWalletPicker(false);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener('keydown', dismiss);
+    return () => document.removeEventListener('keydown', dismiss);
+  }, [showDropdown, showWalletPicker]);
 
   // Filter and deduplicate connectors to ensure a clean UI.
   // Multiple injected providers can surface at once; normalize them into
@@ -283,11 +299,18 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
   const walletPicker = showWalletPicker && !isConnected ? (
     <div
       ref={walletPickerRef}
+      id={pickerId}
+      role="dialog"
+      aria-labelledby={pickerId + '-title'}
       className="fixed w-72 bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[200]"
       style={{ top: menuPosition.top, right: menuPosition.right }}
     >
-      <div className="px-4 py-3 border-b border-white/[0.06] bg-black/40">
-        <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black text-center">Sign in to BaseDare</p>
+      <div className="flex items-center gap-2 pl-4 pr-1 py-1 border-b border-white/[0.06] bg-black/40">
+        <p id={pickerId + '-title'} className="flex-1 text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black">Sign in to BaseDare</p>
+        <button type="button" aria-label="Close sign-in" onClick={() => {
+          setShowWalletPicker(false);
+          triggerRef.current?.focus();
+        }} className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-xl text-white/60 hover:bg-white/5 hover:text-white">×</button>
       </div>
       <div className="flex flex-col p-2 gap-1.5">
         {connectError ? (
@@ -361,6 +384,10 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
         />
 
         <button
+          ref={triggerRef}
+          aria-expanded={showDropdown || showWalletPicker}
+          aria-haspopup={!isConnected ? 'dialog' : undefined}
+          aria-controls={showWalletPicker ? pickerId : undefined}
           onClick={handleClick}
           className="relative flex min-h-10 w-full min-w-0 items-center justify-center rounded-[12px] bg-[#050505] px-2.5 py-2 backdrop-blur-3xl md:rounded-[15px] md:px-5 md:py-2.5"
         >

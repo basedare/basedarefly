@@ -12,6 +12,7 @@ import { MissionChecklist } from '@/components/creators/MissionChecklist';
 import { CreatorPassportCard } from '@/components/creators/CreatorPassportCard';
 import { SignalPointsBadge } from '@/components/creators/SignalPointsBadge';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
+import { creatorPassportAuthorization } from '@/lib/creator-passport-auth';
 import {
   STARTER_MISSIONS,
   MISSION_STYLE_OPTIONS,
@@ -44,6 +45,11 @@ function toggle<T>(list: T[], value: T, max?: number): T[] {
 
 export default function CreatorOnboardPage() {
   const { address } = useAccount();
+  return <CreatorOnboardFlow key={address?.toLowerCase() ?? 'guest'} />;
+}
+
+function CreatorOnboardFlow() {
+  const { address } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const connected = Boolean(address);
 
@@ -61,6 +67,9 @@ export default function CreatorOnboardPage() {
   // Server-composed passport (source of truth when connected).
   const [server, setServer] = useState<ComposedPassport | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   const applyServer = useCallback((data: ComposedPassport) => setServer(data), []);
 
@@ -71,11 +80,13 @@ export default function CreatorOnboardPage() {
       return;
     }
     let cancelled = false;
+    setLoadError('');
     (async () => {
       try {
         const res = await fetch(`/api/creators/passport?wallet=${address}`, { cache: 'no-store' });
         const json = await res.json();
-        if (!cancelled && json?.success && json.data) {
+        if (!res.ok || !json?.success || !json.data) throw new Error('Passport unavailable');
+        if (!cancelled) {
           const data = json.data as ComposedPassport;
           setMissionStyles(data.missionStyles ?? []);
           setAvailability(data.availability ?? []);
@@ -83,24 +94,24 @@ export default function CreatorOnboardPage() {
           setHomeZone(data.homeZone ?? '');
           setVibeLine(data.vibeLine ?? '');
           setPingsEnabled(Boolean(data.pingsEnabled));
-          if (data.hasTag) setClaimed(true);
+          setClaimed(Boolean(data.hasTag));
           applyServer(data);
         }
       } catch (error) {
         console.error('Failed to hydrate passport', error);
+        if (!cancelled) setLoadError('Your creator record could not load. Retry before changing your settings.');
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [address, applyServer]);
+  }, [address, applyServer, loadAttempt]);
 
   const authedFetch = useCallback(
-    async (path: string, init: RequestInit) => {
+    async (path: string, init: RequestInit, missionId?: MissionId) => {
       const headers = await buildWalletActionAuthHeaders({
         walletAddress: address ?? null,
-        action: 'creator:passport:update',
-        resource: `passport:${(address ?? '').toLowerCase()}`,
+        ...creatorPassportAuthorization(address ?? '', missionId),
         signMessageAsync,
       });
       return fetch(path, {
@@ -113,17 +124,22 @@ export default function CreatorOnboardPage() {
 
   const savePassport = useCallback(
     async (patch: Record<string, unknown>) => {
-      if (!address) return;
+      if (!address) return false;
       setSaving(true);
+      setSaveError('');
       try {
         const res = await authedFetch('/api/creators/passport', {
           method: 'PATCH',
           body: JSON.stringify({ walletAddress: address, ...patch }),
         });
         const json = await res.json();
-        if (json?.success && json.data) applyServer(json.data);
+        if (!res.ok || !json?.success || !json.data) throw new Error('Save failed');
+        applyServer(json.data);
+        return true;
       } catch (error) {
         console.error('Failed to save passport', error);
+        setSaveError('Your settings could not save. Try again; you are still on this step.');
+        return false;
       } finally {
         setSaving(false);
       }
@@ -133,16 +149,24 @@ export default function CreatorOnboardPage() {
 
   const recordMission = useCallback(
     async (missionId: MissionId) => {
-      if (!address) return;
+      if (!address) return false;
+      setSaving(true);
+      setSaveError('');
       try {
         const res = await authedFetch('/api/creators/passport/mission', {
           method: 'POST',
           body: JSON.stringify({ walletAddress: address, missionId }),
-        });
+        }, missionId);
         const json = await res.json();
-        if (json?.success && json.data) applyServer(json.data);
+        if (!res.ok || !json?.success || !json.data) throw new Error('Mission save failed');
+        applyServer(json.data);
+        return true;
       } catch (error) {
         console.error('Failed to record mission', error);
+        setSaveError('This action could not save. Try it again before relying on your creator record.');
+        return false;
+      } finally {
+        setSaving(false);
       }
     },
     [address, authedFetch, applyServer]
@@ -172,33 +196,35 @@ export default function CreatorOnboardPage() {
     : localCompleted.has('claim_signal') && localCompleted.has('tune_radar') && localCompleted.has('payout_ready');
 
   const markExplicit = (id: MissionId) => {
+    if (connected) { void recordMission(id); return; }
     setExplicitDone((prev) => (prev.includes(id) ? prev : [...prev, id]));
-    if (connected) void recordMission(id);
   };
 
-  const togglePings = () => {
+  const togglePings = async () => {
+    if (saving) return;
     const next = !pingsEnabled;
     setPingsEnabled(next);
-    if (connected) void savePassport({ pingsEnabled: next });
+    if (connected && !await savePassport({ pingsEnabled: next })) setPingsEnabled(!next);
   };
 
-  const canContinue =
+  const canContinue = !saving && (!connected || Boolean(server)) && (
     step === 0 ? claimed
     : step === 1 ? missionStyles.length >= MIN_MISSION_STYLES && (radiusKm ?? 0) > 0
-    : true;
+    : true);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!canContinue) return;
     if (connected && step === 1) {
-      void savePassport({
+      const saved = await savePassport({
         missionStyles,
         radiusKm,
         homeZone: homeZone || null,
         vibeLine: vibeLine || null,
       });
+      if (!saved) return;
     }
     if (connected && step === 2) {
-      void savePassport({ availability });
+      if (!await savePassport({ availability })) return;
     }
     setStep((value) => Math.min(STEPS.length - 1, value + 1));
   };
@@ -219,6 +245,11 @@ export default function CreatorOnboardPage() {
           </Link>
           <SignalPointsBadge points={signalPoints} routeReady={routeReady} />
         </div>
+        {connected && !server && !loadError ? <p role="status" className="text-sm text-white/60">Loading your creator record…</p> : null}
+        {!connected ? <p className="bd-well p-4 text-sm leading-6 text-white/60">Preview only. Sign in to load or save your creator record. Preview points are not saved.</p> : null}
+        {loadError ? <div role="alert" className="bd-well p-4 text-sm text-amber-100">{loadError} <button type="button" className="min-h-11 underline" onClick={() => setLoadAttempt((value) => value + 1)}>Retry</button></div> : null}
+        {saveError ? <p role="alert" className="bd-well p-4 text-sm text-amber-100">{saveError}</p> : null}
+        {saving ? <p role="status" className="text-sm text-white/60">Saving your creator record…</p> : null}
 
         {/* Step progress */}
         <div className="grid grid-cols-4 gap-2">
@@ -234,7 +265,7 @@ export default function CreatorOnboardPage() {
 
         <section className={`${controlPanel} p-5 sm:p-6 lg:p-7`}>
           <div className={controlHairline} />
-          <div className="relative">
+          <fieldset disabled={saving} aria-busy={saving} className="relative min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-100/70">
               Step {step + 1} of {STEPS.length}
             </p>
@@ -378,7 +409,7 @@ export default function CreatorOnboardPage() {
                 </div>
 
                 <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/34">
-                  {connected ? (saving ? 'Saving…' : 'Saved to your creator record') : 'Preview — connect wallet to save'}
+                  {connected ? (saving ? 'Saving…' : saveError ? 'Changes not saved' : server ? 'Creator record loaded' : 'Creator record unavailable') : 'Preview — connect wallet to save'}
                 </p>
               </div>
             ) : null}
@@ -407,6 +438,8 @@ export default function CreatorOnboardPage() {
               ) : (
                 <Link
                   href="/dashboard"
+                  aria-disabled={saving}
+                  onClick={(event) => { if (saving) event.preventDefault(); }}
                   className="inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-300/30 bg-yellow-300 px-6 text-xs font-black uppercase tracking-[0.16em] text-black transition hover:bg-yellow-200"
                 >
                   Finish
@@ -414,7 +447,7 @@ export default function CreatorOnboardPage() {
                 </Link>
               )}
             </div>
-          </div>
+          </fieldset>
         </section>
       </section>
     </main>

@@ -1,3 +1,15 @@
+### Codex controlled launch build (2026-10-14)
+- PR #21 includes runtime/auth/onboarding repairs, MapLibre 6 namespace/module-worker migration and targeted dependency hardening. Keep WebGL2 recovery, approved map visuals and guide-independent control placement. CI fails on critical production dependency advisories; that is not a clean full audit.
+- Livepeer stream lookup uses a bounded server-only Studio client instead of the SDK's production Jest tree. Keep existing stream/proof approval policy unchanged. Run test:livepeer-stream and the ordinary payment/auth checks after transport changes.
+- funding:audit is read-only. The 33 legacy FUNDING records have no stored receipt or chain ID; current derived-ID checks cannot rule out historical deposits under other IDs/contracts. Never delete/promote/refund from an absent mapping. Reports containing wallet/record mappings stay outside Git.
+- Follow docs/runbooks/controlled-launch-2026-10-14.md. Mainnet deployment/funding remain human-signed; coordinate the one active QR session before introducing a dedicated signing secret. Sender/inbox, physical devices, operating details, rights and actual paid/refund receipts remain launch gates. The pilot brief is a draft, not a funded promise.
+
+### Codex investor/creator readiness audit (2026-10-13)
+- Production discovery is deployed, but the live preflight still blocks paid launch: configured mainnet bounty has no bytecode. Preserve financial guards and the human-signed cutover. Old FUNDING rows require chain evidence, not relabeling.
+- Candidate runtime hardening updates Next/NextAuth within their major versions; remaining MapLibre/transitive security advisories require separate triage. Do not claim a clean security audit or 100% readiness.
+- Sign-in picker supports explicit close/Escape/focus restoration. Creator onboarding resets per wallet, waits for successful saves, exposes load/save failures, and uses mission-specific request scopes. Run npm run test:creator-onboarding; no live wallet/payment state is mocked as success.
+- See docs/releases/investor-creator-readiness-2026-10-13.md for verified demo scope and unresolved escrow, email, QR, real-device, first funded brief and operating-rights gates.
+
 ### Codex liquid honey and quick adventure discovery (2026-10-12)
 - User approved the liquid logo and asked to remove rainbow/candy colors from the honey. HoneyGooAccent shares honey-drip-liquid-v2.webp: sculpted gold, black/cream contour and restrained violet. Keep the approved logo intact and original artwork available.
 - Home, Now and the adventure catalogue share time/mood controls for free authored ideas. Apply local-time eligibility before preferences; rotate only within matches and never pad a short list. Carry selected area/place/time/mood through adventure links. Published plans and paid work keep their own semantics; approximate activity time excludes travel.
@@ -559,3 +571,13 @@ Best repro: real Chrome → DevTools → Rendering → enable **Paint flashing +
 - `Find secrets` now zooms into the detail layer and uses a dedicated compact transparent rumor icon instead of inheriting the 64px map-object sprite.
 - `POST /api/places/resolve-or-create` now searches both legacy/current geohash precision plus a coordinate bounding box and prefers the canonical exact-slug match. This prevents same-coordinate duplicates such as `hideaway-2`; the empty production duplicate was removed after all venue relations were confirmed zero.
 - Map category identity now resolves before incidental geography: nightlife/bar venues use the beer hologram, true surf signals keep the board, and beaches/outdoor attractions use the palm. Surf recommendations require an explicit surf/wave/Cloud 9 signal, so dock/boardwalk bars cannot become surf checks.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

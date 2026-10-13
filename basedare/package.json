@@ -36,7 +36,10 @@
     "test:basecash:auth": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/basecash-request-auth-check.ts",
     "test:usability": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/usability-flow-check.ts",
     "test:community-identity": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/community-identity-check.ts",
-    "test:discovery": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ts-node/register --test lib/home-activities.test.ts lib/adventure-progress.test.ts lib/recommendation-policy.test.ts"
+    "test:discovery": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ts-node/register --test lib/home-activities.test.ts lib/adventure-progress.test.ts lib/recommendation-policy.test.ts",
+    "test:creator-onboarding": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/creator-onboarding-check.ts",
+    "funding:audit": "node scripts/funding-audit.mjs",
+    "test:livepeer-stream": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register --test lib/livepeer-stream.test.ts"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.6",
@@ -65,15 +68,13 @@
     "framer-motion": "^12.23.26",
     "gl-matrix": "^3.4.4",
     "gsap": "^3.14.2",
-    "livepeer": "^3.5.0",
     "lucide-react": "^0.559.0",
-    "maplibre-gl": "^5.21.0",
-    "next": "^16.2.4",
-    "next-auth": "^4.24.13",
+    "maplibre-gl": "^6.14.0",
+    "next": "^16.3.8",
+    "next-auth": "^4.24.15",
     "ogl": "^1.0.11",
     "pinata": "^2.5.2",
     "posthog-js": "^1.387.0",
-    "puppeteer-core": "^24.37.5",
     "qrcode.react": "^4.2.0",
     "react": "19.2.1",
     "react-day-picker": "^9.12.0",
@@ -108,7 +109,7 @@
     "chai": "^4.5.0",
     "dotenv": "^17.2.3",
     "eslint": "^9",
-    "eslint-config-next": "16.0.8",
+    "eslint-config-next": "^16.3.8",
     "ethers": "^6.16.0",
     "hardhat": "^2.28.0",
     "hardhat-gas-reporter": "^1.0.10",
@@ -118,12 +119,13 @@
     "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "puppeteer-core": "^24.37.5"
   },
   "overrides": {
-    "axios": "1.15.2",
+    "axios": "1.20.0",
     "lodash": "4.18.1",
-    "postcss": "8.5.10",
+    "postcss": "8.5.30",
     "cookie": "0.7.2",
     "serialize-javascript": "7.0.5",
     "tmp": "0.2.5",
@@ -133,7 +135,13 @@
     },
     "number-to-bn": {
       "bn.js": "4.12.3"
-    }
+    },
+    "handlebars": "4.7.10",
+    "source-map-js": "1.2.2",
+    "ws@>=8 <9": "8.21.0",
+    "ws@>=7 <8": "7.5.11",
+    "hono": "4.13.7",
+    "socket.io-parser": "4.2.7"
   },
   "optionalDependencies": {
     "@tailwindcss/oxide-linux-x64-gnu": "4.1.18",
