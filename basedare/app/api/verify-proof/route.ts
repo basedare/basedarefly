@@ -4,7 +4,7 @@ import { hasContentRightsAcceptance, contentSubmissionProblem } from '@/lib/cont
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createPublicClient, createWalletClient, formatEther, http, isAddress, parseEther, type Address, keccak256, toBytes } from 'viem';
-import { Livepeer } from 'livepeer';
+import { getLivepeerStream } from '@/lib/livepeer-stream';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
@@ -215,8 +215,7 @@ async function verifyLivepeerStream(streamId: string): Promise<StreamVerificatio
   }
 
   try {
-    const livepeer = new Livepeer({ apiKey: LIVEPEER_API_KEY });
-    const response = await livepeer.stream.get(streamId);
+    const response = await getLivepeerStream(streamId, LIVEPEER_API_KEY);
 
     if (!response.stream) {
       return { active: false, healthy: false, error: 'Stream not found' };

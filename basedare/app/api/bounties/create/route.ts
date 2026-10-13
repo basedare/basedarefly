@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { Livepeer } from 'livepeer';
+import { getLivepeerStream } from '@/lib/livepeer-stream';
 import { createPublicClient, createWalletClient, http, isAddress, parseUnits, type Address } from 'viem';
 import { BOUNTY_ABI, USDC_ABI } from '@/abis/BaseDareBounty';
 import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
@@ -60,8 +60,7 @@ async function verifyStreamActive(streamId: string): Promise<{ active: boolean; 
   }
 
   try {
-    const livepeer = new Livepeer({ apiKey: LIVEPEER_API_KEY });
-    const stream = await livepeer.stream.get(streamId);
+    const stream = await getLivepeerStream(streamId, LIVEPEER_API_KEY);
 
     if (!stream.stream) {
       return { active: false, error: 'Stream not found' };

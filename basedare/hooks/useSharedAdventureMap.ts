@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, type RefObject } from "react";
-import maplibregl, { type Map as MapLibreMap } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import { type Map as MapLibreMap } from "maplibre-gl";
 import type { AdventurePost } from "@/lib/adventure-sharing";
 export function useSharedAdventureMap(
   mapRef: RefObject<MapLibreMap | null>,

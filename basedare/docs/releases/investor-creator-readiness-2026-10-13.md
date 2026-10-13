@@ -4,6 +4,8 @@ Audit began 12 October UTC / 13 October Sydney. Baseline production: 57d5a152.
 
 ## Decision
 
+14 October follow-up: the npm 10 lockfile repair has passed clean Build and Test, Contracts CI and exact-commit Vercel preview. Phone-width browser verification passed sign-in dismissal/focus and all four guest onboarding steps with honest preview/save labels. The follow-up build removes the Livepeer SDK test-tool tree, upgrades MapLibre with its module worker and adds a read-only funding evidence tool. See `docs/runbooks/controlled-launch-2026-10-14.md` for current acceptance and operator steps; the baseline advisory counts below are historical, not the follow-up result.
+
 The public discovery app is deployed. Do not describe the product as 100% launch-ready or start an unrestricted paid influencer campaign. A working website and green CI do not prove signed sessions, live settlement, recovery delivery or operating readiness.
 
 ## Verified baseline
