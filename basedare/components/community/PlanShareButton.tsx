@@ -24,6 +24,7 @@ export default function PlanShareButton({
   analyticsSource?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
   const url = useMemo(() => getBaseDareUrl(href), [href]);
 
   const copyPlan = async () => {
@@ -37,12 +38,12 @@ export default function PlanShareButton({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
-      // Clipboard access can be denied in embedded browsers. Keep the button usable
-      // without surfacing an unhandled rejection; native share remains the primary path.
+      setFailed(true);
     }
   };
 
   const sharePlan = async () => {
+    setFailed(false);
     if (typeof navigator.share === 'function') {
       try {
         await navigator.share({ title, text, url });
@@ -59,14 +60,15 @@ export default function PlanShareButton({
     await copyPlan();
   };
 
-  return (
+  return <span className="inline-flex min-w-0 flex-col">
     <button
       type="button"
       onClick={() => void sharePlan()}
-      className={`${compact ? 'min-h-10 rounded-full px-3 text-[9px]' : 'min-h-11 rounded-2xl px-4 text-[10px]'} inline-flex items-center justify-center gap-2 border border-cyan-200/22 bg-cyan-300/[0.08] font-black uppercase tracking-[0.13em] text-cyan-100 transition hover:border-cyan-100/40 hover:bg-cyan-300/[0.13] ${className}`.trim()}
+      className={`${compact ? 'min-h-11 rounded-full px-3 text-xs' : 'min-h-11 rounded-2xl px-4 text-xs'} inline-flex items-center justify-center gap-2 border border-cyan-200/22 bg-cyan-300/[0.08] font-bold text-cyan-100 transition hover:border-cyan-100/40 hover:bg-cyan-300/[0.13] ${className}`.trim()}
     >
       {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
       {copied ? 'Copied' : label}
     </button>
-  );
+    {failed ? <span role="status" className="mt-2 max-w-xs break-words text-xs leading-5 text-amber-100">Sharing is unavailable. <a className="underline" href={url}>Open the adventure or plan</a> and copy its address.</span> : null}
+  </span>;
 }

@@ -21,7 +21,7 @@ export default function AdventureSuggestions({ area }: { area: ActivityArea }) {
       <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-200">BaseDare suggestions · {area.label}</p>
         <h2 className="mt-2 text-xl font-black text-white">What fits right now?</h2>
         <p className="mt-2 text-xs leading-5 text-white/55">Choose your time and mood. These are free ideas you can try yourself, not scheduled events or paid work.</p></div>
-      <Link href={adventureHref(undefined, undefined, area, preferences)} className="inline-flex min-h-11 items-center text-xs font-bold text-cyan-100">All adventures &amp; your journal →</Link>
+      <Link href="/adventures/passport" className="inline-flex min-h-11 items-center text-xs font-bold text-cyan-100">Your Adventure Passport →</Link>
     </div>
     <div className="mt-4"><AdventurePreferenceControls value={preferences} onChange={(next) => {
       setPreferences(next); setRotation(0);

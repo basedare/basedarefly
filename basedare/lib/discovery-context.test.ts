@@ -22,3 +22,15 @@ test('homepage discovery time does not overwrite its community/business mode', (
   assert.equal(params.get('when'), 'tonight');
   assert.equal(readDiscovery(params).mode, 'TONIGHT');
 });
+
+test('Next 2h survives canonical shared URLs, legacy storage and map pulse links', () => {
+  for (const query of ['mode=next2h', 'mode=NEXT_2H', 'when=next2h', 'pulse=next2h']) {
+    assert.equal(readDiscovery(new URLSearchParams(query)).mode, 'NEXT_2H');
+  }
+  const url = new URL(discoveryHref('/board', { ...DEFAULT_DISCOVERY, mode: 'NEXT_2H', participation: 'meet', radiusKm: 12 }), 'https://basedare.test');
+  assert.equal(url.searchParams.get('mode'), 'next2h');
+  assert.equal(readDiscovery(url.searchParams).mode, 'NEXT_2H');
+  assert.equal(readDiscovery(url.searchParams).participation, 'meet');
+  assert.equal(readDiscovery(url.searchParams).radiusKm, 12);
+  assert.equal(readDiscovery(new URLSearchParams('radiusKm=100')).radiusKm, 25);
+});

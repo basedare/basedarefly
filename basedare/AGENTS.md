@@ -1,3 +1,10 @@
+### Codex connected Passport and UX foundation (2026-10-15)
+- Adventure Passport lives at /adventures/passport; /passport is a legacy redirect. It derives personal stamps and the Three perspectives collection from the existing validated, device-local 30-run journal. Never award Signal Points, verified visits, reputation or money from these runs. Retention and no cross-device sync are explained in About your record.
+- Completion invitations preserve the original activity/public place and round area coordinates; they never transfer completion or sender identity. Activity-specific share images invite a fresh attempt, with no verified/paid claim. Public media still uses the existing consent/review rail.
+- Now/List share browsePlanInventory and destination-time labels. Next 2h accepts canonical next2h, legacy NEXT_2H and map pulse links. Past place history is separate from current matching plans. Keep Field Station routing and the map renderer/control lanes unchanged.
+- Five primary nav destinations, Passport in My activity, quieter venue tools and progressive wallet details reuse shared tactile materials. Activity inbox categories describe actual recorded events; bounded reads show errors/reverification and ignore stale wallet responses. People & friends retains its existing authorization/block policy.
+- See docs/design/basedare-2-master-spec.md and docs/design/chatgpt-product-feedback-2026-10-14.md. No schema, production config, contract, payment or verified-progression changes. Existing controlled-launch gates still apply.
+
 ### Codex controlled launch build (2026-10-14)
 - PR #21 includes runtime/auth/onboarding repairs, MapLibre 6 namespace/module-worker migration and targeted dependency hardening. Keep WebGL2 recovery, approved map visuals and guide-independent control placement. CI fails on critical production dependency advisories; that is not a clean full audit.
 - Livepeer stream lookup uses a bounded server-only Studio client instead of the SDK's production Jest tree. Keep existing stream/proof approval policy unchanged. Run test:livepeer-stream and the ordinary payment/auth checks after transport changes.

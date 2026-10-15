@@ -1,6 +1,6 @@
 "use client";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import Link from "@/components/DiscoveryLink";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSocialAction } from "@/hooks/useSocialAction";
 type Person = { tag: string; bio: string | null; walletAddress: string };
@@ -16,28 +16,32 @@ export default function PeoplePanel() {
   const [open, setOpen] = useState(query.get("people") === "1");
   const [search, setSearch] = useState("");
   const [people, setPeople] = useState<Person[]>([]);
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [connectionSnapshot, setConnectionSnapshot] = useState<{ wallet: string; items: Connection[] } | null>(null);
+  const connections = connectionSnapshot && connectionSnapshot.wallet === wallet ? connectionSnapshot.items : [];
+  const loaded = Boolean(connectionSnapshot && connectionSnapshot.wallet === wallet);
+  const currentWallet = useRef(wallet);
+  const loadVersion = useRef(0);
+  const [loadingPeople, setLoadingPeople] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (query.get("people") === "1") setOpen(true); }, [query]);
   useEffect(() => {
     if (!open) return;
     setError("");
+    setLoadingPeople(true);
     const controller = new AbortController();
     const timer = setTimeout(() => {
       void fetch("/api/people?q=" + encodeURIComponent(search), {
         signal: controller.signal,
       })
-        .then((r) => r.json())
+        .then(async (r) => { const data = await r.json(); if (!r.ok) throw Error('People could not load. Try searching again.'); return data; })
         .then((b) => {
           if (!b.success) throw Error(b.error);
-          setError("");
-          setPeople(b.data);
+          if (!controller.signal.aborted) { setError(""); setPeople(b.data); }
         })
         .catch((e) => {
           if (!controller.signal.aborted) setError(e.message);
-        });
+        }).finally(() => { if (!controller.signal.aborted) setLoadingPeople(false); });
     }, 250);
     return () => {
       clearTimeout(timer);
@@ -45,31 +49,37 @@ export default function PeoplePanel() {
     };
   }, [open, search]);
   useEffect(() => {
-    setConnections([]);
-    setLoaded(false);
+    currentWallet.current = wallet;
+    loadVersion.current += 1;
+    setConnectionSnapshot(null);
+    setBusy(false);
   }, [wallet]);
   async function load() {
-    if (!wallet) return;
+    if (!wallet || currentWallet.current !== wallet) return;
+    const version = ++loadVersion.current;
+    const current = () => currentWallet.current === wallet && loadVersion.current === version;
     setBusy(true);
     setError("");
     try {
       const r = await fetch("/api/friends?wallet=" + wallet, {
         headers: await headers("friends:read"),
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10_000),
       });
       const b = await r.json();
       if (!r.ok) throw Error(b.error);
-      setConnections(b.data);
-      setLoaded(true);
+      if (current()) setConnectionSnapshot({ wallet, items: b.data });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load friends.");
+      if (current()) setError(e instanceof Error ? e.message : "Could not load friends.");
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   }
   async function action(
     target: string,
     action: "request" | "accept" | "remove",
   ) {
+    if (!wallet || currentWallet.current !== wallet) return;
     setBusy(true);
     setError("");
     try {
@@ -83,26 +93,27 @@ export default function PeoplePanel() {
       });
       const b = await r.json();
       if (!r.ok) throw Error(b.error);
-      await load();
+      if (currentWallet.current === wallet) await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update friends.");
+      if (currentWallet.current === wallet) setError(e instanceof Error ? e.message : "Could not update friends.");
     } finally {
-      setBusy(false);
+      if (currentWallet.current === wallet) setBusy(false);
     }
   }
   const btn =
     "bd-action min-h-11 rounded-full border border-white/15 bg-white/5 px-4 text-xs font-bold disabled:opacity-40";
   return (
-    <section id="people" className="scroll-mt-28 my-5 rounded-[1.7rem] border border-white/10 bg-black/40 p-5 text-white">
+    <section id="people" className="bd-surface scroll-mt-28 my-5 p-5 text-white">
       <button
         className="flex min-h-11 w-full items-center justify-between text-left font-bold"
         aria-expanded={open}
+        aria-controls="people-content"
         onClick={() => setOpen(!open)}
       >
         Find people & friends <span>{open ? "−" : "+"}</span>
       </button>
       {open ? (
-        <div className="mt-3 space-y-4">
+        <div id="people-content" className="mt-3 space-y-4">
           <p className="text-sm text-white/60">
             Find public profiles by handle. Friends are private connections, not
             a live location list. Share a meetup link when you want to make a
@@ -113,7 +124,7 @@ export default function PeoplePanel() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search @handle"
-            className="min-h-11 w-full rounded-xl border border-white/15 bg-black/30 px-4"
+            className="bd-field min-h-11 w-full px-4"
           />
           {wallet ? (
             <button disabled={busy} className={btn} onClick={() => void load()}>
@@ -156,7 +167,7 @@ export default function PeoplePanel() {
                       <span className="text-sm">
                         {c.otherTag ??
                           people.find((p) => p.walletAddress === other)?.tag ??
-                          other.slice(0, 6) + "…" + other.slice(-4)}{" "}
+                          'Explorer'}{" "}
                         ·{" "}
                         {c.status === "ACCEPTED"
                           ? "Friends"
@@ -198,7 +209,7 @@ export default function PeoplePanel() {
             {people.map((p) => (
               <div
                 key={p.tag}
-                className="rounded-2xl border border-white/10 bg-violet-300/5 p-4"
+                className="bd-card p-4"
               >
                 <Link
                   href={
@@ -229,9 +240,11 @@ export default function PeoplePanel() {
               </div>
             ))}
           </div>
-          {!people.length && !error ? (
+          {loadingPeople ? <p role="status" className="text-sm text-white/65">Finding public profiles…</p> : null}
+          {!loadingPeople && !people.length && !error ? (
             <p className="text-sm text-white/55">No profiles found.</p>
           ) : null}
+          <Link href="/now?participation=meet" className={btn}>Find a public plan</Link>
           <Link
             href="/creators"
             className="inline-block min-h-11 py-3 text-xs text-cyan-100"

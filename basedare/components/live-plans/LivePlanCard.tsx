@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
+import { activityTimeLabel } from '@/lib/activity-presentation';
+import { useRecommendationClock } from '@/hooks/useRecommendationClock';
 import { trackClientEvent } from '@/lib/analytics';
 import {
   getLivePlanDirectionsHref,
@@ -37,19 +39,19 @@ const PLAN_STYLE: Record<LivePlan['type'], {
     surface: 'from-cyan-300/[0.11] via-[#0b1420] to-[#06070d]',
   },
   meetup: {
-    eyebrow: 'Rally',
+    eyebrow: 'Meetup',
     icon: Users,
     accent: 'text-violet-100 border-violet-200/24 bg-violet-300/[0.09]',
     surface: 'from-violet-400/[0.12] via-[#151022] to-[#06070d]',
   },
   venue_event: {
-    eyebrow: 'Island Pulse',
+    eyebrow: 'Event',
     icon: Radio,
     accent: 'text-amber-100 border-amber-200/24 bg-amber-300/[0.09]',
     surface: 'from-amber-300/[0.11] via-[#17120c] to-[#06070d]',
   },
   community_spark: {
-    eyebrow: 'Free Spark',
+    eyebrow: 'Free challenge',
     icon: Sparkles,
     accent: 'text-emerald-100 border-emerald-200/24 bg-emerald-300/[0.09]',
     surface: 'from-emerald-300/[0.11] via-[#091812] to-[#06070d]',
@@ -61,19 +63,6 @@ const PLAN_STYLE: Record<LivePlan['type'], {
     surface: 'from-yellow-300/[0.11] via-[#171308] to-[#06070d]',
   },
 };
-
-function formatPlanTime(plan: LivePlan) {
-  if (!plan.startsAt) return plan.endsAt ? 'Open now' : 'Live';
-  const start = new Date(plan.startsAt);
-  if (!Number.isFinite(start.getTime())) return 'Soon';
-  const delta = start.getTime() - Date.now();
-  if (delta <= 30 * 60 * 1000 && delta > -4 * 60 * 60 * 1000) return 'Happening now';
-  return new Intl.DateTimeFormat(undefined, {
-    weekday: 'short',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(start);
-}
 
 function getPeopleLabel(plan: LivePlan) {
   if (!plan.people) return null;
@@ -91,11 +80,14 @@ export default function LivePlanCard({
   plan,
   compact = false,
   context = 'now',
+  timeZone,
 }: {
   plan: LivePlan;
   compact?: boolean;
   context?: 'now' | 'board';
+  timeZone?: string;
 }) {
+  const now = useRecommendationClock();
   const style = PLAN_STYLE[plan.type];
   const Icon = style.icon;
   const peopleLabel = getPeopleLabel(plan);
@@ -137,14 +129,14 @@ export default function LivePlanCard({
 
   return (
     <article
-      className={`group flex min-w-0 flex-col overflow-hidden rounded-[1.55rem] border border-white/10 bg-gradient-to-br ${style.surface} shadow-[0_18px_45px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)] ${compact ? 'p-4' : 'p-5'}`}
+      className={`bd-card group flex min-w-0 flex-col overflow-hidden ${compact ? 'p-4' : 'p-5'}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className={`inline-flex min-h-8 items-center gap-2 rounded-full border px-3 text-[9px] font-black uppercase tracking-[0.15em] ${style.accent}`}>
+        <span className={`inline-flex min-h-8 items-center gap-2 rounded-full border px-3 text-xs font-bold ${style.accent}`}>
           <Icon className="h-3.5 w-3.5" aria-hidden="true" />
           {style.eyebrow}
         </span>
-        <span className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] ${participant ? 'border-emerald-200/25 bg-emerald-300/[0.1] text-emerald-100' : 'border-white/10 bg-black/22 text-white/42'}`}>
+        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${participant ? 'border-emerald-200/25 bg-emerald-300/[0.1] text-emerald-100' : 'border-white/10 bg-black/22 text-white/60'}`}>
           {participant ? 'Your next move' : plan.status.label}
         </span>
       </div>
@@ -167,7 +159,7 @@ export default function LivePlanCard({
         </p>
         <p className="flex items-center gap-2">
           <CalendarClock className="h-4 w-4 shrink-0 text-violet-200/74" aria-hidden="true" />
-          <span>{formatPlanTime(plan)}</span>
+          <span>{activityTimeLabel(plan, now, timeZone)}</span>
         </p>
         {peopleLabel ? (
           <p className="flex items-center gap-2">
@@ -208,8 +200,9 @@ export default function LivePlanCard({
         </details>
       ) : null}
 
-      {context === 'board' ? (
-        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/7 pt-3">
+      <details className="mt-4 rounded-2xl border border-white/10 bg-black/15 px-3">
+        <summary className="flex min-h-11 cursor-pointer items-center text-xs font-bold text-white/65">Map &amp; directions</summary>
+        <div className="grid grid-cols-2 gap-2 pb-3">
           <Link
             href={mapHref}
             prefetch={false}
@@ -218,7 +211,7 @@ export default function LivePlanCard({
               plan_type: plan.type,
               source: context,
             })}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-violet-200/16 bg-violet-300/[0.06] px-3 text-[9px] font-black uppercase tracking-[0.11em] text-violet-100/78 transition hover:border-violet-100/32 hover:text-white"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-violet-200/16 px-3 text-xs font-bold text-violet-100 transition hover:border-violet-100/32"
           >
             <Map className="h-3.5 w-3.5" aria-hidden="true" /> On map
           </Link>
@@ -227,12 +220,12 @@ export default function LivePlanCard({
             target="_blank"
             rel="noreferrer"
             onClick={recordDirections}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-cyan-200/18 bg-cyan-300/[0.065] px-3 text-[9px] font-black uppercase tracking-[0.11em] text-cyan-100 transition hover:border-cyan-100/36 hover:text-white"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-cyan-200/18 px-3 text-xs font-bold text-cyan-100 transition hover:border-cyan-100/36"
           >
             <Navigation className="h-3.5 w-3.5" aria-hidden="true" /> Directions
           </a>
         </div>
-      ) : null}
+      </details>
 
       <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-4">
         <Link
@@ -244,7 +237,7 @@ export default function LivePlanCard({
             plan_type: plan.type,
             source: context,
           })}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#f5c518] px-4 text-[10px] font-black uppercase tracking-[0.14em] text-[#171006] transition hover:bg-[#ffe36e] active:scale-[0.985]"
+          className="bd-action bd-action--gold !text-xs"
         >
           {crewRoomReady ? 'Open crew' : participant ? 'Open plan' : plan.action.label}
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
