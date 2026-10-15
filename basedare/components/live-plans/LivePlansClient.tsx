@@ -4,7 +4,9 @@ import Link from '@/components/DiscoveryLink';
 import { useDiscovery } from '@/components/DiscoveryProvider';
 import { useRecommendationClock } from '@/hooks/useRecommendationClock';
 import { assessRecommendation } from '@/lib/recommendation-policy';
-import { PARTICIPATION_FILTERS, filterParticipation, type ParticipationFilter } from '@/lib/participation-filter';
+import { PARTICIPATION_FILTERS, type ParticipationFilter } from '@/lib/participation-filter';
+import { browsePlanInventory } from '@/lib/activity-presentation';
+import DiscoveryViews from '@/components/discovery/DiscoveryViews';
 import {
   ChevronDown,
   CircleHelp,
@@ -20,7 +22,7 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
 import AdventureSuggestions from '@/components/adventures/AdventureSuggestions';
@@ -34,7 +36,6 @@ import {
 import type { LivePlanSnapshot } from '@/lib/live-plans';
 import { trackClientEvent } from '@/lib/analytics';
 import {
-  filterWorldPulsePlans,
   worldPulseRecommendationInput,
   worldPulseRecommendationWindow,
   getWorldPulseMapHref,
@@ -47,7 +48,6 @@ import {
   type WorldPulseMode,
 } from '@/lib/world-pulse';
 
-const SIARGAO_CENTER = { latitude: 9.803, longitude: 126.159 };
 const FILTERS = [
   { id: 'NOW', label: 'Now' },
   { id: 'NEXT_2H', label: 'Next 2h' },
@@ -100,8 +100,10 @@ export default function LivePlansClient({
   const [peebearDecision, setPeebearDecision] = useState<PeeBearDecisionState | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [guideStep, setGuideStep] = useState<LivePlansGuideStep | null>(null);
+  const loadVersion = useRef(0);
 
   const load = useCallback(async (signal?: AbortSignal) => {
+    const version = ++loadVersion.current;
     setLoading(true);
     setError(null);
     const query = new URLSearchParams({
@@ -120,19 +122,20 @@ export default function LivePlansClient({
       if (!response.ok || !payload?.success || !payload.data) {
         throw new Error(payload?.error || 'Could not load live plans.');
       }
-      setSnapshot(payload.data as LivePlanSnapshot);
+      if (!signal?.aborted && version === loadVersion.current) setSnapshot(payload.data as LivePlanSnapshot);
     } catch (loadError) {
       if (loadError instanceof DOMException && loadError.name === 'AbortError') return;
-      setError(loadError instanceof Error ? loadError.message : 'Could not load live plans.');
+      if (!signal?.aborted && version === loadVersion.current) setError(loadError instanceof Error ? loadError.message : 'Could not load live plans.');
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      if (!signal?.aborted && version === loadVersion.current) setLoading(false);
     }
   }, [center.latitude, center.longitude, radiusKm]);
 
   useEffect(() => {
     const controller = new AbortController();
+    setSnapshot(null);
     void load(controller.signal);
-    const interval = window.setInterval(() => void load(), 60_000);
+    const interval = window.setInterval(() => void load(controller.signal), 60_000);
     const refresh = () => { if (document.visibilityState === 'visible') void load(controller.signal); };
     document.addEventListener('visibilitychange', refresh);
     window.addEventListener('basedare:live-plans-updated', refresh);
@@ -184,9 +187,7 @@ export default function LivePlansClient({
   };
 
   const plans = useMemo(() => {
-    const source = filterParticipation(snapshot?.plans ?? [], participation);
-    const timed = filterWorldPulsePlans(source, mode, now, snapshot?.window.tz);
-    return needsPeopleOnly ? timed.filter((plan) => plan.status.forming) : timed;
+    return browsePlanInventory(snapshot?.plans ?? [], { participation, mode, now, timeZone: snapshot?.window.tz, needsPeople: needsPeopleOnly });
   }, [mode, needsPeopleOnly, now, snapshot?.plans, snapshot?.window.tz, participation]);
   const pickedPlan = useMemo(
     () => plans.find((plan) => plan.id === pickedPlanId) ?? null,
@@ -327,6 +328,9 @@ export default function LivePlansClient({
   }, [guideStep, rememberIntro, scrollToGuideTarget]);
 
   const startAdventureHref = adventureHref(undefined, undefined, area);
+  const showFreeIdeas = participation === 'all' || participation === 'play';
+  const freeIdeasFirst = showFreeIdeas && plans.length === 0;
+  const freeIdeas = <AdventureSuggestions area={{ ...area, timeZone: snapshot?.window.tz ?? area.timeZone }} />;
 
   return (
     <main className="now-page relative min-h-screen overflow-hidden bd-page-top px-4 pb-36 text-white sm:px-6 lg:px-10">
@@ -335,7 +339,7 @@ export default function LivePlansClient({
         <section className="bd-surface p-5 sm:p-8">
           <div className="flex flex-col gap-6">
             <div>
-              <p className="bd-page-kicker"><Radio className="h-3.5 w-3.5" /> Happening now</p>
+              <p className="bd-page-kicker"><Radio className="h-3.5 w-3.5" /> Discover nearby</p>
               <h1 className="bd-page-title mt-3 max-w-4xl">Find your next move. </h1>
               <p className="mt-3 text-sm text-slate-300">{area.label} · within {radiusKm} km</p>
             </div>
@@ -410,7 +414,9 @@ export default function LivePlansClient({
         </div>
         {guideStep === 0 ? <LivePlansGuideCue step={0} onBack={() => undefined} onNext={() => moveGuide('next')} onClose={closeIntro} /> : null}
 
-        {snapshot ? (
+        <DiscoveryViews active="now" queryString={getWorldPulseViewHref({ mode, center, radiusKm, participation, selectedPlanId: pickedPlanId, needsPeople: needsPeopleOnly }).split('?')[1]} />
+
+        {snapshot && plans.length > 0 ? (
           <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-[0.12em] text-white/42">
             <span className="px-1 py-1">{plans.length} matches</span>
             <span className="px-1 py-1">{plans.filter((plan) => plan.status.forming).length} need people</span>
@@ -434,6 +440,7 @@ export default function LivePlansClient({
           />
         ) : null}
 
+        {freeIdeasFirst ? freeIdeas : null}
         <div id="live-plan-list" className={`scroll-mt-32 rounded-[1.75rem] transition ${guideStep === 1 ? 'ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70' : ''}`}>
           {loading && !snapshot ? (
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -441,7 +448,13 @@ export default function LivePlansClient({
             </div>
           ) : plans.length ? (
             <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Live plans">
-              {plans.map((plan) => <LivePlanCard key={plan.id} plan={plan} />)}
+              {plans.map((plan) => <LivePlanCard key={plan.id} plan={plan} timeZone={snapshot?.window.tz} />)}
+            </section>
+          ) : freeIdeasFirst && snapshot ? (
+            <section className="bd-well mt-6 p-4 text-sm leading-6 text-white/65">
+              <h2 className="font-bold text-white">{participation === 'play' ? 'No published free challenges in this window.' : 'No matching public plans in this window.'}</h2>
+              <p className="mt-1">The ideas above are self-directed adventures. You can also <Link href="/community/rally/new" className="text-cyan-100 underline">start a meetup</Link>.</p>
+              {mode !== 'ALL' ? <button type="button" onClick={() => setMode('ALL')} className="mt-2 min-h-11 font-bold text-cyan-100">Browse all times</button> : null}
             </section>
           ) : (
             <section className={`bd-empty mt-6 text-center ${participation === 'all' || participation === 'play' ? 'p-5' : 'p-10'}`}>
@@ -455,7 +468,7 @@ export default function LivePlansClient({
           )}
         </div>
         {guideStep === 1 ? <LivePlansGuideCue step={1} onBack={() => moveGuide('back')} onNext={() => moveGuide('next')} onClose={closeIntro} /> : null}
-        {participation === 'all' || participation === 'play' ? <AdventureSuggestions area={{ lat: center.latitude, lng: center.longitude, label: center.latitude === SIARGAO_CENTER.latitude && center.longitude === SIARGAO_CENTER.longitude ? 'Siargao' : 'Selected map area', timeZone: snapshot?.window.tz }} /> : null}
+        {showFreeIdeas && !freeIdeasFirst ? freeIdeas : null}
 
         {guideStep === 2 ? (
           <div id="live-plan-next-move" className="scroll-mt-32 mt-6 rounded-[1.4rem] border border-emerald-200/22 bg-emerald-300/[0.07] p-4 ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70">

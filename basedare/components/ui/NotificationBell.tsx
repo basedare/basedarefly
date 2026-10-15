@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowUpRight, Bell, BellRing, Check, ChevronDown, MessageCircle, SlidersHorizontal, Smartphone, X } from 'lucide-react';
+import { ArrowUpRight, Bell, BellRing, Check, ChevronDown, MessageCircle, SlidersHorizontal, Smartphone, X, Users, Compass, BriefcaseBusiness, MapPin } from 'lucide-react';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useSession } from 'next-auth/react';
 import { useSignMessage } from 'wagmi';
@@ -14,6 +14,11 @@ import {
     useWalletPushSubscription,
 } from '@/hooks/useWalletPushSubscription';
 import { runAfterPageIdle } from '@/lib/client-performance';
+import { NOTIFICATION_CATEGORIES, notificationCategory, type NotificationCategory } from '@/lib/notification-presentation';
+
+const CATEGORY_ICONS = { social: Users, adventures: Compass, work: BriefcaseBusiness, places: MapPin, updates: Bell };
+type ReadStatus = Record<'updates' | 'messages' | 'actions', 'idle' | 'loading' | 'ready' | 'error'>;
+const EMPTY_READ_STATUS: ReadStatus = { updates: 'idle', messages: 'idle', actions: 'idle' };
 
 interface Notification {
     id: string;
@@ -78,12 +83,17 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
     const { data: session } = useSession();
     const { signMessageAsync } = useSignMessage();
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [dataWallet, setDataWallet] = useState<string | null>(address ?? null);
     const [actionItems, setActionItems] = useState<ActionCenterItem[]>([]);
     const [actionSummary, setActionSummary] = useState<ActionCenterSummary | null>(null);
     const [inboxSummary, setInboxSummary] = useState<InboxSummary | null>(null);
     const [isOpen, setIsOpen] = useState(defaultOpen);
     const [isHovered, setIsHovered] = useState(false);
     const [showPushControls, setShowPushControls] = useState(false);
+    const [category, setCategory] = useState<NotificationCategory | 'all'>('all');
+    const [readStatus, setReadStatus] = useState<ReadStatus>(EMPTY_READ_STATUS);
+    const [updateError, setUpdateError] = useState('');
+    const readVersions = useRef({ updates: 0, messages: 0, actions: 0 });
     const dropdownRef = useRef<HTMLDivElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -98,6 +108,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
     const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
     const primaryAction = actionItems[0] ?? null;
     const secondaryActionItems = actionItems.slice(1, 4);
+    const visibleNotifications = notifications.filter((notification) => category === 'all' || notificationCategory(notification.type) === category);
     const {
         disablePushSubscription,
         nearbyRadiusKm,
@@ -170,54 +181,81 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
     );
 
     const fetchNotifications = useCallback(async (allowSignPrompt = false) => {
-        if (!address) return;
+        if (!address || previousAddressRef.current !== address) return;
+        const version = ++readVersions.current.updates;
+        const current = () => previousAddressRef.current === address && readVersions.current.updates === version;
+        setReadStatus((state) => ({ ...state, updates: 'loading' }));
         try {
             const headers = await getWalletAuthHeaders('notifications:read', allowSignPrompt);
-            const res = await fetch(`/api/notifications?wallet=${address}`, { headers });
+            const res = await fetch(`/api/notifications?wallet=${address}`, { headers, cache: 'no-store', signal: AbortSignal.timeout(10_000) });
             const data = await res.json();
-            if (data.success) {
+            if (!res.ok || !data.success || !Array.isArray(data.notifications)) throw new Error(res.status === 401 || res.status === 403 ? 'Verify your account to load private updates.' : 'Updates couldn’t load. Retry to check them.');
+            if (current()) {
                 setNotifications(data.notifications);
+                setUpdateError('');
+                setReadStatus((state) => ({ ...state, updates: 'ready' }));
             }
         } catch (err) {
-            console.error('Failed to fetch notifications', err);
+            if (current()) { setUpdateError(err instanceof Error && err.name !== 'TimeoutError' ? err.message : 'Updates didn’t respond. Retry to check them.'); setReadStatus((state) => ({ ...state, updates: 'error' })); }
         }
     }, [address, getWalletAuthHeaders]);
 
     const fetchActionCenter = useCallback(async () => {
-        if (!address) return;
+        if (!address || previousAddressRef.current !== address) return;
+        const version = ++readVersions.current.actions;
+        const current = () => previousAddressRef.current === address && readVersions.current.actions === version;
+        setReadStatus((state) => ({ ...state, actions: 'loading' }));
         try {
             const res = await fetch(`/api/action-center?wallet=${address}`, {
+                cache: 'no-store',
+                signal: AbortSignal.timeout(10_000),
                 headers: {
                     'x-moderator-wallet': address,
                 },
             });
             const data = await res.json();
-            if (data.success) {
+            if (!res.ok || !data.success) throw new Error('Actions unavailable');
+            if (current()) {
                 setActionItems((data.data.items ?? []).slice(0, 4));
                 setActionSummary(data.data.summary ?? null);
+                setReadStatus((state) => ({ ...state, actions: 'ready' }));
             }
-        } catch (err) {
-            console.error('Failed to fetch action center', err);
+        } catch {
+            if (current()) setReadStatus((state) => ({ ...state, actions: 'error' }));
         }
     }, [address]);
 
     const fetchInboxSummary = useCallback(async (allowSignPrompt = false) => {
-        if (!address) return;
+        if (!address || previousAddressRef.current !== address) return;
+        const version = ++readVersions.current.messages;
+        const current = () => previousAddressRef.current === address && readVersions.current.messages === version;
+        setReadStatus((state) => ({ ...state, messages: 'loading' }));
         try {
             const headers = await getWalletAuthHeaders('inbox:read', allowSignPrompt);
-            const res = await fetch(`/api/inbox/summary?wallet=${address}`, { headers });
+            const res = await fetch(`/api/inbox/summary?wallet=${address}`, { headers, cache: 'no-store', signal: AbortSignal.timeout(10_000) });
             const data = await res.json();
-            if (data.success) {
+            if (!res.ok || !data.success) throw new Error('Messages unavailable');
+            if (current()) {
                 setInboxSummary(data.data);
+                setReadStatus((state) => ({ ...state, messages: 'ready' }));
             }
-        } catch (err) {
-            console.error('Failed to fetch inbox summary', err);
+        } catch {
+            if (current()) setReadStatus((state) => ({ ...state, messages: 'error' }));
         }
     }, [address, getWalletAuthHeaders]);
 
     // Keep the root shell quiet: load the badge after idle, then hydrate the
     // heavier action center and inbox only when the bell opens.
     useEffect(() => {
+        if (previousAddressRef.current !== (address ?? null)) {
+            setDataWallet(address ?? null);
+            readVersions.current.updates += 1;
+            readVersions.current.messages += 1;
+            readVersions.current.actions += 1;
+            setReadStatus(EMPTY_READ_STATUS);
+            setUpdateError('');
+            setCategory('all');
+        }
         if (!address) {
             previousAddressRef.current = null;
             idleFetchedAddressRef.current = null;
@@ -328,7 +366,9 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
         if (!address || ids.length === 0) return;
 
         // Optimistic update
+        readVersions.current.updates += 1;
         setNotifications(prev => prev.filter(n => !ids.includes(n.id)));
+        setReadStatus(state => ({ ...state, updates: 'ready' }));
 
         try {
             const headers = await getWalletAuthHeaders('notifications:write', true);
@@ -341,7 +381,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
         } catch (err) {
             console.error('Failed to mark notifications as read', err);
             // Re-fetch to restore state on error
-            void fetchNotifications(false);
+            if (previousAddressRef.current === address) void fetchNotifications(false);
         }
     };
 
@@ -350,7 +390,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
         markAsRead(ids);
     };
 
-    if (!address) return null;
+    if (!address || dataWallet !== address) return null;
 
     return (
         <div className="relative z-[200]" ref={dropdownRef}>
@@ -399,12 +439,12 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                             <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                                 <h3 className="text-2xl font-black tracking-[-0.04em] text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.55)]">
-                                    Notifications
+                                    Activity inbox
                                 </h3>
                                 <p className="mt-1 text-xs font-medium text-white/60">
                                     {actionCount || inboxUnreadCount || unreadCount
                                         ? [actionCount && `${actionCount} to do`, inboxUnreadCount && `${inboxUnreadCount} unread ${inboxUnreadCount === 1 ? 'message' : 'messages'}`, unreadCount && `${unreadCount} ${unreadCount === 1 ? 'update' : 'updates'}`].filter(Boolean).join(' · ')
-                                        : 'You’re up to date'}
+                                        : Object.values(readStatus).some((status) => status === 'error') ? 'Some activity couldn’t load' : Object.values(readStatus).every((status) => status === 'ready') ? 'You’re up to date' : 'Checking your activity…'}
                                 </p>
                             </div>
                                 <button
@@ -422,13 +462,13 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                     className="group inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-[#f5c518]/28 bg-[linear-gradient(180deg,rgba(255,232,110,0.18)_0%,rgba(80,53,10,0.2)_46%,rgba(7,8,15,0.72)_100%)] px-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#fff1a6] shadow-[0_14px_26px_rgba(0,0,0,0.24),0_0_22px_rgba(245,197,24,0.08),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-10px_14px_rgba(0,0,0,0.2)] transition hover:-translate-y-0.5 hover:border-[#f5c518]/42 hover:bg-[#f5c518]/12 active:translate-y-0"
                                     onClick={() => setIsOpen(false)}
                                 >
-                                    Action center
+                                    Your actions
                                     <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                                 </Link>
                                 {unreadCount > 0 && (
                                     <button
                                         onClick={markAllAsRead}
-                                        className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-white/10 bg-black/22 px-3 text-[10px] font-black uppercase tracking-[0.16em] text-purple-100/76 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-colors hover:bg-white/[0.06] hover:text-purple-50"
+                                        className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/10 bg-black/22 px-3 text-xs font-bold text-purple-100/76 transition-colors hover:bg-white/[0.06] hover:text-purple-50"
                                     >
                                         <Check className="h-3.5 w-3.5" /> Clear alerts
                                     </button>
@@ -648,9 +688,9 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                                     </div>
                                 ) : (
                                     <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-3">
-                                        <p className="text-sm font-black text-white">No conversations yet.</p>
+                                        <p className="text-sm font-black text-white">{readStatus.messages === 'ready' ? 'No conversations yet.' : 'Your conversations'}</p>
                                         <p className="mt-1 text-xs leading-relaxed text-white/42">
-                                            Messages will land here.
+                                            {readStatus.messages === 'error' ? 'Messages couldn’t load. Open chats or verify your account to retry.' : readStatus.messages !== 'ready' ? 'Checking your conversations…' : 'Messages will land here.'}
                                         </p>
                                     </div>
                                 )}
@@ -718,29 +758,38 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
 
                             {/* List */}
                             <div className="order-3 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-                                {notifications.length === 0 ? (
+                                <div className="bd-segmented mb-4 flex gap-1 overflow-x-auto" role="group" aria-label="Filter activity updates">
+                                  {NOTIFICATION_CATEGORIES.filter((item) => item.id === 'all' || item.id === category || notifications.some((notification) => notificationCategory(notification.type) === item.id)).map((item) => <button type="button" key={item.id} aria-pressed={category === item.id} onClick={() => setCategory(item.id)} className="shrink-0 px-3">{item.label}</button>)}
+                                </div>
+                                {readStatus.updates === 'error' ? <div role="status" className="bd-well mb-4 p-3 text-sm leading-6 text-amber-100">{updateError}<button type="button" className="bd-action mt-3 w-full !text-xs" onClick={() => void fetchNotifications(true)}>Load private updates</button></div> : null}
+                                {readStatus.actions === 'error' ? <p role="status" className="mb-3 text-xs leading-5 text-amber-100">Actions couldn’t load. <Link href="/action-center" onClick={() => setIsOpen(false)} className="underline">Open your actions</Link> to check them.</p> : null}
+                                {readStatus.messages === 'error' ? <button type="button" className="bd-action mb-4 w-full !text-xs" onClick={() => void fetchInboxSummary(true)}>Load private messages</button> : null}
+                                {visibleNotifications.length === 0 ? (
                                     <div className="flex min-h-[9rem] flex-col items-center justify-center p-6 text-center">
                                         <BellRing className="w-8 h-8 text-white/20 mb-3" />
                                         <p className="text-sm text-gray-400">
-                                            {actionItems.length > 0 ? 'Nothing else needs you.' : 'All caught up.'}
+                                            {readStatus.updates !== 'ready' ? 'Updates are not loaded yet.' : category !== 'all' ? 'No updates in this category.' : 'No new updates.'}
                                         </p>
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
                                         <p className="mb-3 text-xs font-semibold text-white/60">Updates</p>
-                                        {notifications.map((notif) => (
+                                        {visibleNotifications.map((notif) => {
+                                          const eventCategory = notificationCategory(notif.type);
+                                          const Icon = CATEGORY_ICONS[eventCategory];
+                                          return (
                                             <div key={notif.id} className="group flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.025] p-3 transition hover:bg-white/[0.05]">
-                                                <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-violet-200/15 bg-violet-300/10 text-violet-200"><Bell className="h-4 w-4" /></span>
+                                                <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-violet-200/15 bg-violet-300/10 text-violet-200"><Icon className="h-4 w-4" aria-hidden="true" /></span>
                                                 <div className="min-w-0 flex-1">
                                                     {notif.link ? <Link href={notif.link} onClick={() => { void markAsRead([notif.id]); setIsOpen(false); }} className="block rounded-lg focus-visible:outline focus-visible:outline-cyan-200">
                                                         <h4 className="text-sm font-bold leading-5 text-white">{notif.title}</h4>
                                                         <p className="mt-1 text-xs leading-5 text-white/65">{notif.message}</p>
                                                     </Link> : <><h4 className="text-sm font-bold leading-5 text-white">{notif.title}</h4><p className="mt-1 text-xs leading-5 text-white/65">{notif.message}</p></>}
-                                                    <time dateTime={notif.createdAt} className="mt-2 block text-[11px] text-white/45">{new Date(notif.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</time>
+                                                    <p className="mt-2 text-[11px] text-white/55">{NOTIFICATION_CATEGORIES.find((item) => item.id === eventCategory)?.label} · <time dateTime={notif.createdAt}>{new Date(notif.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</time></p>
                                                 </div>
                                                 <button type="button" aria-label={`Mark ${notif.title} as read`} onClick={() => void markAsRead([notif.id])} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white"><Check className="h-4 w-4" /></button>
                                             </div>
-                                        ))}
+                                        ); })}
                                     </div>
                                 )}
                             </div>

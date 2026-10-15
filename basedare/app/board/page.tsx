@@ -18,6 +18,9 @@ import {
 import type { FieldStationInventoryCandidate } from '@/lib/field-stations/inventory-policy';
 import { getLivePlanSnapshot } from '@/lib/live-plans-server';
 import type { LivePlan } from '@/lib/live-plans';
+import DiscoveryViews from '@/components/discovery/DiscoveryViews';
+import { readDiscovery } from '@/lib/discovery-context';
+import { browsePlanInventory } from '@/lib/activity-presentation';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,8 +63,6 @@ const NOTE_TONE: Record<FlyerTone, { wash: string; edge: string; pin: string }> 
 
 const PAPER_GRAIN =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
-
-const SIARGAO_CENTER = { latitude: 9.803, longitude: 126.159 };
 
 function FlyerCard({ flyer, index, tone, fieldStation = false }: { flyer: Flyer; index: number; tone: FlyerTone; fieldStation?: boolean }) {
   const note = NOTE_TONE[tone];
@@ -164,10 +165,12 @@ function LivePlanBoardSection({
   title,
   subtitle,
   plans,
+  timeZone,
 }: {
   title: string;
   subtitle: string;
   plans: LivePlan[];
+  timeZone?: string;
 }) {
   if (plans.length === 0) return null;
   return (
@@ -178,7 +181,7 @@ function LivePlanBoardSection({
       </div>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {plans.map((plan) => (
-          <LivePlanCard key={plan.id} plan={plan} context="board" />
+          <LivePlanCard key={plan.id} plan={plan} context="board" timeZone={timeZone} />
         ))}
       </div>
     </section>
@@ -215,11 +218,6 @@ function normalizedRadius(value: string | undefined) {
   } catch {
     return normalizeDensityRadiusKm(undefined);
   }
-}
-
-function normalizedLiveRadius(value: string | undefined) {
-  const parsed = value ? Number(value) : Number.NaN;
-  return Number.isFinite(parsed) ? Math.min(25, Math.max(0.5, parsed)) : 12;
 }
 
 function copyParams(
@@ -304,6 +302,7 @@ function StationInventoryCard({ item }: { item: FieldStationInventoryCandidate }
 
 export default async function BoardPage({ searchParams }: { searchParams: BoardSearchParams }) {
   const params = await searchParams;
+  const discovery = readDiscovery(copyParams(params));
   const fieldStation = firstParam(params.field) === '1';
   const stationLabel = firstParam(params.stationLabel);
   const attentionMode = normalizedFieldAttention(firstParam(params.attention));
@@ -313,10 +312,10 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
   const longitude = Number(firstParam(params.lng));
   const minimumDensity = normalizedThreshold(firstParam(params.minimumDensity));
   const radiusKm = normalizedRadius(firstParam(params.radiusKm));
-  const liveRadiusKm = normalizedLiveRadius(firstParam(params.radiusKm));
+  const liveRadiusKm = discovery.radiusKm;
   const liveCenter = {
-    latitude: Number.isFinite(latitude) ? latitude : SIARGAO_CENTER.latitude,
-    longitude: Number.isFinite(longitude) ? longitude : SIARGAO_CENTER.longitude,
+    latitude: discovery.lat,
+    longitude: discovery.lng,
   };
   let inventory: FieldStationInventoryResult | null = null;
   let inventoryUnavailable = false;
@@ -362,11 +361,10 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
         }),
         getBoardSections(),
       ]);
-  const livePlans = liveSnapshot?.plans ?? [];
+  const livePlans = browsePlanInventory(liveSnapshot?.plans ?? [], { participation: discovery.participation, mode: discovery.mode, now: new Date(), timeZone: liveSnapshot?.window.tz, needsPeople: firstParam(params.needs) === '1' });
   const formingPlans = livePlans.filter((plan) => plan.status.forming);
   const readyPlans = livePlans.filter((plan) => !plan.status.forming);
-  const total =
-    livePlans.length + sections.tonight.length + sections.rewards.length + sections.receipts.length + sections.placesLitUp.length;
+  const total = livePlans.length;
   const backToMapParams = copyParams(params, {
     source: 'board',
     field: null,
@@ -401,6 +399,8 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
             Meetups, events and paid dares around you. Open a card to see the details.
           </p>
         </div>
+
+        {!fieldStation ? <DiscoveryViews active="list" queryString={copyParams(params).toString()} filters /> : null}
 
         {answerFirst ? (
           <div className="mx-auto mt-10 max-w-2xl rounded-[28px] border border-[#f5c518]/18 bg-[radial-gradient(circle_at_100%_0%,rgba(34,211,238,.11),transparent_35%),linear-gradient(180deg,rgba(18,20,31,.96),rgba(6,7,14,.98))] p-5 shadow-[0_28px_70px_rgba(0,0,0,.5)] sm:p-7">
@@ -490,7 +490,7 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
         ) : total === 0 ? (
           <div className="mx-auto mt-12 max-w-md rounded-[24px] border border-white/10 bg-black/40 p-8 text-center backdrop-blur-md">
             <p className="text-sm font-bold leading-6 text-white/60">
-              {!liveSnapshot || sections.unavailable ? 'Some activities couldn’t load. Try refreshing, or browse another view.' : 'No activity published in this area yet.'}{' '}
+              {!liveSnapshot || sections.unavailable ? 'Some activities couldn’t load. Try refreshing, or browse another view.' : 'No plans match this area, time and activity type.'}{' '}
               <Link href="/community/rally/new" className="text-[#f8dd72] underline-offset-2 hover:underline">Start a meetup</Link>, <Link href={`/adventures?${copyParams(params, {}).toString()}`} className="text-[#f8dd72] underline-offset-2 hover:underline">try a free adventure</Link>
               {' '}or <Link href="/map" className="text-cyan-100 underline-offset-2 hover:underline">open the map</Link> to choose a place.
             </p>
@@ -500,23 +500,22 @@ export default async function BoardPage({ searchParams }: { searchParams: BoardS
             {!liveSnapshot || sections.unavailable ? <p role="status" className="mt-5 rounded-2xl border border-amber-200/20 bg-amber-200/5 p-4 text-sm text-amber-100">Some activities couldn’t load. <a href="" className="underline">Refresh this view</a> to try again.</p> : null}
             {livePlans.length ? (
               <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-[9px] font-black uppercase tracking-[0.13em] text-white/44">
-                <span className="rounded-full border border-white/10 bg-black/24 px-3 py-1.5">{liveSnapshot?.totals.plans ?? livePlans.length} live plans</span>
-                <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.07] px-3 py-1.5 text-[#fff0a8]/72">{liveSnapshot?.totals.forming ?? formingPlans.length} need people</span>
-                <span className="rounded-full border border-violet-200/14 bg-violet-300/[0.06] px-3 py-1.5 text-violet-100/66">{liveSnapshot?.totals.events ?? 0} venue events</span>
+                <span className="rounded-full border border-white/10 bg-black/24 px-3 py-1.5">{livePlans.length} matching plans</span>
+                <span className="rounded-full border border-[#f5c518]/18 bg-[#f5c518]/[0.07] px-3 py-1.5 text-[#fff0a8]/72">{formingPlans.length} need people</span>
+                <span className="rounded-full border border-violet-200/14 bg-violet-300/[0.06] px-3 py-1.5 text-violet-100/66">{livePlans.filter((plan) => plan.type === 'venue_event').length} events</span>
               </div>
             ) : null}
-            <LivePlanBoardSection title="Needs people" subtitle="Join and help it happen" plans={formingPlans} />
-            <LivePlanBoardSection title="Things to do" subtitle="Meetups · surf boats · events · challenges" plans={readyPlans} />
-            {!livePlans.length ? (
-              <>
-                <BoardSection title="Visited today" subtitle="Recorded check-ins" flyers={sections.tonight} tone="cyan" fieldStation={fieldStation} />
-                <BoardSection title="Rewards" subtitle="Open paid dares" flyers={sections.rewards} tone="gold" fieldStation={fieldStation} />
-              </>
-            ) : null}
-            <BoardSection title="Completed dares" subtitle="Recently verified" flyers={sections.receipts} tone="emerald" fieldStation={fieldStation} />
-            <BoardSection title="Recent activity" subtitle="Verified updates at places" flyers={sections.placesLitUp} tone="violet" fieldStation={fieldStation} />
+            <LivePlanBoardSection title="Needs people" subtitle="Join and help it happen" plans={formingPlans} timeZone={liveSnapshot?.window.tz} />
+            <LivePlanBoardSection title="Things to do" subtitle="Meetups · surf boats · events · challenges" plans={readyPlans} timeZone={liveSnapshot?.window.tz} />
           </>
         )}
+        {!fieldStation && (sections.tonight.length || sections.receipts.length || sections.placesLitUp.length) ? <details className="bd-surface mt-8 p-5">
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-bold text-white">Recent place history</summary>
+          <p className="mt-2 text-sm leading-6 text-white/60">Recorded updates across BaseDare. These are past visits and completed work, separate from the matching plans above.</p>
+          <BoardSection title="Recorded visits" subtitle="Recent check-ins" flyers={sections.tonight} tone="cyan" />
+          <BoardSection title="Completed dares" subtitle="Recently verified" flyers={sections.receipts} tone="emerald" />
+          <BoardSection title="Place updates" subtitle="Verified contributions" flyers={sections.placesLitUp} tone="violet" />
+        </details> : null}
       </section>
     </div>
   );

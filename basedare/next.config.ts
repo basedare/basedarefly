@@ -71,7 +71,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/passport',
-        destination: '/dashboard',
+        destination: '/adventures/passport',
         permanent: true,
       },
     ];

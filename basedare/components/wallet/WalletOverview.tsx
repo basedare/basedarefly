@@ -76,10 +76,8 @@ export function WalletOverview() {
           {!simulation && supportedNetwork && <button className="bd-action" disabled={balance.isFetching} onClick={() => { void balance.refetch(); }}><RefreshCw className={`mr-2 h-4 w-4 ${balance.isFetching ? 'animate-spin motion-reduce:animate-none' : ''}`} />{balance.isFetching ? 'Checking…' : 'Refresh'}</button>}
         </div>
         <p className="mt-2 text-sm leading-6 text-white/70">Held in your connected wallet. Pending rewards and BaseCash venue credit are separate.</p>
-        {!simulation && supportedNetwork && <p className="mt-2 text-xs text-white/60">Network fees: {balance.isError || eth === null ? 'ETH balance unavailable' : eth !== undefined ? `${displayAmount(BigInt(eth), 18, 4)} ETH` : 'checking ETH balance…'}</p>}
         {(balance.isError || usdc === null || eth === null) && <p role="status" className="mt-2 text-sm text-amber-100">The network didn’t respond. Refresh to retry; your funds stay in your wallet.</p>}
-        {!simulation && !balance.isError && usdc === '0' && <p className="mt-3 text-xs leading-5 text-white/60">No native USDC found on {network.chainName}. Tokens on other networks and balances in other wallets won’t appear here.</p>}
-        {!simulation && balance.dataUpdatedAt > 0 && <p className="mt-2 text-xs text-white/50">Last checked {new Date(balance.dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>}
+        {!correctNetwork && !simulation && supportedNetwork ? <p role="status" className="mt-3 text-sm text-amber-100">Viewing your {network.chainName} balance. Your wallet is connected to another network; switch before receiving here.</p> : null}
         {!correctNetwork && !simulation && supportedNetwork && <button className="bd-action mt-4" disabled={switching} onClick={async () => {
           try { await switchChainAsync({ chainId: network.chainId }); setFeedback(null); }
           catch { if (address) setFeedback({ address, text: `Switch to ${network.chainName} in your wallet to receive funds here.` }); }
@@ -101,6 +99,15 @@ export function WalletOverview() {
           <a className="mt-3 block text-xs text-cyan-100 underline" href={`${network.blockExplorer}/token/${token}`} target="_blank" rel="noopener noreferrer">Check the supported USDC token</a>
         </div>}
         {message && <p role="status" className="mt-3 text-sm text-cyan-100">{message}</p>}
+        {!simulation && supportedNetwork ? <details className="bd-well mt-5 px-4">
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-bold text-white/75">Wallet details</summary>
+          <div className="space-y-3 pb-4 text-xs leading-5 text-white/60">
+            <p>Network fees: {balance.isError || eth === null ? 'ETH balance unavailable' : eth !== undefined ? `${displayAmount(BigInt(eth), 18, 4)} ETH` : 'checking ETH balance…'}</p>
+            <p>Only native USDC on {network.chainName} appears in this balance. Other networks, pending rewards and venue credit are separate.</p>
+            {balance.dataUpdatedAt > 0 ? <p>Last checked {new Date(balance.dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p> : null}
+            <a className="inline-flex min-h-11 items-center text-cyan-100 underline" href={`${network.blockExplorer}/address/${address}`} target="_blank" rel="noopener noreferrer">View wallet on the explorer</a>
+          </div>
+        </details> : null}
       </>}
       <div className="mt-5 border-t border-white/10 pt-4 text-sm leading-6 text-white/70">
         <p className="font-bold text-white">Spend at a local venue</p>

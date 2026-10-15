@@ -9,6 +9,7 @@ export function useAdventureProgress() {
   const [progress, setProgress] = useState<AdventureProgress>(EMPTY_ADVENTURES);
   const [storageUnavailable, setStorageUnavailable] = useState(false);
   const [ready, setReady] = useState(false);
+  const [asOf, setAsOf] = useState(() => Date.now());
   const restore = useCallback(() => {
     try {
       const stored = localStorage.getItem(ADVENTURE_KEY);
@@ -26,12 +27,12 @@ export function useAdventureProgress() {
       }
       setStorageUnavailable(memoryOnly);
     } catch { setStorageUnavailable(true); }
-    setProgress(memory); setReady(true);
+    setProgress(memory); setAsOf(Date.now()); setReady(true);
   }, []);
   useEffect(() => {
     const initial = window.setTimeout(restore, 0);
     const visible = () => { if (document.visibilityState === 'visible') restore(); };
-    const sync = () => setProgress(memory);
+    const sync = () => { setProgress(memory); setStorageUnavailable(memoryOnly); setAsOf(Date.now()); };
     window.addEventListener('storage', restore);
     window.addEventListener(ADVENTURE_EVENT, sync);
     document.addEventListener('visibilitychange', visible);
@@ -42,7 +43,8 @@ export function useAdventureProgress() {
     memory = readAdventureProgress(apply(memory));
     try { localStorage.setItem(ADVENTURE_KEY, JSON.stringify(memory)); memoryOnly = false; setStorageUnavailable(false); } catch { memoryOnly = true; setStorageUnavailable(true); }
     setProgress(memory);
+    setAsOf(Date.now());
     window.dispatchEvent(new Event(ADVENTURE_EVENT));
   }, []);
-  return { progress, change, ready, storageUnavailable };
+  return { progress, change, ready, storageUnavailable, asOf };
 }

@@ -18,14 +18,13 @@ import styles from './Navbar.module.css';
 // inside the experience after the user understands the action it represents.
 const NAV_LINKS = [
   { name: "NOW", href: "/now", activePrefixes: ["/now"] },
-  { name: "MAP", href: "/map", activePrefixes: ["/map"] },
-  { name: "LIST VIEW", href: "/board", activePrefixes: ["/board"] },
+  { name: "MAP", href: "/map", activePrefixes: ["/map", "/board"] },
   {
     name: "CREATE",
     href: "/start",
     activePrefixes: ["/start", "/create", "/community/rally/new"],
   },
-  { name: "MY ACTIVITY", href: "/dashboard", activePrefixes: ["/dashboard"] },
+  { name: "MY ACTIVITY", href: "/dashboard", activePrefixes: ["/dashboard", "/adventures/passport", "/missions"] },
   { name: "COMMUNITY", href: "/community", activePrefixes: ["/community"] },
 ];
 

@@ -2,21 +2,30 @@
 import AdventurePreferenceControls from './AdventurePreferenceControls';
 import ShareAdventure from './ShareAdventure';
 import SharedAdventures from './SharedAdventures';
+import AdventurePassport from './AdventurePassport';
 import Link from '@/components/DiscoveryLink';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { ArrowLeft, Check, Compass, MapPin, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Check, MapPin, Sparkles } from 'lucide-react';
 import PlanShareButton from '@/components/community/PlanShareButton';
 import { useAdventureProgress } from '@/hooks/useAdventureProgress';
 import { activeAdventure, adventureHref, completeAdventure, updateAdventureStep } from '@/lib/adventure-progress';
 import { ACTIVITY_SUGGESTIONS, SIARGAO_ACTIVITY_AREA, suggestionsForArea, matchingAdventureSuggestions, readAdventurePreferences, type ActivityArea } from '@/lib/home-activities';
 import { trackClientEvent } from '@/lib/analytics';
+import { personalAdventureInvite } from '@/lib/adventure-passport';
 
 const panel = 'bd-surface p-5 sm:p-7';
 const button = 'bd-action';
 
 export default function AdventureHub({ activityId }: { activityId?: string }) {
   const query = useSearchParams();
+  const invitationSource = query.get('from');
+  const trackedInvitation = useRef<string | null>(null);
+  useEffect(() => {
+    if (invitationSource !== 'passport' || !activityId || !ACTIVITY_SUGGESTIONS.some((activity) => activity.id === activityId) || trackedInvitation.current === activityId) return;
+    trackedInvitation.current = activityId;
+    trackClientEvent('adventure_invite_opened', { activity_id: activityId, source: 'passport_completion' });
+  }, [activityId, invitationSource]);
   const placeSlug = query.get('place') ?? undefined;
   const viewingShared = Boolean(query.get('post') || query.get('shared') === 'public' || query.get('shared') === 'mine');
   const [area, setArea] = useState<ActivityArea>(SIARGAO_ACTIVITY_AREA);
@@ -30,7 +39,7 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
   const [company, setCompany] = useState<'solo' | 'friends'>('solo');
   const [now, setNow] = useState(() => new Date());
   const [message, setMessage] = useState('');
-  const { progress, change, ready, storageUnavailable } = useAdventureProgress();
+  const { progress, change, ready } = useAdventureProgress();
   const lat = query.get('lat'); const lng = query.get('lng');
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30000);
@@ -71,7 +80,7 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
     change((previous) => ({ runs: [{ runId: crypto.randomUUID(), activityId: activity.id, startedAt, steps: [], area, placeSlug: placeReady ? placeSlug : undefined },
       ...previous.runs.filter((r) => r.completedAt)].slice(0, 30) }));
     setMessage('Adventure started. Your steps are saved as you go.');
-    trackClientEvent('adventure_started', { activity_id: activity.id, company, source: 'adventures' });
+    trackClientEvent('adventure_started', { activity_id: activity.id, company, source: query.get('from') === 'passport' ? 'passport_invite' : 'adventures' });
   }
   return <main className="relative min-h-screen overflow-hidden bd-page-top bg-transparent px-4 pb-32 text-white sm:px-6">
     <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_18%_10%,rgba(34,211,238,0.06),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(168,85,247,0.08),transparent_36%)]" aria-hidden="true" />
@@ -83,6 +92,7 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
       <p className="bd-page-kicker mb-3">Explore · play · go together</p>
       <h1 className="bd-page-title">{activity?.title ?? (viewingShared ? 'Adventures worth sharing.' : 'Make a little adventure.')}</h1>
       <p className="bd-page-copy mt-4">{activity?.summary ?? (viewingShared ? 'See what people made, then try an adventure yourself.' : 'Free things to try, on your own or with friends. Pick one and go at your own pace.')}</p>
+      {activity && query.get('from') === 'passport' ? <p className="bd-well mt-5 p-4 text-sm leading-6 text-violet-100">Someone shared this adventure. Try it at your own pace, solo or with friends. Your progress starts with your own attempt.</p> : null}
       <p className="mt-3 flex items-center gap-2 text-xs text-cyan-100"><MapPin size={14} />{placeState === 'loading' ? 'Finding this place…' : placeState === 'failed' ? 'Place details unavailable — go back to the map and try again.' : area.label}</p>
       {!activity && !viewingShared ? <>
         <div className="mt-6"><AdventurePreferenceControls value={preferences} onChange={(next) => {
@@ -117,6 +127,7 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
         }}>I finished this adventure</button> : <button className={button + ' w-full border-yellow-200/30 text-yellow-100'} disabled={!ready || !canStart} onClick={start}>{run ? 'Switch to this adventure' : latestCompleted ? 'Do this again' : 'Start this adventure'}</button>}
         {run && !current ? <p className="mt-2 text-xs text-white/45">Switching replaces your unfinished adventure. Completed adventures stay in your journal.</p> : null}
         {latestCompleted && !current ? <p className="mt-4 flex items-center gap-2 text-sm text-emerald-100"><Sparkles size={17} />Completed · {new Date(latestCompleted.completedAt!).toLocaleDateString()} · self-reported</p> : null}
+        {latestCompleted && !current ? <div className="mt-4"><PlanShareButton href={personalAdventureInvite(latestCompleted)} title={activity.title} text={`I tried “${activity.title}”. Want to try this free activity yourself?`} label="Share this adventure" analyticsSource="passport_completion" /></div> : null}
         {latestCompleted && !current ? <ShareAdventure activityId={activity.id} runId={latestCompleted.runId} placeSlug={placeSlug}/> : null}
         <div className="mt-4 flex flex-wrap gap-3">
           <PlanShareButton href={href(activity.id)} title={activity.title} text={`Want to try this free ${activity.minutes}-minute activity with me? ${activity.title}.`} label="Invite a friend" analyticsSource="adventure" />
@@ -127,11 +138,7 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
       </section> : null}
       {message ? <p role="status" className="mt-4 rounded-xl bg-violet-300/10 p-4 text-sm text-violet-100">{message}</p> : null}
       {!activity ? <SharedAdventures/> : null}
-      {!viewingShared ? <section className={panel + ' mt-6'} aria-label="Your adventure journal">
-        <h2 className="flex items-center gap-2 text-lg font-black"><Compass size={20} className="text-violet-200" />Your adventure journal</h2>
-        <p className="mt-2 text-xs leading-5 text-white/50">{storageUnavailable ? 'Browser storage is unavailable. Progress lasts for this visit only.' : 'Saved on this device. Active adventures last 24 hours; your latest 30 completed adventures stay until browser data is cleared.'} This is your own record, not verified attendance or proof.</p>
-        {!completed.length ? <p className="mt-4 text-sm text-white/60">Your first completed adventure will appear here.</p> : <ul className="mt-4 space-y-3">{completed.slice(0, 5).map((r) => <li key={r.runId} className="border-t border-white/10 pt-3"><Link href={adventureHref(r.activityId, r.placeSlug, r.area)} className="text-sm font-bold text-white">{ACTIVITY_SUGGESTIONS.find((a) => a.id === r.activityId)?.title} →</Link><p className="mt-1 text-xs text-white/45">{r.area.label} · {new Date(r.completedAt!).toLocaleDateString()} · self-reported</p></li>)}</ul>}
-      </section> : null}
+      {!viewingShared ? <div className="mt-6"><AdventurePassport compact={Boolean(activity)} /></div> : null}
       <div className="mt-6 flex flex-wrap gap-4 text-xs font-bold text-cyan-100"><Link className="min-h-11 py-3" href="/now">Find a group plan →</Link><Link className="min-h-11 py-3" href="/earn">Browse paid work →</Link>{activity ? <Link className="min-h-11 py-3" href={href()}>Choose the next adventure →</Link> : null}</div>
     </div>
   </main>;

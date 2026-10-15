@@ -636,13 +636,15 @@ export default async function VenueDetailPage(
                     {venue.activePerk?.conditions ? <p className="mt-3 text-sm text-yellow-100">{venue.activePerk.conditions}</p> : null}
                     {venue.activePerk?.quantityLimit ? <p className="mt-2 text-xs text-white/50">Up to {venue.activePerk.quantityLimit} rewards in this offer · one per signed-in wallet. Availability is confirmed when you scan; staff verify the requirements. {venue.activePerk.endsAt ? `Ends ${new Date(venue.activePerk.endsAt).toLocaleString('en-PH', { timeZone: venue.timezone })} (${venue.timezone}).` : ''}</p> : null}
                     <div className="mt-5 grid gap-2">
-                      <Link className="inline-flex min-h-11 items-center justify-center rounded-full border border-violet-200/20 px-4 text-xs font-bold text-violet-100" href={`/adventures?place=${encodeURIComponent(venue.slug)}`}>Free things to try here →</Link>
-                      <VenueCheckInButton
+                      {venue.activePerk ? <VenueCheckInButton venueId={venue.id} venueName={venue.name} live={venue.liveSession?.status === 'LIVE'} perkTitle={venue.activePerk.title} /> : <Link className="bd-action bd-action--violet w-full !text-sm" href={`/adventures?place=${encodeURIComponent(venue.slug)}`}>Try an adventure here <ArrowRight className="h-4 w-4" /></Link>}
+                      <details className="bd-well px-3">
+                        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-bold text-white/75">Meet, check in &amp; share</summary>
+                        <div className="grid gap-3 pb-3">
+                      {venue.activePerk ? <Link className="bd-action !text-xs" href={`/adventures?place=${encodeURIComponent(venue.slug)}`}>Free things to try here →</Link> : <VenueCheckInButton
                         venueId={venue.id}
                         venueName={venue.name}
                         live={venue.liveSession?.status === 'LIVE'}
-                        perkTitle={venue.activePerk?.title}
-                      />
+                      />}
                       <VenueMarkButton
                         placeId={venue.id}
                         placeName={venue.name}
@@ -672,6 +674,8 @@ export default async function VenueDetailPage(
                         <ArrowRight className="h-3 w-3" />
                       </Link>
                       <p className="text-xs leading-5 text-white/60">Join nearby, or within 24 hours of a confirmed check-in. Messages expire after 24 hours.</p>
+                        </div>
+                      </details>
                     </div>
                   </div>
                   <details id="venue-management" className={`${softCardClass} scroll-mt-28 px-5 py-4`}>
