@@ -368,7 +368,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
         // Optimistic update
         readVersions.current.updates += 1;
         setNotifications(prev => prev.filter(n => !ids.includes(n.id)));
-        setReadStatus(state => ({ ...state, updates: 'ready' }));
+        setReadStatus(state => ({ ...state, updates: state.updates === 'loading' ? 'idle' : state.updates }));
 
         try {
             const headers = await getWalletAuthHeaders('notifications:write', true);
@@ -378,6 +378,7 @@ export function NotificationBell({ defaultOpen = false }: { defaultOpen?: boolea
                 body: JSON.stringify({ wallet: address, notificationIds: ids })
             });
             if (!response.ok) throw new Error('Could not mark notifications as read');
+            if (previousAddressRef.current === address) void fetchNotifications(false);
         } catch (err) {
             console.error('Failed to mark notifications as read', err);
             // Re-fetch to restore state on error
