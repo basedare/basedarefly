@@ -31,6 +31,8 @@ import {
   type SentinelRecommendationReason,
 } from '@/lib/sentinel';
 import ContentDeliveryFields from '@/components/ContentDeliveryFields';
+import PaidAvailability from '@/components/PaidAvailability';
+import { usePaymentReadiness } from '@/hooks/usePaymentReadiness';
 import { readContentDelivery, type ContentDeliveryBrief } from '@/lib/content-delivery';
 
 
@@ -293,6 +295,7 @@ function CreateDareContent() {
   const watchVenueId = watch('venueId');
   const watchSparkType = watch('sparkType');
   const isCommunitySpark = watchSparkType === 'COMMUNITY';
+  const paymentReadiness = usePaymentReadiness(!isCommunitySpark && !isSimulationMode);
   const isVenueSignalCheckout = Boolean(
     venuePrefill &&
       (venuePrefill.source === 'map' ||
@@ -311,6 +314,10 @@ function CreateDareContent() {
     : watchRequireSentinel
       ? 'Sentinel proof'
       : 'Venue proof';
+  const invoiceParams = new URLSearchParams({ source: 'fund-without-crypto', missionType: activeContentDelivery ? 'content-commission' : 'paid-dare', budgetRange: 'discuss', packageId: 'pilot-drop', goal: activeContentDelivery ? 'ugc' : 'other', missionTitle: String(watchTitle || '').slice(0, 160), payout: checkoutRewardLabel, timeWindow: checkoutWindowLabel, proofRequired: checkoutProofLabel });
+  if (watchVenueId) invoiceParams.set('venueId', watchVenueId);
+  if (venuePrefill?.name) invoiceParams.set('venueName', venuePrefill.name);
+  const invoiceRequestHref = '/activations?' + invoiceParams.toString() + '#activation-intake';
   const fundingPreview = isCommunitySpark
     ? {
         eyebrow: 'Free proof rail',
@@ -611,8 +618,10 @@ function CreateDareContent() {
   const settlementReady =
     isCommunitySpark ||
     isSimulationMode ||
-    (isOnchainContractsReady && hasRewardReady && !hasInsufficientBalance);
-  const launchBlocker = activeContentDelivery && !contentRightsReleased
+    (paymentReadiness.state === 'ready' && isOnchainContractsReady && hasRewardReady && !hasInsufficientBalance);
+  const launchBlocker = !isCommunitySpark && !isSimulationMode && paymentReadiness.state !== 'ready'
+    ? paymentReadiness.state === 'checking' ? 'Checking payment setup before funding.' : 'Paid dares are temporarily unavailable. You can keep editing this draft.'
+    : activeContentDelivery && !contentRightsReleased
     ? 'Content commissions are not open yet. You can prepare a draft; funding opens after usage terms are reviewed.'
     : !hasMissionObjective
     ? 'Add a mission objective before launch.'
@@ -631,7 +640,9 @@ function CreateDareContent() {
               : hasInsufficientBalance
                 ? `Add ${watchAmount || 0} USDC or lower the bounty.`
                 : null;
-  const launchGateLabel = activeContentDelivery && !contentRightsReleased
+  const launchGateLabel = !isCommunitySpark && !isSimulationMode && paymentReadiness.state !== 'ready'
+    ? 'Funding unavailable'
+    : activeContentDelivery && !contentRightsReleased
     ? 'Content Launch Pending'
     : !hasMissionObjective
     ? 'Add Mission'
@@ -1043,12 +1054,13 @@ function CreateDareContent() {
                 </span>
               ))}
             </div>
+            {!isCommunitySpark && !isSimulationMode ? <PaidAvailability /> : null}
             {!isCommunitySpark && <div className="mt-3 border-t border-white/[0.06] pt-3 text-center">
               <Link
-                href="/first-spark?source=fund-without-crypto#pilot-request"
+                href={invoiceRequestHref}
                 className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#f5c518]/75 transition hover:text-[#ffe785]"
               >
-                Business without crypto? Fund by invoice
+                Business without crypto? Request an invoice
                 <span aria-hidden="true">→</span>
               </Link>
             </div>}

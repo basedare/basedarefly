@@ -12,7 +12,7 @@ import { useAdventureProgress } from '@/hooks/useAdventureProgress';
 import { activeAdventure, adventureHref, completeAdventure, updateAdventureStep } from '@/lib/adventure-progress';
 import { ACTIVITY_SUGGESTIONS, SIARGAO_ACTIVITY_AREA, suggestionsForArea, matchingAdventureSuggestions, readAdventurePreferences, type ActivityArea } from '@/lib/home-activities';
 import { trackClientEvent } from '@/lib/analytics';
-import { personalAdventureInvite } from '@/lib/adventure-passport';
+import PersonalCompletionCard from './PersonalCompletionCard';
 
 const panel = 'bd-surface p-5 sm:p-7';
 const button = 'bd-action';
@@ -66,7 +66,7 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
   const eligible = suggestionsForArea(area, now);
   const matches = matchingAdventureSuggestions(area, now, preferences);
   const run = activeAdventure(progress, now.getTime());
-  const sameArea = (saved: { placeSlug?: string; area: ActivityArea }) => saved.placeSlug === placeSlug && (placeSlug || (saved.area.lat === area.lat && saved.area.lng === area.lng));
+  const sameArea = (saved: { placeSlug?: string; area: ActivityArea }) => saved.placeSlug === placeSlug && (placeSlug || (Math.round(saved.area.lat * 1000) === Math.round(area.lat * 1000) && Math.round(saved.area.lng * 1000) === Math.round(area.lng * 1000)));
   const current = run && run.activityId === activityId && sameArea(run) ? run : null;
   const completed = progress.runs.filter((r) => r.completedAt);
   const latestCompleted = completed.find((r) => r.activityId === activityId && sameArea(r));
@@ -127,7 +127,7 @@ export default function AdventureHub({ activityId }: { activityId?: string }) {
         }}>I finished this adventure</button> : <button className={button + ' w-full border-yellow-200/30 text-yellow-100'} disabled={!ready || !canStart} onClick={start}>{run ? 'Switch to this adventure' : latestCompleted ? 'Do this again' : 'Start this adventure'}</button>}
         {run && !current ? <p className="mt-2 text-xs text-white/45">Switching replaces your unfinished adventure. Completed adventures stay in your journal.</p> : null}
         {latestCompleted && !current ? <p className="mt-4 flex items-center gap-2 text-sm text-emerald-100"><Sparkles size={17} />Completed · {new Date(latestCompleted.completedAt!).toLocaleDateString()} · self-reported</p> : null}
-        {latestCompleted && !current ? <div className="mt-4"><PlanShareButton href={personalAdventureInvite(latestCompleted)} title={activity.title} text={`I tried “${activity.title}”. Want to try this free activity yourself?`} label="Share this adventure" analyticsSource="passport_completion" /></div> : null}
+        {latestCompleted && !current ? <PersonalCompletionCard run={latestCompleted} /> : null}
         {latestCompleted && !current ? <ShareAdventure activityId={activity.id} runId={latestCompleted.runId} placeSlug={placeSlug}/> : null}
         <div className="mt-4 flex flex-wrap gap-3">
           <PlanShareButton href={href(activity.id)} title={activity.title} text={`Want to try this free ${activity.minutes}-minute activity with me? ${activity.title}.`} label="Invite a friend" analyticsSource="adventure" />

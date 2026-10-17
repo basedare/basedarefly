@@ -74,10 +74,8 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
       routedVenueId ||
       routedVenueSlug ||
       routedCity ||
-      routedSource ||
       isFirstSparkOffer ||
       resolvedSearchParams.auditBrief ||
-      resolvedSearchParams.missionType ||
       resolvedSearchParams.missionTitle ||
       resolvedSearchParams.guestMission ||
       resolvedSearchParams.perkLabel
@@ -102,7 +100,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
     : isFirstSparkOffer
       ? 'One venue, one night, one proof path, one recap. BaseDare handles setup; the venue gives one simple perk.'
       : isVerifiedFieldSprintRoute
-        ? 'Confirm who is buying and where to reply. Your question, coverage, evidence rules, and fixed quote stay attached from the Buyer Workspace.'
+        ? 'Define your question, coverage and evidence, then add a reply contact. Four independent checks cost $2,500, including the $500 reward pool. Nothing is published or charged by this request.'
       : 'Tell BaseDare where the mission should happen, what should be proved, and where to reply.';
   const primaryLabel = isVenueGuestMissionRoute
     ? 'Confirm Guest Mission'
@@ -113,7 +111,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
       : 'Send a request';
   const intakeHeading = hasRoutedContext ? 'Check your request.' : 'Give us the basics.';
   const intakeDetail = hasRoutedContext
-    ? 'Most fields are prefilled from the page you came from. Check the essentials and send it.'
+    ? 'Check the details carried from your earlier page and fill anything still missing.'
     : 'One place, one action, and one clear contact is enough to start.';
   const nextSteps = isVenueGuestMissionRoute
     ? [

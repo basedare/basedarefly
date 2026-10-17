@@ -336,7 +336,6 @@ export default function ActivationIntakeForm({
     form.routedCreator ||
     form.routedVenueId ||
     form.routedVenueSlug ||
-    form.routedSource ||
     form.routedMissionTitle ||
     form.routedGuestMission ||
     form.offerId ||
@@ -854,7 +853,7 @@ export default function ActivationIntakeForm({
               </p>
             </div>
             <div className="rounded-full border border-emerald-200/14 bg-emerald-300/[0.08] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/76">
-              Prefilled
+              Request details
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -874,8 +873,8 @@ export default function ActivationIntakeForm({
         <div className="grid grid-cols-3 gap-2 rounded-[22px] border border-cyan-200/12 bg-cyan-300/[0.045] p-2 sm:p-3">
           {(isFieldSprintRequest
             ? [
-                ['1', 'Coverage', form.venue || form.city || 'Bounded area'],
-                ['2', 'Evidence', form.routedProofRequired || 'Evidence rules attached'],
+                ['1', 'Coverage', form.venue || form.city || 'Choose an area'],
+                ['2', 'Evidence', form.routedProofRequired || 'Describe the evidence'],
                 ['3', 'Contact', form.email || 'Invoice reply'],
               ]
             : [
@@ -1153,6 +1152,7 @@ export default function ActivationIntakeForm({
                 onChange={(event) => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])}
                 className={inputClass}
               >
+                <option className="bg-[#080814]" value="discuss">Request a quote — scope to confirm</option>
                 <option className="bg-[#080814]" value={MANAGED_FIELD_SPRINT_BUDGET_RANGE}>{MANAGED_FIELD_SPRINT_BUDGET_LABEL}</option>
                 <option className="bg-[#080814]" value="1500_5000">$1.5k-$5k custom scope</option>
                 <option className="bg-[#080814]" value="5000_15000">$5k-$15k</option>
@@ -1195,7 +1195,8 @@ export default function ActivationIntakeForm({
             onChange={(event) => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])}
             className={inputClass}
           >
-            <option className="bg-[#080814]" value={MANAGED_FIELD_SPRINT_BUDGET_RANGE}>{MANAGED_FIELD_SPRINT_BUDGET_LABEL}</option>
+            <option className="bg-[#080814]" value="discuss">Request a quote — scope to confirm</option>
+                <option className="bg-[#080814]" value={MANAGED_FIELD_SPRINT_BUDGET_RANGE}>{MANAGED_FIELD_SPRINT_BUDGET_LABEL}</option>
             <option className="bg-[#080814]" value="1500_5000">$1.5k-$5k custom scope</option>
             <option className="bg-[#080814]" value="5000_15000">$5k-$15k</option>
             <option className="bg-[#080814]" value="15000_plus">$15k+</option>

@@ -25,6 +25,7 @@
     "safety:endpoints": "node scripts/production-endpoint-smoke.mjs",
     "safety:ux": "node scripts/launch-gauntlet.mjs",
     "test:payments:db": "bash scripts/run-payment-db-integration.sh",
+    "test:passport:db": "bash scripts/run-passport-db-integration.sh",
     "test:adventure-sharing:db": "bash scripts/run-adventure-sharing-db-integration.sh",
     "test:mission-pass:db": "bash scripts/run-mission-pass-db-integration.sh",
     "push:keys": "node scripts/generate-vapid-keys.mjs",
@@ -36,7 +37,7 @@
     "test:basecash:auth": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/basecash-request-auth-check.ts",
     "test:usability": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/usability-flow-check.ts",
     "test:community-identity": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/community-identity-check.ts",
-    "test:discovery": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ts-node/register --test lib/home-activities.test.ts lib/adventure-progress.test.ts lib/recommendation-policy.test.ts lib/adventure-passport.test.ts lib/activity-presentation.test.ts lib/discovery-context.test.ts",
+    "test:discovery": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ts-node/register --test lib/home-activities.test.ts lib/adventure-progress.test.ts lib/recommendation-policy.test.ts lib/adventure-passport.test.ts lib/activity-presentation.test.ts lib/discovery-context.test.ts lib/passport-progression.test.ts lib/analytics-privacy.test.ts",
     "test:creator-onboarding": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/creator-onboarding-check.ts",
     "funding:audit": "node scripts/funding-audit.mjs",
     "test:livepeer-stream": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register --test lib/livepeer-stream.test.ts"

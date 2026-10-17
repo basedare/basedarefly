@@ -46,6 +46,11 @@ jobs:
       - name: Adventure discovery regression checks
         run: npm run test:discovery
 
+      - name: Passport database regression
+        run: |
+          export PATH="$(pg_config --bindir):$PATH"
+          npm run test:passport:db
+
       - name: Creator onboarding authorization regression
         run: npm run test:creator-onboarding
 

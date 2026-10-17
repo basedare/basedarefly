@@ -1,6 +1,7 @@
 'use client';
 
 import posthog from 'posthog-js';
+import { analyticsPath } from '@/lib/analytics-privacy';
 import { Suspense, useEffect, type ReactNode } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
@@ -22,9 +23,7 @@ function PostHogPageview() {
 
   useEffect(() => {
     if (!pathname || !posthog.__loaded) return;
-    let url = window.origin + pathname;
-    const query = searchParams?.toString();
-    if (query) url += `?${query}`;
+    const url = window.origin + analyticsPath(pathname);
     posthog.capture('$pageview', { $current_url: url });
   }, [pathname, searchParams]);
 
@@ -39,8 +38,29 @@ export default function PostHogProvider({ children }: { children: ReactNode }) {
     posthog.init(key, {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
       capture_pageview: false, // handled manually for the App Router
-      capture_pageleave: true,
+      capture_pageleave: false,
       person_profiles: 'identified_only',
+      autocapture: false,
+      disable_session_recording: true,
+      before_send: (event) => {
+        if (event?.properties) {
+          event.properties.$current_url = window.origin + analyticsPath(window.location.pathname);
+          event.properties.$pathname = analyticsPath(window.location.pathname);
+          delete event.properties.$referrer;
+          delete event.properties.$initial_referrer;
+          delete event.properties.$initial_current_url;
+          for (const key of ['$set', '$set_once']) {
+            const values = event.properties[key];
+            if (values && typeof values === 'object') {
+              delete values.$initial_current_url;
+              delete values.$initial_referrer;
+              delete values.$referrer;
+              delete values.$current_url;
+            }
+          }
+        }
+        return event;
+      },
     });
   }, []);
 

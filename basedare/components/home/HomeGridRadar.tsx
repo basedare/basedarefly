@@ -61,7 +61,7 @@ const fallbackPoints: RadarPoint[] = [
     x: 52,
     y: 45,
     tone: 'gold',
-    signal: 'pilot ready',
+    signal: 'curated place',
     href: '/map?place=hideaway&source=home-radar',
   },
   {
@@ -70,7 +70,7 @@ const fallbackPoints: RadarPoint[] = [
     x: 38,
     y: 61,
     tone: 'purple',
-    signal: 'live proof',
+    signal: 'curated place',
     href: '/map?place=the-cat-and-gun&source=home-radar',
   },
   {
@@ -79,7 +79,7 @@ const fallbackPoints: RadarPoint[] = [
     x: 70,
     y: 33,
     tone: 'purple',
-    signal: 'surf spark',
+    signal: 'surf place',
     href: '/map?place=cloud-9-boardwalk&source=home-radar',
   },
   {
@@ -88,7 +88,7 @@ const fallbackPoints: RadarPoint[] = [
     x: 67,
     y: 63,
     tone: 'gold',
-    signal: 'qr ready',
+    signal: 'curated place',
     href: '/map?place=siargao-beach-club&source=home-radar',
   },
   {
@@ -188,7 +188,7 @@ function getRadarCopy(mode: RadarMode, count: number) {
 
     return {
       eyebrow: 'Live grid',
-      title: `${count} venues ready`,
+      title: `${count} places to explore`,
       detail: 'Near you',
       action: 'Open map',
     };
@@ -206,16 +206,16 @@ function getRadarCopy(mode: RadarMode, count: number) {
   if (mode === 'error') {
     return {
       eyebrow: 'Grid radar',
-      title: 'Signal cached',
-      detail: 'Siargao live',
+      title: 'Location unavailable',
+      detail: 'Curated Siargao places',
       action: 'Open map',
     };
   }
 
   return {
     eyebrow: 'Grid radar',
-    title: `${count} venues ready`,
-    detail: 'Siargao live',
+    title: `${count} places to explore`,
+    detail: 'Curated Siargao places',
     action: 'Reveal nearby',
   };
 }

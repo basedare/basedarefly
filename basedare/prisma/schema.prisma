@@ -1863,6 +1863,15 @@ model ContentRightsAcceptance {
 }
 
 // Free, self-reported adventures. Review approves display, never presence or payment.
+// Private self-reported memories. Never authority for visits, reputation or payment.
+model AdventureJournal {
+  walletAddress String @id
+  revision Int @default(1)
+  progressJson Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model AdventureSubmission {
   id String @id @default(cuid())
   wallet String

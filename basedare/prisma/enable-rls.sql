@@ -72,6 +72,7 @@ DECLARE
     'Vote',
     'VoterPoints',
     'CreatorPassport',
+    'AdventureJournal',
     'PointsEvent',
     'Notification',
     'InboxThread',
