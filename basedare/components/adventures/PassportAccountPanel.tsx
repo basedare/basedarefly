@@ -54,7 +54,7 @@ export default function PassportAccountPanel({ progress, accountLinked, area, on
 
   useEffect(() => { onPublicName(state === 'ready' ? data?.evidence.publicName ?? null : null); }, [onPublicName, data?.evidence.publicName, state]);
 
-  async function action(kind: 'load' | 'save' | 'clear') {
+  async function action(kind: 'load' | 'save' | 'clear' | 'evidence') {
     if (busy) return;
     const version = generation.current;
     setBusy(true); setMessage('');
@@ -81,8 +81,14 @@ export default function PassportAccountPanel({ progress, accountLinked, area, on
         setConfirmClear(false);
         setMessage('Account memories cleared. Confirmed visits, contributions and any separate guest-device journal are unchanged.');
       } else {
+        if (kind === 'load' && wallet && fresh.journal) {
+          // An explicit load restores only this account. A separate guest copy
+          // stays untouched; already-linked unsaved work is merged, never lost.
+          const loaded = accountLinked ? mergePersonalProgress(fresh.journal.progress, currentProgress.current) : fresh.journal.progress;
+          linkPersonalJournal(wallet, loaded);
+          setMessage('Account copy loaded on this device. Your separate guest journal is kept. New changes need Save and merge.');
+        } else setMessage(kind === 'load' && wallet ? 'No account copy yet. Choose Save and merge when you want to attach this device journal.' : 'Passport evidence refreshed.');
         setData(fresh);
-        setMessage('Account record loaded. Choose Save and merge to combine it with this device.');
       }
       setState('ready');
     } catch (error) {
@@ -112,7 +118,7 @@ export default function PassportAccountPanel({ progress, accountLinked, area, on
       </div> : null}
       {message ? <p role="status" className="mt-3 text-xs leading-5 text-amber-100">{message}</p> : null}
     </div>
-    {state === 'loading' ? <p role="status" className="text-sm text-white/60">Checking Passport evidence…</p> : state !== 'ready' ? <div className="bd-well p-4"><p className="text-sm text-white/65">{state === 'verify' ? 'Your confirmed visits and approved contributions are private until you verify your account.' : 'Evidence is unavailable right now. Your personal journal still works.'}</p><button className="bd-action mt-3 !text-xs" disabled={busy} onClick={() => void action('load')}>Retry evidence</button></div> : data ? <>
+    {state === 'loading' ? <p role="status" className="text-sm text-white/60">Checking Passport evidence…</p> : state !== 'ready' ? <div className="bd-well p-4"><p className="text-sm text-white/65">{state === 'verify' ? 'Your confirmed visits and approved contributions are private until you verify your account.' : 'Evidence is unavailable right now. Your personal journal still works.'}</p><button className="bd-action mt-3 !text-xs" disabled={busy} onClick={() => void action('evidence')}>Retry evidence</button></div> : data ? <>
       <div className={'rounded-2xl border-2 p-4 sm:p-5 ' + borders[selected]}>
         <h3 className="font-black text-white">Earned titles & Passport frames</h3>
         <p className="mt-2 text-xs leading-5 text-white/60">Frames are decorative. They confer no payment eligibility or extra reputation. Evidence is checked when this Passport opens.</p>

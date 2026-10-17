@@ -29,7 +29,12 @@ cleanup() {
 trap cleanup EXIT
 
 initdb -A trust -U postgres -D "$PGDATA" >/dev/null
-pg_ctl -D "$PGDATA" -o "-F -h 127.0.0.1 -p $PORT" -w start >/dev/null
+# Ubuntu's packaged server defaults to a system-owned socket directory.
+# Keep every resource inside this disposable test directory on all platforms.
+if ! pg_ctl -D "$PGDATA" -o "-F -h 127.0.0.1 -p $PORT -k $TMP_DIR" -l "$TMP_DIR/server.log" -w start >/dev/null; then
+  cat "$TMP_DIR/server.log" >&2
+  exit 1
+fi
 createdb -h 127.0.0.1 -p "$PORT" -U postgres "$DB_NAME"
 psql -h 127.0.0.1 -p "$PORT" -U postgres -d "$DB_NAME" \
   -v ON_ERROR_STOP=1 \
