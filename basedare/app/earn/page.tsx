@@ -14,6 +14,7 @@ import {
 } from '@/components/control/tokens';
 import { getCreatorMissions } from '@/lib/creator-missions-server';
 import { getMarket } from '@/lib/markets';
+import PaidAvailability from '@/components/PaidAvailability';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,6 +90,7 @@ export default async function EarnPage({
           </div>
         </section>
 
+        <PaidAvailability />
         <section className="mt-7" aria-labelledby="open-creator-missions">
           <div className="mb-4 flex items-end justify-between gap-4 px-1">
             <div>

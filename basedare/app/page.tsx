@@ -19,6 +19,7 @@ import HoneyGooAccent from "@/components/HoneyGooAccent";
 import HomeGridRadar from "@/components/home/HomeGridRadar";
 import RoleChoiceCards from "@/components/home/RoleChoiceCards";
 import MarketsSection from "@/components/home/MarketsSection";
+import HomeFirstAdventure from '@/components/home/HomeFirstAdventure';
 
 import { useView } from "@/app/context/ViewContext";
 import {
@@ -192,9 +193,11 @@ function HomeContent() {
             <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
               <div className="w-full relative">
                 <div className="relative z-[60] mx-auto max-w-lg px-4 pt-4 text-center" aria-label="Discover BaseDare">
+                  <h1 className="sr-only">BaseDare — find something worth doing nearby</h1>
                   <StreetAccent className="mx-auto mb-2 w-24" />
                   <p className="text-sm font-bold leading-6 text-white/80">{BASEDARE_INTRO}</p>
                   <Link href="/now?source=home-intro" prefetch={false} className="bd-action bd-action--gold mt-3 px-5 uppercase tracking-[0.12em]">Find something nearby →</Link>
+                  <HomeFirstAdventure />
                 </div>
                 {/* Desktop: Full 3D Hero with orbiting cards */}
                 <div className="hidden lg:block">

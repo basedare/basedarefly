@@ -26,7 +26,7 @@ export default function MapLegend({ className = '' }: { className?: string }) {
         <p className="map-key-footer"><span aria-hidden="true">3</span> A number groups places. Tap to zoom in.</p>
       </div> : null}
       <style jsx>{`
-        .map-key { position: absolute; right: 12px; bottom: 58px; z-index: 30; color: #f5f3fa; }
+        .map-key { position: absolute; right: 12px; bottom: 114px; z-index: 30; color: #f5f3fa; }
         .map-key-toggle { display: flex; min-height: 44px; align-items: center; justify-content: center; gap: 7px; padding: 0 14px; list-style: none; cursor: pointer; border: 1px solid #a1f1ec59; border-radius: 15px 7px 15px 7px; background: linear-gradient(145deg,#202536f5,#0a101bf5); box-shadow: 3px 3px 0 #77429099, 0 6px 16px #0005, inset 0 1px 0 #fff7dc14; font-size: 11px; font-weight: 700; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
         .map-key-toggle:hover, .map-key-toggle[aria-expanded="true"] { border-color: #6de7df; color: #a4fff1; }
         .map-key-toggle:focus-visible { outline: 2px solid #a4fff1; outline-offset: 4px; }
