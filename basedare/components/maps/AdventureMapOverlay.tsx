@@ -54,6 +54,7 @@ type AdventureMapOverlayProps = {
   fieldStationLabel?: string | null;
   fieldStationFallback?: boolean;
   surfSignal: SiargaoSurfSignal | null;
+  siargaoGuideAvailable?: boolean;
 };
 
 export type MapAttentionIntent = "meet" | "discover" | "now" | "tonight";
@@ -139,13 +140,14 @@ export default function AdventureMapOverlay({
   fieldStationLabel,
   fieldStationFallback = false,
   surfSignal,
+  siargaoGuideAvailable = true,
 }: AdventureMapOverlayProps) {
   const [guideLineIndex, setGuideLineIndex] = useState(0);
   const [guideSpeechOpen, setGuideSpeechOpen] = useState(false);
   const [surfPanelOpen, setSurfPanelOpen] = useState(false);
   const currentNight = getSiargaoNightGuide(now);
   const nightGuide = selectedNight ? getSiargaoNightGuideForWeekday(selectedNight) : currentNight;
-  const browsingAnotherNight = nightGuide.weekday !== currentNight.weekday;
+  const browsingAnotherNight = siargaoGuideAvailable && nightGuide.weekday !== currentNight.weekday;
   const destinationTimeZone = timeZone ?? snapshot?.window.tz;
   const scheduledTonightActivities = useMemo(() => rankTonightActivities(
     (snapshot?.activities ?? []).filter((activity) => activity.type === "meetup"),
@@ -165,8 +167,8 @@ export default function AdventureMapOverlay({
     (solarElevation(now, 9.803, 126.159) ?? -90) > 0 &&
     (solarElevation(new Date(now.getTime() + 45 * 60_000), 9.803, 126.159) ?? -90) > 0
   );
-  const showSurfPanel = surfPanelOpen && !panelOpen && !guideOpen;
-  const showSurfSignal = Boolean(surfSignal) && (showSurfPanel || (intent === "discover" && surfDaylight));
+  const showSurfPanel = siargaoGuideAvailable && surfPanelOpen && !panelOpen && !guideOpen;
+  const showSurfSignal = siargaoGuideAvailable && Boolean(surfSignal) && (showSurfPanel || (intent === "discover" && surfDaylight));
   const showPanel = enabled && panelOpen && !obscured;
   const showIntentCard = !obscured && !panelOpen && !intent && guideOpen;
   const showRecommendationCard = !obscured && !panelOpen && Boolean(intent) && guideOpen;
@@ -188,14 +190,14 @@ export default function AdventureMapOverlay({
         : intent === "tonight"
         ? focalActivity && !browsingAnotherNight
           ? `${focalActivity.title} is scheduled for tonight.`
-          : `${nightGuide.headline} is the usual ${nightGuide.weekday} rhythm.`
+          : siargaoGuideAvailable ? `${nightGuide.headline} is the usual ${nightGuide.weekday} rhythm.` : "Let’s check published plans for tonight nearby."
         : intent === "discover"
         ? "Purple stones mark reviewed clues, not random pins."
         : "Tell me what would make your next two hours better.";
 
     return [
       personalLine,
-      ...((!showSurfPanel && (panelOpen || intent === "tonight")) ? [`${nightGuide.lateVenue} is usually the late option, ${nightGuide.lateHoursLabel}. Check with the host; this is a weekly pattern, not a confirmed event.`] : []),
+      ...((siargaoGuideAvailable && !showSurfPanel && (panelOpen || intent === "tonight")) ? [`${nightGuide.lateVenue} is usually the late option, ${nightGuide.lateHoursLabel}. Check with the host; this is a weekly pattern, not a confirmed event.`] : []),
       ...(surfSignal && showSurfSignal
         ? [`Offshore model: ${surfSignal.headline} ${surfSignal.guidance}`]
         : []),
@@ -208,6 +210,7 @@ export default function AdventureMapOverlay({
     ];
   }, [
     focalActivity,
+    siargaoGuideAvailable,
     browsingAnotherNight,
     panelOpen,
     nightGuide.lateVenue,
@@ -225,11 +228,11 @@ export default function AdventureMapOverlay({
 
   const guideText = guideLines[guideLineIndex % guideLines.length];
   const dialogue = usePeeBearDialogue(guideText, showGuideDock && (guideSpeechOpen || showPanel) && !showIntentCard);
-  const tonightPlaces = nightPlaces.filter(p => isSiargaoVenueFeaturedOnNight(p.name,p.slug,nightGuide.weekday)).slice(0,5);
+  const tonightPlaces = siargaoGuideAvailable ? nightPlaces.filter(p => isSiargaoVenueFeaturedOnNight(p.name,p.slug,nightGuide.weekday)).slice(0,5) : [];
 
   return (
     <>
-      <div className="pointer-events-none absolute left-3 top-3 z-[15] flex max-w-[min(22rem,calc(100%-5.25rem))] flex-col items-start gap-2 md:left-5 md:top-5">
+      <div className="map-guide-controls pointer-events-none absolute left-3 top-3 z-[15] flex max-w-[min(22rem,calc(100%-5.25rem))] flex-col items-start gap-2 md:left-5 md:top-5">
         <div className="pointer-events-auto hidden flex-wrap items-center gap-2 md:flex">
           <button
             type="button"
@@ -296,13 +299,13 @@ export default function AdventureMapOverlay({
         </div>
 
         <div className="pointer-events-auto flex items-center gap-1.5" aria-label="Map guides">
-          <button type="button" aria-expanded={showSurfPanel && !obscured} onClick={() => {
+          {siargaoGuideAvailable ? <button type="button" aria-expanded={showSurfPanel && !obscured} onClick={() => {
             onDismissSelection();
             onPanelOpenChange(false);
             onGuideOpenChange(false);
             setGuideSpeechOpen(false);
             setSurfPanelOpen(!showSurfPanel || obscured);
-          }} className="min-h-11 rounded-full border border-cyan-200/25 bg-[#091822]/95 px-3 text-[10px] font-black text-cyan-50 shadow-lg"><Waves className="mr-1.5 inline h-3.5 w-3.5" />Surf</button>
+          }} className="min-h-11 rounded-full border border-cyan-200/25 bg-[#091822]/95 px-3 text-[10px] font-black text-cyan-50 shadow-lg"><Waves className="mr-1.5 inline h-3.5 w-3.5" />Surf</button> : null}
           <button type="button" aria-expanded={showPanel} onClick={() => {
             onDismissSelection();
             setSurfPanelOpen(false);
@@ -453,7 +456,7 @@ export default function AdventureMapOverlay({
                     : intent === "discover"
                     ? "A place worth having a story about"
                     : intent === "tonight"
-                    ? "The island’s usual rhythm, checked against live events"
+                    ? siargaoGuideAvailable ? "The island’s usual rhythm, checked against published plans" : "Published plans for tonight nearby"
                     : "Something useful you can do now"}
                 </p>
               </div>
@@ -584,9 +587,9 @@ export default function AdventureMapOverlay({
             </button>
 
             <p className="text-[9px] font-black uppercase tracking-[0.24em] text-cyan-100/52">
-              {browsingAnotherNight ? `${nightGuide.weekday} in Siargao` : "Tonight in Siargao"}
+              {siargaoGuideAvailable ? browsingAnotherNight ? `${nightGuide.weekday} in Siargao` : "Tonight in Siargao" : "Tonight nearby"}
             </p>
-            <label className="mt-3 block text-[10px] font-bold text-white/65">
+            {siargaoGuideAvailable ? <><label className="mt-3 block text-[10px] font-bold text-white/65">
               Pick a night
               <select aria-label="Pick a night" value={selectedNight ?? "tonight"} onChange={(event) => {
                 setSelectedNight(event.target.value === "tonight" ? null : event.target.value as SiargaoWeekday);
@@ -618,6 +621,7 @@ export default function AdventureMapOverlay({
               </p>
             </div>
 
+            </> : null}
             {tonightPlaces.length ? <div className="mt-3 space-y-2"><p className="text-[10px] font-bold text-white/60">Make your own plan · choose a time next</p>{tonightPlaces.map(place => <div key={place.slug} className="rounded-2xl border border-white/10 bg-black/20 p-3"><button className="min-h-11 text-left text-xs font-bold text-cyan-100" onClick={() => onSelectPlace(place.slug)}>{place.name} →</button><div className="flex flex-wrap gap-2"><Link className="bd-action inline-flex min-h-11 items-center rounded-full border border-yellow-200/25 bg-yellow-300/10 px-3 text-[10px] font-bold text-yellow-100" href={'/community/rally/new?venueId='+encodeURIComponent(place.id)+'&title='+encodeURIComponent('Meet at '+place.name)}>Start a meetup</Link><PlanShareButton href={'/map?place='+encodeURIComponent(place.slug)} title={'Meet at '+place.name} text={'Want to make a plan at '+place.name+'? Let’s agree a time and check what’s on with the venue.'} label="Invite a friend" analyticsSource="tonight-place"/></div></div>)}</div> : null}
 
             {browsingAnotherNight ? <p className="mt-2.5 text-[10px] leading-4 text-white/55">This is the usual weekly pattern. Choose Tonight to see currently published plans; these are not confirmed events for a future date.</p> : scheduledTonightActivities.length > 0 ? (

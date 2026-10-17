@@ -1,408 +1,260 @@
-// components/LivePotBubble.tsx (PURPLE AMBIENT GLOW RESTORED + BULLETPROOF BASKETBALL BOUNCE)
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState, useRef } from 'react';
-import { usePathname } from 'next/navigation';
-import { useView } from '@/app/context/ViewContext';
-import { getClientPerformanceHints } from '@/lib/client-performance';
-import { readCreatorPoolSummary, type CreatorPoolSummary } from '@/lib/creator-pool-display';
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { Coins, RefreshCw, X, ArrowUpRight } from "lucide-react";
+import { useView } from "@/app/context/ViewContext";
+import {
+  readCreatorPoolSummary,
+  type CreatorPoolSummary,
+} from "@/lib/creator-pool-display";
+import styles from "./LivePotBubble.module.css";
 
-interface LivePotBubbleProps {
-  className?: string;
-}
-
-function formatCompactUsd(value: number) {
-  const options: Intl.NumberFormatOptions = {
-    style: 'currency',
-    currency: 'USD',
+function usd(value: number, compact = false) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     maximumFractionDigits: 0,
-  };
-
-  if (value >= 100000) {
-    options.notation = 'compact';
-  }
-
-  return new Intl.NumberFormat('en-US', options).format(value);
-}
-
-function formatUsd(value: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
+    ...(compact && value >= 100000 ? { notation: "compact" as const } : {}),
   }).format(value);
 }
-
-export default function LivePotBubble({ className }: LivePotBubbleProps = {}) {
-  const { isControlMode } = useView(); // Use global context
+export default function LivePotBubble({
+  className = "",
+}: {
+  className?: string;
+}) {
   const pathname = usePathname();
-  const [translateY, setTranslateY] = useState(0);
-  const [triggerBounce, setTriggerBounce] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isReadyToRender, setIsReadyToRender] = useState(false);
+  const { isControlMode } = useView();
+  const [desktop, setDesktop] = useState(false);
+  const [open, setOpen] = useState(false);
   const [pool, setPool] = useState<CreatorPoolSummary | null>(null);
-  const [poolLoadSettled, setPoolLoadSettled] = useState(false);
-  const [poolIsStale, setPoolIsStale] = useState(false);
-  const potRef = useRef<HTMLButtonElement>(null);
-  const rafRef = useRef<number | null>(null);
-  const prevDistance = useRef<number>(0);
-
-  useEffect(() => {
-    if (pathname !== '/') return undefined;
-
-    const hints = getClientPerformanceHints();
-    const timeoutId = window.setTimeout(
-      () => setIsReadyToRender(true),
-      hints.isMobileViewport ? 5200 : 0
-    );
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [pathname]);
-
-  // THE ELEVATOR SCRIPT (GPU-Accelerated + Basketball Bounce)
-  useEffect(() => {
-    if (pathname !== '/' || !isReadyToRender) return undefined;
-
-    const updatePosition = () => {
-      const footer = document.getElementById('site-footer');
-      const pot = potRef.current;
-      if (!footer || !pot) return;
-
-      const footerRect = footer.getBoundingClientRect();
-      const potHeight = pot.offsetHeight;
-      const gap = 24;
-      const windowHeight = window.innerHeight;
-      const distanceToFooterTop = windowHeight - footerRect.top;
-
-      if (distanceToFooterTop > prevDistance.current && distanceToFooterTop > 0) {
-        if (distanceToFooterTop > potHeight + gap) {
-          if (!triggerBounce) {
-            setTriggerBounce(true);
-            setTimeout(() => setTriggerBounce(false), 1200);
-          }
-        }
-      }
-      prevDistance.current = distanceToFooterTop;
-
-      if (distanceToFooterTop > potHeight + gap) {
-        setTranslateY(-(potHeight + gap));
-      } else if (distanceToFooterTop > 0) {
-        setTranslateY(-distanceToFooterTop);
-      } else {
-        setTranslateY(0);
-      }
-    };
-
-    const onScroll = () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(updatePosition);
-    };
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    updatePosition();
-
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [isReadyToRender, pathname, triggerBounce]);
-
-  useEffect(() => {
-    if (pathname !== '/' || !isReadyToRender) return undefined;
-
-    let isActive = true;
+  const [loading, setLoading] = useState(true);
+  const [stale, setStale] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const request = useRef<AbortController | null>(null);
+  const version = useRef(0);
+  const load = useCallback(async () => {
+    request.current?.abort();
     const controller = new AbortController();
-    let abortTimeoutId: number | null = null;
-    const hints = getClientPerformanceHints();
-
-    const timeoutId = window.setTimeout(() => {
-      abortTimeoutId = window.setTimeout(() => controller.abort(), 1800);
-      fetch('/api/live-pot', {
+    request.current = controller;
+    const current = ++version.current;
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
+    setLoading(true);
+    try {
+      const response = await fetch("/api/live-pot", {
         signal: controller.signal,
-      })
-        .then(async (response) => ({ payload: response.ok ? await response.json() : null, source: response.headers.get('X-BaseDare-Data-Source') }))
-        .then(({ payload, source }) => {
-          if (isActive) {
-            setPool(readCreatorPoolSummary(payload, source));
-            setPoolIsStale(source === 'stale');
-          }
-        })
-        .catch((error: unknown) => {
-          if ((error as { name?: string }).name !== 'AbortError') {
-            console.warn('[CreatorPool] Failed to load', error);
-          }
-        })
-        .finally(() => {
-          if (abortTimeoutId) {
-            window.clearTimeout(abortTimeoutId);
-          }
-          if (isActive) {
-            setPoolLoadSettled(true);
-          }
-        });
-    }, hints.isMobileViewport ? 1800 : 650);
-
-    return () => {
-      isActive = false;
-      window.clearTimeout(timeoutId);
-      if (abortTimeoutId) {
-        window.clearTimeout(abortTimeoutId);
+        cache: "no-store",
+      });
+      const source = response.headers.get("X-BaseDare-Data-Source");
+      const value = readCreatorPoolSummary(
+        response.ok ? await response.json() : null,
+        source
+      );
+      if (current === version.current) {
+        setPool(value);
+        setStale(source === "stale");
       }
-      controller.abort();
-    };
-  }, [isReadyToRender, pathname]);
-
+    } catch {
+      if (current === version.current) setPool(null);
+    } finally {
+      window.clearTimeout(timeout);
+      if (current === version.current) setLoading(false);
+    }
+  }, []);
   useEffect(() => {
-    if (!isOpen) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
+    const media = window.matchMedia("(min-width: 768px)");
+    const sync = () => setDesktop(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+  useEffect(() => {
+    if (pathname !== "/" || !desktop) return;
+    void load();
+    return () => {
+      version.current += 1;
+      request.current?.abort();
     };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen]);
-
-  if (pathname !== '/' || !isReadyToRender) {
-    return null;
-  }
-
-  const displayTotal = pool?.liveDares.amount ?? null;
-  const isLoadingPool = !poolLoadSettled && !pool;
-  const poolStats = [
-    {
-      label: 'Active dare rewards',
-      value: pool ? formatUsd(pool.liveDares.amount) : 'Unavailable',
-      meta: pool ? `${pool.liveDares.count} recorded dares` : 'Awaiting data',
-    },
-    {
-      label: 'Campaign budgets',
-      value: pool ? formatUsd(pool.venueActivations.amount) : 'Unavailable',
-      meta: pool ? `${pool.venueActivations.count} recorded campaigns` : 'Awaiting data',
-    },
-    {
-      label: 'Past settled rewards',
-      value: pool ? formatUsd(pool.paidOut.amount) : 'Unavailable',
-      meta: 'Historical · not available',
-    },
-    {
-      label: 'Available to request',
-      value: 'See paid dares',
-      meta: 'Each brief shows its reward',
-    },
-  ];
-
+  }, [desktop, load, pathname]);
+  const close = useCallback(() => {
+    setOpen(false);
+    trigger.current?.focus();
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    closeButton.current?.focus();
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    const outside = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !panel.current?.contains(event.target) &&
+        !trigger.current?.contains(event.target)
+      )
+        setOpen(false);
+    };
+    window.addEventListener("keydown", key);
+    window.addEventListener("pointerdown", outside);
+    return () => {
+      window.removeEventListener("keydown", key);
+      window.removeEventListener("pointerdown", outside);
+    };
+  }, [close, open]);
+  if (pathname !== "/" || !desktop) return null;
+  const amount = pool?.liveDares.amount ?? null;
   return (
     <>
-      <motion.button
-        ref={potRef}
+      <button
+        ref={trigger}
         type="button"
         aria-label="Open dare reward summary"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((value) => !value)}
-        className={`
-          street-reward-orb fixed z-40 will-change-transform origin-bottom-right
-          rounded-full hidden flex-col justify-center items-center p-2
-          border-2 overflow-hidden cursor-pointer
-          w-44 h-44
-          bottom-6 right-6
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black
-          md:flex
-          ${isControlMode
-            ? 'border-zinc-400/50 shadow-[0_0_20px_rgba(120,120,120,0.4)]'
-            : 'border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.4)]'
-          }
-          ${className || ''}
-        `}
-        style={{
-          transform: `translateY(${translateY}px) translateZ(0)`,
-          transition: triggerBounce ? 'none' : 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)',
-          borderRadius: '9999px',
-          overflow: 'hidden',
-          isolation: 'isolate',
-          contain: 'paint',
-          WebkitMaskImage: '-webkit-radial-gradient(white, black)',
-          maskImage: 'radial-gradient(circle, white 98%, transparent 100%)',
-          filter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : 'none',
-          WebkitFilter: isControlMode ? 'grayscale(1) contrast(1.1) brightness(0.95)' : 'none',
-        }}
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: 'spring', stiffness: 150, delay: 0.5 }}
-        whileHover={{
-          scale: 1.08,
-          transition: { type: "spring", stiffness: 200, damping: 15, duration: 0.6 }
-        }}
-        whileTap={{ scale: 0.96 }}
+        aria-expanded={open}
+        aria-controls="dare-reward-summary"
+        onClick={() => setOpen(!open)}
+        className={`${styles.dial} ${className}`}
+        data-control={isControlMode}
       >
-        {/* PRIMARY SPINNING VORTEX */}
+        <Coins size={19} className="text-amber-200" aria-hidden="true" />
+        <span className="text-[10px] font-bold tracking-wide text-white/70">
+          Dare rewards
+        </span>
+        <span className="text-2xl font-black tracking-tight text-[#ffe69a]">
+          {amount === null ? "—" : usd(amount, true)}
+        </span>
+        <span className="text-[9px] text-white/55">
+          {loading
+            ? "Checking…"
+            : !pool
+            ? "Tap to retry"
+            : stale
+            ? "Last recorded"
+            : "Recorded active"}
+        </span>
+      </button>
+      {open ? (
         <div
-          className="absolute inset-[-100%] z-0 opacity-95 mix-blend-color-dodge pointer-events-none rounded-full"
-          style={{
-            backgroundImage: `conic-gradient(from 0deg, transparent 0deg, #A855F7 90deg, transparent 180deg, #FACC15 270deg, transparent 360deg)`,
-            animation: "spinGlobe 10s linear infinite",
-            filter: "blur(4px)",
-            transform: 'scale(1.8)'
-          }}
-        />
-
-        {/* COUNTER-VORTEX LAYER */}
-        <div
-          className="absolute inset-[-100%] z-0 opacity-60 mix-blend-screen pointer-events-none rounded-full"
-          style={{
-            backgroundImage: `conic-gradient(from 0deg, #FACC15, #A855F7, transparent)`,
-            animation: "spinGlobe 20s linear infinite reverse",
-            filter: "blur(8px)",
-            transform: 'scale(2)'
-          }}
-        />
-
-        {/* DEEP PURPLE AMBIENT GLOW */}
-        <div
-          className="absolute inset-0 z-0 pointer-events-none rounded-full"
-          style={{
-            background: "radial-gradient(circle at center, #A855F7 0%, #6B21A8 50%, transparent 80%)",
-            opacity: 0.25,
-            filter: "blur(30px)",
-          }}
-        />
-
-        {/* INNER PULSE GLOW */}
-        <motion.div
-          className="absolute inset-0 rounded-full pointer-events-none z-10"
-          animate={{ boxShadow: ["0 0 10px rgba(168,85,247,0.3)", "0 0 20px rgba(168,85,247,0.6)", "0 0 10px rgba(168,85,247,0.3)"] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        {/* SPHERICAL SHADING */}
-        <div className="absolute inset-0 rounded-full pointer-events-none z-[15] shadow-[inset_-12px_-12px_30px_rgba(0,0,0,0.95),_inset_6px_6px_20px_rgba(255,255,255,0.15),_inset_0_-20px_40px_rgba(168,85,247,0.2)]" />
-
-        {/* SPECULAR HIGHLIGHTS */}
-        <div className="absolute top-6 left-8 w-16 h-8 bg-white/25 rounded-full blur-lg -rotate-12 pointer-events-none z-[25]" />
-        <div className="absolute top-8 left-10 w-8 h-4 bg-white/30 rounded-full blur-sm -rotate-12 pointer-events-none z-[26]" />
-        <div className="absolute top-12 left-14 w-6 h-3 bg-white/40 rounded-full blur-[2px] -rotate-45 pointer-events-none z-[27]" />
-
-        {/* LIQUID GLASS SURFACE - Safari fix: explicit webkit prefix + GPU layer */}
-        <div
-          className="absolute inset-0 z-20 rounded-full pointer-events-none"
-          style={{
-            WebkitBackdropFilter: 'blur(8px) saturate(180%)',
-            backdropFilter: 'blur(8px) saturate(180%)',
-            background: 'rgba(0, 0, 0, 0.2)',
-            boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
-            transform: 'translateZ(0)',
-            WebkitTransform: 'translateZ(0)',
-            isolation: 'isolate',
-            overflow: 'hidden',
-            WebkitMaskImage: '-webkit-radial-gradient(white, black)',
-          }}
-        />
-
-        {/* Content */}
-        <div className={`absolute inset-0 z-30 flex flex-col justify-center items-center text-center p-2 ${triggerBounce ? 'animate-basketball-bounce' : ''}`}>
-          <div className="text-xs font-semibold text-purple-300 uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">DARE REWARDS</div>
-          <div className="live-pot-value text-3xl font-extrabold drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">{displayTotal === null ? '—' : formatCompactUsd(displayTotal)}</div>
-          <div className="mt-1 text-[0.55rem] font-black uppercase tracking-[0.22em] text-white/80 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-            {isLoadingPool ? 'Checking' : !pool ? 'Data unavailable' : poolIsStale ? 'Last known active' : 'In active dares'}
+          ref={panel}
+          id="dare-reward-summary"
+          role="dialog"
+          aria-labelledby="dare-reward-title"
+          className={`${styles.panel} bd-surface bottom-44 right-6 z-50 max-h-[min(75dvh,680px)] w-[min(380px,calc(100vw-3rem))] overflow-y-auto p-5 text-white`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="bd-page-kicker">Dare rewards</p>
+              <h2 id="dare-reward-title" className="mt-2 text-xl font-black">
+                What’s in play
+              </h2>
+            </div>
+            <button
+              ref={closeButton}
+              type="button"
+              aria-label="Close dare reward summary"
+              onClick={close}
+              className="bd-action !h-11 !w-11 !p-0"
+            >
+              <X size={19} aria-hidden="true" />
+            </button>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-white/65">
+            Recorded rewards belong to individual dares. They can include
+            assigned work and are separate from your wallet balance.
+          </p>
+          <div className="bd-well mt-4 p-4">
+            <p className="text-xs text-white/60">
+              {stale ? "Last recorded active rewards" : "Active dare rewards"}
+            </p>
+            <p className="mt-2 text-3xl font-black text-[#ffe69a]">
+              {amount === null
+                ? loading
+                  ? "Checking…"
+                  : "Unavailable"
+                : usd(amount)}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-white/55">
+              {pool
+                ? `${pool.liveDares.count} recorded dares · ${new Date(
+                    pool.updatedAt
+                  ).toLocaleString()}`
+                : loading
+                ? "Fetching recorded reward data…"
+                : "We couldn’t confirm the total. Check individual briefs or retry."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void load()}
+            disabled={loading}
+            className="bd-action mt-3 w-full !text-xs"
+          >
+            <RefreshCw
+              size={14}
+              className={
+                loading ? "animate-spin motion-reduce:animate-none" : ""
+              }
+              aria-hidden="true"
+            />
+            {loading ? "Checking rewards…" : "Refresh rewards"}
+          </button>
+          <details className="mt-4 border-t border-white/10">
+            <summary className="flex min-h-11 cursor-pointer items-center text-sm font-bold text-white/75">
+              Budgets &amp; past settlements
+            </summary>
+            <dl className="space-y-3 pb-3 text-sm">
+              <div>
+                <dt className="text-white/55">Campaign budgets</dt>
+                <dd className="mt-1 font-bold">
+                  {pool ? usd(pool.venueActivations.amount) : "Unavailable"}
+                  <span className="ml-2 text-xs font-normal text-white/50">
+                    Separate from dare rewards
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-white/55">Past settled rewards</dt>
+                <dd className="mt-1 font-bold">
+                  {pool ? usd(pool.paidOut.amount) : "Unavailable"}
+                  <span className="ml-2 text-xs font-normal text-white/50">
+                    Historical · not available
+                  </span>
+                </dd>
+              </div>
+            </dl>
+          </details>
+          <p className="mt-2 text-xs leading-5 text-white/55">
+            These totals are not a claimable balance. Read the brief for
+            availability, requirements and your net reward.
+          </p>
+          <Link
+            href="/earn?source=creator-pool"
+            onClick={() => setOpen(false)}
+            className="bd-action bd-action--gold mt-4 w-full !text-sm"
+          >
+            Explore paid dares
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </Link>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <Link
+              href="/create?sparkType=paid&source=creator-pool"
+              onClick={() => setOpen(false)}
+              className="bd-action !text-xs"
+            >
+              Fund a dare
+            </Link>
+            <Link
+              href="/brands/portal?from=home&source=creator-pool"
+              onClick={() => setOpen(false)}
+              className="bd-action !text-xs"
+            >
+              For businesses
+            </Link>
           </div>
         </div>
-      </motion.button>
-
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            className="fixed bottom-36 right-4 z-50 w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-[2rem] border border-white/12 bg-[linear-gradient(180deg,rgba(18,16,30,0.76)_0%,rgba(7,6,16,0.92)_100%)] p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.72),0_0_46px_rgba(168,85,247,0.24),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-18px_32px_rgba(0,0,0,0.28)] backdrop-blur-xl md:bottom-52 md:right-8"
-            initial={{ opacity: 0, y: 14, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-          >
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.24),transparent_46%),radial-gradient(circle_at_bottom_right,rgba(250,204,21,0.16),transparent_42%)]" />
-            <div className="pointer-events-none absolute inset-x-6 top-0 h-px rounded-full bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.16)_18%,rgba(255,255,255,0.34)_50%,rgba(255,255,255,0.16)_82%,transparent_100%)]" />
-            <div className="pointer-events-none absolute inset-x-10 top-[1px] h-10 rounded-full bg-white/[0.035] blur-2xl" />
-
-            <div className="relative z-10">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="inline-flex rounded-full border border-yellow-300/35 bg-yellow-300/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.22em] text-yellow-200">
-                    Dare rewards
-                  </div>
-                  <h2 className="mt-3 text-2xl font-black uppercase italic leading-none text-white">
-                    Reward summary
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  aria-label="Close dare reward summary"
-                  onClick={() => setIsOpen(false)}
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/12 bg-white/5 text-xl text-white/70 transition hover:bg-white/10 hover:text-white"
-                >
-                  ×
-                </button>
-              </div>
-
-              <p className="mt-3 text-sm leading-relaxed text-white/68">
-                Recorded USDC rewards, campaign budgets and past settlements are shown separately. Active dares can include assigned work; these totals are not a claimable balance. Open a paid dare to see availability and your net reward.
-              </p>
-
-              <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/35 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                <div className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-white/45">
-                  {poolIsStale ? 'Last known active dare rewards' : 'Recorded active dare rewards'}
-                </div>
-                <div className="mt-1 text-3xl font-black text-yellow-300">{displayTotal === null ? 'Unavailable' : formatUsd(displayTotal)}</div>
-                {pool ? <p className="mt-2 text-xs text-white/50">Recorded {new Date(pool.updatedAt).toLocaleString()}</p> : <p className="mt-2 text-xs text-white/50">Reward data could not be confirmed. Browse paid dares to check individual briefs.</p>}
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {poolStats.map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="min-w-0 rounded-[1.1rem] border border-white/10 bg-black/30 p-3"
-                  >
-                    <div className="truncate text-[0.58rem] font-black uppercase tracking-[0.2em] text-white/40">
-                      {stat.label}
-                    </div>
-                    <div className="mt-2 truncate text-lg font-black text-white">{stat.value}</div>
-                    <div className="mt-1 truncate text-xs text-white/48">{stat.meta}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <Link
-                  href="/earn?source=creator-pool"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-full border border-cyan-300/28 bg-cyan-300/10 px-2.5 py-3 text-center text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100 transition hover:bg-cyan-300/16"
-                >
-                  Find work
-                </Link>
-                <Link
-                  href="/create?sparkType=paid&source=creator-pool"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-full border border-yellow-300/32 bg-yellow-300/12 px-2.5 py-3 text-center text-[0.62rem] font-black uppercase tracking-[0.18em] text-yellow-100 transition hover:bg-yellow-300/18"
-                >
-                  Fund a Dare
-                </Link>
-                <Link
-                  href="/brands/portal?from=home&source=creator-pool"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-full border border-purple-300/32 bg-purple-300/14 px-2.5 py-3 text-center text-[0.62rem] font-black uppercase tracking-[0.18em] text-purple-100 transition hover:bg-purple-300/20"
-                >
-                  For buyers
-                </Link>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      ) : null}
     </>
   );
 }

@@ -1,6 +1,10 @@
 'use client';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
+import MapAreaPicker from '@/components/maps/MapAreaPicker';
+import { mapCoordinates, mapEntry, type MapArea } from '@/lib/map-entry';
+import { useDiscovery } from '@/components/DiscoveryProvider';
+import { adventureHref } from '@/lib/adventure-progress';
 import { SURF_SPOT_PATHS } from '@/lib/map-surf-art';
 import { useSharedAdventureMap } from '@/hooks/useSharedAdventureMap';
 import Image from 'next/image';
@@ -3415,11 +3419,23 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
   );
 }
 
-export default function RealWorldMap() {
+export default function RealWorldMap({ approximateArea = null }: { approximateArea?: MapArea|null }) {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { area: discoveryArea, ready: discoveryReady, updateArea } = useDiscovery();
+  const [entry] = useState(() => {
+    let saved: URLSearchParams|null = null;
+    try { const value = sessionStorage.getItem('basedare:discovery:v1'); if (value) saved = new URLSearchParams(value); } catch { /* Optional session memory. */ }
+    return mapEntry(new URLSearchParams(searchParams.toString()), saved, approximateArea);
+  });
+  const [browseArea, setBrowseArea] = useState<MapArea>(entry);
+  const [approximateBrowseArea, setApproximateBrowseArea] = useState(entry.source === 'approximate');
+  const [locationMessage, setLocationMessage] = useState<string|null>(null);
+  const locationRequestVersion = useRef(0);
+  const entrySynced = useRef(false);
+  const [nearbyReadStatus, setNearbyReadStatus] = useState<'loading'|'ready'|'error'>('loading');
   const mapViewportRef = useRef<HTMLDivElement | null>(null);
   const mapCanvasRef = useRef<HTMLDivElement | null>(null);
   const searchShellRef = useRef<HTMLDivElement | null>(null);
@@ -3607,12 +3623,16 @@ export default function RealWorldMap() {
   const mapPreset: MapPreset = 'classic';
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMapFullscreenMobile, setIsMapFullscreenMobile] = useState(false);
+  const [mapToolsOpen, setMapToolsOpen] = useState(false);
+  const mapToolsToggleRef = useRef<HTMLButtonElement | null>(null);
   const [startProofDockDismissed, setStartProofDockDismissed] = useState(false);
   const [adventureMode, setAdventureMode] = useState(false);
   const [adventurePanelOpen, setAdventurePanelOpen] = useState(false);
   const [selectedGuideNight, setSelectedGuideNight] = useState<SiargaoWeekday | null>(null);
   const [mapAttentionIntent, setMapAttentionIntent] = useState<MapAttentionIntent | null>(null);
-  const [mapAttentionGuideOpen, setMapAttentionGuideOpen] = useState(true);
+  const [mapAttentionGuideOpen, setMapAttentionGuideOpen] = useState(() =>
+    typeof window === 'undefined' || !window.matchMedia('(max-width: 767px), (max-width: 1023px) and (max-height: 540px)').matches
+  );
   const isImmersiveMobile = isMobileViewport && isMapFullscreenMobile;
   const [ceremonyState, setCeremonyState] = useState<CeremonyState>(null);
   const [proofMoment, setProofMoment] = useState<null | {
@@ -3643,12 +3663,8 @@ export default function RealWorldMap() {
   const stationEventKeysRef = useRef(new Set<string>());
   const adventureCenter = useMemo(
     () =>
-      viewportCenter ??
-      userLocation ?? {
-        latitude: DEFAULT_CENTER[0],
-        longitude: DEFAULT_CENTER[1],
-      },
-    [userLocation, viewportCenter]
+      viewportCenter ?? {latitude:entry.lat,longitude:entry.lng},
+    [entry, viewportCenter]
   );
   const recommendationNow = useRecommendationClock();
   const tonightActivity = useTonightActivity(adventureCenter, mapReady);
@@ -3659,15 +3675,12 @@ export default function RealWorldMap() {
     )[0];
     return nearest?.timezone ?? tonightActivity.snapshot?.window.tz;
   }, [adventureCenter, nearbyPlaces, tonightActivity.snapshot?.window.tz]);
-  const surfSignal = useSiargaoSurfSignal(mapReady);
+  const siargaoGuideAvailable = calculateDistance(adventureCenter.latitude, adventureCenter.longitude, DEFAULT_CENTER[0], DEFAULT_CENTER[1]) < 80;
+  const surfSignal = useSiargaoSurfSignal(mapReady && siargaoGuideAvailable);
   const focalAdventureActivity = useMemo(() => rankTonightActivities(tonightActivity.snapshot?.activities ?? [], { now: recommendationNow, window: 'now', timeZone: recommendationTimeZone })[0]?.item ?? null, [recommendationNow, recommendationTimeZone, tonightActivity.snapshot?.activities]);
   const deepLinkedLocation = useMemo(() => {
-    const latitude = Number(searchParams.get('lat'));
-    const longitude = Number(searchParams.get('lng'));
-    if (isUsableMapCoordinate(latitude, longitude)) {
-      return { latitude, longitude };
-    }
-    return null;
+    const point = mapCoordinates(searchParams.get('lat'), searchParams.get('lng'));
+    return point ? {latitude:point.lat,longitude:point.lng} : null;
   }, [searchParams]);
   const selectedPlaceIdentity = selectedPlace
     ? selectedPlace.placeId ??
@@ -3690,6 +3703,11 @@ export default function RealWorldMap() {
     setPrivateMapSpots(loadPrivateMapSpots());
   }, []);
   const hasDeepLinkedPlace = Boolean(deepLinkedPlaceSlug);
+  useEffect(() => {
+    if (!discoveryReady || entrySynced.current || hasDeepLinkedPlace) return;
+    entrySynced.current = true;
+    updateArea({lat:entry.lat,lng:entry.lng,label:entry.label});
+  }, [discoveryReady,entry,hasDeepLinkedPlace,updateArea]);
   const isCreatorSource = controlSource === 'creator';
   const showBackToControl = controlSource === 'control' || Boolean(deepLinkedCampaignId);
   const placeVisitorIntent = resolvePlaceVisitorIntent({
@@ -3733,8 +3751,6 @@ export default function RealWorldMap() {
   const skipNextMapClickClearTimerRef = useRef<number | null>(null);
   const deepLinkedSearchAppliedRef = useRef<string | null>(null);
   const deepLinkedLocationAppliedRef = useRef<string | null>(null);
-  const autoLocateModeRef = useRef<'idle' | 'auto' | 'manual'>('idle');
-  const autoLocateFallbackAppliedRef = useRef(false);
   const hasAutoFitVenueClusterRef = useRef(false);
   const lastEmptyViewportRecoveryKeyRef = useRef<string | null>(null);
 
@@ -3843,7 +3859,7 @@ export default function RealWorldMap() {
       return undefined;
     }
 
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const mediaQuery = window.matchMedia('(max-width: 767px), (max-width: 1023px) and (max-height: 540px)');
     const syncViewportMode = (event?: MediaQueryListEvent) => {
       setIsMobileViewport(event ? event.matches : mediaQuery.matches);
     };
@@ -4019,23 +4035,6 @@ export default function RealWorldMap() {
 
     setNearbyDarePanelCollapsed(true);
   }, [isMobileViewport]);
-
-  useEffect(() => {
-    if (typeof document === 'undefined' || !isImmersiveMobile) {
-      return undefined;
-    }
-
-    const originalBodyOverflow = document.body.style.overflow;
-    const originalHtmlOverscroll = document.documentElement.style.overscrollBehavior;
-
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overscrollBehavior = 'none';
-
-    return () => {
-      document.body.style.overflow = originalBodyOverflow;
-      document.documentElement.style.overscrollBehavior = originalHtmlOverscroll;
-    };
-  }, [isImmersiveMobile]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -4260,25 +4259,25 @@ export default function RealWorldMap() {
   const requestApproximateLocation = useCallback(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setLocating(false);
+      setLocationMessage('Location isn’t available in this browser. Choose a city instead.');
+      setMapToolsOpen(true);
       triggerHaptic('warning');
       return () => undefined;
     }
 
     let cancelled = false;
-
-    autoLocateModeRef.current = mapReady ? 'manual' : 'auto';
+    const requestVersion = ++locationRequestVersion.current;
+    setLocationMessage(null);
     setLocating(true);
     triggerHaptic('selection');
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        if (cancelled) return;
+        if (cancelled || requestVersion !== locationRequestVersion.current) return;
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
         if (!isUsableMapCoordinate(latitude, longitude)) {
-          autoLocateModeRef.current = 'idle';
-          autoLocateFallbackAppliedRef.current = true;
-          setTargetCenter(DEFAULT_CENTER);
-          setTargetZoom(DEFAULT_ZOOM);
+          setLocationMessage('Your location couldn’t be confirmed. Choose a city or try again.');
+          setMapToolsOpen(true);
           setLocating(false);
           triggerHaptic('warning');
           return;
@@ -4290,12 +4289,17 @@ export default function RealWorldMap() {
         setUserHeading(Number.isFinite(position.coords.heading) ? position.coords.heading : null);
         setTargetCenter([latitude, longitude]);
         setTargetZoom(14);
+        setBrowseArea({lat:latitude,lng:longitude,label:'Near you'});
+        setApproximateBrowseArea(false);
+        setMapToolsOpen(false);
         setLocating(false);
         triggerHaptic('success');
       },
-      () => {
-        if (cancelled) return;
+      (error) => {
+        if (cancelled || requestVersion !== locationRequestVersion.current) return;
         setLocating(false);
+        setLocationMessage(error.code === 1 ? 'Location is off. You can still explore any city.' : 'Location couldn’t be found. Choose a city or try again.');
+        setMapToolsOpen(true);
         triggerHaptic('warning');
       },
       { enableHighAccuracy: true, maximumAge: 30000, timeout: 8000 }
@@ -4304,7 +4308,16 @@ export default function RealWorldMap() {
     return () => {
       cancelled = true;
     };
-  }, [mapReady]);
+  }, []);
+
+  useEffect(() => {
+    if (!mapReady || (entry.source !== 'approximate' && entry.source !== 'demo') || !navigator.permissions) return;
+    let cancelled = false;
+    void navigator.permissions.query({ name: 'geolocation' }).then((permission) => {
+      if (!cancelled && permission.state === 'granted' && locationRequestVersion.current === 0) requestApproximateLocation();
+    }).catch(() => { /* The location button works in browsers without permission queries. */ });
+    return () => { cancelled = true; };
+  }, [entry.source, mapReady, requestApproximateLocation]);
 
   useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation || !hasUserLocation) {
@@ -4335,19 +4348,19 @@ export default function RealWorldMap() {
       return;
     }
 
-    const locationKey = `${deepLinkedLocation.latitude.toFixed(6)}:${deepLinkedLocation.longitude.toFixed(6)}`;
+    const locationKey = `${deepLinkedLocation.latitude.toFixed(6)}:${deepLinkedLocation.longitude.toFixed(6)}:${searchParams.get('zoom') ?? ''}`;
     if (deepLinkedLocationAppliedRef.current === locationKey) {
       return;
     }
 
     deepLinkedLocationAppliedRef.current = locationKey;
-    autoLocateModeRef.current = 'idle';
-    autoLocateFallbackAppliedRef.current = true;
-    setUserLocation(deepLinkedLocation);
-    setUserHeading(null);
+    // A map link selects a browsing area; only GPS callbacks can set userLocation.
     setTargetCenter([deepLinkedLocation.latitude, deepLinkedLocation.longitude]);
-    setTargetZoom(14);
-  }, [deepLinkedLocation, hasDeepLinkedPlace]);
+    const linkedEntry = mapEntry(new URLSearchParams(searchParams.toString()), null, null);
+    setTargetZoom(linkedEntry.zoom);
+    setBrowseArea(linkedEntry);
+    setApproximateBrowseArea(false);
+  }, [deepLinkedLocation, hasDeepLinkedPlace, searchParams]);
 
   useEffect(() => {
     if (!ceremonyState) return;
@@ -4375,8 +4388,6 @@ export default function RealWorldMap() {
         }
 
         const { venue } = payload.data;
-        autoLocateModeRef.current = 'idle';
-        autoLocateFallbackAppliedRef.current = true;
         setPulseFilter('all');
         setSelectedPlace({
           placeId: venue.id,
@@ -4547,6 +4558,7 @@ export default function RealWorldMap() {
     nearbyPlaceFetchControllerRef.current = controller;
     nearbyPlaceFetchInFlightKeyRef.current = requestKey;
     const requestId = ++nearbyFetchIdRef.current;
+    setNearbyReadStatus('loading');
 
     try {
       const url = new URL('/api/venues/nearby', window.location.origin);
@@ -4566,6 +4578,7 @@ export default function RealWorldMap() {
       const nextVenues = payload.data.venues;
 
       if (responseSource === 'fallback' && nextVenues.length === 0) {
+        if (requestId === nearbyFetchIdRef.current) setNearbyReadStatus('error');
         console.warn('[REAL_WORLD_MAP] Nearby places fallback ignored:', payload.warning ?? 'fallback response');
 
         const previousRetryState = nearbyPlaceFallbackRetryStateRef.current;
@@ -4593,22 +4606,6 @@ export default function RealWorldMap() {
         return;
       }
 
-      if (
-        nextVenues.length === 0 &&
-        autoLocateModeRef.current === 'auto' &&
-        !autoLocateFallbackAppliedRef.current
-      ) {
-        autoLocateFallbackAppliedRef.current = true;
-        autoLocateModeRef.current = 'idle';
-        setTargetCenter(DEFAULT_CENTER);
-        setTargetZoom(DEFAULT_ZOOM);
-        return;
-      }
-
-      if (nextVenues.length > 0) {
-        autoLocateModeRef.current = 'idle';
-      }
-
       if (requestId === nearbyFetchIdRef.current) {
         if (nearbyPlaceFallbackRetryTimerRef.current !== null) {
           window.clearTimeout(nearbyPlaceFallbackRetryTimerRef.current);
@@ -4616,12 +4613,14 @@ export default function RealWorldMap() {
         }
         nearbyPlaceFallbackRetryStateRef.current = null;
         setNearbyPlaces(nextVenues);
+        setNearbyReadStatus('ready');
         nearbyPlaceFetchCacheRef.current = { key: requestKey, fetchedAt: Date.now() };
       }
     } catch (error) {
       if (controller.signal.aborted) {
         return;
       }
+      if (requestId === nearbyFetchIdRef.current) setNearbyReadStatus('error');
       console.error('[REAL_WORLD_MAP] Nearby places failed:', error);
     } finally {
       if (nearbyPlaceFetchInFlightKeyRef.current === requestKey) {
@@ -5179,8 +5178,9 @@ export default function RealWorldMap() {
     }
 
     setBootstrappedDefaultPins(true);
-    void fetchNearbyPlaces(DEFAULT_CENTER[0], DEFAULT_CENTER[1], DEFAULT_ZOOM);
-  }, [bootstrappedDefaultPins, fetchNearbyPlaces, hasDeepLinkedPlace, mapReady, nearbyPlaces.length]);
+    const center = mapInstanceRef.current?.getCenter();
+    void fetchNearbyPlaces(center?.lat ?? entry.lat, center?.lng ?? entry.lng, mapInstanceRef.current?.getZoom() ?? entry.zoom);
+  }, [bootstrappedDefaultPins, entry, fetchNearbyPlaces, hasDeepLinkedPlace, mapReady, nearbyPlaces.length]);
 
   const handleViewportChange = useCallback(
     (latitude: number, longitude: number, zoom: number) => {
@@ -5205,9 +5205,11 @@ export default function RealWorldMap() {
         return { latitude, longitude };
       });
       setMapZoom((current) => (Math.abs(current - zoom) < 0.01 ? current : zoom));
+      const label = calculateDistance(latitude,longitude,browseArea.lat,browseArea.lng) < 30 ? browseArea.label : 'Selected map area';
+      updateArea({lat:Math.round(latitude*1000)/1000,lng:Math.round(longitude*1000)/1000,label});
       scheduleNearbyPlaceFetch(latitude, longitude, zoom);
     },
-    [isMobileViewport, scheduleNearbyPlaceFetch]
+    [browseArea, isMobileViewport, scheduleNearbyPlaceFetch, updateArea]
   );
 
   const handleMapClick = useCallback((latitude: number, longitude: number) => {
@@ -5472,8 +5474,8 @@ export default function RealWorldMap() {
         map = new maplibregl.Map({
           container,
           style: mapStyle,
-          center: [DEFAULT_CENTER[1], DEFAULT_CENTER[0]],
-          zoom: DEFAULT_ZOOM,
+          center: [entry.lng, entry.lat],
+          zoom: entry.zoom,
           pitch: initialCamera.pitch,
           bearing: initialCamera.bearing,
           attributionControl: { compact: true },
@@ -5756,7 +5758,7 @@ export default function RealWorldMap() {
       setMapReady(false);
       setMapMovingAttribute(false);
     };
-  }, [markDesktopMapSettling]);
+  }, [entry, markDesktopMapSettling]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -5774,7 +5776,7 @@ export default function RealWorldMap() {
       targetCenter[1].toFixed(5),
       targetZoom ?? 'current',
       isMobileViewport ? 'mobile' : 'desktop',
-      isMobileViewport && isImmersiveMobile ? (selectedPlacePanelExpanded ? 'expanded' : 'peek') : selectedOffsetMode,
+      isMobileViewport && isImmersiveMobile && selectedPlaceIdentity ? (selectedPlacePanelExpanded ? 'expanded' : 'peek') : selectedOffsetMode,
     ].join(':');
 
     if (lastTargetCameraKeyRef.current === targetCameraKey) {
@@ -5783,7 +5785,7 @@ export default function RealWorldMap() {
 
     lastTargetCameraKeyRef.current = targetCameraKey;
     const targetCamera = getDefaultMapCamera(isMobileViewport);
-    const targetOffset = isMobileViewport
+    const targetOffset = isMobileViewport && selectedPlaceIdentity
       ? ([
           0,
           isImmersiveMobile
@@ -8908,12 +8910,48 @@ export default function RealWorldMap() {
   const mapCameraBearingLabel = `${Math.round(((mapBearing % 360) + 360) % 360)} deg`;
   const mapCameraPitchLabel = `${Math.round(mapPitch)} deg`;
 
+  useEffect(() => {
+    if (deepLinkedSearchQuery) setMapToolsOpen(true);
+  }, [deepLinkedSearchQuery]);
+
   const handleMapFullscreenToggle = useCallback(() => {
     triggerHaptic('selection');
     setNearbyDarePanelCollapsed(true);
     setSelectedPlacePanelExpanded(false);
+    setMapToolsOpen(false);
+    setMapAttentionGuideOpen(false);
+    setAdventurePanelOpen(false);
     setIsMapFullscreenMobile((current) => !current);
   }, []);
+
+  const handleMapAreaSelect = useCallback((next: MapArea) => {
+    // Invalidate an outstanding GPS response before moving to a chosen city.
+    locationRequestVersion.current += 1;
+    setLocating(false);
+    setLocationMessage(null);
+    setBrowseArea(next);
+    setApproximateBrowseArea(false);
+    setSelectedPlace(null);
+    setSelectedMeetup(null);
+    setNearbyPlaces([]);
+    setNearbyReadStatus('loading');
+    nearbyPlaceFetchCacheRef.current = null;
+    void fetchNearbyPlaces(next.lat, next.lng, 12);
+    setMapAttentionIntent(null);
+    setMapAttentionGuideOpen(false);
+    setAdventurePanelOpen(false);
+    updateArea(next);
+    setTargetCenter([next.lat, next.lng]);
+    setTargetZoom(12);
+    setMapToolsOpen(false);
+    const query = new URLSearchParams(searchParams.toString());
+    ['place', 'meetupId', 'dare', 'q', 'search', 'intent', 'room', 'open', 'action'].forEach((key) => query.delete(key));
+    query.set('lat', String(next.lat));
+    query.set('lng', String(next.lng));
+    query.set('areaLabel', next.label);
+    query.set('zoom', '12');
+    router.replace(`/map?${query}`, { scroll: false });
+  }, [fetchNearbyPlaces, router, searchParams, updateArea]);
 
   const handleAdventureActivitySelect = useCallback(
     (activity: TonightActivity) => {
@@ -10890,7 +10928,7 @@ export default function RealWorldMap() {
     <section
       className={
         isImmersiveMobile
-          ? 'fixed inset-0 z-[90] overflow-hidden bg-[rgba(4,5,14,0.98)] md:relative md:z-20 md:overflow-visible md:bg-transparent'
+          ? 'map-shell-section map-shell-section--immersive fixed inset-0 z-[90] overflow-hidden bg-[rgba(4,5,14,0.98)] md:relative md:z-20 md:overflow-visible md:bg-transparent'
           : 'map-shell-section relative z-20 px-4 pb-20 pt-4 sm:px-6 sm:pb-24 sm:pt-5'
       }
     >
@@ -10906,6 +10944,7 @@ export default function RealWorldMap() {
             if (target instanceof Node && searchShellRef.current?.contains(target)) return;
             closeSearchPopover();
           }}
+          data-immersive={isImmersiveMobile ? 'true' : 'false'}
           className={`map-shell-frame relative overflow-hidden border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(9,7,19,0.96)_18%,rgba(5,4,14,0.98)_100%)] shadow-[0_30px_120px_rgba(0,0,0,0.58),0_0_42px_rgba(34,211,238,0.08),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-18px_24px_rgba(0,0,0,0.26)] ${isImmersiveMobile ? 'fixed inset-0 z-[95] flex h-[100dvh] flex-col rounded-none border-0 shadow-none' : 'rounded-[34px]'}`}
           style={
             isImmersiveMobile
@@ -10922,12 +10961,39 @@ export default function RealWorldMap() {
           ) : null}
           <div className="map-card-ambient pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(168,85,247,0.12),transparent_28%),radial-gradient(circle_at_85%_100%,rgba(34,211,238,0.12),transparent_30%)]" />
 
+          <div className="map-mobile-toolbar">
+            <button ref={mapToolsToggleRef} type="button" className="map-tools-toggle bd-action" aria-expanded={mapToolsOpen} aria-controls="map-search-tools" onClick={() => {
+              setMapToolsOpen((open) => !open);
+              setMapAttentionGuideOpen(false); setAdventurePanelOpen(false);
+              closeSearchPopover();
+            }}>
+              <Search className="h-4 w-4 shrink-0 text-cyan-200" aria-hidden="true" />
+              <span className="min-w-0 truncate">{discoveryReady ? discoveryArea.label : browseArea.label}</span>
+              <span className="ml-auto shrink-0 text-xs text-white/65">Search & filters</span>
+            </button>
+            <button type="button" onClick={handleMapFullscreenToggle} className={`map-fullscreen-toggle ${isImmersiveMobile ? 'map-fullscreen-toggle--active' : ''}`} aria-label={isImmersiveMobile ? 'Show navigation' : 'Expand map full screen'} title={isImmersiveMobile ? 'Show navigation' : 'Expand map'}>
+              {isImmersiveMobile ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
+          </div>
           <div
+            id="map-search-tools"
+            data-tools-open={mapToolsOpen ? 'true' : 'false'}
+            onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); setMapToolsOpen(false); closeSearchPopover(); mapToolsToggleRef.current?.focus(); } }}
             className={`map-command-header relative z-20 flex shrink-0 flex-col gap-1.5 border-b border-white/8 ${
               isImmersiveMobile ? 'rounded-none px-3 py-2' : 'rounded-t-[34px] px-3 py-2 sm:px-4 sm:py-2.5'
             }`}
           >
-            <div ref={searchShellRef} className="relative w-full max-w-xl">
+            <div className="map-tools-heading">
+              <h2 className="text-sm font-black text-white">Search & filters</h2>
+              <button type="button" className="bd-action !min-h-11 !px-3 !text-xs" onClick={() => { setMapToolsOpen(false); closeSearchPopover(); mapToolsToggleRef.current?.focus(); }}>Back to map <X className="h-4 w-4" aria-hidden="true" /></button>
+            </div>
+            <MapAreaPicker label={discoveryReady ? discoveryArea.label : browseArea.label} approximate={approximateBrowseArea} locating={locating} locationMessage={locationMessage} onLocate={requestApproximateLocation} onSelect={handleMapAreaSelect} />
+            {locationMessage ? <p role="status" className="map-location-message px-1 text-xs leading-5 text-amber-100">{locationMessage}</p> : null}
+            {mapReady && nearbyPlaces.length === 0 ? <div role="status" className="map-read-status flex h-11 items-center gap-2 px-1 text-[11px] text-white/60">
+              <span className="min-w-0 flex-1 truncate">{nearbyReadStatus === 'loading' ? 'Checking BaseDare places…' : nearbyReadStatus === 'error' ? 'Places couldn’t load.' : 'No BaseDare places here yet.'}</span>
+              {nearbyReadStatus === 'error' ? <button type="button" className="min-h-11 shrink-0 font-bold text-cyan-100" onClick={()=>{const center=mapInstanceRef.current?.getCenter();if(center)void fetchNearbyPlaces(center.lat,center.lng,mapInstanceRef.current?.getZoom()??12);}}>Retry places</button> : nearbyReadStatus === 'ready' ? <Link className="inline-flex min-h-11 shrink-0 items-center font-bold text-cyan-100" href={adventureHref(undefined,undefined,{lat:adventureCenter.latitude,lng:adventureCenter.longitude,label:discoveryArea.label})}>Try an adventure →</Link> : null}
+            </div> : null}
+            <div ref={searchShellRef} className="map-place-search relative w-full max-w-xl">
               <div className="bd-dent-surface bd-dent-surface--soft flex items-center gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(8,9,16,0.94)_100%)] px-4 py-2.5">
                 <Search className="h-4 w-4 text-cyan-200" />
                 <input
@@ -10979,6 +11045,7 @@ export default function RealWorldMap() {
                         skipNextSearchRef.current = true;
                         setSearchQuery(result.name);
                         closeSearchPopover();
+                        setMapToolsOpen(false);
                         setSelectedPlace({
                           placeId: result.placeId,
                           slug: result.slug,
@@ -11027,7 +11094,7 @@ export default function RealWorldMap() {
               ) : null}
             </div>
 
-            <div className={`map-top-control-stack ${isImmersiveMobile ? 'hidden' : ''}`}>
+            <div className="map-top-control-stack">
               <div className="map-status-rail">
                 {isMobileViewport ? (
                   <span className="map-status-pill map-status-pill--summary">
@@ -11333,7 +11400,8 @@ export default function RealWorldMap() {
               onGuideOpenChange={setMapAttentionGuideOpen}
               fieldStationLabel={fieldStationLabel}
               fieldStationFallback={fieldStationFallback}
-              surfSignal={surfSignal}
+              surfSignal={siargaoGuideAvailable ? surfSignal : null}
+              siargaoGuideAvailable={siargaoGuideAvailable}
               now={recommendationNow}
               timeZone={recommendationTimeZone}
             />
@@ -11433,21 +11501,7 @@ export default function RealWorldMap() {
                 </p>
               </div>
             ) : null}
-            {isMobileViewport && !mapAttentionGuideOpen ? (
-              <button
-                type="button"
-                onClick={handleMapFullscreenToggle}
-                className={`map-fullscreen-toggle ${isImmersiveMobile ? 'map-fullscreen-toggle--active' : ''}`}
-                aria-label={isImmersiveMobile ? 'Collapse map' : 'Expand map full screen'}
-                title={isImmersiveMobile ? 'Collapse map' : 'Expand map'}
-              >
-                {isImmersiveMobile ? (
-                  <Minimize2 className="h-4 w-4" />
-                ) : (
-                  <Maximize2 className="h-4 w-4" />
-                )}
-              </button>
-            ) : null}
+
 
             <div className="preset-atmosphere pointer-events-none absolute inset-0 z-[2]" />
             <div className="starfield pointer-events-none absolute inset-0 z-[5]" />

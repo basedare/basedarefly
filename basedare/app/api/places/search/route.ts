@@ -5,6 +5,7 @@ import { calculateDistance, isValidCoordinates } from '@/lib/geo';
 import { prisma } from '@/lib/prisma';
 import { ensureCuratedVenueRecords, getCuratedVenueSlugsForQuery } from '@/lib/curated-venues';
 import { getActiveVenuePerk } from '@/lib/venue-perks';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -12,6 +13,7 @@ const SearchSchema = z.object({
   q: z.string().trim().min(2).max(120),
   lat: z.coerce.number().optional(),
   lon: z.coerce.number().optional(),
+  scope: z.enum(['places', 'area']).default('places'),
 });
 
 type NominatimAddress = {
@@ -411,9 +413,9 @@ async function searchKnownPlaces(query: string, origin: SearchOrigin | null) {
     });
 }
 
-async function searchNominatim(query: string, origin: SearchOrigin | null) {
+async function searchNominatim(query: string, origin: SearchOrigin | null, areaOnly = false) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), NOMINATIM_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), areaOnly ? 4500 : NOMINATIM_TIMEOUT_MS);
 
   try {
     const intentSearch = getSearchIntents(query).length > 0;
@@ -423,6 +425,7 @@ async function searchNominatim(query: string, origin: SearchOrigin | null) {
     nominatimUrl.searchParams.set('limit', '6');
     nominatimUrl.searchParams.set('dedupe', '1');
     nominatimUrl.searchParams.set('q', query);
+    if (areaOnly) nominatimUrl.searchParams.set('featureType', 'settlement');
     if (origin) {
       const delta = intentSearch ? 0.18 : 0.08;
       nominatimUrl.searchParams.set(
@@ -457,6 +460,7 @@ async function searchNominatim(query: string, origin: SearchOrigin | null) {
       .map(normalizeResult)
       .filter((item): item is NonNullable<typeof item> => item !== null);
   } catch (error) {
+    if (areaOnly) throw error;
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.warn('[PLACES_SEARCH] Nominatim fallback skipped:', message);
     return [];
@@ -472,6 +476,7 @@ export async function GET(request: NextRequest) {
       q: searchParams.get('q') ?? '',
       lat: searchParams.get('lat') ?? undefined,
       lon: searchParams.get('lon') ?? undefined,
+      scope: searchParams.get('scope') ?? undefined,
     });
 
     if (!query.success) {
@@ -479,6 +484,15 @@ export async function GET(request: NextRequest) {
         { success: false, error: 'Search query must be at least 2 characters' },
         { status: 400 }
       );
+    }
+
+    // Explicit city search is independent of venue inventory and never resolves/creates a venue.
+    if (query.data.scope === 'area') {
+      const rate = checkRateLimit(`map-area:${getClientIp(request)}`, { limit: 8, windowMs: 60_000 });
+      const providerRate = checkRateLimit('map-area-provider', { limit: 1, windowMs: 1100 });
+      if (!rate.allowed || !providerRate.allowed) return NextResponse.json({ success: false, error: 'Please wait before searching again.' }, { status: 429 });
+      const results = await searchNominatim(query.data.q, null, true);
+      return NextResponse.json({ success: true, data: { results } }, { headers: { 'Cache-Control': 'private, no-store' } });
     }
 
     const origin =

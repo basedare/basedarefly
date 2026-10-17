@@ -1,8 +1,9 @@
-import Link from '@/components/DiscoveryLink';
-import { Radio } from 'lucide-react';
 import RealWorldMapClient from './RealWorldMapClient';
 import MapRouteChromeGuard from './MapRouteChromeGuard';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { approximateMapArea } from '@/lib/map-entry';
+import MapListEntry from '@/components/maps/MapListEntry';
 
 export const metadata: Metadata = {
   title: 'BaseDare Map — Places, Adventures & Meetups',
@@ -46,6 +47,7 @@ function firstParam(value: string | string[] | undefined) {
 
 export default async function MapPage({ searchParams }: { searchParams: MapSearchParams }) {
   const params = await searchParams;
+  const approximateArea = approximateMapArea(await headers());
   const boardQuery = new URLSearchParams({ source: 'map' });
   for (const key of BOARD_LOCATION_PARAMS) {
     const value = firstParam(params[key]);
@@ -55,16 +57,9 @@ export default async function MapPage({ searchParams }: { searchParams: MapSearc
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#02030a] font-display">
       <MapRouteChromeGuard />
-      <RealWorldMapClient />
+      <RealWorldMapClient approximateArea={approximateArea} />
       {/* The Board is the list view of this map area. Preserve exact-pin context. */}
-      <Link
-        href={`/board?${boardQuery.toString()}`}
-        prefetch={false}
-        className="map-board-entry fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 z-[35] inline-flex -translate-x-1/2 items-center gap-2.5 whitespace-nowrap rounded-full border border-[#f5c518]/40 bg-[linear-gradient(180deg,rgba(245,197,24,0.16)_0%,rgba(10,9,19,0.92)_58%,rgba(6,5,12,0.96)_100%)] px-7 py-3.5 text-xs font-black uppercase tracking-[0.22em] text-[#f8dd72] shadow-[0_18px_44px_rgba(0,0,0,0.6),0_0_24px_rgba(245,197,24,0.14),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#f5c518]/70 hover:text-white"
-      >
-        <Radio className="h-4 w-4" />
-        List view
-      </Link>
+      <MapListEntry queryString={boardQuery.toString()} />
     </div>
   );
 }
