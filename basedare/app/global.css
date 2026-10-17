@@ -3953,3 +3953,89 @@ body.bd-map-route-active .basedare-maplibre-map[data-map-moving='true'] .adventu
 .adventure-guide-dock:has(.adventure-guide-speech) .adventure-guide-ask { display: none; }
 .adventure-guide-dock > button { min-width: 0; max-width: 100%; }
 body.bd-map-route-active .basedare-maplibre-map .adventure-guide-speech { width: 14rem; flex: 1 1 auto; }
+
+/* Phone map: geography owns the viewport; tools open over it, never resize it. */
+.map-mobile-toolbar,
+.map-tools-heading { display: none; }
+body.bd-map-route-active .map-board-entry {
+  position: fixed !important; top: auto; bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  left: 50%; transform: translateX(-50%);
+}
+@media (max-width: 767px), (max-width: 1023px) and (max-height: 540px) {
+  body.bd-map-route-active footer { display: none; }
+  body.bd-map-route-active .map-shell-section {
+    position: fixed; inset: 6rem 0 0; padding: 0; overflow: hidden;
+  }
+  body.bd-map-route-active .map-shell-section--immersive { position: fixed; inset: 0; z-index: 90; padding: 0; }
+  body.bd-map-route-active:has(.map-shell-frame[data-immersive='true']) nav { display: none; }
+  body.bd-map-route-active .map-shell-inner { height: 100%; }
+  body.bd-map-route-active .map-shell-frame {
+    display: flex; height: 100%; flex-direction: column;
+    border: 0; border-radius: 0; box-shadow: none;
+  }
+  body.bd-map-route-active .map-shell-frame[data-immersive='true'] {
+    position: fixed; inset: 0; height: 100dvh; padding: 0 !important;
+  }
+  body.bd-map-route-active .map-container-wrapper {
+    flex: 1 1 auto; width: 100%; height: 100% !important; min-height: 0 !important;
+    border-radius: 0; outline: 0; box-shadow: none;
+  }
+  body.bd-map-route-active .map-mobile-toolbar {
+    position: absolute; inset: calc(.75rem + env(safe-area-inset-top)) .75rem auto;
+    z-index: 30; display: flex; align-items: center; gap: .5rem; pointer-events: none;
+  }
+  body.bd-map-route-active .map-tools-toggle {
+    display: flex; min-width: 0; flex: 1; min-height: 44px; padding: .5rem .75rem;
+    gap: .5rem; border-radius: 16px; pointer-events: auto; font-size: 13px;
+    text-transform: none; letter-spacing: 0;
+    background: linear-gradient(145deg,#1b2634f5,#0a101bf5);
+  }
+  body.bd-map-route-active .map-mobile-toolbar .map-fullscreen-toggle {
+    position: static; flex: 0 0 44px; pointer-events: auto;
+  }
+  body.bd-map-route-active .map-command-header {
+    display: none; position: absolute; inset: calc(.75rem + env(safe-area-inset-top)) .75rem auto;
+    z-index: 40; max-height: calc(100% - 1.5rem - env(safe-area-inset-top));
+    overflow-y: auto; overscroll-behavior: contain; border: 1px solid #ffffff24;
+    border-radius: 24px; padding: .75rem !important; box-shadow: 0 18px 48px #0008;
+  }
+  body.bd-map-route-active .map-command-header[data-tools-open='true'] { display: flex; }
+  body.bd-map-route-active .map-tools-heading {
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+  }
+  body.bd-map-route-active .map-area-picker-panel { position: static; width: 100%; max-height: none; }
+  body.bd-map-route-active .map-search-popover { position: relative; top: auto; margin-top: .5rem; }
+  body.bd-map-route-active .map-guide-controls { top: calc(4.25rem + env(safe-area-inset-top)); }
+  body.bd-map-route-active .map-guide-controls > div:has(> button[aria-label^='Turn Adventure mode']) { display: none; }
+  body.bd-map-route-active .basedare-maplibre-map .map-navigation-controls {
+    top: calc(4.25rem + env(safe-area-inset-top)); right: .75rem; left: auto;
+  }
+  body.bd-map-route-active .map-orbit-console { display: none; }
+  body.bd-map-route-active .basedare-maplibre-map .adventure-guide-dock { bottom: calc(10.75rem + env(safe-area-inset-bottom)); }
+  body.bd-map-route-active .adventure-guide-ask { display: none; }
+  body.bd-map-route-active .map-status-pill,
+  body.bd-map-route-active .map-filter-pill,
+  body.bd-map-route-active .map-intent-chip { min-height: 44px; }
+  body.bd-map-route-active:has(.map-command-header[data-tools-open='true']) .map-board-entry { visibility: hidden; pointer-events: none; }
+  body.bd-map-route-active:has(.map-shell-frame[data-immersive='true']) .map-board-entry { z-index: 100; }
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  body.bd-map-route-active .map-attention-card { max-height: calc(100dvh - 13rem); }
+  body.bd-map-route-active .map-shell-frame[data-immersive='true'] .map-attention-card { max-height: calc(100dvh - 7rem); }
+  body.bd-map-route-active .adventure-guide-dock { display: none; }
+  body.bd-map-route-active .map-board-entry { bottom: calc(.5rem + env(safe-area-inset-bottom)); }
+}
+
+/* Give desktop search a full field and keep area/status copy readable. */
+@media (min-width: 1280px) {
+  body.bd-map-route-active .map-command-header {
+    display: grid; grid-template-columns: minmax(18rem, 1fr) auto;
+    grid-template-areas: "area status" "search filters";
+    align-items: center; gap: .25rem .75rem;
+  }
+  body.bd-map-route-active .map-area-picker { grid-area: area; min-width: 0; }
+  body.bd-map-route-active .map-read-status { grid-area: status; }
+  body.bd-map-route-active .map-place-search { grid-area: search; max-width: none; }
+  body.bd-map-route-active .map-top-control-stack { grid-area: filters; }
+  body.bd-map-route-active .map-location-message { grid-column: 1 / -1; }
+}

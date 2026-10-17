@@ -88,7 +88,7 @@ const RealWorldMap = nextDynamic(() => import('@/components/maps/RealWorldMap'),
   loading: () => <MapLoadFallback mode="loading" />,
 });
 
-export default function RealWorldMapClient() {
+export default function RealWorldMapClient({ approximateArea = null }: { approximateArea?: import('@/lib/map-entry').MapArea|null }) {
   const mounted = useSyncExternalStore(
     subscribeToClientReady,
     getClientReadySnapshot,
@@ -101,7 +101,7 @@ export default function RealWorldMapClient() {
 
   return (
     <MapClientBoundary>
-      <RealWorldMap />
+      <RealWorldMap approximateArea={approximateArea} />
     </MapClientBoundary>
   );
 }
