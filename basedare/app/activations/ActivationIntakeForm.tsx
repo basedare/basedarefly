@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ArrowRight, Loader2, Send, Sparkles } from 'lucide-react';
 import SquircleButton from '@/components/ui/SquircleButton';
+import { BUSINESS_REQUESTS, businessRequestKind } from '@/lib/business-request';
 import { buildActivationStoryBrief, type ActivationBrandMemoryInput } from '@/lib/activation-brand-memory';
 import {
   getActivationFunnelAttribution,
@@ -100,11 +101,11 @@ const INITIAL_STATE: IntakeState = {
 
 const inputClass =
   'w-full rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/24 focus:border-yellow-200/40 focus:bg-black/38';
-const labelClass = 'mb-2 block text-[10px] font-black uppercase tracking-[0.22em] text-white/45';
+const labelClass = 'mb-2 block text-sm font-bold text-white/75';
 const detailsClass =
   'rounded-[24px] border border-white/[0.08] bg-black/24 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]';
 const summaryClass =
-  'cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.2em] text-white/52 transition hover:text-white';
+  'flex min-h-11 cursor-pointer list-none items-center text-sm font-bold text-white/75 transition hover:text-white';
 
 const BUDGET_RANGE_LABELS: Record<IntakeState['budgetRange'], string> = {
   discuss: 'Let’s discuss',
@@ -298,11 +299,11 @@ export default function ActivationIntakeForm({
         company: initialNormalizedVenue || '',
         city: initialNormalizedCity || '',
         venue: initialNormalizedVenue || '',
-        budgetRange: initialBudgetRange ?? (initialOfferId === 'first-spark' && initialNormalizedMissionType !== 'field-mission' ? 'discuss' : INITIAL_STATE.budgetRange),
+        budgetRange: initialBudgetRange ?? ((businessRequestKind(initialNormalizedMissionType) || initialOfferId === 'first-spark' && initialNormalizedMissionType !== 'field-mission') ? 'discuss' : INITIAL_STATE.budgetRange),
         timeline: initialOfferId === 'first-spark' ? 'this_week' : INITIAL_STATE.timeline,
-        packageId: initialPackageId ?? INITIAL_STATE.packageId,
-        goal: initialGoal ?? (initialOfferId === 'first-spark' ? 'foot_traffic' : INITIAL_STATE.goal),
-        buyerType: initialBuyerType ?? (initialOfferId === 'first-spark' ? 'venue' : INITIAL_STATE.buyerType),
+        packageId: initialPackageId ?? (businessRequestKind(initialNormalizedMissionType) ? 'pilot-drop' : INITIAL_STATE.packageId),
+        goal: initialGoal ?? (businessRequestKind(initialNormalizedMissionType) === 'content-brief' ? 'ugc' : businessRequestKind(initialNormalizedMissionType) ? 'other' : INITIAL_STATE.goal),
+        buyerType: initialBuyerType ?? (businessRequestKind(initialNormalizedMissionType) ? 'other' : INITIAL_STATE.buyerType),
         routedCreator: initialNormalizedCreator || '',
         routedVenueId: initialNormalizedVenueId || '',
         routedVenueSlug: initialNormalizedVenueSlug || '',
@@ -757,7 +758,7 @@ export default function ActivationIntakeForm({
       setSubmittedId(payload.data?.id || 'received');
       setSubmittedCloseRoomHref(payload.data?.closeRoomHref || null);
       setSubmittedFieldSprint(isFieldSprintRequest);
-      setForm(INITIAL_STATE);
+      setForm(initialFormState);
       formStartTrackedRef.current = false;
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Failed to route activation request');
@@ -818,25 +819,28 @@ export default function ActivationIntakeForm({
     );
   }
 
+  const requestKind = businessRequestKind(form.routedMissionType);
+  const businessRequest = requestKind ? BUSINESS_REQUESTS[requestKind] : null;
   const simpleVenueRequest = form.offerId === 'first-spark' && !isFieldSprintRequest;
   const knownVenue = Boolean(initialNormalizedVenue && initialNormalizedCity);
   return (
     <form onSubmit={submit} className="space-y-4">
-      {simpleVenueRequest ? (
+      {simpleVenueRequest || businessRequest ? (
         <>
-          {knownVenue ? <div className="rounded-2xl border border-cyan-200/15 bg-cyan-200/5 p-4"><p className="font-bold text-white">{form.company}</p><p className="mt-1 text-sm text-white/60">{form.city}</p><Link href="/map" className="mt-2 inline-flex min-h-11 items-center text-xs font-bold text-cyan-100 underline">Choose another place</Link></div> : <div className="grid gap-4 sm:grid-cols-2">
-            <label className={labelClass}>Venue name<input required maxLength={140} value={form.company} onChange={event => setForm(current => ({ ...current, company: event.target.value, venue: event.target.value }))} className={`${inputClass} mt-2`} placeholder="Your venue" /></label>
-            <label className={labelClass}>City or area<input required maxLength={140} value={form.city} onChange={event => updateField('city', event.target.value)} className={`${inputClass} mt-2`} placeholder="e.g. General Luna, Siargao" /></label>
+          {!businessRequest && knownVenue ? <div className="rounded-2xl border border-cyan-200/15 bg-cyan-200/5 p-4"><p className="font-bold text-white">{form.company}</p><p className="mt-1 text-sm text-white/60">{form.city}</p><Link href="/map" className="mt-2 inline-flex min-h-11 items-center text-xs font-bold text-cyan-100 underline">Choose another place</Link></div> : <div className="grid gap-4 sm:grid-cols-2">
+            <label className={labelClass}>{businessRequest ? 'Business or organization' : 'Venue name'}<input required minLength={2} maxLength={140} value={form.company} onChange={event => setForm(current => ({ ...current, company: event.target.value, ...(businessRequest ? {} : { venue: event.target.value }) }))} className={`${inputClass} mt-2`} placeholder={businessRequest ? 'Who is this brief for?' : 'Your venue'} /></label>
+            <label className={labelClass}>City or area<input required minLength={2} maxLength={140} value={form.city} onChange={event => updateField('city', event.target.value)} className={`${inputClass} mt-2`} placeholder="e.g. Sydney, Australia" /></label>
           </div>}
-          <label className={labelClass}>What would you like to do?<textarea required minLength={2} maxLength={1200} value={form.notes} onChange={event => updateField('notes', event.target.value)} className={`${inputClass} mt-2 min-h-28 normal-case tracking-normal`} placeholder="e.g. Bring people in on Friday afternoon with a coffee meetup. We can offer a free upgrade." /></label>
+          {businessRequest ? <label className={labelClass}>Place, if known <span className="font-normal text-white/55">(optional)</span><input maxLength={180} value={form.venue} onChange={event => updateField('venue', event.target.value)} className={`${inputClass} mt-2`} placeholder="Venue name, public place or area" /></label> : null}
+          <label className={labelClass}>{businessRequest?.prompt ?? 'What would you like to do?'}<textarea required minLength={2} maxLength={1200} value={form.notes} onChange={event => updateField('notes', event.target.value)} className={`${inputClass} mt-2 min-h-28 normal-case tracking-normal`} placeholder={businessRequest?.placeholder ?? 'e.g. Bring people in on Friday afternoon with a coffee meetup. We can offer a free upgrade.'} /></label>
           {(form.deadWindowTime || form.routedTimeWindow || form.deadWindowPerk || form.routedPerkLabel || form.routedProofRequired) ? <div className="rounded-2xl border border-white/10 p-4 text-sm leading-6 text-white/65"><p className="font-bold text-white/85">Details carried from your place</p>{(form.deadWindowTime || form.routedTimeWindow) ? <p>When: {form.deadWindowTime || form.routedTimeWindow}</p> : null}{(form.deadWindowPerk || form.routedPerkLabel) ? <p>Offer: {form.deadWindowPerk || form.routedPerkLabel}</p> : null}{form.routedProofRequired ? <p>Evidence: {form.routedProofRequired}</p> : null}<p>Add any changes in your request above.</p></div> : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass}>Your name<input required minLength={2} maxLength={120} autoComplete="name" value={form.contactName} onChange={event => updateField('contactName', event.target.value)} className={`${inputClass} mt-2 normal-case tracking-normal`} /></label>
             <label className={labelClass}>Reply email<input required type="email" maxLength={180} autoComplete="email" value={form.email} onChange={event => updateField('email', event.target.value)} className={`${inputClass} mt-2 normal-case tracking-normal`} /></label>
           </div>
-          <details className={detailsClass}><summary className={summaryClass}>Budget and timing, if you know them</summary><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Planning budget<select value={form.budgetRange} onChange={event => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])} className={`${inputClass} mt-2`}>{Object.entries(BUDGET_RANGE_LABELS).map(([value,label]) => <option key={value} value={value} className="bg-[#080814]">{label}</option>)}</select></label><label className={labelClass}>Preferred time<input maxLength={180} value={form.deadWindowTime} onChange={event => updateField('deadWindowTime',event.target.value)} className={`${inputClass} mt-2`} placeholder="e.g. Friday afternoon" /></label></div><p className="mt-3 text-xs text-white/55">Planning information only. BaseDare confirms the appropriate service and price with you before any invoice.</p></details>
+          <details className={detailsClass}><summary className={summaryClass}>Budget and timing, if you know them</summary><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Planning budget<select value={form.budgetRange} onChange={event => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])} className={`${inputClass} mt-2`}>{Object.entries(BUDGET_RANGE_LABELS).filter(([value]) => !businessRequest || value !== MANAGED_FIELD_SPRINT_BUDGET_RANGE).map(([value,label]) => <option key={value} value={value} className="bg-[#080814]">{label}</option>)}</select></label><label className={labelClass}>Preferred time<input maxLength={businessRequest ? 160 : 180} value={businessRequest ? form.routedTimeWindow : form.deadWindowTime} onChange={event => updateField(businessRequest ? 'routedTimeWindow' : 'deadWindowTime',event.target.value)} className={`${inputClass} mt-2`} placeholder="e.g. Friday afternoon" /></label></div><p className="mt-3 text-xs text-white/55">Planning information only. BaseDare confirms the appropriate service and price with you before any invoice.</p></details>
           <input tabIndex={-1} autoComplete="off" value={form.companyWebsite} onChange={event => updateField('companyWebsite',event.target.value)} className="hidden" aria-hidden="true" />
-          <p className="text-xs leading-5 text-white/60">We’ll reply to agree on the activity, price and venue approval. Sending this request doesn’t publish an activity or take payment.</p>
+          <p className="text-xs leading-5 text-white/60">{businessRequest ? 'We’ll agree on the scope, permissions, availability, service costs and separate reward budget before work starts. Sending this brief does not publish, charge or reserve contributors.' : 'We’ll reply to agree on the activity, price and venue approval. Sending this request doesn’t publish an activity or take payment.'}</p>
         </>
       ) : <>
 

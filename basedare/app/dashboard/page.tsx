@@ -13,7 +13,7 @@ import StreetAccent from '@/components/ui/StreetAccent';
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import CosmicButton from "@/components/ui/CosmicButton";
 import { WalletOverview } from "@/components/wallet/WalletOverview";
-import AdventurePassport from '@/components/adventures/AdventurePassport';
+import AdventurePassportEntry from '@/components/adventures/AdventurePassportEntry';
 import InitProtocolButton from "@/components/InitProtocolButton";
 import SquircleButton from "@/components/ui/SquircleButton";
 import { useAccount, useConnect, useSignMessage } from 'wagmi';
@@ -1231,13 +1231,13 @@ export default function Dashboard() {
       <p className="bd-page-copy mt-3">Your plans, paid work and saved activities, together. Sign in to see work linked to your wallet.</p>
       <button className="bd-action bd-action--gold mt-5" onClick={handleConnect} disabled={isConnecting}>{isConnecting ? 'Connecting…' : 'Sign in'}</button>
     </section>
-    <div className="mt-5"><AdventurePassport compact /></div>
     <div className="mt-5 grid gap-3 sm:grid-cols-2">{[
       ['/now','Find something to do','Explore current plans and free activities.'],
       ['/earn','Find paid work','See real briefs and rewards before signing in.'],
       ['/missions','Saved activities','Continue from a private saved link.'],
-      ['/adventures/passport','Adventure Passport','Your personal stamps, collection and memories on this device.'],
+      ['/brands/portal','Plan a business brief','Commission content or fund a useful local activity.'],
     ].map(([href,title,detail]) => <Link key={href} href={href} className={`${softCardClass} p-5`}><h2 className="font-black">{title}</h2><p className="mt-2 text-sm text-white/65">{detail}</p></Link>)}</div>
+    <div className="mt-5"><AdventurePassportEntry /></div>
   </div>;
 
   return (
@@ -1413,9 +1413,9 @@ export default function Dashboard() {
         </div>
 
         <nav aria-label="Your activity sections" className="order-1 mb-5 flex flex-wrap gap-2">
-          <Link href="/now" className="bd-action">Plans</Link><Link href="/adventures/passport" className="bd-action">Passport</Link><Link href="/missions" className="bd-action">Saved</Link><Link href="/action-center" className="bd-action">Paid work &amp; actions</Link><Link href="/my-dares" className="bd-action">Funded by me</Link>
+          <Link href="/now" className="bd-action">Plans</Link><Link href="/missions" className="bd-action">Saved</Link><Link href="/action-center" className="bd-action">Paid work &amp; actions</Link><Link href="/my-dares" className="bd-action">Funded by me</Link>
         </nav>
-        <div className="order-2 mb-6"><AdventurePassport compact /></div>
+        <div className="order-3 mb-6"><AdventurePassportEntry /></div>
         <WalletOverview key={address || 'disconnected'} />
         {primaryDashboardMove || dashboardQuickActions.length > 0 ? (
           <div className="order-2 mb-6">

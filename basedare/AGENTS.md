@@ -1,3 +1,9 @@
+### Codex revenue focus and optional memories (2026-10-18)
+- Passport is an optional Memories link in My activity and the Adventures footer. Completion leads with another adventure and invitations; memory cards/public sharing load only after an explicit disclosure. Preserve journals, account saves, evidence rules and contributor reputation. No new gamification or consumer paywall.
+- Buyer entry reuses /brands/portal and /activations for short content/activity enquiries before sign-in. Recognized enquiry kinds keep neutral pricing, separate intent dedupe, an actual-scope review page and an explicit no-work/no-payment/no-rights boundary. Legacy Sprint/pilot routes and canonical 96/4 plus $2,500 Sprint economics remain unchanged.
+- Buyer workspace reads are bounded, wallet-scoped, atomic across profile/work reads and visibly retryable. An error is never an empty successful account; account switches clear prior drafts and snapshots. Existing payment guards and human-signed mainnet cutover remain mandatory.
+- See docs/releases/revenue-focus-2026-10-18.md. No schema, production environment, contract deployment or money movement. Run test:revenue-focus and test:revenue:db as well as discovery/usability checks; database test receipts are fixtures, not on-chain proof.
+
 ### Codex adventure discovery focus (2026-10-18)
 - Adventures leads with one locally eligible idea, or the unfinished run. Preferences/alternatives are optional disclosures; shared public/mine/hashtag/post views keep their existing routes and load explicitly. Keep the existing templates, bounded journal, account-save/evidence rules and explicit start/switch behavior.
 - Discovery uses a compact Passport link. Completion leads with its personal memory, invitation and Passport; finished steps and optional public media sharing are disclosures. Local memories do not establish attendance, points or cash rewards.

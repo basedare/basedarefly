@@ -1,3 +1,4 @@
+import { BUSINESS_REQUESTS, businessRequestKind } from '@/lib/business-request';
 import 'server-only';
 
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
@@ -204,6 +205,7 @@ function defaultReplyEmail() {
 }
 
 function isFirstSparkCloseRoom(input: { packageId: string; budgetRange: string; metadata: MetadataRecord }) {
+  if (businessRequestKind(stringValue(input.metadata.routedMissionType))) return false;
   const activationAttribution = asRecord(input.metadata.activationAttribution);
   const offerId = stringValue(input.metadata.offerId) || stringValue(activationAttribution.offerId);
   return (
@@ -259,11 +261,12 @@ export function buildActivationCloseRoomAdminState(input: {
   const packageId = stringValue(input.metadata.packageId);
   const budgetRange = stringValue(input.metadata.budgetRange);
   const isFirstSpark = isFirstSparkCloseRoom({ packageId, budgetRange, metadata: input.metadata });
-  const subject = `${isFirstSpark ? 'BaseDare First Spark close room' : 'BaseDare close room'}: ${target}`;
+  const isBusinessBrief = businessRequestKind(stringValue(input.metadata.routedMissionType));
+  const subject = `${isBusinessBrief ? 'BaseDare brief review' : isFirstSpark ? 'BaseDare First Spark close room' : 'BaseDare close room'}: ${target}`;
   const body = [
     `Hi ${input.contactName || 'there'},`,
     '',
-    isFirstSpark
+    isBusinessBrief ? `Here is your BaseDare brief for review. Scope, price, permissions, availability and funding are not agreed by this enquiry:` : isFirstSpark
       ? `Here is the BaseDare First Spark close room for ${target}. It has the pilot offer, creator mission, payment reference, proof logic, and launch gates in one place:`
       : `Here is the BaseDare close room for ${target}. It has the Spark route, payment reference, proof logic, and launch gates in one place:`,
     '',
@@ -271,7 +274,7 @@ export function buildActivationCloseRoomAdminState(input: {
     '',
     input.paymentReference ? `Payment reference: ${input.paymentReference}` : null,
     '',
-    isFirstSpark
+    isBusinessBrief ? 'No work starts or contributors are reserved by this request. We need to agree the exact deliverable and terms separately.' : isFirstSpark
       ? 'The venue approves the route, provides one simple perk or reward, and BaseDare handles setup, creator routing, proof flow, and recap.'
       : 'Once payment and scope are confirmed, BaseDare opens the funded activation inside the app so creator proof, review, and payout state stay trackable.',
   ].filter((line): line is string => line !== null).join('\n');
@@ -300,6 +303,7 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
   const operator = asRecord(metadata.operator);
   const activationBrief = asRecord(metadata.activationBrief);
   const status = normalizeStatus(event.status);
+  const requestKind = businessRequestKind(stringValue(metadata.routedMissionType));
   const company = stringValue(metadata.company);
   const contactName = stringValue(metadata.contactName);
   const email = stringValue(metadata.email || event.actor);
@@ -370,6 +374,7 @@ export function buildActivationCloseRoomFromEvent(event: ActivationCloseRoomEven
 
   return {
     id: event.id,
+    businessBrief: requestKind ? { kind: requestKind, title: BUSINESS_REQUESTS[requestKind].title, notes: stringValue(metadata.notes), timing: stringValue(metadata.routedTimeWindow) } : null,
     title: event.title || `${company || 'Activation'} close room`,
     status,
     statusLabel: STATUS_LABELS[status],

@@ -29,4 +29,6 @@ cd "$ROOT_DIR"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'CREATE ROLE service_role NOLOGIN; CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; DROP TABLE "ContentRightsAcceptance"; ALTER TABLE "Dare" DROP COLUMN "contentSubmittedAt";' >/dev/null
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f prisma/migrations/20260921100000_content_rights_acceptance/migration.sql >/dev/null
 TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","moduleResolution":"Node"}' \
+  node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/buyer-intake-db.ts
+TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","moduleResolution":"Node"}' \
   node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/revenue-readiness-db.ts

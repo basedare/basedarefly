@@ -4,13 +4,14 @@ import { redirect } from 'next/navigation';
 import { ArrowLeft, ArrowRight, BadgeDollarSign, CheckCircle2 } from 'lucide-react';
 
 import ActivationFunnelTracker from './ActivationFunnelTracker';
+import { BUSINESS_REQUESTS, businessRequestKind } from '@/lib/business-request';
 import ActivationIntakeForm from './ActivationIntakeForm';
 import SquircleLink from '@/components/ui/SquircleLink';
 
 export const metadata: Metadata = {
-  title: 'Start an Activation | BaseDare',
+  title: 'Plan a business brief | BaseDare',
   description:
-    'Start a simple BaseDare venue, creator, or guest mission with one place, one action, one proof path, and one reply route.',
+    'Request content, a funded local activity or independent on-site checks. Agree on scope, permissions and costs before any work or payment.',
 };
 
 const raisedPanelClass =
@@ -67,6 +68,8 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
   const isFirstSparkOffer = routedOfferId === 'first-spark';
   const isVenueGuestMissionRoute =
     routedSource === 'venue-guest-mission' || resolvedSearchParams.missionType === 'guest';
+  const requestKind = businessRequestKind(resolvedSearchParams.missionType);
+  const businessRequest = requestKind ? BUSINESS_REQUESTS[requestKind] : null;
   const isVerifiedFieldSprintRoute = resolvedSearchParams.missionType === 'field-mission';
   const hasRoutedContext = Boolean(
     routedCreator ||
@@ -81,28 +84,28 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
       resolvedSearchParams.perkLabel
   );
 
-  const heroEyebrow = isVenueGuestMissionRoute
+  const heroEyebrow = businessRequest ? 'Business brief' : isVenueGuestMissionRoute
     ? 'Guest Mission'
     : isFirstSparkOffer
       ? 'First Spark Pilot'
       : isVerifiedFieldSprintRoute
         ? 'On-site checks'
       : 'Activity request';
-  const heroTitle = isVenueGuestMissionRoute
+  const heroTitle = businessRequest ? businessRequest.heading : isVenueGuestMissionRoute
     ? 'Plan a visitor activity.'
     : isFirstSparkOffer
       ? 'Run First Spark.'
       : isVerifiedFieldSprintRoute
         ? 'Request on-site checks.'
       : 'Plan your request.';
-  const heroDetail = isVenueGuestMissionRoute
+  const heroDetail = businessRequest ? businessRequest.detail : isVenueGuestMissionRoute
     ? 'Confirm the venue, guest action, perk, and reply path. Keep the loop light enough that people can join fast.'
     : isFirstSparkOffer
       ? 'One venue, one night, one proof path, one recap. BaseDare handles setup; the venue gives one simple perk.'
       : isVerifiedFieldSprintRoute
         ? 'Define your question, coverage and evidence, then add a reply contact. Four independent checks cost $2,500, including the $500 reward pool. Nothing is published or charged by this request.'
       : 'Tell BaseDare where the mission should happen, what should be proved, and where to reply.';
-  const primaryLabel = isVenueGuestMissionRoute
+  const primaryLabel = businessRequest ? 'Describe your brief' : isVenueGuestMissionRoute
     ? 'Confirm Guest Mission'
     : isFirstSparkOffer
       ? 'Run First Spark'
@@ -113,7 +116,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
   const intakeDetail = hasRoutedContext
     ? 'Check the details carried from your earlier page and fill anything still missing.'
     : 'One place, one action, and one clear contact is enough to start.';
-  const nextSteps = isVenueGuestMissionRoute
+  const nextSteps = businessRequest ? [['1', 'Brief', 'One useful deliverable'], ['2', 'Scope', 'Agree on cost and permissions'], ['3', 'Launch', 'Only after approval and funding']] : isVenueGuestMissionRoute
     ? [
         ['1', 'Place', routedVenue || 'Venue'],
         ['2', 'Action', resolvedSearchParams.guestMission || 'Guest check-in'],
@@ -142,7 +145,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
       <ActivationFunnelTracker />
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.11)_1px,transparent_0)] [background-size:112px_112px]" />
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.08),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(255,255,255,0.06),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(0,0,0,0)_26%,rgba(0,0,0,0.82)_100%)]" />
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-36 border-b border-white/[0.06] bg-black/70 md:bg-black/55 md:backdrop-blur-2xl" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-36 bg-gradient-to-b from-black/65 to-transparent" />
 
       <div className="relative z-20 mx-auto max-w-5xl">
         <div className="mb-5 flex items-center justify-between gap-3">
