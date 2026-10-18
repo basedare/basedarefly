@@ -6,7 +6,7 @@
 
 - My activity no longer embeds the full Adventure Passport or includes it among its primary action buttons. A quiet Memories / Passport link preserves the existing feature, journal, routes, explicit account saves and evidence projections.
 - Adventure completion prioritizes another eligible adventure, an invitation or a group plan. Downloadable memories and optional public media sharing load on request; there is no automatic Passport destination. Personal completion still awards no cash, Signal Points or verified presence.
-- Signed-out and first-run buyers can choose a place-bound content brief or funded local activity. Short enquiries reuse the existing intake with optional budget/timing, clear scope and contact fields, and no wallet requirement. The $2,500 Field Sprint remains a separate disclosed offer.
+- Signed-out and first-run buyers can choose a place-bound content brief or funded local activity. Short enquiries reuse the existing intake with optional budget/timing, 16px input text, clear scope and contact fields, and no wallet requirement. The $2,500 Field Sprint remains a separate disclosed offer.
 - Content/activity enquiries retain distinct dedupe keys and their actual requested scope. Preferred timing does not become a slow-window rescue. Their review page does not inherit the First Spark proof-night offer or a default payment checkout. Requesting work neither reserves contributors nor grants media rights.
 - Buyer reads fail visibly and offer retry. Both profile and work reads must succeed before displaying a snapshot. New accounts are offered registration only after an explicit NOT_FOUND response. Wallet changes clear prior snapshots, draft selection and contributor shortlists; late reads and registration responses cannot attach to another wallet.
 
@@ -33,3 +33,5 @@ Local browser configuration lacks production wallet/auth/provider settings; anal
 Ship through the existing reviewed PR → main → Vercel path after clean CI. Verify signed-out business entry, both enquiry forms, My activity and Adventures on the deployed main commit. Confirm the production payment-readiness state is accurately displayed. Do not create a real enquiry just to test the page.
 
 Rollback this application commit if saved adventure progress becomes inaccessible, enquiry scope/intent is lost, buyer reads show another account's state or controls clip. Existing records and Passport data need no rollback migration. Never restore old payment availability by weakening the guards.
+
+CI portability: the revenue database harness uses its own socket directory and startup log, matching the existing Passport harness and avoiding Ubuntu system-directory permissions.

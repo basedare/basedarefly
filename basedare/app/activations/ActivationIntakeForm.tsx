@@ -100,7 +100,7 @@ const INITIAL_STATE: IntakeState = {
 };
 
 const inputClass =
-  'w-full rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-white/24 focus:border-yellow-200/40 focus:bg-black/38';
+  'w-full rounded-[18px] border border-white/10 bg-black/28 px-4 py-3 text-base font-bold text-white outline-none transition placeholder:text-white/24 focus:border-yellow-200/40 focus:bg-black/38';
 const labelClass = 'mb-2 block text-sm font-bold text-white/75';
 const detailsClass =
   'rounded-[24px] border border-white/[0.08] bg-black/24 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]';

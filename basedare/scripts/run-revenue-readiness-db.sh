@@ -15,7 +15,11 @@ TASK_DB="basedare_revenue_readiness_$(date +%s)"
 cleanup() { pg_ctl -D "$TASK_PGDATA" -m fast -w stop >/dev/null 2>&1 || true; rm -rf "$TASK_TMP"; }
 trap cleanup EXIT
 initdb -A trust -U postgres -D "$TASK_PGDATA" >/dev/null
-pg_ctl -D "$TASK_PGDATA" -o "-F -h 127.0.0.1 -p $TASK_PORT" -w start >/dev/null
+# Ubuntu's default socket directory is system-owned; keep this test isolated.
+if ! pg_ctl -D "$TASK_PGDATA" -o "-F -h 127.0.0.1 -p $TASK_PORT -k $TASK_TMP" -l "$TASK_TMP/server.log" -w start >/dev/null; then
+  cat "$TASK_TMP/server.log" >&2
+  exit 1
+fi
 createdb -h 127.0.0.1 -p "$TASK_PORT" -U postgres "$TASK_DB"
 export DATABASE_URL="postgresql://postgres@127.0.0.1:$TASK_PORT/$TASK_DB"
 export DIRECT_URL="$DATABASE_URL"
