@@ -34,3 +34,14 @@ test('Next 2h survives canonical shared URLs, legacy storage and map pulse links
   assert.equal(readDiscovery(url.searchParams).radiusKm, 12);
   assert.equal(readDiscovery(new URLSearchParams('radiusKm=100')).radiusKm, 25);
 });
+
+test('known destination timezones survive navigation and session restoration, but never follow a different city', () => {
+  const sydney = { ...DEFAULT_DISCOVERY, lat: -33.8688, lng: 151.2093, label: 'Sydney', timeZone: 'Australia/Sydney' };
+  const url = new URL(discoveryHref('/adventures', sydney), 'https://basedare.test');
+  assert.equal(readDiscovery(url.searchParams).timeZone, 'Australia/Sydney');
+  assert.equal(readDiscovery(new URLSearchParams(), sydney).timeZone, 'Australia/Sydney');
+  const other = new URL(discoveryHref('/map?lat=40.71&lng=-74&areaLabel=New+York', sydney), 'https://basedare.test');
+  assert.equal(other.searchParams.has('timeZone'), false);
+  assert.equal(readDiscovery(other.searchParams, sydney).timeZone, undefined);
+  assert.equal(readDiscovery(new URLSearchParams('lat=40.71&lng=-74&timeZone=invalid/zone'), sydney).timeZone, undefined);
+});

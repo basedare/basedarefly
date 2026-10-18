@@ -13,12 +13,7 @@ import { activeAdventure } from '@/lib/adventure-progress';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import type { LivePlanSnapshot } from '@/lib/live-plans';
 import { normalizeWorldPulseCenter, normalizeWorldPulseRadius } from '@/lib/world-pulse';
-
-
-
-function isVisibleRoute(pathname: string) {
-  return pathname === '/map' || pathname === '/board' || pathname === '/now' || pathname === '/community' || pathname === '/dashboard' || pathname.startsWith('/earn');
-}
+import { isActivityTrayRoute } from '@/lib/mobile-surface-policy';
 
 function isCreatorMissionItem(value: unknown): value is CreatorMissionTrayItem {
   if (!value || typeof value !== 'object') return false;
@@ -41,7 +36,7 @@ export default function GlobalMyNextMove() {
   const { progress } = useAdventureProgress();
   const [snapshot, setSnapshot] = useState<LivePlanSnapshot | null>(null);
   const [creatorMission, setCreatorMission] = useState<CreatorMissionTrayItem | null>(null);
-  const visible = isVisibleRoute(pathname);
+  const visible = isActivityTrayRoute(pathname);
   const requestVersion = useRef(0);
 
   const load = useCallback(async () => {

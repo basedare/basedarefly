@@ -41,7 +41,8 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
   const updateArea = useCallback((patch: Partial<DiscoveryArea>) => {
     if (patch.lat !== undefined && patch.lng !== undefined) setHasArea(true);
     setArea((previous) => {
-      const next = { ...previous, ...patch };
+      const moved = patch.lat !== undefined && patch.lng !== undefined && (patch.lat !== previous.lat || patch.lng !== previous.lng);
+      const next = { ...previous, ...(moved ? { timeZone: undefined } : {}), ...patch };
       return JSON.stringify(previous) === JSON.stringify(next)
         ? previous
         : next;
@@ -84,6 +85,7 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
           lat: String(area.lat),
           lng: String(area.lng),
           areaLabel: area.label,
+          ...(area.timeZone ? { timeZone: area.timeZone } : {}),
           selected: hasArea ? "1" : "0",
           radiusKm: String(area.radiusKm),
           mode: area.mode,
