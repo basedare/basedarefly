@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Download, Plus, X } from 'lucide-react';
+import { suppressInstallPrompt as shouldSuppressInstallPrompt } from '@/lib/mobile-surface-policy';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -11,7 +12,6 @@ type BeforeInstallPromptEvent = Event & {
 
 const DISMISS_KEY = 'pwa-install-dismissed-at';
 const SEEN_KEY = 'pwa-install-seen-at';
-const INSTALL_PROMPT_SUPPRESSED_PATHS = ['/claim-tag'];
 
 function isStandaloneDisplayMode() {
   if (typeof window === 'undefined') return false;
@@ -49,10 +49,6 @@ function rememberInstallPromptSeen() {
 function rememberInstallPromptDismissed() {
   writeInstallPromptFlag(SEEN_KEY);
   writeInstallPromptFlag(DISMISS_KEY);
-}
-
-function shouldSuppressInstallPrompt(pathname: string | null) {
-  return INSTALL_PROMPT_SUPPRESSED_PATHS.some((path) => pathname === path || pathname?.startsWith(`${path}/`));
 }
 
 export default function PwaInstallPrompt() {
@@ -161,7 +157,7 @@ export default function PwaInstallPrompt() {
         <button
           type="button"
           onClick={dismiss}
-          className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/20 text-white/60 transition hover:text-white"
+          className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/20 text-white/60 transition hover:text-white"
           aria-label="Dismiss install prompt"
         >
           <X className="h-4 w-4" />
@@ -176,11 +172,11 @@ export default function PwaInstallPrompt() {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-200/80">
+            <div className="text-sm font-bold text-cyan-200/80">
               Install BaseDare
             </div>
             <p className="mt-1 text-sm font-semibold leading-5 text-white">
-              Keep the map, nearby missions, and command base one tap away.
+              Keep your next adventure one tap away.
             </p>
             <p className="mt-1 text-xs leading-5 text-white/55">
               {deferredPrompt

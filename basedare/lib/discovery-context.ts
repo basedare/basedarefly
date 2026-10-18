@@ -12,6 +12,7 @@ export const DEFAULT_DISCOVERY: DiscoveryArea = {
   lng: 126.158,
   radiusKm: 25,
   label: "General Luna, Siargao",
+  timeZone: "Asia/Manila",
   participation: "all",
   mode: "NOW",
 };
@@ -38,6 +39,11 @@ export function readDiscovery(
     ?.replace(/[\x00-\x1f\x7f]/g, "")
     .trim()
     .slice(0, 100);
+  let timeZone = lat === previous.lat && lng === previous.lng ? previous.timeZone : undefined;
+  const requestedZone = params.get('timeZone');
+  if (requestedZone && requestedZone.length <= 100) {
+    try { new Intl.DateTimeFormat('en', { timeZone: requestedZone }); timeZone = requestedZone; } catch { /* Do not inherit a different destination's zone. */ }
+  }
   const radius = Number(params.get("radiusKm"));
   const participation = params.get("participation");
   const mode = (params.get("when") ?? params.get("mode") ?? params.get("pulse"))
@@ -50,6 +56,7 @@ export function readDiscovery(
       ? {
           lat,
           lng,
+          timeZone,
           label:
             explicitLabel ||
             (lat === previous.lat && lng === previous.lng
@@ -110,5 +117,8 @@ export function discoveryHref(
     !url.searchParams.has("areaLabel")
   )
     url.searchParams.set("areaLabel", area.label);
+  if (carryArea && area.timeZone && !url.searchParams.has('timeZone')
+    && Number(url.searchParams.get('lat')) === area.lat && Number(url.searchParams.get('lng')) === area.lng)
+    url.searchParams.set('timeZone', area.timeZone);
   return url.pathname + url.search + url.hash;
 }

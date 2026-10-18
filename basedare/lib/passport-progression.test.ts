@@ -32,3 +32,15 @@ test('download escapes names and place text; local completion cannot unlock evid
   assert.equal(eligibleFrame('story', []), false);
   assert.equal(eligibleFrame('classic', []), true);
 });
+
+test('personal weekly progress uses a known destination timezone or an honest UTC fallback', () => {
+  const clock = new Date('2026-10-18T13:00:00Z'); // Monday in Sydney, Sunday in UTC and Manila.
+  const sydney = weeklyPersonalChallenge({ runs: [] }, { timeZone: 'Australia/Sydney' }, clock);
+  assert.equal(sydney.week, '2026-10-19');
+  assert.equal(sydney.timeZone, 'Australia/Sydney');
+  for (const area of [{}, { timeZone: 'invalid/zone' }]) {
+    const result = weeklyPersonalChallenge({ runs: [] }, area, clock);
+    assert.equal(result.timeZone, 'UTC');
+    assert.equal(result.week, '2026-10-12');
+  }
+});

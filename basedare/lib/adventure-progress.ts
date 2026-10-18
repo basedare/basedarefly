@@ -52,7 +52,11 @@ export function completeAdventure(progress: AdventureProgress, runId: string, no
 export function adventureHref(id?: string, placeSlug?: string, area?: ActivityArea, preferences?: AdventurePreferences) {
   const query = new URLSearchParams();
   if (placeSlug) query.set('place', placeSlug);
-  else if (area) { query.set('lat', String(area.lat)); query.set('lng', String(area.lng)); }
+  else if (area) {
+    query.set('lat', String(area.lat)); query.set('lng', String(area.lng));
+    query.set('areaLabel', area.label.replace(/[\x00-\x1f\x7f]/g, '').trim().slice(0, 100));
+    if (area.timeZone) query.set('timeZone', area.timeZone);
+  }
   if (preferences) { query.set('minutes', String(preferences.minutes)); query.set('mood', preferences.mood); }
   return `/adventures${id ? '/' + encodeURIComponent(id) : ''}${query.size ? '?' + query : ''}`;
 }

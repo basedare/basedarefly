@@ -50,7 +50,10 @@ export function destinationWeek(now: Date, timeZone = 'Asia/Manila') {
 }
 
 export function weeklyPersonalChallenge(progress: unknown, area: Pick<ActivityArea, 'timeZone'>, now = new Date()) {
-  const zone = area.timeZone || 'Asia/Manila';
+  // The shared community goal retains destinationWeek's established default;
+  // a personal journal with no known city timezone uses an explicitly labelled UTC week.
+  let zone = area.timeZone || 'UTC';
+  try { new Intl.DateTimeFormat('en', { timeZone: zone }); } catch { zone = 'UTC'; }
   const week = destinationWeek(now, zone);
   const runs = canonicalPersonalProgress(progress, now.getTime()).runs.filter((r) => r.completedAt && destinationWeek(new Date(r.completedAt), zone) === week);
   return { week, completed: Math.min(3, new Set(runs.map((r) => r.activityId)).size), target: 3, title: 'Three different adventures this week', timeZone: zone };
