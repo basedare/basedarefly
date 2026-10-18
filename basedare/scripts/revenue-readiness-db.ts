@@ -69,6 +69,9 @@ async function main() {
     return POST(req, { params: Promise.resolve({ id: dare.id }) });
   }
   assert.equal((await claim(0, null, false)).status, 401);
+  assert.equal((await (await claim(0, null)).json()).code, 'REWARD_NOT_FUNDED');
+  // Disposable database receipt fixture only; no actual chain payment is claimed.
+  await prisma.dare.update({ where: { id: dare.id }, data: { txHash: '0x' + '1'.repeat(64), onChainDareId: '1' } });
   assert.equal((await claim(0, null)).status, 409);
   assert.equal((await claim(0, { accepted: true, fingerprint: '0'.repeat(64) })).status, 409);
   const concurrent = await Promise.all([claim(0, { accepted: true, fingerprint }), claim(1, { accepted: true, fingerprint })]);

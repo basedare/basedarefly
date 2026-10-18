@@ -58,6 +58,30 @@ export default async function ActivationCloseRoomPage({
     notFound();
   }
 
+  // Enquiries have no agreed commercial scope; never inherit the pilot payment offer.
+  if (closeRoom.businessBrief) return <main className="bd-page-top relative min-h-screen px-4 pb-24 text-white sm:px-6">
+    <CloseRoomTracker token={token} />
+    <div className="relative mx-auto max-w-2xl">
+      <Link href="/brands/portal" className="bd-back">Buyer workspace</Link>
+      <section className="bd-surface mt-5 p-5 sm:p-7">
+        <p className="text-sm font-bold text-amber-100">Brief review · {closeRoom.statusLabel}</p>
+        <h1 className="mt-3 text-3xl font-black tracking-tight">{closeRoom.businessBrief.title}</h1>
+        <p className="mt-3 text-base leading-7 text-white/70">Your enquiry is recorded. It does not publish a mission, reserve contributors, take payment or grant media rights.</p>
+        <dl className="mt-5 space-y-4 text-sm leading-6">
+          <div><dt className="font-bold text-white/60">Business</dt><dd>{closeRoom.company}</dd></div>
+          <div><dt className="font-bold text-white/60">City or area</dt><dd>{closeRoom.city}</dd></div>
+          {closeRoom.venue ? <div><dt className="font-bold text-white/60">Place</dt><dd>{closeRoom.venue}</dd></div> : null}
+          <div className="bd-well p-4"><dt className="font-bold text-white/60">Requested work</dt><dd className="mt-2 whitespace-pre-wrap break-words">{closeRoom.businessBrief.notes || 'Scope to agree.'}</dd></div>
+          {closeRoom.businessBrief.timing ? <div><dt className="font-bold text-white/60">Preferred timing</dt><dd>{closeRoom.businessBrief.timing}</dd></div> : null}
+        </dl>
+        <h2 className="mt-6 text-lg font-bold">Before work starts</h2>
+        <p className="mt-2 text-sm leading-6 text-white/70">Agree on the deliverable, deadline, acceptance rules, availability, venue permissions and any media usage rights. Service costs and contributor reward funding must be confirmed separately. No views, sales or foot traffic are guaranteed.</p>
+        <p className="mt-4 text-sm text-white/60">Reference: {closeRoom.paymentReference}</p>
+        <a href={closeRoom.replyHref} className="bd-action mt-5 !text-sm">Discuss this brief <ArrowRight size={16} aria-hidden="true" /></a>
+      </section>
+    </div>
+  </main>;
+
   const target = closeRoom.venue || closeRoom.company || 'your activation';
   const mission = closeRoom.missionIdeas[0];
   const paymentReady = Boolean(closeRoom.paymentLink);

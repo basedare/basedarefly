@@ -5,6 +5,12 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["**/*.test.ts"],
-  "exclude": ["node_modules", ".next"]
+  "include": [
+    "**/*.test.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
 }

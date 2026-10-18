@@ -1,3 +1,4 @@
+import { businessRequestDedupeSource, businessRequestKind } from '@/lib/business-request';
 import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
@@ -139,9 +140,10 @@ function buildStableIntakeDedupeKey(input: {
   routedVenueSlug: string;
   routedSource: string;
   attributionSource: string;
+  routedMissionType: string;
 }) {
   const target = input.routedVenueSlug || input.venue || input.company;
-  const source = input.routedSource || input.attributionSource || 'site';
+  const source = businessRequestDedupeSource(input.routedSource || input.attributionSource || 'site', input.routedMissionType);
   return `activation-intake:${dedupeToken(input.email)}:${dedupeToken(target)}:${dedupeToken(source)}`;
 }
 
@@ -245,6 +247,7 @@ export async function POST(request: NextRequest) {
       routedVenueSlug: routedVenueSlug || activationAttribution.venueSlug,
       routedSource,
       attributionSource: activationAttribution.source,
+      routedMissionType,
     });
     const submittedAt = new Date().toISOString();
     const metadataJson = {
@@ -285,14 +288,14 @@ export async function POST(request: NextRequest) {
       clientIp,
       submittedAt,
       intakeDedupeKey: stableDedupeKey,
-      intakeIntent:
+      intakeIntent: businessRequestKind(routedMissionType) ?? (
         routedMissionType === 'dead-window' || deadWindowTime || deadWindowCheckInTarget || deadWindowPerk
           ? 'dead_window_rescue'
           : routedMissionType === 'guest' || routedGuestMission
             ? 'guest_mission'
             : offerId === 'first-spark'
               ? 'first_spark_pilot'
-              : 'activation',
+              : 'activation'),
     } satisfies Prisma.InputJsonValue;
 
     const existing = await prisma.founderEvent.findUnique({

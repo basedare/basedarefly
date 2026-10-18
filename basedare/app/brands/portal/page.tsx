@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import ParticleNetwork from '@/components/ParticleNetwork';
 import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
+import BusinessRequestOptions from '@/components/BusinessRequestOptions';
+import { businessRequestHref } from '@/lib/business-request';
+import { loadBuyerWorkspace } from '@/lib/buyer-workspace';
 
 // ============================================================================
 // CONTROL MODE - BUYER WORKSPACE
@@ -57,6 +60,12 @@ export default function BrandPortalPage() {
   const [brand, setBrand] = useState<Brand | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [workspaceAttempt, setWorkspaceAttempt] = useState(0);
+  const [loadedWallet, setLoadedWallet] = useState<string | null>(null);
+  const walletKey = isConnected && address ? address.toLowerCase() : null;
+  const currentWallet = useRef(walletKey);
+  currentWallet.current = walletKey;
   const [showRegister, setShowRegister] = useState(false);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [registerName, setRegisterName] = useState('');
@@ -393,57 +402,54 @@ export default function BrandPortalPage() {
     venueRadar,
   ]);
 
-  // Fetch brand and campaigns
+  // Account changes must not display or mutate another buyer's cached workspace.
   useEffect(() => {
-    if (!isConnected || !address) {
-      setLoading(false);
-      return;
-    }
+    setBrand(null); setCampaigns([]); setShowRegister(false); setRegisterName(''); setRegisterError(null);
+    setShowCreateCampaign(false); setSelectedPlace(null); setPlaceQuery(''); setPlaceResults([]);
+    setSelectedVenueRadarId(null); setExpandedMatchesCampaignId(null); setMatchesByCampaign({});
+    setShortlistedCreators({}); setResponsesTabByCampaign({}); setReportAttribution(null); setHandledDeepLinkKey(null);
+    setSelectedActivationPackageId(DEFAULT_ACTIVATION_PACKAGE_ID);
+    setFormData({ type: 'PLACE', tier: getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID).tier, title: '', description: '', syncTime: '',
+      creatorCountTarget: MANAGED_FIELD_SPRINT.assignedContributorCount, payoutPerCreator: getActivationPackage(DEFAULT_ACTIVATION_PACKAGE_ID).payout,
+      targetingCriteria: { niche: '', minFollowers: 0, location: 'anywhere', platforms: [] },
+      verificationCriteria: { hashtagsRequired: [], minDurationSeconds: 30 },
+    });
+  }, [walletKey]);
 
-    let cancelled = false;
-
-    const fetchData = async (isBackgroundRefresh = false) => {
+  useEffect(() => {
+    setLoadError(null);
+    if (!walletKey) { setLoading(false); setLoadedWallet(null); return; }
+    const controller = new AbortController();
+    let active = true;
+    let inFlight = false;
+    const fetchData = async (background = false) => {
+      if (inFlight) return;
+      inFlight = true;
+      if (!background) setLoading(true);
+      const deadline = window.setTimeout(() => controller.abort(), 10_000);
       try {
-        if (!isBackgroundRefresh) {
-          setLoading(true);
+        const snapshot = await loadBuyerWorkspace(walletKey, controller.signal);
+        if (!active || currentWallet.current !== walletKey) return;
+        if (snapshot.kind === 'missing') {
+          setBrand(null); setCampaigns([]); setShowRegister(true);
+        } else {
+          setBrand(snapshot.brand); setCampaigns(snapshot.campaigns); setShowRegister(false);
         }
-
-        const brandRes = await fetch(`/api/brands?wallet=${address}`);
-        const brandData = await brandRes.json();
-
-        if (!cancelled && brandData.success) {
-          setBrand(brandData.data);
-
-          const campaignsRes = await fetch(`/api/campaigns?brand=${address}`);
-          const campaignsData = await campaignsRes.json();
-
-          if (!cancelled && campaignsData.success) {
-            setCampaigns(campaignsData.data);
-          }
-        } else if (!cancelled && brandData.code === 'NOT_FOUND') {
-          setShowRegister(true);
-        }
+        setLoadError(null);
       } catch (error) {
-        if (!cancelled) {
-          console.error('Failed to fetch brand data:', error);
-        }
+        if (!active || currentWallet.current !== walletKey) return;
+        setBrand(null); setCampaigns([]); setShowRegister(false);
+        setLoadError(controller.signal.aborted ? 'The request timed out. Check your connection and retry.' : error instanceof Error ? error.message : 'Your workspace is unavailable. Please retry.');
       } finally {
-        if (!cancelled && !isBackgroundRefresh) {
-          setLoading(false);
-        }
+        window.clearTimeout(deadline);
+        inFlight = false;
+        if (active) { setLoading(false); setLoadedWallet(walletKey); }
       }
     };
-
     void fetchData();
-    const interval = window.setInterval(() => {
-      void fetchData(true);
-    }, 15000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [isConnected, address]);
+    const interval = window.setInterval(() => { if (!controller.signal.aborted) void fetchData(true); }, 15_000);
+    return () => { active = false; controller.abort(); window.clearInterval(interval); };
+  }, [walletKey, workspaceAttempt]);
 
   useEffect(() => {
     if (formData.type !== 'PLACE') {
@@ -513,15 +519,17 @@ export default function BrandPortalPage() {
 
       const data = await res.json();
 
-      if (data.success) {
+      if (currentWallet.current !== address.toLowerCase()) return;
+      if (res.ok && data.success) {
         setBrand(data.data);
         setShowRegister(false);
+        setWorkspaceAttempt((value) => value + 1);
       } else {
         setRegisterError(data.error || 'Unable to create the buyer profile. Please try again.');
       }
     } catch (error) {
       console.error('Failed to register brand:', error);
-      setRegisterError(error instanceof Error ? error.message : 'Unable to create the buyer profile. Please try again.');
+      if (currentWallet.current === address.toLowerCase()) setRegisterError(error instanceof Error ? error.message : 'Unable to create the buyer profile. Please try again.');
     }
   };
 
@@ -626,9 +634,10 @@ export default function BrandPortalPage() {
 
   // Determine current view state
   const showNotConnected = mounted && !isConnected;
-  const showLoading = mounted && isConnected && loading;
-  const showRegisterView = mounted && isConnected && !loading && showRegister;
-  const showDashboard = mounted && isConnected && !loading && !showRegister;
+  const workspaceLoaded = loadedWallet === walletKey;
+  const showLoading = mounted && isConnected && (loading || !workspaceLoaded);
+  const showRegisterView = mounted && isConnected && workspaceLoaded && !loading && !loadError && showRegister;
+  const showDashboard = mounted && isConnected && workspaceLoaded && !loading && !loadError && !showRegister && Boolean(brand);
   const showFirstRunOnRamp =
     showDashboard && !hasBrandActivity && !showCreateCampaign;
 
@@ -832,6 +841,8 @@ export default function BrandPortalPage() {
         registerError={registerError}
         registerName={registerName}
         setRegisterName={setRegisterName}
+        loadError={mounted && isConnected && workspaceLoaded && !loading ? loadError : null}
+        retryLoad={() => setWorkspaceAttempt((value) => value + 1)}
         showLoading={showLoading}
         showNotConnected={showNotConnected}
         showRegisterView={showRegisterView}
@@ -898,72 +909,12 @@ export default function BrandPortalPage() {
         {showFirstRunOnRamp ? (
           <section className="activation-shell relative overflow-hidden rounded-[30px] border p-5 backdrop-blur-xl md:p-7">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(34,211,238,0.035),transparent_32%),radial-gradient(circle_at_84%_8%,rgba(168,85,247,0.07),transparent_34%)]" />
-            <div className="relative grid gap-7 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-yellow-100">
-                  <Sparkles className="h-4 w-4" />
-                  Start here
-                </div>
-                <h1 className="mt-5 max-w-3xl text-3xl font-black uppercase italic leading-[0.94] tracking-[-0.055em] text-white sm:text-5xl">
-                  Get answers from people on the ground.
-                </h1>
-                <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/72">
-                  Define one bounded question and place. BaseDare routes {MANAGED_FIELD_SPRINT.assignedContributorCount} independent contributors and returns verified evidence, timestamped place memory, and a receipt.
-                </p>
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                  <button
-                    type="button"
-                    onClick={openActivationBuilder}
-                    className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Describe what you need
-                  </button>
-                  <Link
-                    href="/field-sprints/example"
-                    className="activation-soft-button inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/[0.13] px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-white/68 transition hover:border-white/24 hover:text-white"
-                  >
-                    See an example report
-                  </Link>
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  {
-                    icon: <ReceiptText className="h-4 w-4" />,
-                    label: '1. Ask',
-                    detail: 'One bounded real-world question.',
-                  },
-                  {
-                    icon: <MapPin className="h-4 w-4" />,
-                    label: '2. Coverage',
-                    detail: 'Choose one place or micro-area.',
-                  },
-                  {
-                    icon: <CheckCircle2 className="h-4 w-4" />,
-                    label: '3. Evidence',
-                    detail: 'Define what each answer must show.',
-                  },
-                  {
-                    icon: <ReceiptText className="h-4 w-4" />,
-                    label: '4. Receipt',
-                    detail: 'Review the quote, then receive verified results.',
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="activation-inset rounded-2xl border border-white/10 px-4 py-4 shadow-[0_12px_28px_rgba(0,0,0,0.24)]"
-                  >
-                    <div className="flex items-center gap-2 text-cyan-100/72">
-                      {item.icon}
-                      <div className="text-xs font-black text-cyan-100/75">How it works</div>
-                    </div>
-                    <div className="mt-3 text-sm font-black text-white">{item.label}</div>
-                    <div className="mt-1 text-sm font-semibold leading-6 text-white/64">{item.detail}</div>
-                  </div>
-                ))}
-              </div>
+            <div className="relative">
+              <p className="text-sm font-bold text-amber-100">Your first brief</p>
+              <h1 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-5xl">What do you want to make happen?</h1>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-white/70">Start with the deliverable. Your request is reviewed before any quote, funding or contributor assignment.</p>
+              <BusinessRequestOptions />
+              <button type="button" onClick={openActivationBuilder} className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-100 underline">Open the on-site check builder</button>
             </div>
 
             {/* Venue owners land here from the home card too — route them to the
@@ -973,7 +924,7 @@ export default function BrandPortalPage() {
                 Own the venue itself?
               </div>
               <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-white/64">
-                This workspace is for commissioning and tracking fieldwork. Your place profile, corrections and venue console live on the map. Open{' '}
+                This workspace is for commissioning and tracking paid work. Your place profile, corrections and venue console live on the map. Open{' '}
                 <Link
                   href="/map"
                   className="font-black text-yellow-100/85 underline decoration-yellow-200/30 underline-offset-4 transition hover:text-yellow-100"
@@ -1039,8 +990,8 @@ export default function BrandPortalPage() {
 
         <p className="mb-6 flex flex-wrap gap-x-2 gap-y-1 px-1 text-sm leading-6 text-white/60">
           Need content or promotion for a place?
-          <Link href="/create" className="font-bold text-[#f8dd72] underline decoration-[#f8dd72]/30 underline-offset-4">Create a paid dare →</Link>
-          <span>Define the work, reward and media permissions in the brief.</span>
+          <Link href={businessRequestHref('content-brief')} className="font-bold text-[#f8dd72] underline decoration-[#f8dd72]/30 underline-offset-4">Plan a content brief →</Link>
+          <span>Agree on the deliverable, price and permissions before work starts.</span>
         </p>
 
         {hasBrandActivity ? (

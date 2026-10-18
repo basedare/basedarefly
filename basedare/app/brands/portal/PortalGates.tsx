@@ -1,8 +1,8 @@
 import type { Dispatch, SetStateAction } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Building2, CreditCard, MapPin, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Building2, MapPin, Sparkles } from 'lucide-react';
 import type { Connector } from 'wagmi';
-import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
+import BusinessRequestOptions from '@/components/BusinessRequestOptions';
 import { getPreferredWalletConnector } from '@/lib/wallet-connect';
 
 type PortalGatesProps = {
@@ -15,6 +15,8 @@ type PortalGatesProps = {
   registerError: string | null;
   registerName: string;
   setRegisterName: Dispatch<SetStateAction<string>>;
+  loadError: string | null;
+  retryLoad: () => void;
   showLoading: boolean;
   showNotConnected: boolean;
   showRegisterView: boolean;
@@ -33,6 +35,8 @@ export default function PortalGates({
   registerError,
   registerName,
   setRegisterName,
+  loadError,
+  retryLoad,
   showLoading,
   showNotConnected,
   showRegisterView,
@@ -57,46 +61,15 @@ export default function PortalGates({
               Buyer Workspace
             </div>
             <h1 className="mx-auto mt-5 max-w-2xl text-4xl font-black uppercase italic leading-[0.94] tracking-[-0.055em] text-white sm:text-6xl">
-              Get answers from people on the ground.
+              Put a useful brief on the map.
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/72 md:text-lg">
-              Choose a place and tell us what you need checked. The service includes {MANAGED_FIELD_SPRINT.assignedContributorCount} independent checks, reviewed evidence and one receipt. ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()} · {MANAGED_FIELD_SPRINT.durationDaysMin}–{MANAGED_FIELD_SPRINT.durationDaysMax} days.
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-white/72">
+              Commission content or fund a local activity. Start with one place, one clear deliverable and the people you want to reach.
             </p>
-
-            <div className="mx-auto mt-7 grid max-w-xl gap-3 sm:grid-cols-2">
-              <Link
-                href="/activations?source=buyer-portal&missionType=field-mission"
-                className="activation-raised-gold inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-black uppercase tracking-[0.1em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-100/70"
-              >
-                <CreditCard className="h-4 w-4" />
-                Describe what you need
-              </Link>
-              <button
-                type="button"
-                onClick={connectWallet}
-                className="activation-soft-button inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-white/14 px-5 text-sm font-black text-white/82 transition hover:border-white/26 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-              >
-                Open existing workspace
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            <Link
-              href="/field-sprints/example"
-              className="mt-4 inline-flex min-h-11 items-center justify-center px-4 text-sm font-black text-cyan-100/80 underline decoration-cyan-200/30 underline-offset-4 transition hover:text-cyan-100"
-            >
-              See an example report
-            </Link>
-
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-white/65">
-              Need content or promotion?{' '}
-              <Link href="/create" className="font-bold text-[#f8dd72] underline decoration-[#f8dd72]/30 underline-offset-4">Create a paid dare</Link>
-              {' '}with its own brief, reward and media permissions.
-            </p>
-
-            <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/58">
-              You don’t need to own a venue to request on-site checks.
-            </p>
+            <BusinessRequestOptions />
+            <button type="button" onClick={connectWallet} className="bd-action mt-6 w-full !text-sm">
+              Open existing workspace <ArrowRight size={16} aria-hidden="true" />
+            </button>
 
             <div className="mx-auto mt-7 flex max-w-2xl flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 text-left sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
@@ -119,6 +92,15 @@ export default function PortalGates({
           </section>
         </main>
       ) : null}
+
+      {loadError ? <main className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-24">
+        <section className="bd-surface w-full max-w-lg p-6">
+          <h1 className="text-2xl font-black text-white">Your workspace hasn’t loaded.</h1>
+          <p role="alert" className="mt-3 text-base leading-7 text-amber-100">{loadError}</p>
+          <p className="mt-3 text-sm leading-6 text-white/65">An unavailable read does not mean you have no work or payments.</p>
+          <div className="mt-5 flex flex-wrap gap-3"><button type="button" className="bd-action bd-action--gold !text-sm" onClick={retryLoad}>Retry workspace</button><Link href={controlBackHref} className="bd-action !text-sm">{controlBackLabel}</Link></div>
+        </section>
+      </main> : null}
 
       {showLoading ? (
         <div className="relative z-10 flex min-h-dvh items-center justify-center">

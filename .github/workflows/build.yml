@@ -46,10 +46,18 @@ jobs:
       - name: Adventure discovery regression checks
         run: npm run test:discovery
 
+      - name: Business request and delivery regression
+        run: npm run test:revenue-focus
+
       - name: Passport database regression
         run: |
           export PATH="$(pg_config --bindir):$PATH"
           npm run test:passport:db
+
+      - name: Buyer intake and delivery database regression
+        run: |
+          export PATH="$(pg_config --bindir):$PATH"
+          npm run test:revenue:db
 
       - name: Creator onboarding authorization regression
         run: npm run test:creator-onboarding
