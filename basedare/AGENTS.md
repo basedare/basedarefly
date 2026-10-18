@@ -1,3 +1,7 @@
+### Codex clean liquid wordmark (2026-10-19)
+- The user asked to improve the logo without the extra X. BaseDareWordmark now uses the approved no-X liquid core at every breakpoint, with Next Image optimization for all sizes. Preserve upright lettering, braces, gold/purple depth and the black/cream outline; the archived X exports are not active variants.
+- Header widths, home-link accessibility, business grayscale and seam-free backdrop remain. Phone home-link target is 44px high; image sizes reflect the narrow 96px and ordinary 112px header widths. See docs/releases/clean-wordmark-2026-10-19.md. No image generation, asset alteration or product/data/payment changes.
+
 ### Codex revenue focus and optional memories (2026-10-18)
 - Passport is an optional Memories link in My activity and the Adventures footer. Completion leads with another adventure and invitations; memory cards/public sharing load only after an explicit disclosure. Preserve journals, account saves, evidence rules and contributor reputation. No new gamification or consumer paywall.
 - Buyer entry reuses /brands/portal and /activations for short content/activity enquiries before sign-in. Recognized enquiry kinds keep neutral pricing, separate intent dedupe, an actual-scope review page and an explicit no-work/no-payment/no-rights boundary. Legacy Sprint/pilot routes and canonical 96/4 plus $2,500 Sprint economics remain unchanged.

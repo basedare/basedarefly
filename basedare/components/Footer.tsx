@@ -48,7 +48,7 @@ export default function Footer() {
               <div className="mb-4 md:mb-6 flex flex-col items-center md:items-start">
                 <BaseDareWordmark
                   isControlMode={isControlMode}
-                  sizes="(min-width: 768px) 238px, (min-width: 640px) 170px, 136px"
+                  sizes="(min-width: 768px) 223px, (min-width: 640px) 159px, 127px"
                   className="h-8 sm:h-10 md:h-14 w-auto mb-3 md:mb-4 object-contain mx-auto md:mx-0"
                 />
                 <p className="max-w-sm text-center text-sm leading-6 text-gray-300 md:text-left">
