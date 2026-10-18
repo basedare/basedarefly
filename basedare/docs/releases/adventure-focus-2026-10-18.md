@@ -15,7 +15,7 @@ A shared route policy suppresses optional installation on participation-tray rou
 - 55 discovery/progression/privacy tests pass, including nine new regressions for city continuity, destination precedence/daylight, round-trip links and install/tray separation. Application and test typechecks pass. Full lint has zero errors; existing warnings remain.
 - Static production safety, wallet/venue usability and Community identity checks pass. Optimized build and Graphify rebuild pass.
 - Browser guest journey at 390px starts in two taps: See adventure → Start this adventure. No wallet or sign-in is required.
-- At 320px the resume action stays visible above the fold, one checked step survives navigation and refresh, and direct /adventures restores Sydney. Completion retains its personal/nonfinancial wording and creates an invitation with rounded coordinates and the original city. Final release verification records completion, alternative/filter, shared-post, Passport and deployed checks separately.
+- At 320px the resume action stays visible above the fold, one checked step survives navigation and refresh, and direct /adventures restores Sydney. Completion retains its personal/nonfinancial wording and creates an invitation with rounded coordinates and the original city. Keyboard disclosures, 10-minute/unwind filtering, alternative access and the explicit shared-adventure view work without horizontal overflow at 320px and desktop. The full Passport retains its memory and account-save/evidence panels, and Sydney’s weekly timezone survives the round trip. Public media sharing remains optional and still requests sign-in before submission. Deployment checks are recorded in the task handoff.
 
 ## Release and rollback
 
