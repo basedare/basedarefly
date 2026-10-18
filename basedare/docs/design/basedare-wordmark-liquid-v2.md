@@ -1,18 +1,20 @@
 # Refined liquid wordmark — 12 October 2026
 
-The original liquid BaseDare lettering is the foundation: upright proportions, curly braces, honey-gold BASE and violet DARE. PeeBear contributes bold black contours, a narrow warm cream rim and broad illustrated 3D facets. Controlled short drips replace the previous scratch-heavy lettering. A small black/cream X below the central junction forms an optional larger-size signature.
+The original liquid BaseDare lettering is the foundation: upright proportions, curly braces, honey-gold BASE and violet DARE. PeeBear contributes bold black contours, a narrow warm cream rim and broad illustrated 3D facets. Controlled short drips replace the previous scratch-heavy lettering.
+
+**19 October refinement:** the user preferred a cleaner logo without the extra X. The approved core now serves every screen size. The previous signature exports remain archived; do not restore them as a desktop override. No new artwork was generated or altered for this refinement.
 
 ## Responsive usage
 
-Navbar, Footer and legacy MobileNav use components/BaseDareWordmark.tsx. Native picture selection supplies the X version from 768px; the core uses Next Image optimization on phones. There is one image element, no resize listener or duplicated hidden image. Header uses eager/high-priority loading; other instances retain lazy loading. Intrinsic dimensions and existing fixed header footprints prevent layout movement. Reduced-motion hover and the existing home-link accessible name remain.
+Navbar, Footer and legacy MobileNav use components/BaseDareWordmark.tsx. A single Next Image supplies the clean core with responsive optimization on phones and larger displays. There is no breakpoint artwork swap, resize listener or duplicated hidden image. Header uses eager/high-priority loading; other instances retain lazy loading. Intrinsic dimensions and existing header widths prevent layout movement. Reduced-motion hover and the existing home-link accessible name remain.
 
-Use the core at 96–112px on phones and the signature around 224px in the desktop header. Keep transparent padding, avoid cropping braces/drips, and place it on a plain or visually quiet surface. Business mode uses the existing grayscale treatment. A grayscale presentation is not a one-color vector master.
+Use the core at 96–112px on phones and 224px in the desktop header. Its phone home-link target is 44px high, within the existing header row. Keep transparent padding, avoid cropping braces/drips, and place it on a plain or visually quiet surface. Business mode uses the existing grayscale treatment. A grayscale presentation is not a one-color vector master.
 
 | Asset | Dimensions | Bytes | Purpose |
 | --- | --- | ---: | --- |
-| public/assets/basedare-wordmark-liquid-v2.webp | 1024 × 258 | 95,396 | Core and optimized phone source |
-| public/assets/basedare-wordmark-liquid-x-v2.webp | 1024 × 261 | 92,574 | Larger signature export |
-| public/assets/basedare-wordmark-liquid-x-header-v2.webp | 512 × 130 | 29,122 | Direct desktop header source |
+| public/assets/basedare-wordmark-liquid-v2.webp | 1024 × 258 | 95,396 | Shared responsive source at every size |
+| public/assets/basedare-wordmark-liquid-x-v2.webp | 1024 × 261 | 92,574 | Archived signature export |
+| public/assets/basedare-wordmark-liquid-x-header-v2.webp | 512 × 130 | 29,122 | Archived desktop signature export |
 
 Original BASEDAREGOO.webp, basedare-logo.png and graffiti-v1 artwork remain available. This release supplies transparent raster assets. Editable vector, print, app-icon and true one-color masters are separate future work.
 

@@ -116,7 +116,7 @@ export default function Navbar() {
               href="/"
               prefetch={NAV_LINK_PREFETCH}
               aria-label="Open BaseDare home"
-              className={`${styles.brandLink} relative group inline-flex h-10 w-[112px] items-center justify-center md:h-14 md:w-[224px]`}
+              className={`${styles.brandLink} relative group inline-flex h-11 w-[112px] items-center justify-center md:h-14 md:w-[224px]`}
             >
               {/* Very subtle ambient glow */}
               <div className="absolute inset-1 rounded-lg bg-purple-500/10 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 md:inset-2" />
@@ -124,7 +124,7 @@ export default function Navbar() {
               <BaseDareWordmark
                 priority
                 isControlMode={isControlMode}
-                sizes="(min-width: 768px) 224px, 112px"
+                sizes="(min-width: 768px) 224px, (max-width: 374px) 96px, 112px"
                 className="relative h-full w-full object-contain transition-transform duration-300 hover:scale-105 motion-reduce:transition-none"
               />
             </Link>
