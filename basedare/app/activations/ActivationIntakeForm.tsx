@@ -143,6 +143,7 @@ const SOURCE_LABELS: Record<string, string> = {
   'available-creators': 'Available creators',
   'first-spark-route': 'First Spark route',
   'home-ready-creators': 'Ready creators rail',
+  'home-business': 'Homepage business brief',
   'active-venues': 'Active venues',
   'venue-guest-mission': 'Venue guest mission',
   'first-spark-page': 'First Spark page',

@@ -1,3 +1,7 @@
+### Codex focused home discovery and buyer entry (2026-10-19)
+- Home hero has one primary Find something nearby action using DiscoveryLink. Adventures lives in Live Around You: a clear catalogue entry, direct suggestion links, optional time/mood controls and saved progress before discovery tools. Resume links retain the original run's place/city, even while browsing somewhere else. Keep the approved PeeBear/orbit/radar and funding artwork.
+- Homepage business entries route directly to existing public content/activity enquiries with source home-business. Self-service paid-dare creation remains secondary. Requests neither charge, start work, reserve contributors nor grant media rights; retain neutral scope/pricing and existing paid-launch guards. See docs/releases/home-discovery-buyers-2026-10-19.md. No schema, dependency, production configuration or payment changes.
+
 ### Codex clean liquid wordmark (2026-10-19)
 - The user asked to improve the logo without the extra X. BaseDareWordmark now uses the approved no-X liquid core at every breakpoint, with Next Image optimization for all sizes. Preserve upright lettering, braces, gold/purple depth and the black/cream outline; the archived X exports are not active variants.
 - Header widths, home-link accessibility, business grayscale and seam-free backdrop remain. Phone home-link target is 44px high; image sizes reflect the narrow 96px and ordinary 112px header widths. See docs/releases/clean-wordmark-2026-10-19.md. No image generation, asset alteration or product/data/payment changes.

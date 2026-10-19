@@ -8,14 +8,17 @@ const profile = { id: 'buyer-1', walletAddress: wallet, name: 'Buyer' };
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 test('content and activity enquiries carry their intent without a fixed Sprint price, identity or funding', () => {
-  for (const kind of ['content-brief', 'activity-brief'] as const) {
-    const url = new URL(businessRequestHref(kind), 'https://www.basedare.xyz');
-    assert.equal(url.pathname, '/activations');
-    assert.equal(url.searchParams.get('missionType'), kind);
-    assert.equal(url.searchParams.get('budgetRange'), 'discuss');
-    assert.equal(url.searchParams.get('packageId'), 'pilot-drop');
-    assert.equal(url.searchParams.get('goal'), kind === 'content-brief' ? 'ugc' : 'other');
-    for (const key of ['buyerWallet', 'payout', 'contentRights', 'offer']) assert.equal(url.searchParams.has(key), false);
+  for (const source of ['buyer-workspace', 'home-business'] as const) {
+    for (const kind of ['content-brief', 'activity-brief'] as const) {
+      const url = new URL(businessRequestHref(kind, source), 'https://www.basedare.xyz');
+      assert.equal(url.pathname, '/activations');
+      assert.equal(url.searchParams.get('missionType'), kind);
+      assert.equal(url.searchParams.get('source'), source);
+      assert.equal(url.searchParams.get('budgetRange'), 'discuss');
+      assert.equal(url.searchParams.get('packageId'), 'pilot-drop');
+      assert.equal(url.searchParams.get('goal'), kind === 'content-brief' ? 'ugc' : 'other');
+      for (const key of ['buyerWallet', 'payout', 'contentRights', 'offer']) assert.equal(url.searchParams.has(key), false);
+    }
   }
   for (const value of ['field-mission', 'guest', 'first-spark', '', null, 'constructor']) assert.equal(businessRequestKind(value), null);
 });

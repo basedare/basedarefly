@@ -24,9 +24,9 @@ export function businessRequestKind(value: string | null | undefined): BusinessR
   return value === 'content-brief' || value === 'activity-brief' ? value : null;
 }
 
-export function businessRequestHref(kind: BusinessRequestKind) {
+export function businessRequestHref(kind: BusinessRequestKind, source: 'buyer-workspace' | 'home-business' = 'buyer-workspace') {
   return '/activations?' + new URLSearchParams({
-    source: 'buyer-workspace', missionType: kind, goal: BUSINESS_REQUESTS[kind].goal,
+    source, missionType: kind, goal: BUSINESS_REQUESTS[kind].goal,
     budgetRange: 'discuss', packageId: 'pilot-drop', buyerType: 'other',
   });
 }

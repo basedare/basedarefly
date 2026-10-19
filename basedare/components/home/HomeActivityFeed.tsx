@@ -40,7 +40,6 @@ export default function HomeActivityFeed() {
   const [now, setNow] = useState(() => new Date());
   const [rotation, setRotation] = useState(0);
   const [preferences, setPreferences] = useState(DEFAULT_ADVENTURE_PREFERENCES);
-  const [expanded, setExpanded] = useState<string | null>(null);
   const { progress } = useAdventureProgress();
   const { coordinates, requestLocation, loading: locating, error: locationError } = useGeolocation({ maximumAge: 0, cacheTimeMs: 0 });
   const requestedLocation = useRef(false);
@@ -122,6 +121,12 @@ export default function HomeActivityFeed() {
   const mapHref = `/map?lat=${area.lat}&lng=${area.lng}&source=home-activity`;
 
   return <section className="mx-auto w-full max-w-[1400px]" aria-label="Find your next move">
+    {activeIdea && active ? <div className="bd-card mb-5 border-yellow-200/20 p-5" aria-label="Your current adventure">
+      <p className="text-xs font-bold text-yellow-100">Continue your adventure · {active.steps.length}/{activeIdea.steps.length} steps</p>
+      <h3 className="mt-2 text-xl font-black text-white">{activeIdea.title}</h3>
+      <p className="mt-2 text-sm leading-6 text-white/60">{active.area.label} · Your saved personal progress. No payment or verified points.</p>
+      <Link className="bd-action bd-action--gold mt-4 !text-sm" href={adventureHref(active.activityId, active.placeSlug, active.area)} onClick={() => recordOpen(active.activityId, 'adventure_resume')}>Continue adventure <ArrowRight size={16} aria-hidden="true" /></Link>
+    </div> : null}
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
       <div><p className="text-sm font-bold text-white/80">Open BaseDare and find your next move.</p><p className="mt-1 flex items-center gap-1 text-xs text-cyan-100/60"><MapPin size={13} />{area.label} · within {area.radiusKm} km</p></div>
       <div className="flex flex-wrap gap-2 text-xs">
@@ -148,24 +153,24 @@ export default function HomeActivityFeed() {
           return <button key={id} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} className={`premium-filter-chip rounded-full px-3 text-[10px] font-black tracking-widest md:px-4 ${filter === value ? 'premium-filter-chip--active text-yellow-200' : ''}`}>{label}</button>;
         })}
       </div>
-      <Link href={mapHref} className="inline-flex min-h-11 items-center gap-2 px-3 text-xs font-bold text-cyan-100">Open map <ArrowRight size={14} /></Link>
+      <div className="flex flex-wrap items-center gap-2">
+        <Link href={adventureHref(undefined, undefined, effectiveArea, preferences)} className="bd-action bd-action--violet !text-sm">Free adventures <ArrowRight size={16} aria-hidden="true" /></Link>
+        <Link href={mapHref} className="inline-flex min-h-11 items-center gap-2 px-3 text-sm font-bold text-cyan-100">Open map <ArrowRight size={14} aria-hidden="true" /></Link>
+      </div>
     </div>
     {failed ? <p role="status" className="mb-4 text-xs text-amber-100/70">Live activities couldn’t refresh. These suggestions are still available. <button className="min-h-11 underline" onClick={() => setRefresh((v) => v + 1)}>Try again</button></p>
       : loading ? <p role="status" className="mb-4 text-xs text-white/50">Checking local activities…</p> : null}
     {postsFailed ? <p className="mb-3 text-xs text-white/50">Community updates couldn’t refresh. Any published schedule below still needs checking with the venue.</p> : null}
-    {activeIdea && active ? <div className="mb-5 rounded-2xl border border-yellow-200/20 bg-yellow-300/[0.05] p-4">
-      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-100">Your adventure · {active.steps.length}/{activeIdea.steps.length} steps</p>
-      <p className="mt-2 font-bold text-white">{activeIdea.title}</p>
-      <p className="mt-1 text-xs text-white/50">Personal progress · free activity · no payment or verified points.</p>
-      <Link className="mt-2 inline-flex min-h-11 items-center text-xs font-bold text-cyan-100" href={adventureHref(active.activityId, active.placeSlug, active.area)}>Continue your adventure →</Link>
-    </div> : null}
     {!loading && !failed && !live.length && !posts.length && filter !== 'ALL' && filter !== 'PLAY' ? <p className="mb-4 text-sm text-white/60">{filter === 'EARN' ? 'No available paid missions in this area right now.' : 'No published group plans in this area right now.'} <Link href="/adventures" className="ml-2 underline text-cyan-100">Try a free activity instead →</Link></p> : null}
     {showIdeas ? <div className="mb-4 mt-6">
-      <h3 className="mb-3 text-lg font-black text-white">What fits right now?</h3>
-      <AdventurePreferenceControls value={preferences} onChange={(next) => {
-        setPreferences(next); setRotation(0); setExpanded(null);
-        trackClientEvent('adventure_preferences_changed', { ...next, source: 'home' });
-      }} />
+      <h3 className="mb-2 text-lg font-black text-white">Free adventures to try</h3>
+      <details className="mb-2">
+        <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold text-cyan-100">Adjust time and mood</summary>
+        <AdventurePreferenceControls value={preferences} onChange={(next) => {
+          setPreferences(next); setRotation(0);
+          trackClientEvent('adventure_preferences_changed', { ...next, source: 'home' });
+        }} />
+      </details>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <p role="status" className="flex items-center gap-2 text-xs leading-5 text-white/55"><Sparkles size={14} className="shrink-0" aria-hidden="true" />{ideas.length ? 'Suggestions fit your time and mood · activity time excludes travel' : 'No ideas fit right now. Try another mood or a little more time.'}</p>
         {matchingIdeas.length > ideas.length ? <button className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-white/70" onClick={() => setRotation((v) => v + 1)}><RefreshCw size={13} aria-hidden="true" />Give me another idea</button> : null}
@@ -193,14 +198,10 @@ export default function HomeActivityFeed() {
       <p className="text-[10px] font-black uppercase tracking-widest text-violet-200/80">Free activity · {idea.minutes} min</p>
       <h4 className="mt-3 text-xl font-black leading-tight text-white">{idea.title}</h4>
       <p className="mt-3 text-sm text-white/60">{idea.summary}</p>
-      <div className="mt-auto">{expanded === idea.id ? <div className="mt-4">
-        <ol className="list-inside list-decimal space-y-3 text-sm text-white/70">{idea.steps.map((step) => <li key={step}>{step}</li>)}</ol>
-        <Link href={mapHref} onClick={() => recordOpen(idea.id, 'suggestion_map')} className="mt-3 inline-flex min-h-11 items-center text-xs font-bold text-cyan-100">Explore places on the map →</Link>
-        <Link className={`${actionClass} w-full`} href={adventureHref(idea.id, undefined, effectiveArea, preferences)}>{active?.activityId === idea.id ? 'Continue adventure' : 'Open this adventure'} <ArrowRight size={14} /></Link>
-      </div> : <button className={`${actionClass} w-full`} onClick={() => { setExpanded(idea.id); recordOpen(idea.id, 'suggestion'); }}>Try this adventure <ArrowRight size={14} /></button>}</div>
+      <div className="mt-auto"><Link className={`${actionClass} w-full`} href={active?.activityId === idea.id ? adventureHref(active.activityId, active.placeSlug, active.area) : adventureHref(idea.id, undefined, effectiveArea, preferences)} onClick={() => recordOpen(idea.id, 'suggestion')}>{active?.activityId === idea.id ? 'Continue adventure' : 'Try this adventure'} <ArrowRight size={14} aria-hidden="true" /></Link></div>
     </article>)}</ActivityRail>
     <div className="mt-5 flex flex-wrap gap-x-5 text-xs font-bold text-white/55">
-      <Link className="min-h-11 py-3" href={adventureHref(undefined, undefined, effectiveArea, preferences)}>Free adventures & your journal →</Link>
+      <Link className="min-h-11 py-3" href={adventureHref(undefined, undefined, effectiveArea, preferences)}>More free adventures →</Link>
       <Link className="min-h-11 py-3" href="/community">Community posts →</Link>
       <Link className="min-h-11 py-3" href="/earn">All paid missions →</Link>
       <Link className="min-h-11 py-3" href="/community/rally/new">Start a meetup →</Link>
