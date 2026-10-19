@@ -17159,7 +17159,7 @@
       "label": "OnboardingLink()",
       "file_type": "code",
       "source_file": "components/onboarding/OnboardingLink.tsx",
-      "source_location": "L25",
+      "source_location": "L29",
       "id": "onboardinglink_onboardinglink",
       "community": 625
     },
@@ -61541,7 +61541,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "components/onboarding/OnboardingLink.tsx",
-      "source_location": "L25",
+      "source_location": "L29",
       "weight": 1.0,
       "_src": "components_onboarding_onboardinglink_tsx",
       "_tgt": "onboardinglink_onboardinglink",

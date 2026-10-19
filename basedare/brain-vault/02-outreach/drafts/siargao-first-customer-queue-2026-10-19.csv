@@ -1,0 +1,7 @@
+lead_id,name,segment,public_contact,source,status,draft_section,sent_at,provider_message_id,next_action
+venue-triangle-palms,Triangle Palms,venue_creator_channel,info@trianglepalms.com,https://trianglepalms.com/en/contact,DRAFT,1,,,Confirm sender and review batch
+venue-kermit-siargao,Kermit Siargao,buyer_discovery,inquiry@kermitsiargao.com,https://www.kermitsiargao.com/location,DRAFT,2,,,Confirm sender and review batch
+venue-rucksack-inn-siargao,Rucksack Inn Siargao,discovery_host,siargao@rucksackinn.com,https://rucksackinn.com/wp-content/uploads/2025/04/PPP-PDF_v5-1.pdf,DRAFT_OLDER_CONTACT,3,,,Confirm sender and stop on bounce
+creator-channel-reef-reach,Reef Reach,creator_channel,partnerships@reef-reach.co.uk,https://www.reef-reach.co.uk/,DRAFT,4,,,Confirm Siargao availability in introductory ask
+venue-mad-monkey-siargao,Mad Monkey Siargao,buyer_discovery,,https://madmonkeyhostels.com/destination/siargao,NEEDS_CONTACT_ROUTE,,,,Find a warm or purpose-appropriate business route
+venue-harana-surf-resort,Harana Surf Resort,venue_creator_channel,,https://www.haranasurf.com/en/contactus,NEEDS_CONTACT_ROUTE,,,,Confirm official business contact or founder introduction

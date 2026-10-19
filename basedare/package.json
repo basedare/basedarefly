@@ -42,6 +42,7 @@
     "funding:audit": "node scripts/funding-audit.mjs",
     "test:livepeer-stream": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register --test lib/livepeer-stream.test.ts",
     "test:revenue:db": "bash scripts/run-revenue-readiness-db.sh",
+    "test:prisma-config": "node scripts/prisma-config-safety-check.mjs",
     "test:revenue-focus": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/revenue-focus.test.ts lib/revenue-return-paths.test.ts lib/content-delivery.test.ts lib/financial-canon.test.ts"
   },
   "dependencies": {
@@ -126,6 +127,9 @@
     "puppeteer-core": "^24.37.5"
   },
   "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.0"
+    },
     "axios": "1.20.0",
     "lodash": "4.18.1",
     "postcss": "8.5.30",

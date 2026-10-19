@@ -10,6 +10,12 @@ updated_at: 2026-08-24
 
 # Today
 
+## Current instruction — 19 October 2026
+
+Founder selected **Siargao first**, with Manila/Cebu later, and asked for active onboarding, launch and a path to millions of annual revenue. See [current operating plan](../../docs/gtm/first-revenue-operating-plan-2026-10-19.md) and [[../04-experiments/siargao-first-customer-2026-10-19]]. Six deduplicated prospects and four exact draft emails are prepared. No send, reply, signup, customer sale or paid receipt is established by this batch. Sending account/scope, reward budget, legal/support owners and human-signed escrow cutover remain gates. The product should still be able to operate without founder presence as it expands.
+
+Older readiness snapshots below are historical; do not treat them as a fresh production preflight or current outreach evidence.
+
 ## Objective
 
 Operationalize BaseDare as a remote-first playable social map:
@@ -28,7 +34,7 @@ Operationalize BaseDare as a remote-first playable social map:
 
 ## Active Context
 
-- Siargao is now one optional candidate market, not the operating thesis or required beachhead.
+- Siargao is the founder-selected first launch market as of 19 October. It is a test market, not a permanent requirement for founder-operated delivery.
 - BaseDare should be able to run without the founder living in, visiting, or personally operating any market.
 - The first remote product is asynchronous, safety-templated discovery dares: verified place information, corrections, routes, field notes, and reusable local content.
 - The consumer destination is broader: explore, play, meet and earn through a living map. Field Sprints are the revenue/seeding wedge, not the consumer identity.
