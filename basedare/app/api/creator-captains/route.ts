@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { isAddress } from 'viem';
@@ -34,9 +34,9 @@ import { alertCreatorCaptainApplication, alertCreatorMissionAlert } from '@/lib/
 
 const CreatorMissionAlertSchema = z.object({
   applicationKind: z.literal('mission_alert'),
-  handleOrName: z.string().min(2).max(120),
-  city: z.string().min(2).max(140),
-  contact: z.string().min(3).max(180).refine(isUsableMissionAlertContact, {
+  handleOrName: z.string().trim().min(2).max(120),
+  city: z.string().trim().min(2).max(140),
+  contact: z.string().trim().min(3).max(180).refine(isUsableMissionAlertContact, {
     message: 'Use an email, WhatsApp number, or Telegram @handle.',
   }),
   workLane: z.enum(CREATOR_MISSION_ALERT_LANES).optional().default('anything'),
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
 
   if (!rateLimit.allowed) {
     return NextResponse.json(
-      { success: false, error: 'Too many creator applications. Try again later.' },
+      { success: false, error: 'Too many signup attempts. Try again later.' },
       { status: 429, headers: createRateLimitHeaders(rateLimit) }
     );
   }
@@ -177,13 +177,16 @@ export async function POST(request: NextRequest) {
         .update(`${alert.contact.toLowerCase()}|${alert.city.toLowerCase()}`)
         .digest('hex')
         .slice(0, 32);
-      const event = await prisma.founderEvent.upsert({
-        where: { dedupeKey: `creator-mission-alert:${contactHash}` },
-        create: {
+      const dedupeKey = `creator-mission-alert:${contactHash}`;
+      // A public retry must never overwrite an operator's review or notes.
+      // The unique key also protects concurrent submissions from duplicate alerts.
+      const inserted = await prisma.founderEvent.createMany({
+        skipDuplicates: true,
+        data: {
           eventType: CREATOR_CAPTAIN_EVENT_TYPE,
           source: 'creator-mission-alert',
           subjectType: 'creator_mission_alert',
-          dedupeKey: `creator-mission-alert:${contactHash}`,
+          dedupeKey,
           title: `${alert.handleOrName} asked for paid mission alerts`,
           status: 'NEW',
           actor: alert.contact,
@@ -202,37 +205,28 @@ export async function POST(request: NextRequest) {
             clientIp,
           } satisfies Prisma.InputJsonValue,
         },
-        update: {
-          status: 'NEW',
-          actor: alert.contact,
-          occurredAt: new Date(),
-          metadataJson: {
-            applicationKind: 'mission_alert',
-            creatorName: alert.handleOrName,
-            primaryHandle: alert.handleOrName.startsWith('@') ? alert.handleOrName : '',
-            city: alert.city,
-            contact: alert.contact,
-            contactKind: alert.contactKind,
-            email: alert.contactKind === 'email' ? alert.contact : '',
-            workLane: alert.workLane,
-            workLaneLabel: CREATOR_MISSION_ALERT_LANE_LABELS[alert.workLane],
-            priority: { score: 50, reasons: ['requested-paid-work-alert'] },
-            clientIp,
-          } satisfies Prisma.InputJsonValue,
-        },
+      });
+      const event = await prisma.founderEvent.findUniqueOrThrow({
+        where: { dedupeKey },
         select: { id: true },
       });
 
-      void alertCreatorMissionAlert({
-        applicationId: event.id,
-        handleOrName: alert.handleOrName,
-        city: alert.city,
-        contact: alert.contact,
-        contactKind: alert.contactKind,
-        workLane: CREATOR_MISSION_ALERT_LANE_LABELS[alert.workLane],
-      }).catch((alertError) => {
-        console.error('[CREATOR_MISSION_ALERT] Telegram alert failed:', alertError);
-      });
+      if (inserted.count === 1) {
+        after(async () => {
+          try {
+            await alertCreatorMissionAlert({
+              applicationId: event.id,
+              handleOrName: alert.handleOrName,
+              city: alert.city,
+              contact: alert.contact,
+              contactKind: alert.contactKind,
+              workLane: CREATOR_MISSION_ALERT_LANE_LABELS[alert.workLane],
+            });
+          } catch (alertError) {
+            console.error('[CREATOR_MISSION_ALERT] Telegram alert failed:', alertError);
+          }
+        });
+      }
 
       return NextResponse.json(
         { success: true, data: { id: event.id, received: true } },
@@ -354,25 +348,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    void alertCreatorCaptainApplication({
-      applicationId: event.id,
-      creatorName,
-      email,
-      city,
-      primaryHandle,
-      primaryPlatform: input.primaryPlatform,
-      categories: input.categories,
-      helpModes: input.helpModes,
-      audienceSize: input.audienceSize,
-      availability: input.availability,
-      expectedPayout: input.expectedPayout,
-      venueLead,
-      priorityScore: priority.score,
-      priorityReasons: priority.reasons,
-      authorizationConfirmed: input.authorizationConfirmed,
-      applicationKind: input.applicationKind,
-    }).catch((error) => {
-      console.error('[CREATOR_CAPTAIN] Telegram alert failed:', error);
+    after(async () => {
+      try {
+        await alertCreatorCaptainApplication({
+          applicationId: event.id,
+          creatorName,
+          email,
+          city,
+          primaryHandle,
+          primaryPlatform: input.primaryPlatform,
+          categories: input.categories,
+          helpModes: input.helpModes,
+          audienceSize: input.audienceSize,
+          availability: input.availability,
+          expectedPayout: input.expectedPayout,
+          venueLead,
+          priorityScore: priority.score,
+          priorityReasons: priority.reasons,
+          authorizationConfirmed: input.authorizationConfirmed,
+          applicationKind: input.applicationKind,
+        });
+      } catch (error) {
+        console.error('[CREATOR_CAPTAIN] Telegram alert failed:', error);
+      }
     });
 
     return NextResponse.json({
@@ -386,7 +384,7 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[CREATOR_CAPTAIN] Application failed:', message);
     return NextResponse.json(
-      { success: false, error: 'Failed to route creator captain application' },
+      { success: false, error: 'We couldn’t save your request. Please try again.' },
       { status: 500, headers: createRateLimitHeaders(rateLimit) }
     );
   }

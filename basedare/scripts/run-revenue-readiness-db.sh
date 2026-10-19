@@ -35,4 +35,6 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f prisma/migrations/20260921100000_cont
 TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","moduleResolution":"Node"}' \
   node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/buyer-intake-db.ts
 TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","moduleResolution":"Node"}' \
+  node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/creator-intake-db.ts
+TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","moduleResolution":"Node"}' \
   node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/revenue-readiness-db.ts
