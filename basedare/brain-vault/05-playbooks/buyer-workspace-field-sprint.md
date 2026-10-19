@@ -10,9 +10,15 @@
 
 ## First-time buyer promise
 
-> Get verified answers from the real world. Tell BaseDare what you need to know and where. We route independent contributors, verify the evidence, and return timestamped results with a receipt.
+Updated 20 October 2026 following the founder's correction: Control Mode leads with content, promotion and participation. On-site research is a specific managed use case, not the whole business proposition.
 
-Lead with the deliverable:
+> Get people creating, sharing and showing up. Turn your brief into a paid dare. Commission content, plan a promotion or fund a local activity. Agree on the work, rewards and permissions before it begins.
+
+Use the existing content/activity enquiry paths before asking for an account or funding. A request does not start work, reserve contributors, grant media rights or guarantee attendance, reach or sales.
+
+## Specific Field Sprint deliverable
+
+When the buyer needs independent on-site checks, the existing managed Field Sprint remains unchanged:
 
 - one bounded question;
 - one place or micro-area;
@@ -24,7 +30,7 @@ Lead with the deliverable:
 
 Do not lead with the service/reward split. Show the fixed quote during scoping, before the invoice request. The canonical economics remain unchanged.
 
-## Buyer journey
+## Field Sprint buyer journey
 
 1. **Question** — what must BaseDare answer?
 2. **Coverage** — which place or micro-area?
@@ -38,8 +44,8 @@ The buyer describes the outcome. BaseDare solves routing. A recommended-contribu
 
 ## Public entry rules
 
-- One dominant action: **Scope a Field Sprint**.
-- Secondary proof: **See an example receipt**.
+- Control Mode leads with **Request content**, then **Plan a local activity**, using the existing enquiry routes.
+- Show **Scope a Field Sprint** and its example receipt within the specific on-site-checks offer, not as the universal business entry.
 - Returning-user escape: **Open your Buyer Workspace**.
 - Never present Field Sprint, Buyer Workspace, and Creator Radar as three equal products.
 - Never promise traffic, sales lift, a positive answer, or automatic approval.
