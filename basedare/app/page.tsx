@@ -28,6 +28,7 @@ import {
   shouldPreferLightweightClient,
 } from "@/lib/client-performance";
 import { MANAGED_FIELD_SPRINT } from "@/lib/financial-canon";
+import { businessRequestHref } from '@/lib/business-request';
 
 const HeroEllipticalStream = dynamic(() => import("@/components/HeroEllipticalStream"), {
   loading: () => <div className="h-[560px] w-full md:h-[680px]" aria-hidden="true" />,
@@ -389,7 +390,7 @@ function HomeContent() {
                 Control Mode
               </h1>
               <p className="mx-auto mt-5 max-w-md px-6 text-base font-bold leading-7 text-zinc-800 md:max-w-lg md:px-0 md:text-lg lg:-mt-16">
-                Ask a question about a place. BaseDare sends independent contributors to check it and returns their evidence in one report.
+                Put your brand into action with paid dares for creators and local communities.
               </p>
             </div>
 
@@ -399,36 +400,36 @@ function HomeContent() {
                 <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
                   <div>
                     <div className="inline-flex rounded-full border border-yellow-200/20 bg-yellow-300/[0.08] px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-yellow-100">
-                      On-site checks · Managed service
+                      Content · Promotion · Participation
                     </div>
                     <h2 className="mt-5 max-w-3xl text-3xl font-black leading-[0.98] tracking-[-0.05em] text-white sm:text-4xl lg:text-5xl">
-                      Get verified answers from the real world.
+                      Get people creating, sharing and showing up.
                     </h2>
                     <p className="mt-4 max-w-2xl text-sm font-bold leading-6 text-white/62 sm:text-base sm:leading-7">
-                      Tell BaseDare what you need to know and where. Local contributors visit the place, document what they find, and send evidence for review. You receive a dated report.
+                      Turn your brief into a paid dare. Commission content, plan a promotion or fund a local activity. Agree on the work, rewards and permissions before it begins.
                     </p>
                     <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                       <Link
-                        href="/brands/portal?from=home&compose=1"
+                        href={businessRequestHref('content-brief', 'home-business')}
                         className="bd-action bd-action--gold min-h-12 px-6"
                       >
-                        Request on-site checks →
+                        Request content →
                       </Link>
                       <Link
-                        href="/field-sprints/example"
+                        href={businessRequestHref('activity-brief', 'home-business')}
                         className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/12 bg-white/[0.05] px-6 text-xs font-black uppercase tracking-[0.16em] text-white/75 transition hover:bg-white/[0.09] hover:text-white"
                       >
-                        See an example report
+                        Plan a local activity
                       </Link>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      ['Answers', `${MANAGED_FIELD_SPRINT.assignedContributorCount} independent checks`],
-                      ['Coverage', 'One place or small local area'],
-                      ['Turnaround', `${MANAGED_FIELD_SPRINT.durationDaysMin}–${MANAGED_FIELD_SPRINT.durationDaysMax} days`],
-                      ['Delivery', 'Evidence, decisions and receipt'],
+                      ['Brief', 'Your goal and deliverables'],
+                      ['People', 'Creators and local participants'],
+                      ['Rewards', 'Agreed before work starts'],
+                      ['Results', 'Reviewed work and receipts'],
                     ].map(([label, value]) => (
                       <div key={label} className="rounded-[20px] border border-white/[0.08] bg-black/28 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-yellow-100/60">{label}</p>
@@ -451,7 +452,7 @@ function HomeContent() {
                 Start with one move
               </div>
               <p className="mx-auto mt-3 max-w-2xl text-sm font-bold leading-6 text-zinc-700">
-                New buyer? Start with one On-site checks. Already operating missions? Open the Brand Portal.
+                New buyer? Start with a content brief or local activity. Already operating missions? Open the Brand Portal.
               </p>
             </div>
 
@@ -565,10 +566,10 @@ function HomeContent() {
                     </div>
                     <h2 className="text-2xl font-bold mb-2 text-white">Brand Portal</h2>
                     <p className="text-zinc-400 mb-4">
-                      Define a mission, fund its reward, let BaseDare route the right contributors, and track verified answers and receipts.
+                      Manage your briefs, contributor work, rewards and reviewed results in one place.
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Questions</span>
+                      <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Briefs</span>
                       <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Routing</span>
                       <span className="px-2 py-1 bg-zinc-900 border border-zinc-700/50 text-zinc-400 rounded">Receipts</span>
                     </div>
