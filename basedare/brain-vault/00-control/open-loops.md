@@ -8,6 +8,13 @@ updated_at: 2026-08-24
 
 # Open Loops
 
+## Current launch loop — 19 October
+
+1. Sending account/channel and first-batch scope pending for [[../02-outreach/drafts/siargao-first-customer-batch-2026-10-19]]. Before sending, check account sent mail and suppression history; record actual provider IDs afterward. No follow-up until an initial send exists and its next action is agreed.
+2. Budget, legal operator/jurisdiction, monitored support and named review/money owners pending. Mainnet escrow remains undeployed; signing and real payout/refund tests are human-gated.
+3. Six prospects are researched, not qualified buyers or partners. Four public business emails have exact drafts; Mad Monkey and Harana still need appropriate direct routes. Refresh any older contact listing before alternate-channel use.
+4. [[../04-experiments/siargao-first-customer-2026-10-19]] and [revenue operating plan](../../docs/gtm/first-revenue-operating-plan-2026-10-19.md) govern the current launch attempt. The queue below predates this instruction and must not generate duplicate outreach or revived paid promises.
+
 ## Review Queue
 
 | Item | Type | Status | Owner | Link |

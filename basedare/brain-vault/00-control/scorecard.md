@@ -11,6 +11,13 @@ updated_at: 2026-07-15
 
 # Scorecard
 
+## 19 October operating delta
+
+- Current experiment: [[../04-experiments/siargao-first-customer-2026-10-19]]. Six researched prospects, four unsent email drafts, two unconfirmed contact routes. No recorded outbound, replies, meetings, paid customers or recruited participants from this batch.
+- Live signup reliability fixes are deployed via PR #29; real mainnet settlement remains blocked on undeployed escrow and human checks. Do not read a built feature as a completed commercial outcome.
+- New instruction targets millions within a year. [The stretch scenario](../../docs/gtm/first-revenue-operating-plan-2026-10-19.md) shows 1,000 full-price Sprints for $2m of service-line sales and exposes fulfilment capacity; it is not a forecast or investment ask. Reward pass-through and financing are separate.
+- This file's prior 90-day period ended 8 October. Its tables below are historical baselines/targets, not observations for the new batch. Production CRM outcomes are unverified in this audit; do not infer global zero from an empty sent log.
+
 This scorecard tracks outcomes, not activity theater.
 
 ## Current Readiness Snapshot

@@ -28,14 +28,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Block critical production dependency advisories
-        run: npm audit --omit=dev --audit-level=critical
+      - name: Block high and critical production dependency advisories
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Run static production safety checks
         run: npm run safety:static
 
       - name: Test database release gate
         run: node --test scripts/database-release-check.test.mjs
+
+      - name: Test Prisma configuration dependency safety
+        run: npm run test:prisma-config
 
       - name: Test wallet and venue usability flows
         run: npm run test:usability
