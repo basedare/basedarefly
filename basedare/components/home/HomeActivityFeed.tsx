@@ -124,7 +124,7 @@ export default function HomeActivityFeed() {
     {activeIdea && active ? <div className="bd-card mb-5 border-yellow-200/20 p-5" aria-label="Your current adventure">
       <p className="text-xs font-bold text-yellow-100">Continue your adventure · {active.steps.length}/{activeIdea.steps.length} steps</p>
       <h3 className="mt-2 text-xl font-black text-white">{activeIdea.title}</h3>
-      <p className="mt-2 text-sm leading-6 text-white/60">Your saved personal progress. No payment or verified points.</p>
+      <p className="mt-2 text-sm leading-6 text-white/60">{active.area.label} · Your saved personal progress. No payment or verified points.</p>
       <Link className="bd-action bd-action--gold mt-4 !text-sm" href={adventureHref(active.activityId, active.placeSlug, active.area)} onClick={() => recordOpen(active.activityId, 'adventure_resume')}>Continue adventure <ArrowRight size={16} aria-hidden="true" /></Link>
     </div> : null}
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
