@@ -10,7 +10,7 @@ async function main() {
   globalThis.fetch = async () => { throw new Error('External requests disabled in buyer intake test.'); };
   const { POST } = await import('../app/api/activation-intake/route');
   const base = { company: 'QA buyer', contactName: 'QA contact', email: 'qa@example.test', buyerType: 'agency', city: 'Sydney',
-    budgetRange: 'discuss', timeline: 'exploring', packageId: 'pilot-drop', routedSource: 'buyer-workspace', routedTimeWindow: 'Next month' };
+    budgetRange: 'discuss', timeline: 'exploring', packageId: 'pilot-drop', routedSource: 'home-business', routedTimeWindow: 'Next month' };
   async function submit(kind: string, notes: string) {
     const response = await POST(new NextRequest('http://localhost/api/activation-intake', { method: 'POST', headers: { 'content-type': 'application/json', 'x-forwarded-for': '192.0.2.44' },
       body: JSON.stringify({ ...base, routedMissionType: kind, goal: kind === 'content-brief' ? 'ugc' : 'other', notes }) }));
@@ -27,6 +27,7 @@ async function main() {
   const stored = await prisma.founderEvent.findUniqueOrThrow({ where: { id: content.id } });
   const metadata = stored.metadataJson as Record<string, unknown>;
   assert.equal(metadata.intakeIntent, 'content-brief');
+  assert.equal(metadata.routedSource, 'home-business');
   assert.equal(metadata.routedTimeWindow, 'Next month');
   assert.equal(metadata.deadWindowTime, '');
   const room = buildActivationCloseRoomFromEvent(stored);

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Store } from 'lucide-react';
 import { controlSoftCard } from '@/components/control/tokens';
+import { businessRequestHref } from '@/lib/business-request';
 
 /**
  * Homepage role choice. Two tactile entry points separate people looking for a
@@ -45,31 +46,32 @@ export default function RoleChoiceCards() {
           </span>
         </Link>
 
-        {/* Buyer — venues, brands, communities, and individual funders. */}
-        <Link
-          href="/create?sparkType=paid&source=home-mission-buyer"
-          prefetch={false}
-          className={`group ${controlSoftCard} flex flex-col gap-3 p-5 text-left transition hover:border-cyan-200/30 sm:p-6`}
+        {/* Buyers can describe their need before an account or funding action. */}
+        <article
+          aria-labelledby="home-business-brief"
+          className={`${controlSoftCard} flex flex-col gap-3 p-5 text-left sm:p-6`}
         >
           <span className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-200/24 bg-cyan-300/[0.08] text-cyan-100">
             <Store className="h-5 w-5" />
           </span>
           <div className="relative">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100/64">
-              Buyer or venue
+              For businesses & venues
             </p>
-            <h3 className="mt-1 text-xl font-black italic tracking-[-0.02em] text-white sm:text-2xl">
-              I want to fund a mission
+            <h3 id="home-business-brief" className="mt-1 text-xl font-black italic tracking-[-0.02em] text-white sm:text-2xl">
+              I want to commission work
             </h3>
             <p className="mt-2 text-sm font-bold leading-6 text-white/64">
-              Fund content creation, a promotional post, or another clear real-world task. Set the requirements and reward first.
+              Request a photo or video, or plan a funded local activity. Agree on the deliverable, permissions and costs before work begins.
             </p>
           </div>
-          <span className="relative mt-auto inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-cyan-100/90">
-            Create a paid Dare
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </span>
-        </Link>
+          <div className="relative mt-auto grid gap-2">
+            <Link href={businessRequestHref('content-brief', 'home-business')} prefetch={false} className="bd-action bd-action--gold w-full !text-sm">Request content <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+            <Link href={businessRequestHref('activity-brief', 'home-business')} prefetch={false} className="bd-action w-full !text-sm">Plan a local activity <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+          </div>
+          <p className="relative text-sm leading-6 text-white/60">No account or payment needed to enquire. A request does not start work or reserve contributors.</p>
+          <Link href="/create?sparkType=paid&source=home-mission-buyer" prefetch={false} className="relative inline-flex min-h-11 items-center text-sm font-bold text-cyan-100 underline decoration-cyan-100/30 underline-offset-4">Set up a paid dare yourself →</Link>
+        </article>
       </div>
     </div>
   );
