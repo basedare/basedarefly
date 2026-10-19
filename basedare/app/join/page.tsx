@@ -19,11 +19,11 @@ export const metadata: Metadata = {
 
 const START_PATHS = [
   {
-    title: 'Play a free challenge',
-    description: 'Find a small adventure at a real place. See what to do before you join.',
-    href: '/now?participation=play&mode=all&source=join',
+    title: 'Try a free adventure',
+    description: 'Choose an idea, see the steps and start without signing in.',
+    href: '/adventures?source=join',
     intent: 'join' as const,
-    cta: 'Find free challenges',
+    cta: 'Find an adventure',
     icon: Sparkles,
     accent: 'border-cyan-300/24 bg-cyan-400/[0.08] text-cyan-100',
   },
@@ -57,9 +57,9 @@ const START_PATHS = [
 ] as const;
 
 const STEPS = [
-  { title: 'See', detail: 'Find one real thing happening.' },
-  { title: 'Join', detail: 'Tap the single main action.' },
-  { title: 'Go', detail: 'Reopen it from My Next Move.' },
+  { title: 'Choose', detail: 'Find one thing worth doing.' },
+  { title: 'Start', detail: 'Check the steps, timing and requirements.' },
+  { title: 'Continue', detail: 'Keep your adventure or joined plan within reach.' },
 ] as const;
 
 export default function JoinBaseDarePage() {
@@ -88,6 +88,7 @@ export default function JoinBaseDarePage() {
               href={path.href}
               intent={path.intent}
               placement="path-card"
+              preserveDiscovery
               className={`${controlSoftCard} group flex min-h-64 flex-col p-6 transition hover:-translate-y-0.5 hover:border-white/16`}
             >
               <div className={controlHairline} />

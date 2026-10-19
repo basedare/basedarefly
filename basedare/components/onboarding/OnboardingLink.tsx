@@ -4,7 +4,10 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 
 import CosmicButton from '@/components/ui/CosmicButton';
+import { useDiscovery } from '@/components/DiscoveryProvider';
 import { trackClientEvent } from '@/lib/analytics';
+import { analyticsPath } from '@/lib/analytics-privacy';
+import { discoveryHref } from '@/lib/discovery-context';
 
 type CosmicOption = {
   variant?: 'gold' | 'blue' | 'purple';
@@ -18,6 +21,7 @@ type OnboardingLinkProps = {
   placement: 'hero' | 'path-card';
   className?: string;
   children: ReactNode;
+  preserveDiscovery?: boolean;
   /** When set, render the shared CosmicButton (keeps the same onboarding tracking). */
   cosmic?: CosmicOption;
 };
@@ -29,19 +33,22 @@ export function OnboardingLink({
   className,
   children,
   cosmic,
+  preserveDiscovery = false,
 }: OnboardingLinkProps) {
+  const { area, hasArea } = useDiscovery();
+  const destination = preserveDiscovery ? discoveryHref(href, area, hasArea) : href;
   const track = () => {
     trackClientEvent('consumer_onboarding_path_selected', {
       intent,
       placement,
-      destination: href,
+      destination: analyticsPath(destination),
     });
   };
 
   if (cosmic) {
     return (
       <CosmicButton
-        href={href}
+        href={destination}
         variant={cosmic.variant ?? 'gold'}
         size={cosmic.size ?? 'lg'}
         fullWidth={cosmic.fullWidth}
@@ -54,7 +61,7 @@ export function OnboardingLink({
   }
 
   return (
-    <Link href={href} className={className} onClick={track}>
+    <Link href={destination} className={className} onClick={track}>
       {children}
     </Link>
   );

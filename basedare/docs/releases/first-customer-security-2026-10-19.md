@@ -4,6 +4,14 @@
 
 The founder asked for active onboarding, business launch and millions in revenue within a year. This change removes the previously reported high production dependency chain, strengthens the CI gate, and prepares a deduplicated first outreach batch with exact messages. It does not claim a customer, recruited participant, funded campaign or launched mainnet payment rail.
 
+## First-visit repair
+
+A read-only production snapshot for General Luna (9.7905, 126.158; 8km; next 72 hours) returned zero public Live Plans. This is a scoped inventory observation, not a claim that no activities exist on the island. Join's first card previously routed to the published free-challenge feed. It now says **Try a free adventure** and opens the existing authored Adventures journey, with no account or payment required. Group plans and paid work retain their own paths and availability rules.
+
+Join cards preserve a selected discovery city through OnboardingLink's explicit `preserveDiscovery` option. Its default remains off elsewhere; normal and Cosmic variants use the same resolved destination. Analytics stores only the destination path, excluding city queries, coordinates and private IDs. Shared material, homepage, evidence and payment policy remain intact.
+
+Local browser checks at 390px/320px found no horizontal overflow. A fresh guest followed Join → See adventure → Start this adventure in three actions, retaining General Luna/Asia-Manila context without sign-in. Refresh preserved the run and the catalogue led with Continue your adventure at 0/3 steps. No step was falsely completed, no public memory posted, and no verified visit, reputation or payout was created. This is an onboarding check, not an activated external participant.
+
 ## Dependency repair
 
 `@prisma/config` resolves `deepmerge-ts` 8.0.0 through a scoped override. The lockfile changes one installed package; Prisma/client remain 6.19.3. The [upstream advisory](https://github.com/advisories/GHSA-ggr8-5vv4-36mx) describes recursion/stack exhaustion on cyclic inputs, fixed in 8.0.0. [Release notes](https://github.com/RebeccaStevens/deepmerge-ts/releases/tag/v8.0.0) also change Map and mutation behavior, so this is a tested compatibility override, not an assertion that all future Prisma configs are compatible.
@@ -23,7 +31,7 @@ CI now fails on `--audit-level=high` rather than only critical, and runs the con
 
 ## Verification
 
-Production app build, Prisma schema validation, client generation, config regression, targeted lint, 55 discovery checks, 22 revenue checks, disposable buyer/creator/claim/upload/review/appeal/simulated settlement and Passport migration/RLS integration pass locally. Tests use isolated databases and outbound notification credentials are disabled. Fixture receipts remain simulated evidence.
+Production app build (including the Join follow-through), Prisma schema validation, client generation, config regression, targeted lint, 55 discovery checks, 22 revenue checks, disposable buyer/creator/claim/upload/review/appeal/simulated settlement and Passport migration/RLS integration pass locally. Tests use isolated databases and outbound notification credentials are disabled. Fixture receipts remain simulated evidence.
 
 Dependency files were tested in a separate installation, leaving the earlier shared installation untouched. No public-interface/material redesign or new application feature. Standard CI and preview must pass before merge; production is complete only after the matching deployment is READY and public reads succeed.
 
