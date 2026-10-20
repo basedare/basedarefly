@@ -7,6 +7,8 @@ on:
       - "basedare/contracts/**"
       - "basedare/test/**"
       - "basedare/hardhat.config.js"
+      - "basedare/scripts/mainnet-*.mjs"
+      - "basedare/scripts/prepare-mainnet-deployment.mjs"
       - "basedare/package.json"
       - "basedare/package-lock.json"
       - ".github/workflows/contracts.yml"
@@ -16,6 +18,8 @@ on:
       - "basedare/contracts/**"
       - "basedare/test/**"
       - "basedare/hardhat.config.js"
+      - "basedare/scripts/mainnet-*.mjs"
+      - "basedare/scripts/prepare-mainnet-deployment.mjs"
       - "basedare/package.json"
       - "basedare/package-lock.json"
       - ".github/workflows/contracts.yml"
@@ -41,7 +45,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: basedare/package-lock.json
 
@@ -53,6 +57,9 @@ jobs:
 
       - name: Run contract tests
         run: npm run contracts:test
+
+      - name: Test read-only mainnet readiness tools
+        run: npm run test:mainnet-readiness
 
       - name: Generate coverage report
         run: npm run contracts:coverage

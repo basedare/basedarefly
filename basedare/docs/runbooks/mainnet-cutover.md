@@ -1,6 +1,6 @@
 # BaseDare Base Mainnet Cutover
 
-Updated: 2026-10-09
+Updated: 2026-10-20
 
 This runbook is for moving the bounty escrow from Base Sepolia to Base mainnet.
 The web app can be live while the money rails remain on testnet; do not treat a
@@ -38,12 +38,35 @@ The platform wallet and referee address must be different.
 6. Run the public preflight:
 
 ```bash
+MAINNET_DEPLOYER_ADDRESS=0xOWNER_ADDRESS \
+MAINNET_PLATFORM_WALLET=0x60952546f6C6F092CA4866fC7cf6bf12269D002f \
+SIMULATE_BOUNTIES=false NEXT_PUBLIC_SIMULATE_BOUNTIES=false \
 MAINNET_REFEREE_ADDRESS=0xFRESH_REFEREE_ADDRESS npm run mainnet:preflight
 ```
 
 This command checks public config, role separation, Base mainnet USDC, the known
 Sepolia V2 address, and whether any supplied `MAINNET_BOUNTY_ADDRESS` has
-mainnet bytecode. It does not print or inspect private key values.
+mainnet bytecode. All three intended public roles must be explicit; the referee
+must differ from owner and treasury. Missing/invalid simulation flags and failed
+mainnet RPC checks block the report. Inline flags describe this command's local
+inputs only; they do not establish that production runtime flags are correct.
+Signing credentials are deliberately not tested or inspected here.
+
+The read-only transport has a ten-second request deadline, rejects redirects and
+non-read RPC methods, redacts provider errors and closes its connections on exit.
+If this machine's automatic/IPv6 RPC connection stalls, prefix the **read-only**
+commands with `MAINNET_RPC_IP_FAMILY=4`. Leave it unset for automatic selection.
+This does not change the human deployment transport, runtime networking or TLS
+verification. A failed request is a blocker, not a clean readiness result.
+
+On the audited Mac, Hardhat's automatic connection also stalled. A keyless
+`eth_chainId` read through the actual Hardhat mainnet provider succeeded with
+`NODE_OPTIONS='--dns-result-order=ipv4first --no-network-family-autoselection'`.
+If that problem occurs on the signing machine, add those Node flags for that
+local invocation (preserving any existing required Node options). Recheck the
+chain through Hardhat before the human deploy; do not disable TLS or assume
+`MAINNET_RPC_IP_FAMILY` also configures Hardhat. Neither connection check signs
+or broadcasts a transaction.
 
 ## Read-only deployment plan
 
@@ -56,7 +79,11 @@ MAINNET_REFEREE_ADDRESS=0xREFEREE_ADDRESS \
 npm run mainnet:prepare
 ```
 
-This needs only public addresses and an RPC. It checks Base mainnet and canonical USDC, estimates deployment gas, and prints deployment-data hashes and a nonce-dependent predicted address. The L2 fee estimate excludes Base L1 data fees and referee setup. A predicted address is **not a deployed contract**. Confirm roles before signing; keep ownership recoverable and referee privileges separate.
+This needs only public addresses and an RPC. It checks Base mainnet and canonical USDC, estimates deployment gas, and prints deployment-data hashes and a nonce-dependent predicted address. The plan records its timestamp, observed block and the deployer's shortfall against the unchanged 0.005 ETH reserve. A successfully generated plan is not deploy permission or a launch-ready result. The L2 fee estimate excludes Base L1 data fees and referee setup. A predicted address is **not a deployed contract**. Confirm roles before signing; keep ownership recoverable and referee privileges separate.
+
+For local regression checks, compile standard artifacts first, then run
+`npm run test:mainnet-readiness`. Contracts CI runs these checks after compilation
+and before coverage instrumentation.
 
 ## Human-Signed Deploy
 
@@ -85,18 +112,26 @@ success.
 After the deployment prints the new contract address:
 
 ```bash
+MAINNET_DEPLOYER_ADDRESS=0xOWNER_ADDRESS \
+MAINNET_PLATFORM_WALLET=0x60952546f6C6F092CA4866fC7cf6bf12269D002f \
 MAINNET_BOUNTY_ADDRESS=0xDEPLOYED_BOUNTY_ADDRESS \
+SIMULATE_BOUNTIES=false NEXT_PUBLIC_SIMULATE_BOUNTIES=false \
 MAINNET_REFEREE_ADDRESS=0xFRESH_REFEREE_ADDRESS \
-npm run mainnet:preflight
+npm run mainnet:preflight -- --post-deploy
 ```
 
 Expected checks:
 
 - bounty bytecode exists on Base mainnet
+- `owner()` matches the explicitly intended owner (`MAINNET_DEPLOYER_ADDRESS`)
 - bounty `USDC()` is `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
 - `PLATFORM_WALLET()` is the selected platform wallet
 - `AI_REFEREE_ADDRESS()` is the fresh referee address
 - fee metadata is `platform=4`, `referral=0`, `total=4`
+
+`--post-deploy` blocks if no deployed bounty address was supplied. A preparation
+report without a deployed address is never evidence of working escrow. These
+public reads do not prove runtime secrets, wallet recovery or actual settlement.
 
 ## Runtime Cutover
 

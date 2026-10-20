@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import nextEnv from '@next/env';
 import { decodeFunctionResult, encodeFunctionData, getAddress, isAddress } from 'viem';
+import { ReadOnlyRpcProvider } from './mainnet-rpc.mjs';
 
 const { loadEnvConfig } = nextEnv;
 
@@ -15,10 +16,14 @@ const BASE_MAINNET_RPC_URL = process.env.BASE_MAINNET_RPC_URL || 'https://mainne
 const BASE_SEPOLIA_RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org';
 const BASE_MAINNET_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const KNOWN_SEPOLIA_USDC = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
-const DEFAULT_PLATFORM_WALLET = '0x60952546f6C6F092CA4866fC7cf6bf12269D002f';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const providers = new Map();
 
 const MONEY_RAILS_ABI = [
+  {
+    type: 'function', name: 'owner', stateMutability: 'view',
+    inputs: [], outputs: [{ type: 'address' }],
+  },
   {
     type: 'function',
     name: 'USDC',
@@ -144,36 +149,13 @@ function sameAddress(left, right) {
 
 function boolEnvValue(value) {
   if (value === null || value === undefined || value === '') return null;
-  return String(value).trim().toLowerCase() === 'true';
+  const normalized = String(value).trim().toLowerCase();
+  return normalized === 'true' ? true : normalized === 'false' ? false : null;
 }
 
 async function rpc(url, method, params) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12_000);
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        'content-type': 'application/json',
-        'user-agent': 'basedare-mainnet-preflight/1.0',
-      },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const payload = await response.json();
-    if (payload.error) {
-      throw new Error(payload.error.message || JSON.stringify(payload.error));
-    }
-    return payload.result;
-  } finally {
-    clearTimeout(timeout);
-  }
+  if (!providers.has(url)) providers.set(url, new ReadOnlyRpcProvider(url));
+  return providers.get(url).send(method, params);
 }
 
 async function getBytecode(url, address) {
@@ -183,7 +165,11 @@ async function getBytecode(url, address) {
 async function readContract(url, address, abi, functionName) {
   const data = encodeFunctionData({ abi, functionName });
   const result = await rpc(url, 'eth_call', [{ to: address, data }, 'latest']);
-  return decodeFunctionResult({ abi, functionName, data: result });
+  try {
+    return decodeFunctionResult({ abi, functionName, data: result });
+  } catch {
+    throw new Error(`RPC returned invalid contract data for ${functionName}.`);
+  }
 }
 
 async function checkStaticInputs(productionPublicEnv) {
@@ -202,12 +188,12 @@ async function checkStaticInputs(productionPublicEnv) {
     }
   }
 
-  const platformWallet =
-    normalizeAddress(env('MAINNET_PLATFORM_WALLET')) ||
-    normalizeAddress(env('NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS')) ||
-    normalizeAddress(productionPublicEnv.NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS) ||
-    normalizeAddress(DEFAULT_PLATFORM_WALLET);
+  const platformWallet = normalizeAddress(env('MAINNET_PLATFORM_WALLET'));
   const refereeAddress = normalizeAddress(env('MAINNET_REFEREE_ADDRESS'));
+  const deployerAddress = normalizeAddress(env('MAINNET_DEPLOYER_ADDRESS'));
+
+  record(deployerAddress ? 'pass' : 'block', 'Mainnet owner/deployer', shortAddress(deployerAddress),
+    deployerAddress ? undefined : 'Set MAINNET_DEPLOYER_ADDRESS explicitly to the intended public owner address.');
 
   if (platformWallet) {
     record('pass', 'Mainnet platform wallet', shortAddress(platformWallet));
@@ -226,18 +212,15 @@ async function checkStaticInputs(productionPublicEnv) {
     );
   }
 
-  if (platformWallet && refereeAddress && sameAddress(platformWallet, refereeAddress)) {
-    record('block', 'Wallet role separation', 'platform wallet equals referee address');
-  } else if (platformWallet && refereeAddress) {
-    record('pass', 'Wallet role separation', 'platform wallet and referee address differ');
+  if (refereeAddress && (sameAddress(platformWallet, refereeAddress) || sameAddress(deployerAddress, refereeAddress))) {
+    record('block', 'Wallet role separation', 'referee equals owner/deployer or platform wallet');
+  } else if (platformWallet && refereeAddress && deployerAddress) {
+    record('pass', 'Wallet role separation', 'referee differs from owner/deployer and platform wallet');
   }
 
-  const hasSigningEnv = Boolean(env('DEPLOYER_PRIVATE_KEY') || env('REFEREE_HOT_WALLET_PRIVATE_KEY') || env('REFEREE_PRIVATE_KEY'));
   record(
-    hasSigningEnv ? 'pass' : 'warn',
-    'Deployment signer env',
-    hasSigningEnv ? 'present; value not inspected' : 'not present in this shell',
-    hasSigningEnv ? undefined : 'Set DEPLOYER_PRIVATE_KEY in your shell before running the human-signed deploy.'
+    'warn', 'Deployment signing', 'not tested; this check needs only public addresses',
+    'Only the human deploy command uses an explicit DEPLOYER_PRIVATE_KEY matching MAINNET_DEPLOYER_ADDRESS. Referee-key fallback is disabled.'
   );
 
   const serverSim = boolEnvValue(env('SIMULATE_BOUNTIES') ?? productionPublicEnv.SIMULATE_BOUNTIES);
@@ -247,10 +230,10 @@ async function checkStaticInputs(productionPublicEnv) {
   } else if (serverSim === true || clientSim === true) {
     record('block', 'Simulation flags', 'simulation is enabled', 'Disable both simulation flags before accepting real USDC.');
   } else {
-    record('warn', 'Simulation flags', 'one or both flags are missing', 'Set both flags to false for mainnet cutover.');
+    record('block', 'Simulation flags', 'one or both flags are missing or invalid', 'Set both flags explicitly to false for mainnet cutover.');
   }
 
-  return { platformWallet, refereeAddress };
+  return { platformWallet, refereeAddress, deployerAddress };
 }
 
 async function checkProductionLocalTrap(productionPublicEnv) {
@@ -319,7 +302,7 @@ async function checkMainnetConstants() {
     record(Number(decimals) === 6 ? 'pass' : 'block', 'Base mainnet USDC decimals', String(Number(decimals)));
   } catch (error) {
     record(
-      'warn',
+      'block',
       'Base mainnet RPC',
       error instanceof Error ? error.message : String(error),
       'Set BASE_MAINNET_RPC_URL to a reliable provider if public RPC is unavailable.'
@@ -356,16 +339,17 @@ async function checkKnownSepoliaAddress() {
   }
 }
 
-async function checkDeployedMainnetBounty(platformWallet, refereeAddress) {
-  const mainnetBounty =
-    normalizeAddress(env('MAINNET_BOUNTY_ADDRESS')) ||
-    (env('NEXT_PUBLIC_NETWORK') === 'mainnet' ? normalizeAddress(env('NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS')) : null);
+async function checkDeployedMainnetBounty(platformWallet, refereeAddress, deployerAddress) {
+  const explicitBounty = env('MAINNET_BOUNTY_ADDRESS');
+  const mainnetBounty = explicitBounty
+    ? normalizeAddress(explicitBounty)
+    : (env('NEXT_PUBLIC_NETWORK') === 'mainnet' ? normalizeAddress(env('NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS')) : null);
 
   if (!mainnetBounty) {
     record(
-      'warn',
+      process.argv.includes('--post-deploy') || explicitBounty ? 'block' : 'warn',
       'Post-deploy bounty verification',
-      'MAINNET_BOUNTY_ADDRESS not set',
+      'Deployed bounty address missing or invalid; deployment preparation only',
       'After you deploy, rerun: MAINNET_BOUNTY_ADDRESS=0x... MAINNET_REFEREE_ADDRESS=0x... npm run mainnet:preflight'
     );
     return;
@@ -380,7 +364,7 @@ async function checkDeployedMainnetBounty(platformWallet, refereeAddress) {
 
     record('pass', 'Mainnet bounty bytecode', `${shortAddress(mainnetBounty)} on Base mainnet`);
 
-    const [contractUsdc, contractPlatformWallet, contractReferee, platformFee, referralFee, totalFee] =
+    const [contractUsdc, contractPlatformWallet, contractReferee, platformFee, referralFee, totalFee, contractOwner] =
       await Promise.all([
         readContract(BASE_MAINNET_RPC_URL, mainnetBounty, MONEY_RAILS_ABI, 'USDC'),
         readContract(BASE_MAINNET_RPC_URL, mainnetBounty, MONEY_RAILS_ABI, 'PLATFORM_WALLET'),
@@ -388,8 +372,14 @@ async function checkDeployedMainnetBounty(platformWallet, refereeAddress) {
         readContract(BASE_MAINNET_RPC_URL, mainnetBounty, MONEY_RAILS_ABI, 'platformFeePercent'),
         readContract(BASE_MAINNET_RPC_URL, mainnetBounty, MONEY_RAILS_ABI, 'referralFeePercent'),
         readContract(BASE_MAINNET_RPC_URL, mainnetBounty, MONEY_RAILS_ABI, 'totalFeePercent'),
+        readContract(BASE_MAINNET_RPC_URL, mainnetBounty, MONEY_RAILS_ABI, 'owner'),
       ]);
 
+    record(
+      deployerAddress && sameAddress(String(contractOwner), deployerAddress) ? 'pass' : 'block',
+      'Mainnet bounty owner',
+      `contract=${shortAddress(String(contractOwner))}, expected=${shortAddress(deployerAddress)}`
+    );
     record(
       sameAddress(String(contractUsdc), BASE_MAINNET_USDC) ? 'pass' : 'block',
       'Mainnet bounty USDC binding',
@@ -417,11 +407,12 @@ async function checkDeployedMainnetBounty(platformWallet, refereeAddress) {
   }
 }
 
-function printCommands(platformWallet) {
-  const wallet = platformWallet || DEFAULT_PLATFORM_WALLET;
+function printCommands(platformWallet, deployerAddress) {
+  const wallet = platformWallet || '0xPLATFORM_WALLET';
 
   console.log('\nHuman-signed deploy command');
   console.log('Replace 0xFRESH_REFEREE_ADDRESS with the address whose private key will live only in the server env.\n');
+  console.log(`MAINNET_DEPLOYER_ADDRESS=${deployerAddress || '0xOWNER_ADDRESS'} \\`);
   console.log(`MAINNET_PLATFORM_WALLET=${wallet} \\`);
   console.log('MAINNET_REFEREE_ADDRESS=0xFRESH_REFEREE_ADDRESS \\');
   console.log(`NEXT_PUBLIC_USDC_ADDRESS=${BASE_MAINNET_USDC} \\`);
@@ -434,27 +425,37 @@ function printCommands(platformWallet) {
   console.log('4. Never put the referee private key in GitHub Actions.');
 }
 
-const productionPublicEnv = await readPublicEnvFile('.env.production.local');
+async function main() {
+  const productionPublicEnv = await readPublicEnvFile('.env.production.local');
 
-console.log('\nBaseDare Base mainnet preflight\n');
-const { platformWallet, refereeAddress } = await checkStaticInputs(productionPublicEnv);
-await checkMainnetConstants();
-await checkKnownSepoliaAddress();
-await checkProductionLocalTrap(productionPublicEnv);
-await checkDeployedMainnetBounty(platformWallet, refereeAddress);
-printCommands(platformWallet);
+  console.log('\nBaseDare Base mainnet preflight\n');
+  const { platformWallet, refereeAddress, deployerAddress } = await checkStaticInputs(productionPublicEnv);
+  await checkMainnetConstants();
+  await checkKnownSepoliaAddress();
+  await checkProductionLocalTrap(productionPublicEnv);
+  await checkDeployedMainnetBounty(platformWallet, refereeAddress, deployerAddress);
+  printCommands(platformWallet, deployerAddress);
 
-const summary = checks.reduce(
-  (acc, check) => {
-    acc[check.severity] += 1;
-    return acc;
-  },
-  { pass: 0, warn: 0, block: 0 }
-);
+  const summary = checks.reduce(
+    (acc, check) => {
+      acc[check.severity] += 1;
+      return acc;
+    },
+    { pass: 0, warn: 0, block: 0 }
+  );
 
-console.log('\nSummary');
-console.log(`PASS ${summary.pass} / WARN ${summary.warn} / BLOCK ${summary.block}`);
+  console.log('\nSummary');
+  console.log(`PASS ${summary.pass} / WARN ${summary.warn} / BLOCK ${summary.block}`);
 
-if (summary.block > 0) {
-  process.exitCode = 1;
+  if (summary.block > 0) {
+    process.exitCode = 1;
+  }
+  console.log('This read-only report does not prove signing, runtime secret configuration, payout or refund.');
 }
+
+main().catch(error => {
+  console.error(error instanceof Error ? error.message : 'Mainnet preflight failed.');
+  process.exitCode = 1;
+}).finally(() => {
+  for (const provider of providers.values()) provider.destroy();
+});
