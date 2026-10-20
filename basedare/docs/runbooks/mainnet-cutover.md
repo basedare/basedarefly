@@ -15,15 +15,35 @@ production Vercel deploy as proof that the escrow exists on mainnet.
 
 ## Roles
 
-- Platform fee wallet: receives the 4% platform fee. Current candidate:
-  `0x60952546f6C6F092CA4866fC7cf6bf12269D002f`.
-- Referee wallet: signs `verifyAndPayout` and `refundBacker`. Use a fresh,
-  dedicated hot wallet with low ETH balance. Its private key belongs only in the
-  server runtime environment, never in GitHub Actions.
-- Deployer wallet: signs the one-time deployment transaction and pays Base
-  mainnet ETH gas.
+Founder-confirmed roles (20 October 2026):
 
-The platform wallet and referee address must be different.
+- Platform fee wallet: receives the 4% platform fee:
+  `0x60952546f6C6F092CA4866fC7cf6bf12269D002f`.
+- Referee wallet: `0x4C39D9c061C064D72df2C7e314186A8dBBeE45eC`, signs
+  `verifyAndPayout` and `refundBacker`. Keep this dedicated hot wallet at low ETH
+  balance. Its private key belongs only in the
+  server runtime environment, never in GitHub Actions.
+- Deployer/owner wallet: `0xd5764683C464cAA1B23e97a2D63B1e46Dd59ebfd`,
+  signs the one-time deployment transaction and pays Base mainnet ETH gas.
+
+The referee must differ from both owner and platform treasury. Role confirmation
+does not authorize a transaction or establish recovery/signing-key availability.
+
+## Rehearsal budget
+
+The founder delegated the budget decision on 20 October. Use at most **10 USDC
+total funding**: one 5 USDC gross payout case (4.80 to the completer, 0.20 to the
+platform on successful settlement), plus one 5 USDC original-backer refund case.
+Cap **total gas at 0.001 ETH** across deployment, referee setup and every approval,
+funding, payout and refund transaction across the rehearsal wallets, including
+Base L1 data fees. These are spending limits, not an allocation or a fee quote.
+Refresh estimates before signing and stop if the combined budget would be
+exceeded. The scripts do not enforce this combined spending cap.
+
+The deploy script's unchanged **0.005 ETH reserve** is a balance requirement,
+separate from the 0.001 ETH gas-spend cap. Do not lower the reserve to make the
+check pass. No transaction has been authorized by role confirmation alone; keep
+the human signing gate below.
 
 ## Pre-Deploy
 
@@ -33,7 +53,7 @@ The platform wallet and referee address must be different.
 2. Confirm managed invoice work remains separate from reward escrow and cannot launch a partially funded paid campaign.
 3. Confirm the required proof-attempt and payout-lease migrations have a reviewed
    deploy order. Migrations deploy before code.
-4. Confirm a dedicated referee wallet separate from both deployer/owner and platform treasury; keep only its public address in the plan.
+4. Use the confirmed public roles above; confirm recoverable custody and signing access privately. Keep only public addresses in the plan.
 5. Review the deployer balance against the script’s 0.005 ETH operational reserve. This is a reserve requirement, not the deployment fee estimate.
 6. Run the public preflight:
 
@@ -167,9 +187,11 @@ gh variable set NEXT_PUBLIC_SIMULATE_BOUNTIES --body false
 1. Redeploy the app after Vercel env is changed.
 2. Run the launch smoke against production.
 3. Connect a wallet and approve the smallest useful amount of mainnet USDC.
-4. Fund one tiny dare.
+4. Fund the first 5 USDC test dare within the rehearsal cap.
 5. Confirm the DB leaves `FUNDING` and records `onChainDareId`.
-6. Only then test proof, payout, or refund.
+6. Complete the required proof and review, then verify the 4.80/0.20 USDC payout against the receipt and recorded state.
+7. Fund the second 5 USDC case only within the remaining budget. Exercise a supported original-backer refund after genuine claim expiry; rejection alone is not refund eligibility.
+8. Inspect the exact eligible records before using the expiry endpoint. It processes up to 50 expired `AWAITING_CLAIM` records, not a supplied test ID. If any unrelated record would be processed, stop: do not use the batch as a targeted test, alter stored deadlines/status to force eligibility, or touch legacy funding records without separate reconciliation and authority. Reconcile the actual refund receipt and balance; an HTTP 200 or a summary containing failures is not proof of refund.
 
 Keep the first live amount intentionally small. The goal is to prove the whole
 settlement loop, not to make the first transaction impressive.

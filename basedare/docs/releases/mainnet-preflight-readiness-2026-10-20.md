@@ -23,7 +23,9 @@ Contracts CI runs the new regression command after compilation and before covera
 
 ## Remaining gate
 
-Follow the [cutover runbook](../runbooks/mainnet-cutover.md). Candidate public roles still need human confirmation; no reward/gas budget has been approved. The deployer must satisfy the unchanged reserve. Refresh the plan immediately before signing because nonce and fees can change.
+Follow the [cutover runbook](../runbooks/mainnet-cutover.md). The founder confirmed the owner/deployer, fee treasury and dedicated referee on 20 October. Under the founder's delegated budget decision, the rehearsal is capped at 10 USDC funding (one 5 USDC payout case and one 5 USDC refund case) and 0.001 ETH total gas across deployment, referee setup and both cases. Stop if refreshed estimates exceed that cap. No funds have been allocated or moved; role confirmation and the budget decision do not authorize a transaction.
+
+The deployer must satisfy the unchanged 0.005 ETH reserve, which is a balance requirement separate from the gas-spend cap. Refresh the plan immediately before signing because nonce and fees can change. A refund case must use the supported expiry conditions; proof rejection alone does not create refund eligibility. The expiry endpoint processes a batch, so do not call it as a targeted rehearsal if any unrelated record would be processed.
 
 Only the human operator signs deployment and referee setup. Verify the deployed code, owner, USDC, treasury, referee and fee metadata before changing runtime/CI configuration. Then prove a real payout and supported refund, reconcile the receipts, and complete device recovery, email/push/QR and operating-owner checks before full paid launch. Do not reinterpret this tooling release as launch approval.
 
