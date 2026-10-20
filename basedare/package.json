@@ -17,6 +17,7 @@
     "contracts:test": "hardhat test",
     "contracts:coverage": "hardhat coverage",
     "mainnet:preflight": "node scripts/mainnet-preflight.mjs",
+    "test:mainnet-readiness": "node --test scripts/mainnet-rpc.test.mjs scripts/mainnet-preflight.test.mjs",
     "mainnet:deploy:v2": "hardhat run scripts/deploy_mainnet_v2.js --network base-mainnet",
     "clawdbot": "node scripts/clawdbot-poll.js",
     "safety:production": "node scripts/production-safety-check.mjs",
