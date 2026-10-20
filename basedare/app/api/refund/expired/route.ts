@@ -3,7 +3,6 @@ import {
   createPublicClient,
   createWalletClient,
   http,
-  isAddress,
   type Address,
 } from 'viem';
 import { BOUNTY_ABI } from '@/abis/BaseDareBounty';
@@ -14,7 +13,7 @@ import {
 } from '@/lib/bounty-chain';
 import { prisma } from '@/lib/prisma';
 import { verifyCronSecret } from '@/lib/api-auth';
-import { isBountySimulationMode } from '@/lib/bounty-mode';
+import { getPaymentReadiness } from '@/lib/payment-readiness-server';
 import { getBaseChain, getBaseRpcUrl } from '@/lib/base-chain';
 import { syncLinkedCampaignForDareState } from '@/lib/dare-approval';
 import { recordDareFounderEventSafe } from '@/lib/founder-events';
@@ -27,8 +26,6 @@ const activeChain = getBaseChain();
 const rpcUrl = getBaseRpcUrl();
 
 const BOUNTY_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_BOUNTY_CONTRACT_ADDRESS as Address;
-const isContractDeployed = isAddress(BOUNTY_CONTRACT_ADDRESS);
-const FORCE_SIMULATION = isBountySimulationMode();
 
 type RefundResultStatus = 'refunded' | 'verified' | 'failed' | 'simulated' | 'orphaned';
 
@@ -101,9 +98,11 @@ export async function POST(request: NextRequest) {
 
     // Process each expired dare
     for (const dare of expiredDares) {
+      let liveChecksPassed = false;
       try {
-        // Simulation mode - just update status
-        if (!isContractDeployed || FORCE_SIMULATION || dare.isSimulated) {
+        // Only an explicitly simulated record may settle without a transfer.
+        // Runtime/configuration failures must never turn live escrow into a fixture.
+        if (dare.isSimulated === true) {
           const refundedDare = await prisma.dare.update({
             where: { id: dare.id },
             data: {
@@ -133,6 +132,17 @@ export async function POST(request: NextRequest) {
           console.log(`[REFUND] Simulated refund for dare ${dare.id}`);
           continue;
         }
+
+        const readiness = await getPaymentReadiness();
+        if (!readiness.ready) {
+          results.push({
+            dareId: dare.id,
+            status: 'failed',
+            error: `Live refund unavailable: ${readiness.reason}`,
+          });
+          continue;
+        }
+        liveChecksPassed = true;
 
         // Real contract mode - call refundBacker on contract
         const { publicClient, walletClient } = getServerClients();
@@ -319,7 +329,7 @@ export async function POST(request: NextRequest) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         console.error(`[REFUND] Failed to refund dare ${dare.id}:`, message);
 
-        if (dare.onChainDareId && isContractDeployed && !FORCE_SIMULATION && !dare.isSimulated) {
+        if (dare.onChainDareId && liveChecksPassed && dare.isSimulated !== true) {
           try {
             const { publicClient } = getServerClients();
             const settlement = await findBountySettlementEvent({
