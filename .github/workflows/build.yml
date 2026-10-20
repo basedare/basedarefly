@@ -34,6 +34,9 @@ jobs:
       - name: Run static production safety checks
         run: npm run safety:static
 
+      - name: Expired refund safety regression
+        run: npm run test:refund-safety
+
       - name: Test database release gate
         run: node --test scripts/database-release-check.test.mjs
 

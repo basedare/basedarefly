@@ -17,6 +17,7 @@
     "contracts:test": "hardhat test",
     "contracts:coverage": "hardhat coverage",
     "mainnet:preflight": "node scripts/mainnet-preflight.mjs",
+    "test:refund-safety": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register --test scripts/expired-refund.test.ts",
     "test:mainnet-readiness": "node --test scripts/mainnet-rpc.test.mjs scripts/mainnet-preflight.test.mjs",
     "mainnet:deploy:v2": "hardhat run scripts/deploy_mainnet_v2.js --network base-mainnet",
     "clawdbot": "node scripts/clawdbot-poll.js",

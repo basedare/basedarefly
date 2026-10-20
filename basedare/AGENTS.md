@@ -1,3 +1,7 @@
+### Codex expired refund safety (2026-10-20)
+- Runtime simulation or missing escrow configuration must never mark a live record REFUNDED. Only explicitly simulated records bypass chain settlement; each live expiry refund now passes fresh existing payment-readiness checks before creating a wallet client. Failed checks leave the dare/campaign unchanged and alert operations.
+- test:refund-safety runs the actual route/auth/readiness logic against isolated external fixtures (26 scenarios). Keep receipt confirmation and event reconciliation intact. The endpoint remains an unscoped expiry batch; do not use it as a targeted mainnet rehearsal if other records are eligible. See docs/releases/expired-refund-safety-2026-10-20.md. No live transaction, migration, contract or runtime config change.
+
 ### Codex mainnet preparation hardening (2026-10-20)
 - Read-only preparation/preflight use scripts/mainnet-rpc.mjs: bounded requests, explicit optional IP family, strict read-method/response-ID checks, no redirects and redacted errors. This transport is not used by the signer or app runtime.
 - Preflight requires explicit public owner/treasury/referee roles, checks owner and referee separation, blocks critical RPC and invalid simulation inputs, and supports mandatory --post-deploy address verification. A preparation report never proves runtime secrets, signing or settlement.
