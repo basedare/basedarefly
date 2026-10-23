@@ -44,22 +44,22 @@ export type ActivitySuggestion = {
 
 // Authored activities, never synthetic events, attendance, rewards or venue hours.
 export const ACTIVITY_SUGGESTIONS: ActivitySuggestion[] = [
-  { id: 'little-local-loop', moods: ['explore'], title: 'Take the three-stop discovery loop', summary: 'A short walk, three small discoveries, one story to take home.', minutes: 30, daylight: true,
-    steps: ['Choose an accessible public starting point on the map. Notice one detail you would usually walk past.',
-      'Take a short walk along a public path to a second spot: find something handmade, growing or locally distinctive. Turn back if the route is inaccessible.',
-      'Return by a comfortable public route and choose a third detail. Tell a friend what you found or keep a private note. No purchase or photo required.'] },
-  { id: 'three-details', moods: ['explore', 'create'], title: 'Three details you never noticed', summary: 'Turn a familiar street into a tiny photo hunt.', minutes: 15, daylight: true,
-    steps: ['Choose a public street you can comfortably walk.', 'Find a surprising colour, a texture and a handmade detail. Take one photo of each.', 'Pick your favourite and show a friend. Ask before photographing people.'] },
-  { id: 'light-hunt', moods: ['explore', 'create'], title: 'Find the best glow on the block', summary: 'Make a three-photo story from lights and reflections.', minutes: 15, evening: true,
-    steps: ['Choose a familiar, well-lit public spot that is accessible now.', 'Find a light, its reflection and one small detail. Stay on the public path.', 'Arrange your three photos into a story. Keep other people out unless they agree.'] },
-  { id: 'one-minute-story', moods: ['create'], title: 'Tell a place’s story in one minute', summary: 'Make a mini travel diary wherever you are.', minutes: 10,
-    steps: ['Choose a place you visited today, or somewhere you can access now.', 'Pick three details that made it memorable. Use your own photos or words.', 'Record a one-minute story for yourself or a friend. Public posting is optional.'] },
-  { id: 'soundtrack', moods: ['unwind'], title: 'Give today a soundtrack', summary: 'Pick three songs that capture your day.', minutes: 10,
-    steps: ['Think of one place you explored today.', 'Pick a song for arriving, being there and heading home.', 'Share the playlist privately with a friend, or keep it as your travel diary.'] },
-  { id: 'tomorrow-pick', moods: ['explore'], title: 'Pick tomorrow’s mini adventure', summary: 'Make one easy plan you’ll actually want to do.', minutes: 10,
-    steps: ['Open the map and choose one place that interests you.', 'Check access and choose a suitable time. Keep daylight activities for daytime.', 'Invite a friend yourself or save the plan. Nobody is automatically invited or joined.'] },
-  { id: 'postcard', moods: ['create', 'unwind'], title: 'Make a postcard from today', summary: 'One photo, one sentence, one person to send it to.', minutes: 10,
-    steps: ['Choose one of your own photos from today.', 'Write a sentence about what surprised you.', 'Send it to someone you know. You can also keep it private.'] },
+  { id: 'little-local-loop', moods: ['explore'], title: 'Take the scenic way back', summary: 'Swap the usual route for a short wander. Find three little things worth pointing out.', minutes: 30, daylight: true,
+    steps: ['Pick a public starting spot on the map that’s easy for you to reach. Look for one thing you’d normally walk past.',
+      'Follow a public path for a few minutes. Find something made, grown or painted here. If the route gets awkward, turn back.',
+      'Head back along a comfortable public route and spot one last detail. Tell a friend or keep it to yourself. No photos or purchases needed.'] },
+  { id: 'three-details', moods: ['explore', 'create'], title: 'Find the shot everyone walks past', summary: 'A splash of colour, a curious texture, something made by hand. What catches your eye?', minutes: 15, daylight: true,
+    steps: ['Pick a public street you can comfortably explore. Slow down a little: this is about the small stuff.', 'Find a colour that pops, an interesting texture and something handmade. Take a photo of each.', 'Pick your favourite shot. Show a friend or keep it for yourself. Ask first if you want someone in the photo.'] },
+  { id: 'light-hunt', moods: ['explore', 'create'], title: 'Chase the evening glow', summary: 'Signs, lamplight, reflections. Turn a well-lit corner into a three-photo story.', minutes: 15, evening: true,
+    steps: ['Choose a familiar, well-lit public spot you can safely reach now. A shopfront or a lively street corner works.', 'Find a light, its reflection and one little detail nearby. Take a photo of each from the public path.', 'Put your three shots together. Which one steals the show? Keep people out of the frame unless they’re happy to be photographed.'] },
+  { id: 'one-minute-story', moods: ['create'], title: 'Give a friend the one-minute tour', summary: 'Loved a place today? Tell someone what made it worth the stop.', minutes: 10,
+    steps: ['Think of a place you visited today, or choose somewhere you can visit now. What would you tell a friend about it?', 'Pick three things that stuck with you: a sound, a view, a funny little moment. Use your own photos or words.', 'Record a quick one-minute story. Send it to a friend or keep it for yourself. You don’t have to post it anywhere.'] },
+  { id: 'soundtrack', moods: ['unwind'], title: 'Give your trip a soundtrack', summary: 'Three songs. One day you’ll want to remember. Make a tiny playlist that takes you back.', minutes: 10,
+    steps: ['Pick a place you explored today. Picture arriving there: what song fits that feeling?', 'Add two more songs: one for being there and one for the journey back. Go with your taste, not anyone else’s.', 'Give your playlist a name you’ll remember. Send it to a friend or save it for the next time you miss this place.'] },
+  { id: 'tomorrow-pick', moods: ['explore'], title: 'Find tomorrow’s little escape', summary: 'Find one place you’re curious about and give tomorrow something to look forward to.', minutes: 10,
+    steps: ['Open the map and pick somewhere that makes you think “I’d go there.” Keep it easy enough to fit into your day.', 'Check that you can visit and pick a good time to go. Save outdoor daylight adventures for daytime.', 'Save the idea for yourself, or send it to a friend and agree a time together. Sending an invitation doesn’t book a place or sign anyone up.'] },
+  { id: 'postcard', moods: ['create', 'unwind'], title: 'Send a little ‘wish you were here’', summary: 'One photo and a few words for someone back home. The messy, funny bits count too.', minutes: 10,
+    steps: ['Choose one of your own photos from today. It doesn’t need to be perfect: pick the one with a story.', 'Add a sentence about something that surprised you or made you smile. Write it like you’d say it to a friend.', 'Send your little postcard to someone you know. Rather keep the moment to yourself? Save it as a private memory.'] },
 ];
 
 export function suggestionsForArea(area: ActivityArea, now: Date, rotation = 0) {

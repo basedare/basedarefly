@@ -1,3 +1,7 @@
+### Codex traveller adventure copy (2026-10-24)
+- All seven authored adventures use conversational titles, summaries and steps from the shared lib/home-activities.ts catalogue. Preserve stable IDs, three steps, eligibility, durations, saved progress, consent and self-reported evidence boundaries. Keep supporting guidance human and primary action labels clear.
+- docs/design/traveller-copy-and-improvement-loop.md records the writing standard and a proposed observe → small fix → test/release → compare loop. Existing event calls and CI are foundations, not proof of analytics ingestion or newly activated surveys, monitoring, agents or autonomous publishing. No new collection, dependencies, schema, payment or runtime configuration is included.
+
 ### Codex launch security repair (2026-10-23)
 - Next runtime is pinned to 16.4.1, DOMPurify resolves 3.4.17 and follow-redirects resolves 1.16.1. Preserve the existing lint configuration/plugin pins for this focused release; no audit/lint gate is weakened. CI's actual local redirect regression strips credentials for object/array cross-origin redirects and preserves intended same-origin authentication; the old library fails the array negative control.
 - Live signed-out discovery/start/refresh and 320/390px layouts pass; Sydney map retains its explicit city and expandable search. Runtime audit still blocks paid work on missing mainnet bounty code, warns on dedicated venue QR secret and 33 stuck funding records. Configuration presence is not real recovery/upload/push/payment proof. Follow the human-signed mainnet runbook; no secret rotation, production data mutation or money movement is included. See docs/releases/launch-readiness-2026-10-23.md.
@@ -639,7 +643,7 @@ Best repro: real Chrome → DevTools → Rendering → enable **Paint flashing +
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
