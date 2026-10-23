@@ -31,6 +31,9 @@ jobs:
       - name: Block high and critical production dependency advisories
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Prevent credential leaks across HTTP redirects
+        run: npm run test:http-redirect-security
+
       - name: Run static production safety checks
         run: npm run safety:static
 
