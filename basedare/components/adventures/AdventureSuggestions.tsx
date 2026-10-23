@@ -19,8 +19,8 @@ export default function AdventureSuggestions({ area }: { area: ActivityArea }) {
   return <section className="mt-6" aria-label="Free adventures to try">
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-200">BaseDare suggestions · {area.label}</p>
-        <h2 className="mt-2 text-xl font-black text-white">What fits right now?</h2>
-        <p className="mt-2 text-xs leading-5 text-white/55">Choose your time and mood. These are free ideas you can try yourself, not scheduled events or paid work.</p></div>
+        <h2 className="mt-2 text-xl font-black text-white">A little time to spare?</h2>
+        <p className="mt-2 text-xs leading-5 text-white/55">Pick something fun to try at your own pace. These free ideas are self-guided, with no host or cash reward.</p></div>
       <Link href={adventureHref(undefined, undefined, area)} className="inline-flex min-h-11 items-center text-xs font-bold text-cyan-100">More adventures →</Link>
     </div>
     <div className="mt-4"><AdventurePreferenceControls value={preferences} onChange={(next) => {
@@ -28,7 +28,7 @@ export default function AdventureSuggestions({ area }: { area: ActivityArea }) {
       trackClientEvent('adventure_preferences_changed', { ...next, source: 'suggestions' });
     }} /></div>
     <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-      <p role="status" className="text-xs text-white/55">{suggestions.length ? `${suggestions.length} ${suggestions.length === 1 ? 'idea that fits' : 'ideas that fit'} · activity time excludes travel` : 'No ideas fit right now. Try another mood or a little more time.'}</p>
+      <p role="status" className="text-xs text-white/55">{suggestions.length ? `${suggestions.length} ${suggestions.length === 1 ? 'idea that fits' : 'ideas that fit'} · allow extra time to get there` : 'No ideas fit right now. Try another mood or a little more time.'}</p>
       {matches.length > 3 ? <button type="button" onClick={() => setRotation((value) => value + 1)} className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-white/70"><RefreshCw size={13} aria-hidden="true" />Another idea</button> : null}
     </div>
     <div className="mt-4 grid gap-3 sm:grid-cols-3">{suggestions.map((activity) => <Link key={activity.id} href={adventureHref(activity.id, undefined, area, preferences)} className="bd-card p-5 transition hover:border-violet-200/35">

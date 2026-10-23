@@ -19,11 +19,11 @@ export default function PersonalCompletionCard({ run, publicName }: { run: Adven
   }
   return <div className="bd-card mt-4 p-4 sm:p-5">
     <div className="flex items-center gap-3"><PassportStamp evidence="personal"/><div className="min-w-0">
-      <p className="text-xs font-bold text-amber-100">Explorer · personal adventure completed</p>
+      <p className="text-xs font-bold text-amber-100">One for the travel memories</p>
       <h4 className="mt-1 font-black text-white">{activity.title}</h4>
       <p className="mt-1 break-words text-xs text-white/65">{run.area.label} · {new Date(run.completedAt).toLocaleDateString()}</p>
     </div></div>
-    <p className="mt-3 text-xs leading-5 text-white/60">Self-reported. Your friend starts their own attempt. No verified attendance or reward is transferred.</p>
+    <p className="mt-3 text-xs leading-5 text-white/60">Your own record of what you did, not a verified check-in or cash reward. Invite a friend to try the adventure for themselves.</p>
     {publicName ? <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-white/75"><input type="checkbox" checked={includeName} onChange={(event) => setIncludeName(event.target.checked)}/>Include {publicName} on my downloaded card</label> : null}
     <div className="mt-3 flex flex-wrap gap-3">
       <PlanShareButton href={personalAdventureInvite(run)} title={activity.title} text={'I tried “' + activity.title + '”. Try this with me?'} label="Try this with me" analyticsSource="passport_completion"/>

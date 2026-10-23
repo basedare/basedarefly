@@ -124,7 +124,7 @@ export default function HomeActivityFeed() {
     {activeIdea && active ? <div className="bd-card mb-5 border-yellow-200/20 p-5" aria-label="Your current adventure">
       <p className="text-xs font-bold text-yellow-100">Continue your adventure · {active.steps.length}/{activeIdea.steps.length} steps</p>
       <h3 className="mt-2 text-xl font-black text-white">{activeIdea.title}</h3>
-      <p className="mt-2 text-sm leading-6 text-white/60">{active.area.label} · Your saved personal progress. No payment or verified points.</p>
+      <p className="mt-2 text-sm leading-6 text-white/60">{active.area.label} · Pick up where you left off. This free adventure doesn’t earn money or verified points.</p>
       <Link className="bd-action bd-action--gold mt-4 !text-sm" href={adventureHref(active.activityId, active.placeSlug, active.area)} onClick={() => recordOpen(active.activityId, 'adventure_resume')}>Continue adventure <ArrowRight size={16} aria-hidden="true" /></Link>
     </div> : null}
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -172,10 +172,10 @@ export default function HomeActivityFeed() {
         }} />
       </details>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <p role="status" className="flex items-center gap-2 text-xs leading-5 text-white/55"><Sparkles size={14} className="shrink-0" aria-hidden="true" />{ideas.length ? 'Suggestions fit your time and mood · activity time excludes travel' : 'No ideas fit right now. Try another mood or a little more time.'}</p>
+        <p role="status" className="flex items-center gap-2 text-xs leading-5 text-white/55"><Sparkles size={14} className="shrink-0" aria-hidden="true" />{ideas.length ? 'Ideas for your time and mood · allow extra time to get there' : 'No ideas fit right now. Try another mood or a little more time.'}</p>
         {matchingIdeas.length > ideas.length ? <button className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-white/70" onClick={() => setRotation((v) => v + 1)}><RefreshCw size={13} aria-hidden="true" />Give me another idea</button> : null}
       </div>
-      <p className="mt-1 text-xs text-white/45">Free ideas, not hosted events or cash rewards. Published plans below have their own schedule and requirements.</p>
+      <p className="mt-1 text-xs text-white/45">Try these free ideas at your own pace, with no host or cash reward. Joining a published plan? Check its time and details below.</p>
     </div> : null}
     <ActivityRail key={[filter, ...live.map((p) => p.id), ...posts.map((p) => p.id), ...ideas.map((p) => p.id)].join(':')} count={live.length + posts.length + ideas.length}>{live.map((plan) => <article key={plan.id} className={cardClass}>
       <p className="text-[10px] font-black uppercase tracking-widest text-yellow-100/80">{labels[plan.type]}</p>

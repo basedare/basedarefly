@@ -14,15 +14,15 @@ export default function AdventurePicker({ matches, preferences, onChange, href }
   const [suggested, ...alternatives] = matches;
   return <div>
     {suggested ? <article className="bd-surface p-5 sm:p-7" aria-label="Suggested adventure">
-      <div className="flex items-center gap-2 text-sm font-bold text-violet-200"><Compass size={18} aria-hidden="true" />A good next move</div>
+      <div className="flex items-center gap-2 text-sm font-bold text-violet-200"><Compass size={18} aria-hidden="true" />Up for this?</div>
       <h2 className="mt-4 text-2xl font-black tracking-tight text-white sm:text-3xl">{suggested.title}</h2>
       <p className="mt-3 text-base leading-7 text-white/75">{suggested.summary}</p>
       <p className="mt-5 text-sm font-semibold text-cyan-100">About {suggested.minutes} min · Free · Solo or with friends</p>
       <Link href={href(suggested.id)} className="bd-action bd-action--gold mt-5 w-full !text-sm">See adventure <ArrowRight size={17} aria-hidden="true" /></Link>
-      <p className="mt-3 text-sm leading-6 text-white/60">No sign-in or payment required. Activity time excludes travel.</p>
+      <p className="mt-3 text-sm leading-6 text-white/60">Jump in without signing in or paying. Allow a little extra time to get there.</p>
     </article> : <div className="bd-well p-5" role="status">
       <h2 className="text-lg font-bold text-white">Try a different mood or a little more time.</h2>
-      <p className="mt-2 text-base leading-7 text-white/65">No adventures match these choices at the local time.</p>
+      <p className="mt-2 text-base leading-7 text-white/65">Nothing fits these choices right now where you’re exploring.</p>
     </div>}
 
     <details className="bd-well mt-4 p-4 sm:p-5">
