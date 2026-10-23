@@ -6,7 +6,7 @@
 
 All seven authored free adventures now use a concrete invitation, a short description of the experience and three conversational steps. The shared catalogue feeds the homepage, discovery, adventure pages and generated memory/invitation artwork. Stable activity IDs, saved progress, eligibility, durations and evidence rules stay the same.
 
-Examples: **Take the scenic way back**, **Chase the evening glow**, **Give a friend the one-minute tour** and **Send a little “wish you were here”**. Supporting copy uses everyday language without implying that a host, booking, reward or verified visit exists.
+Examples: **Take the scenic way back**, **Chase the evening glow**, **Give a friend the one-minute tour** and **Send a little ‘wish you were here’**. Supporting copy uses everyday language without implying that a host, booking, reward or verified visit exists.
 
 ## Writing rule for every future adventure
 

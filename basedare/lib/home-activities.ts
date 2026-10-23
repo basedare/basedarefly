@@ -58,7 +58,7 @@ export const ACTIVITY_SUGGESTIONS: ActivitySuggestion[] = [
     steps: ['Pick a place you explored today. Picture arriving there: what song fits that feeling?', 'Add two more songs: one for being there and one for the journey back. Go with your taste, not anyone else’s.', 'Give your playlist a name you’ll remember. Send it to a friend or save it for the next time you miss this place.'] },
   { id: 'tomorrow-pick', moods: ['explore'], title: 'Find tomorrow’s little escape', summary: 'Find one place you’re curious about and give tomorrow something to look forward to.', minutes: 10,
     steps: ['Open the map and pick somewhere that makes you think “I’d go there.” Keep it easy enough to fit into your day.', 'Check that you can visit and pick a good time to go. Save outdoor daylight adventures for daytime.', 'Save the idea for yourself, or send it to a friend and agree a time together. Sending an invitation doesn’t book a place or sign anyone up.'] },
-  { id: 'postcard', moods: ['create', 'unwind'], title: 'Send a little “wish you were here”', summary: 'One photo and a few words for someone back home. The messy, funny bits count too.', minutes: 10,
+  { id: 'postcard', moods: ['create', 'unwind'], title: 'Send a little ‘wish you were here’', summary: 'One photo and a few words for someone back home. The messy, funny bits count too.', minutes: 10,
     steps: ['Choose one of your own photos from today. It doesn’t need to be perfect: pick the one with a story.', 'Add a sentence about something that surprised you or made you smile. Write it like you’d say it to a friend.', 'Send your little postcard to someone you know. Rather keep the moment to yourself? Save it as a private memory.'] },
 ];
 
