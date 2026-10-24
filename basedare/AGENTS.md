@@ -1,3 +1,10 @@
+### Codex product clarity and destination continuity (2026-10-24)
+- The visible homepage headline leads with “Find something worth doing,” one discovery CTA and quieter creator/business links. PeeBear, orbit, Chaos/Control and funding controls remain; do not restore the duplicate adventure box or repeated full-size slogan below the artwork.
+- Public entry/help/discovery labels use free adventures, meetups and paid missions (Dares). Published free challenges remain separate from self-guided adventures. Keep example cards labelled Example and actual inventory truthful; the founding market is described as a pilot.
+- `/earn` discovery links retain the browsing city for mission alerts and onward discovery. Explicit `city` invitations and exact `/earn/[shortId]` links remain authoritative. This does not filter paid inventory by city or prove physical presence.
+- Now canonical/share links preserve the area label and valid timezone after rounding coordinates. Map/List links retain the same context. Wait for discovery restoration before exposing Now actions or loading its inventory; never offer default-city adventure links during startup.
+- See docs/releases/product-clarity-2026-10-24.md. No schema, pricing, rights, identity, progression, payment or automated outreach changes.
+
 ### Codex traveller adventure copy (2026-10-24)
 - All seven authored adventures use conversational titles, summaries and steps from the shared lib/home-activities.ts catalogue. Preserve stable IDs, three steps, eligibility, durations, saved progress, consent and self-reported evidence boundaries. Keep supporting guidance human and primary action labels clear.
 - docs/design/traveller-copy-and-improvement-loop.md records the writing standard and a proposed observe → small fix → test/release → compare loop. Existing event calls and CI are foundations, not proof of analytics ingestion or newly activated surveys, monitoring, agents or autonomous publishing. No new collection, dependencies, schema, payment or runtime configuration is included.

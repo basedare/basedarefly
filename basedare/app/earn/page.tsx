@@ -2,6 +2,7 @@ import BackToMapButton from '@/app/venues/BackToMapButton';
 import RetryPage from '@/components/RetryPage';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import DiscoveryLink from '@/components/DiscoveryLink';
 import { ArrowRight, BriefcaseBusiness, CheckCircle2, Plus, Radio } from 'lucide-react';
 
 import { MissionAlertForm } from '@/components/creator-entry/MissionAlertForm';
@@ -54,7 +55,7 @@ export default async function EarnPage({
           <BackToMapButton mapHref="/map" />
           <Link
             href="/create"
-            className="bd-action bd-action--gold"
+            className="inline-flex min-h-11 items-center gap-2 px-2 text-sm font-semibold text-white/65 hover:text-yellow-100"
           >
             <Plus className="h-4 w-4" aria-hidden="true" /> Create a paid mission
           </Link>
@@ -68,7 +69,7 @@ export default async function EarnPage({
                 Pick a mission. Make it real. Get paid.
               </h1>
               <p className="bd-page-copy mt-4 max-w-2xl">
-                Check a place, capture a moment, or create something for a venue or brand. Once your work is approved, you get paid.
+                Check a place, capture a moment, or create something for a venue or brand. Read the brief and reward, then request the assignment. Start once confirmed; payment follows approval and settlement.
               </p>
             </div>
             <Link
@@ -121,12 +122,12 @@ export default async function EarnPage({
                 >
                   Get mission alerts <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
-                <Link
+                <DiscoveryLink
                   href="/now"
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-cyan-200/16 bg-cyan-300/[0.05] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-50"
                 >
                   See what&apos;s happening
-                </Link>
+                </DiscoveryLink>
               </div>
             </div>
           )}
@@ -156,9 +157,9 @@ export default async function EarnPage({
         </section> : (
           <p className="mt-7 text-center text-sm text-white/48">
             Nothing here suits you?{' '}
-            <Link href={`/earn?${alertsQuery.toString()}#mission-alerts`} className="text-cyan-100 underline underline-offset-4">
+            <DiscoveryLink href={`/earn?${alertsQuery.toString()}#mission-alerts`} className="text-cyan-100 underline underline-offset-4">
               Get mission alerts
-            </Link>
+            </DiscoveryLink>
           </p>
         )}
       </div>

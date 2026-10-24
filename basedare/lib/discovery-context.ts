@@ -85,6 +85,8 @@ export function discoveryHref(
 ) {
   if (!href.startsWith("/") || href.startsWith("//")) return href;
   const url = new URL(href, "https://basedare.invalid");
+  // A market-specific alert invitation already names its destination.
+  if (url.pathname === '/earn' && url.searchParams.has('city')) return href;
   if (
     ![
       "/",
@@ -94,6 +96,7 @@ export function discoveryHref(
       "/community",
       "/community/rally/new",
       "/adventures",
+      "/earn",
     ].includes(url.pathname)
   )
     return href;

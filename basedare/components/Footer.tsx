@@ -54,7 +54,7 @@ export default function Footer() {
                 <p className="max-w-sm text-center text-sm leading-6 text-gray-300 md:text-left">
                   Find your next move.
                   <br />
-                  <span className="text-purple-200">Free adventures, local meetups and paid dares.</span>
+                  <span className="text-purple-200">Free adventures, local meetups and paid missions.</span>
                 </p>
               </div>
 

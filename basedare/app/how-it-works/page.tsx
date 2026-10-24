@@ -24,7 +24,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'How BaseDare Works',
-  description: 'How to start a free adventure, join a meetup, share a photo or video, and take part in funded paid dares on BaseDare.',
+  description: 'How to start a free adventure, join a meetup, share a photo or video, and take part in funded paid missions on BaseDare.',
   alternates: { canonical: '/how-it-works' },
 };
 
@@ -66,9 +66,9 @@ const DEEPER_PATHS = [
     href: '/adventures?shared=public', action: 'See shared adventures',
   },
   {
-    id: 'earning-from-a-dare', title: 'Earn from a paid dare', icon: CircleDollarSign,
+    id: 'earning-from-a-dare', title: 'Take on a paid mission', icon: CircleDollarSign,
     body: 'Open Earn and choose available funded work. Read the task, reward and reuse rules, request the assignment and wait for confirmation before starting. Submit the required work for review. Approval and payment are separate statuses in My Activity. Posting to your own audience is only required when the task says so. Availability depends on live funding; free adventures and ordinary check-ins do not pay cash.',
-    href: '/earn', action: 'See available paid dares',
+    href: '/earn', action: 'See available paid missions',
   },
   {
     id: 'venue-check-ins', title: 'Check in at a venue', icon: ShieldCheck,
@@ -77,7 +77,7 @@ const DEEPER_PATHS = [
   },
   {
     id: 'funding-activity', title: 'Offer paid work', icon: BadgeCheck,
-    body: 'Define the task, place, reward and evidence needed. Payment availability is checked before funding; a draft is not a live paid dare. Content creation, posting and advertising reuse must be agreed explicitly. Venue teams can request management access from the venue page. BaseCash venue credit and spend-local payment pilots have separate rules.',
+    body: 'Define the task, place, reward and evidence needed. Payment availability is checked before funding; a draft is not an available paid mission. Content creation, posting and advertising reuse must be agreed explicitly. Venue teams can request management access from the venue page. BaseCash venue credit and spend-local payment pilots have separate rules.',
     href: '/start', action: 'Choose what to create',
   },
 ] as const;

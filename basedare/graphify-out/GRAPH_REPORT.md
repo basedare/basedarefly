@@ -1,11 +1,11 @@
 # Graph Report - .  (2026-10-24)
 
 ## Corpus Check
-- 1184 files · ~1,664,649 words
+- 1184 files · ~1,665,798 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4189 nodes · 5108 edges · 937 communities detected
+- 4190 nodes · 5111 edges · 937 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -983,40 +983,40 @@ Cohesion: 0.02
 Nodes (52): addMapLibreLayer(), addMarker(), buildFootprintLineCollection(), buildPresenceSignalCollection(), buildSelectedSignalCollection(), buildUserPositionCollection(), createAdventureActivityMarkerHtml(), createAdventureRumorMarkerHtml() (+44 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.02
-Nodes (29): buildLaunchHandoffMemo(), buildMissionRouteMemoLines(), buildPatch(), count(), draftNumber(), exportCsv(), fetchAppeals(), formatAddress() (+21 more)
+Cohesion: 0.03
+Nodes (23): buildLaunchHandoffMemo(), buildMissionRouteMemoLines(), buildPatch(), count(), draftNumber(), exportCsv(), formatDate(), formatDateTime() (+15 more)
 
 ### Community 3 - "Community 3"
+Cohesion: 0.05
+Nodes (17): fetchAppeals(), fetchDares(), formatAddress(), formatStatusTimestamp(), formatTimeLeft(), formatTimelineMoment(), getClaimLoopState(), getDareResponseAuthHeaders() (+9 more)
+
+### Community 4 - "Community 4"
 Cohesion: 0.13
 Nodes (45): alertActivationIntake(), alertActivationIntakeFollowUpQueue(), alertActivationIntakeStatusUpdate(), alertBaseCashCreditPending(), alertBigPledge(), alertCaptainMissionProofSubmitted(), alertClaimRequestSubmission(), alertCreatorCaptainApplication() (+37 more)
 
-### Community 4 - "Community 4"
+### Community 5 - "Community 5"
 Cohesion: 0.08
 Nodes (40): buildCuratedVenueDetailFallback(), buildEmptyReviewSignal(), buildEmptyVenueReportPipeline(), buildReviewSignalFromRows(), buildVenueActivationInsight(), buildVenueCommandCenterSummary(), buildVenueExperienceModes(), buildVenueHandshakeValue() (+32 more)
 
-### Community 5 - "Community 5"
+### Community 6 - "Community 6"
 Cohesion: 0.1
 Nodes (39): asRecord(), buildActivationReceipt(), buildCaptainProofMissionPacket(), buildCreateHref(), buildCreatorRecommendations(), buildInviteDraft(), buildInvoiceMemo(), buildLeadPriority() (+31 more)
 
-### Community 6 - "Community 6"
+### Community 7 - "Community 7"
 Cohesion: 0.12
 Nodes (42): answerCallbackQuery(), buildCallbackData(), callTelegramApi(), clearState(), escapeTelegramHtml(), fetchDareByShortId(), fetchLeaderboard(), fetchNearbyDares() (+34 more)
 
-### Community 7 - "Community 7"
+### Community 8 - "Community 8"
 Cohesion: 0.11
 Nodes (24): addCreatorSignal(), asRecord(), buildCreatorReliability(), buildFirstSparkMissionControlReport(), buildGuestPerks(), buildMissionRows(), buildPilotTargets(), buildRecapPreview() (+16 more)
 
-### Community 8 - "Community 8"
+### Community 9 - "Community 9"
 Cohesion: 0.08
 Nodes (9): buildBidHref(), buildCreateHref(), checkCommunitySparkPlayAccess(), clamp(), displayCreatorTag(), getAvatarStyle(), handleCommunitySparkAction(), load() (+1 more)
 
-### Community 9 - "Community 9"
+### Community 10 - "Community 10"
 Cohesion: 0.15
 Nodes (28): addEnvCheck(), addressesMatch(), addRuntimeQueuesCheck(), buildActivationCheck(), buildFieldSprintLaunchReadinessSnapshot(), buildMoneyRailsSettlementSnapshot(), buildPaidActivationSmokeSnapshot(), buildProductionSafetyReport() (+20 more)
-
-### Community 10 - "Community 10"
-Cohesion: 0.09
-Nodes (11): fetchDares(), formatStatusTimestamp(), formatTimeLeft(), formatTimelineMoment(), getClaimLoopState(), getDareResponseAuthHeaders(), getStatusMoment(), handleActivationResponse() (+3 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.19
@@ -1044,7 +1044,7 @@ Nodes (17): appBaseUrl(), baseCashPilotMode(), buildBaseCashReceiptUrl(), cleanO
 
 ### Community 17 - "Community 17"
 Cohesion: 0.15
-Nodes (17): filterWorldPulsePlans(), getIntentPlans(), getWorldPulseDecision(), getWorldPulseMapHref(), getWorldPulseMapViewHref(), getWorldPulseSideQuest(), getWorldPulseSignal(), getWorldPulseViewHref() (+9 more)
+Nodes (18): appendAreaContext(), filterWorldPulsePlans(), getIntentPlans(), getWorldPulseDecision(), getWorldPulseMapHref(), getWorldPulseMapViewHref(), getWorldPulseSideQuest(), getWorldPulseSignal() (+10 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.13
@@ -1488,31 +1488,31 @@ Nodes (4): canonicalJson(), contentRightsFingerprint(), hasContentRightsAcceptan
 
 ### Community 128 - "Community 128"
 Cohesion: 0.33
-Nodes (1): ChatSidebar()
+Nodes (0):
 
 ### Community 129 - "Community 129"
 Cohesion: 0.33
 Nodes (0):
 
 ### Community 130 - "Community 130"
-Cohesion: 0.33
-Nodes (0):
-
-### Community 131 - "Community 131"
 Cohesion: 0.67
 Nodes (5): createBrowserSession(), navigateTo(), scrapeBasescan(), simulateWalletConnect(), takeScreenshot()
 
-### Community 132 - "Community 132"
+### Community 131 - "Community 131"
 Cohesion: 0.33
 Nodes (0):
 
-### Community 133 - "Community 133"
+### Community 132 - "Community 132"
 Cohesion: 0.33
 Nodes (2): App, Media
 
-### Community 134 - "Community 134"
+### Community 133 - "Community 133"
 Cohesion: 0.33
 Nodes (0):
+
+### Community 134 - "Community 134"
+Cohesion: 0.33
+Nodes (1): ChatSidebar()
 
 ### Community 135 - "Community 135"
 Cohesion: 0.33
@@ -5793,17 +5793,17 @@ Nodes (0):
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `GET()` connect `Community 0` to `Community 5`?**
+- **Why does `GET()` connect `Community 0` to `Community 6`?**
   _High betweenness centrality (0.006) - this node is a cross-community bridge._
-- **Why does `POST()` connect `Community 0` to `Community 5`?**
+- **Why does `POST()` connect `Community 0` to `Community 6`?**
   _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.01 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.02 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.02 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.03 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
-  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.13 - nodes in this community are weakly interconnected._

@@ -31,9 +31,9 @@ export const MARKETS: Market[] = [
   {
     slug: 'siargao',
     name: 'Siargao / General Luna',
-    status: 'Founding market · live',
+    status: 'Founding market · pilot',
     live: true,
-    blurb: 'Explore General Luna, find local plans and see paid dares when available.',
+    blurb: 'Explore General Luna, find local plans and see paid missions when available.',
     gradient: 'from-[#0d2b2b] via-[#0a1a1e] to-[#070f14]',
     accent: 'text-[#f5c518]',
     contributorCta: 'Find paid missions',

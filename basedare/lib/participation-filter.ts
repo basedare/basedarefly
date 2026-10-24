@@ -4,7 +4,7 @@ export const PARTICIPATION_FILTERS = [
   { id: 'all', label: 'Everything' },
   { id: 'play', label: 'Free challenges' },
   { id: 'meet', label: 'Meet people' },
-  { id: 'earn', label: 'Paid dares' },
+  { id: 'earn', label: 'Paid missions' },
 ] as const;
 export type ParticipationFilter = typeof PARTICIPATION_FILTERS[number]['id'];
 

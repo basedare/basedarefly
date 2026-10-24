@@ -11,16 +11,16 @@ import {
 
 export const metadata: Metadata = {
   title: 'Create Something | BaseDare',
-  description: 'Create a paid dare, a free challenge, or a meetup.',
+  description: 'Create a paid mission, a free challenge, or a meetup.',
   alternates: { canonical: '/start' },
 };
 
 const START_OPTIONS = [
   {
-    title: 'Create a paid dare',
+    title: 'Create a paid mission',
     description: 'Set a useful real-world task, reward and proof rule before it goes live.',
     href: '/create?sparkType=paid&source=start',
-    cta: 'Create a paid dare',
+    cta: 'Create a paid mission',
     icon: Coins,
     accent: 'border-yellow-200/24 bg-yellow-300/[0.09] text-yellow-100',
   },
@@ -65,6 +65,7 @@ export default function StartPage() {
               href={option.href}
               intent="create"
               placement="path-card"
+              preserveDiscovery
               className={`${controlSoftCard} group flex min-h-60 flex-col p-6 transition hover:-translate-y-0.5 hover:border-white/16`}
             >
               <div className={controlHairline} />
@@ -89,6 +90,7 @@ export default function StartPage() {
             href="/map?source=start"
             intent="explore"
             placement="path-card"
+            preserveDiscovery
             className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-[16px] border border-yellow-200/14 bg-yellow-300/[0.06] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-yellow-100 transition hover:border-yellow-200/28 hover:bg-yellow-300/[0.1]"
           >
             <Sparkles className="h-4 w-4 text-cyan-100" aria-hidden="true" />
@@ -98,6 +100,7 @@ export default function StartPage() {
             href="/now"
             intent="explore"
             placement="path-card"
+            preserveDiscovery
             className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-[16px] border border-cyan-200/14 bg-cyan-300/[0.05] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-50 transition hover:border-cyan-200/28 hover:bg-cyan-300/[0.09]"
           >
             <Radio className="h-4 w-4" aria-hidden="true" />
