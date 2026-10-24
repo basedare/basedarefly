@@ -1,4 +1,5 @@
 'use client';
+import { ACTIVITY_TYPE_LABELS } from '@/lib/product-copy';
 
 import AdventurePreferenceControls from '@/components/adventures/AdventurePreferenceControls';
 import SharedAdventures from '@/components/adventures/SharedAdventures';
@@ -19,7 +20,7 @@ import { PARTICIPATION_FILTERS } from '@/lib/participation-filter';
 const OPEN_KEY = 'basedare:home-activity-open:v1';
 const cardClass = 'flex min-w-0 flex-col rounded-[1.55rem] border border-white/10 bg-[linear-gradient(145deg,rgba(36,26,59,0.8),rgba(6,7,14,0.98))] p-5 shadow-[0_12px_28px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]';
 const actionClass = 'bd-action mt-5';
-const labels = { boat: 'Boat crew', meetup: 'Community plan', venue_event: 'Published event', community_spark: 'Free challenge', paid_dare: 'Paid dare' };
+
 
 function recordOpen(id: string, kind: string, planId?: string) {
   trackClientEvent('home_activity_opened', { activity_id: id, activity_kind: kind, plan_id: planId, plan_type: planId ? kind : undefined, source: 'home' });
@@ -178,7 +179,7 @@ export default function HomeActivityFeed() {
       <p className="mt-1 text-xs text-white/45">Try these free ideas at your own pace, with no host or cash reward. Joining a published plan? Check its time and details below.</p>
     </div> : null}
     <ActivityRail key={[filter, ...live.map((p) => p.id), ...posts.map((p) => p.id), ...ideas.map((p) => p.id)].join(':')} count={live.length + posts.length + ideas.length}>{live.map((plan) => <article key={plan.id} className={cardClass}>
-      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-100/80">{labels[plan.type]}</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-100/80">{ACTIVITY_TYPE_LABELS[plan.type]}</p>
       <h4 className="mt-3 text-xl font-black leading-tight text-white">{plan.title}</h4>
       <p className="mt-3 text-xs text-cyan-100/75">{plan.place.label}</p>
       <p className="mt-2 text-xs text-white/60">{homePlanTime(plan, now, effectiveArea.timeZone)}</p>

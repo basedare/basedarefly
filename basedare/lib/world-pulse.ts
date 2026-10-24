@@ -251,9 +251,23 @@ export function getWorldPulseMapHref(
   return `/map?${query.toString()}`;
 }
 
+type WorldPulseAreaContext = { areaLabel?: string; timeZone?: string };
+
+function appendAreaContext(query: URLSearchParams, context: WorldPulseAreaContext) {
+  const label = context.areaLabel?.replace(/[\x00-\x1f\x7f]/g, '').trim().slice(0, 100);
+  if (label) query.set('areaLabel', label);
+  if (context.timeZone && context.timeZone.length <= 100) {
+    try {
+      new Intl.DateTimeFormat('en', { timeZone: context.timeZone });
+      query.set('timeZone', context.timeZone);
+    } catch { /* An unknown zone must not override the destination's time. */ }
+  }
+}
+
 export function getWorldPulseMapViewHref(
   center: { latitude: number; longitude: number },
   mode: WorldPulseMode,
+  context: WorldPulseAreaContext = {},
 ) {
   const query = new URLSearchParams({
     source: 'world-pulse',
@@ -262,6 +276,7 @@ export function getWorldPulseMapViewHref(
     lng: String(roundLivePlanCoord(center.longitude)),
     zoom: '13',
   });
+  appendAreaContext(query, context);
   return `/map?${query.toString()}`;
 }
 
@@ -272,6 +287,8 @@ export function getWorldPulseViewHref(input: {
   selectedPlanId?: string | null;
   needsPeople?: boolean;
   participation?: ParticipationFilter;
+  areaLabel?: string;
+  timeZone?: string;
 }) {
   const query = new URLSearchParams({
     mode: worldPulseModeQuery(input.mode),
@@ -282,5 +299,6 @@ export function getWorldPulseViewHref(input: {
   if (input.selectedPlanId) query.set('plan', input.selectedPlanId);
   if (input.needsPeople) query.set('needs', '1');
   if (input.participation && input.participation !== 'all') query.set('participation', input.participation);
+  appendAreaContext(query, input);
   return `/now?${query.toString()}`;
 }

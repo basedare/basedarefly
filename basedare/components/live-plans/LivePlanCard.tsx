@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 
 import PlanShareButton from '@/components/community/PlanShareButton';
+import { ACTIVITY_TYPE_LABELS } from '@/lib/product-copy';
 import { activityTimeLabel } from '@/lib/activity-presentation';
 import { useRecommendationClock } from '@/hooks/useRecommendationClock';
 import { trackClientEvent } from '@/lib/analytics';
@@ -57,7 +58,7 @@ const PLAN_STYLE: Record<LivePlan['type'], {
     surface: 'from-emerald-300/[0.11] via-[#091812] to-[#06070d]',
   },
   paid_dare: {
-    eyebrow: 'Paid Dare',
+    eyebrow: ACTIVITY_TYPE_LABELS.paid_dare,
     icon: CircleDollarSign,
     accent: 'text-yellow-100 border-yellow-200/24 bg-yellow-300/[0.09]',
     surface: 'from-yellow-300/[0.11] via-[#171308] to-[#06070d]',
