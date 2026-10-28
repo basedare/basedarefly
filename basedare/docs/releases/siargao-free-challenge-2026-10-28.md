@@ -19,6 +19,8 @@
 
 An optional private note stays in this browser only. It is not included in shared URLs, public cards, analytics or account backups. Choosing a verdict does not publish it. A share URL accepts one of three fixed choices; it does not verify that anyone completed an adventure or import another person's progress. No free-form public review feed is added.
 
+Free adventure routes skip the decorative protocol-loading overlay, so an invitation opens directly into the experience. The homepage intro remains. Unavailable session storage no longer throws in the loader.
+
 The destination stays General Luna/Asia-Manila even if a shared link has another city's query parameters. Map and homepage/Adventures discovery are local and temporary. Existing unfinished adventures keep priority. The pilot ends after 15 November Philippine time. Completed runs, share pages and cards remain accessible; no history is deleted.
 
 ## Verification

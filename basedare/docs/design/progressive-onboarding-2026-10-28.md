@@ -5,6 +5,7 @@ The launch brief explicitly includes the Yodl/Privy onboarding pattern. This mea
 ## Implemented foundation
 
 - Guests browse and start free adventures; progress resumes from the same browser. The Siargao challenge also completes, keeps a private device note, downloads a result card and invites another visitor without an account.
+- Free adventure links skip the decorative protocol-loading screen. Session-storage restrictions do not break loader initialization.
 - Paid mission pages show the specific opportunity before authentication. Their existing signed-wallet claim and recovery paths keep the exact mission destination.
 - Mission alerts and buyer enquiries already accept interest without a wallet. Neither is an account, funded assignment or payment.
 
