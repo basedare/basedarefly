@@ -2,6 +2,7 @@
 import { ACTIVITY_TYPE_LABELS } from '@/lib/product-copy';
 
 import AdventurePreferenceControls from '@/components/adventures/AdventurePreferenceControls';
+import FeaturedSiargaoChallenge from '@/components/adventures/FeaturedSiargaoChallenge';
 import SharedAdventures from '@/components/adventures/SharedAdventures';
 import Link from '@/components/DiscoveryLink';
 import { useDiscovery } from '@/components/DiscoveryProvider';
@@ -28,7 +29,7 @@ function recordOpen(id: string, kind: string, planId?: string) {
 }
 
 export default function HomeActivityFeed() {
-  const { area, updateArea } = useDiscovery();
+  const { area, ready: areaReady, updateArea } = useDiscovery();
   const setArea = useCallback((value: ActivityArea) => updateArea(value), [updateArea]);
   const filter = area.participation.toUpperCase() as ActivityFilter;
   const setFilter = (value: ActivityFilter) => updateArea({ participation: value.toLowerCase() as typeof area.participation });
@@ -164,6 +165,7 @@ export default function HomeActivityFeed() {
     {postsFailed ? <p className="mb-3 text-xs text-white/50">Community updates couldn’t refresh. Any published schedule below still needs checking with the venue.</p> : null}
     {!loading && !failed && !live.length && !posts.length && filter !== 'ALL' && filter !== 'PLAY' ? <p className="mb-4 text-sm text-white/60">{filter === 'EARN' ? 'No available paid missions in this area right now.' : 'No published group plans in this area right now.'} <Link href="/adventures" className="ml-2 underline text-cyan-100">Try a free activity instead →</Link></p> : null}
     {showIdeas ? <div className="mb-4 mt-6">
+      {!active && areaReady ? <FeaturedSiargaoChallenge area={effectiveArea} now={now} /> : null}
       <h3 className="mb-2 text-lg font-black text-white">Free adventures to try</h3>
       <details className="mb-2">
         <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold text-cyan-100">Adjust time and mood</summary>

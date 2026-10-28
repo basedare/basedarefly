@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@base44/sdk": "^0.8.6",
-    "@coinbase/onchainkit": "^1.1.2",
+    "@coinbase/onchainkit": "1.1.2",
     "@fontsource/figtree": "^5.2.10",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@gsap/react": "^2.1.2",
@@ -94,7 +94,7 @@
     "viem": "^2.44.1",
     "wagmi": "^2.19.5",
     "web-push": "^3.6.7",
-    "zod": "^4.3.5"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
@@ -152,7 +152,8 @@
     "ws@>=8 <9": "8.21.0",
     "ws@>=7 <8": "7.5.11",
     "hono": "4.13.7",
-    "socket.io-parser": "4.2.7"
+    "socket.io-parser": "4.2.7",
+    "zod": "$zod"
   },
   "optionalDependencies": {
     "@tailwindcss/oxide-linux-x64-gnu": "4.1.18",

@@ -8,7 +8,7 @@ export function analyticsPath(input: string) {
   const parts = path.split('/').filter(Boolean);
   if (parts.length <= 1) return path;
   if (parts[0] === 'venues') return path; // Public place slugs.
-  if (parts[0] === 'adventures' && ['passport', 'little-local-loop', 'three-details', 'light-hunt', 'one-minute-story', 'soundtrack', 'tomorrow-pick', 'postcard'].includes(parts[1]) && parts.length === 2) return path;
+  if (parts[0] === 'adventures' && ['passport', 'little-local-loop', 'three-details', 'light-hunt', 'one-minute-story', 'soundtrack', 'tomorrow-pick', 'postcard', 'siargao-verdict'].includes(parts[1]) && parts.length === 2) return path;
   return '/' + parts[0];
 }
 export function privateAnalyticsPayload(payload: Record<string, string | number | boolean | null | undefined>) {

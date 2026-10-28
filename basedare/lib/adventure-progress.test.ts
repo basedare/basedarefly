@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activeAdventure, completeAdventure, readAdventureProgress, updateAdventureStep, type AdventureProgress } from './adventure-progress';
+import { activeAdventure, completeAdventure, readAdventureProgress, updateAdventureStep, updateAdventureVerdict, type AdventureProgress } from './adventure-progress';
+import { SIARGAO_CHALLENGE_ID, SIARGAO_CHALLENGE_AREA, SIARGAO_CHALLENGE_END, inSiargaoChallengeArea, readSiargaoVerdict, siargaoCampaignOpen, siargaoChallengeHref } from './siargao-challenge';
+import { suggestionsForArea } from './home-activities';
+import { canonicalPersonalProgress, mergePersonalProgress } from './passport-progression';
 import { SIARGAO_ACTIVITY_AREA } from './home-activities';
 import { PilotConfigSchema, PilotRecordSchema, activeLocalSpendPilot } from './local-spend-pilot';
 import { buildVenuePerkUnlock, getActiveVenuePerk, getVenuePerkSnapshot, writeVenuePerkToMetadata } from './venue-perks';
@@ -31,6 +34,42 @@ test('a step cannot update a different or completed run', () => {
   const state = progress();
   assert.equal(updateAdventureStep(state, 'another', 0, now), state);
   assert.equal(updateAdventureStep(state, 'one', 99, now), state);
+});
+test('Siargao verdict requires two stages and a real choice, then survives reload and account save', () => {
+  let state: AdventureProgress = { runs: [{ runId: 'challenge', activityId: SIARGAO_CHALLENGE_ID, area: SIARGAO_CHALLENGE_AREA, startedAt: now - 1000, steps: [] }] };
+  assert.equal(updateAdventureVerdict(state, 'challenge', 'overrated', now), state);
+  state = updateAdventureStep(state, 'challenge', 0, now);
+  state = updateAdventureStep(state, 'challenge', 1, now);
+  assert.equal(updateAdventureStep(state, 'challenge', 2, now), state);
+  assert.equal(completeAdventure(state, 'challenge', now), state);
+  assert.equal(updateAdventureVerdict(state, 'challenge', 'invented', now), state);
+  const beforeVerdict = state;
+  state = updateAdventureVerdict(state, 'challenge', 'complicated', now);
+  state = completeAdventure(state, 'challenge', now);
+  const restored = readAdventureProgress(JSON.parse(JSON.stringify(state)), now);
+  assert.equal(restored.runs[0].verdict, 'complicated');
+  assert.equal(restored.runs[0].completedAt, now);
+  assert.equal(updateAdventureVerdict(state, 'challenge', 'worth-it', now), state);
+  const account = canonicalPersonalProgress(restored, now);
+  assert.equal(readAdventureProgress(account, now).runs.length, 1);
+  assert.equal('privateNote' in canonicalPersonalProgress({ runs: [{ ...restored.runs[0], privateNote: 'never send' }] }, now).runs[0], false);
+  assert.equal(mergePersonalProgress(beforeVerdict, account, now).runs[0].verdict, 'complicated');
+  assert.equal(readAdventureProgress({ runs: [{ ...state.runs[0], verdict: 'made-up' }] }, now).runs.length, 0);
+  assert.equal(readAdventureProgress({ runs: [{ ...state.runs[0], verdict: undefined }] }, now).runs.length, 0);
+});
+test('campaign discovery is local and temporary; archived completions remain readable', () => {
+  const daytime = new Date('2026-10-30T03:00:00Z');
+  const has = (area: typeof SIARGAO_CHALLENGE_AREA, date: Date) => suggestionsForArea(area, date).some((item) => item.id === SIARGAO_CHALLENGE_ID);
+  assert.equal(has(SIARGAO_CHALLENGE_AREA, daytime), true);
+  assert.equal(has({ lat: -33.8688, lng: 151.2093, label: 'Sydney', timeZone: 'Australia/Sydney' }, daytime), false);
+  assert.equal(has(SIARGAO_CHALLENGE_AREA, new Date('2026-10-30T15:00:00Z')), false);
+  assert.equal(siargaoCampaignOpen(new Date(SIARGAO_CHALLENGE_END)), false);
+  assert.equal(has(SIARGAO_CHALLENGE_AREA, new Date('2026-11-16T03:00:00Z')), false);
+  assert.equal(inSiargaoChallengeArea({ lat: NaN, lng: 126.158 }), false);
+  const archived = { runs: [{ runId: 'past', activityId: SIARGAO_CHALLENGE_ID, startedAt: daytime.getTime(), completedAt: daytime.getTime() + 1000, steps: [0, 1, 2], verdict: 'worth-it', area: SIARGAO_CHALLENGE_AREA }] };
+  assert.equal(readAdventureProgress(archived, Date.parse('2026-12-01')).runs.length, 1);
+  assert.equal(siargaoChallengeHref('overrated'), '/adventures/siargao-verdict/verdict/overrated');
+  assert.equal(readSiargaoVerdict('private-note'), undefined);
 });
 test('perk dates control availability and claimed expiry cannot outlast the offer', () => {
   const start = new Date(now - 1000).toISOString(); const end = new Date(now + 1000).toISOString();
