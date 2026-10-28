@@ -9,6 +9,7 @@ import { SURF_SPOT_PATHS } from '@/lib/map-surf-art';
 import { useSharedAdventureMap } from '@/hooks/useSharedAdventureMap';
 import Image from 'next/image';
 import { useRecommendationClock } from '@/hooks/useRecommendationClock';
+import { useSiargaoChallengeMarker } from '@/hooks/useSiargaoChallengeMarker';
 import { assessRecommendation, destinationHour, solarElevation, type RecommendationInput } from '@/lib/recommendation-policy';
 import { rankTonightActivities } from '@/lib/tonight-recommendations';
 import Link from 'next/link';
@@ -3504,6 +3505,7 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
   const [targetCenter, setTargetCenter] = useState<[number, number] | null>(null);
   const [showSharedAdventures, setShowSharedAdventures] = useState(true);
   const sharedAdventureMap = useSharedAdventureMap(mapInstanceRef, mapReady, showSharedAdventures);
+  useSiargaoChallengeMarker(mapInstanceRef, mapReady, showSharedAdventures);
   const [targetZoom, setTargetZoom] = useState<number | null>(null);
   const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
   const [mapBearing, setMapBearing] = useState(DEFAULT_MAP_BEARING);

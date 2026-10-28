@@ -1,6 +1,8 @@
 'use client';
+import { ACTIVITY_TYPE_LABELS } from '@/lib/product-copy';
 
 import AdventurePreferenceControls from '@/components/adventures/AdventurePreferenceControls';
+import FeaturedSiargaoChallenge from '@/components/adventures/FeaturedSiargaoChallenge';
 import SharedAdventures from '@/components/adventures/SharedAdventures';
 import Link from '@/components/DiscoveryLink';
 import { useDiscovery } from '@/components/DiscoveryProvider';
@@ -19,7 +21,7 @@ import { PARTICIPATION_FILTERS } from '@/lib/participation-filter';
 const OPEN_KEY = 'basedare:home-activity-open:v1';
 const cardClass = 'flex min-w-0 flex-col rounded-[1.55rem] border border-white/10 bg-[linear-gradient(145deg,rgba(36,26,59,0.8),rgba(6,7,14,0.98))] p-5 shadow-[0_12px_28px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]';
 const actionClass = 'bd-action mt-5';
-const labels = { boat: 'Boat crew', meetup: 'Community plan', venue_event: 'Published event', community_spark: 'Free challenge', paid_dare: 'Paid dare' };
+
 
 function recordOpen(id: string, kind: string, planId?: string) {
   trackClientEvent('home_activity_opened', { activity_id: id, activity_kind: kind, plan_id: planId, plan_type: planId ? kind : undefined, source: 'home' });
@@ -27,7 +29,7 @@ function recordOpen(id: string, kind: string, planId?: string) {
 }
 
 export default function HomeActivityFeed() {
-  const { area, updateArea } = useDiscovery();
+  const { area, ready: areaReady, updateArea } = useDiscovery();
   const setArea = useCallback((value: ActivityArea) => updateArea(value), [updateArea]);
   const filter = area.participation.toUpperCase() as ActivityFilter;
   const setFilter = (value: ActivityFilter) => updateArea({ participation: value.toLowerCase() as typeof area.participation });
@@ -163,6 +165,7 @@ export default function HomeActivityFeed() {
     {postsFailed ? <p className="mb-3 text-xs text-white/50">Community updates couldn’t refresh. Any published schedule below still needs checking with the venue.</p> : null}
     {!loading && !failed && !live.length && !posts.length && filter !== 'ALL' && filter !== 'PLAY' ? <p className="mb-4 text-sm text-white/60">{filter === 'EARN' ? 'No available paid missions in this area right now.' : 'No published group plans in this area right now.'} <Link href="/adventures" className="ml-2 underline text-cyan-100">Try a free activity instead →</Link></p> : null}
     {showIdeas ? <div className="mb-4 mt-6">
+      {!active && areaReady ? <FeaturedSiargaoChallenge area={effectiveArea} now={now} /> : null}
       <h3 className="mb-2 text-lg font-black text-white">Free adventures to try</h3>
       <details className="mb-2">
         <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold text-cyan-100">Adjust time and mood</summary>
@@ -178,7 +181,7 @@ export default function HomeActivityFeed() {
       <p className="mt-1 text-xs text-white/45">Try these free ideas at your own pace, with no host or cash reward. Joining a published plan? Check its time and details below.</p>
     </div> : null}
     <ActivityRail key={[filter, ...live.map((p) => p.id), ...posts.map((p) => p.id), ...ideas.map((p) => p.id)].join(':')} count={live.length + posts.length + ideas.length}>{live.map((plan) => <article key={plan.id} className={cardClass}>
-      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-100/80">{labels[plan.type]}</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-100/80">{ACTIVITY_TYPE_LABELS[plan.type]}</p>
       <h4 className="mt-3 text-xl font-black leading-tight text-white">{plan.title}</h4>
       <p className="mt-3 text-xs text-cyan-100/75">{plan.place.label}</p>
       <p className="mt-2 text-xs text-white/60">{homePlanTime(plan, now, effectiveArea.timeZone)}</p>

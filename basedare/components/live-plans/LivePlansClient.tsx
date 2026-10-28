@@ -132,6 +132,7 @@ export default function LivePlansClient({
   }, [center.latitude, center.longitude, radiusKm]);
 
   useEffect(() => {
+    if (!areaReady) return;
     const controller = new AbortController();
     setSnapshot(null);
     void load(controller.signal);
@@ -145,7 +146,7 @@ export default function LivePlansClient({
       document.removeEventListener('visibilitychange', refresh);
       window.removeEventListener('basedare:live-plans-updated', refresh);
     };
-  }, [load]);
+  }, [areaReady, load]);
 
   useEffect(() => {
     if (!areaReady) return;
@@ -156,10 +157,12 @@ export default function LivePlansClient({
       selectedPlanId: pickedPlanId,
       needsPeople: needsPeopleOnly,
       participation,
+      areaLabel: area.label,
+      timeZone: area.timeZone,
     });
     window.history.replaceState(window.history.state, '', href);
     window.dispatchEvent(new Event('basedare:plan-area-updated'));
-  }, [areaReady, center, mode, needsPeopleOnly, pickedPlanId, radiusKm, participation]);
+  }, [areaReady, area.label, area.timeZone, center, mode, needsPeopleOnly, pickedPlanId, radiusKm, participation]);
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -258,6 +261,8 @@ export default function LivePlansClient({
       selectedPlanId: pickedPlan?.id,
       needsPeople: needsPeopleOnly,
       participation,
+      areaLabel: area.label,
+      timeZone: area.timeZone,
     });
     const url = new URL(relativeHref, window.location.origin).toString();
     const shareData = {
@@ -326,6 +331,9 @@ export default function LivePlansClient({
     setGuideStep(nextStep);
     scrollToGuideTarget(nextStep);
   }, [guideStep, rememberIntro, scrollToGuideTarget]);
+
+  // Do not offer default-city actions while the linked or saved area is restoring.
+  if (!areaReady) return <main className="bd-page-top min-h-screen px-4 text-white sm:px-6"><div className="bd-surface mx-auto max-w-7xl p-6" role="status">Opening your area…</div></main>;
 
   const startAdventureHref = adventureHref(undefined, undefined, area);
   const showFreeIdeas = participation === 'all' || participation === 'play';
@@ -414,7 +422,7 @@ export default function LivePlansClient({
         </div>
         {guideStep === 0 ? <LivePlansGuideCue step={0} onBack={() => undefined} onNext={() => moveGuide('next')} onClose={closeIntro} /> : null}
 
-        <DiscoveryViews active="now" queryString={getWorldPulseViewHref({ mode, center, radiusKm, participation, selectedPlanId: pickedPlanId, needsPeople: needsPeopleOnly }).split('?')[1]} />
+        <DiscoveryViews active="now" queryString={getWorldPulseViewHref({ mode, center, radiusKm, participation, areaLabel: area.label, timeZone: area.timeZone, selectedPlanId: pickedPlanId, needsPeople: needsPeopleOnly }).split('?')[1]} />
 
         {snapshot && plans.length > 0 ? (
           <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-[0.12em] text-white/42">
@@ -459,7 +467,7 @@ export default function LivePlansClient({
           ) : (
             <section className={`bd-empty mt-6 text-center ${participation === 'all' || participation === 'play' ? 'p-5' : 'p-10'}`}>
               {participation !== 'all' && participation !== 'play' ? <UsersIcon /> : null}
-              <h2 className="mt-4 text-xl font-bold">{snapshot ? participation === 'earn' ? 'No paid dares in this window.' : participation === 'play' ? 'No free challenges in this window.' : 'No suitable plans in this window.' : 'Plans couldn’t load.'}</h2>
+              <h2 className="mt-4 text-xl font-bold">{snapshot ? participation === 'earn' ? 'No paid missions in this window.' : participation === 'play' ? 'No free challenges in this window.' : 'No suitable plans in this window.' : 'Plans couldn’t load.'}</h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-300">{snapshot ? "Browse another time, start a meetup, or try a free adventure at your own pace." : "Refresh to check what is available in this area."}</p>
               {!snapshot ? <button type="button" onClick={() => void load()} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Try again</button> : mode !== 'ALL' ? <button type="button" onClick={() => setMode('ALL')} className="mt-4 block mx-auto text-sm font-bold text-cyan-100 underline underline-offset-4">Browse all plans</button> : null}
               {snapshot && participation !== 'all' ? <button type="button" onClick={() => setParticipation('all')} className="mx-auto mt-4 block min-h-11 text-sm font-bold text-cyan-100">See other activity types</button> : null}
@@ -479,7 +487,7 @@ export default function LivePlansClient({
         {guideStep === 2 ? <LivePlansGuideCue step={2} onBack={() => moveGuide('back')} onNext={() => moveGuide('next')} onClose={closeIntro} /> : null}
 
         <div className="mt-8 flex justify-center">
-          <Link href={pickedPlan ? getWorldPulseMapHref(pickedPlan, mode) : getWorldPulseMapViewHref(center, mode)} prefetch={false} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/11 bg-white/[0.045] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-white/64">
+          <Link href={pickedPlan ? getWorldPulseMapHref(pickedPlan, mode) : getWorldPulseMapViewHref(center, mode, { areaLabel: area.label, timeZone: area.timeZone })} prefetch={false} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/11 bg-white/[0.045] px-5 text-[10px] font-black uppercase tracking-[0.13em] text-white/64">
             <Map className="h-4 w-4 text-cyan-200" /> Open live map
           </Link>
         </div>

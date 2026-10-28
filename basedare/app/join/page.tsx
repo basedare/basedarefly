@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import DiscoveryLink from '@/components/DiscoveryLink';
 import { ArrowRight, BriefcaseBusiness, Coins, Sparkles, Users } from 'lucide-react';
 
 import { OnboardingLink } from '@/components/onboarding/OnboardingLink';
@@ -37,8 +38,8 @@ const START_PATHS = [
     accent: 'border-violet-300/24 bg-violet-400/[0.08] text-violet-100',
   },
   {
-    title: 'Earn from paid dares',
-    description: 'See paid dares and their rewards first. Sign in only when you choose one.',
+    title: 'Find paid missions',
+    description: 'See the work, reward and requirements first. No public creator profile needed to browse.',
     href: '/earn?source=join',
     intent: 'earn' as const,
     cta: 'Find paid work',
@@ -47,7 +48,7 @@ const START_PATHS = [
   },
   {
     title: 'Start something',
-    description: 'Start a meetup, a free challenge, or a paid dare at a real place.',
+    description: 'Start a meetup, a free challenge, or a paid mission at a real place.',
     href: '/start',
     intent: 'create' as const,
     cta: 'Choose what to start',
@@ -73,12 +74,12 @@ export default function JoinBaseDarePage() {
             What do you want to do?
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base font-semibold leading-7 text-white/60 md:text-lg">
-            A community built around doing things at real places. Play, meet people, or earn from a paid dare.
+            Find a free adventure, meet people, or take on a paid mission at a real place.
           </p>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/40">
-            Browse freely. Sign in only when joining, creating, saving progress or getting paid requires it.
+            Browse freely. Free adventures start without an account. Sign in when joining, publishing, saving to your account or requesting paid work requires it.
           </p>
-          <Link href="/map?source=join" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-100">Just exploring? Open the map →</Link>
+          <DiscoveryLink href="/map?source=join" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-100">Just exploring? Open the map →</DiscoveryLink>
         </section>
 
         <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Choose your next move">
@@ -117,11 +118,11 @@ export default function JoinBaseDarePage() {
           </div>
 
           <details className="mt-4 rounded-2xl border border-white/9 bg-black/24 px-5 py-4 text-sm text-white/52">
-            <summary className="cursor-pointer list-none font-black text-white/72">What are Sparks and Dares?</summary>
+            <summary className="cursor-pointer list-none font-black text-white/72">Adventures, challenges and paid missions?</summary>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <p className="flex gap-3"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" /><span><strong className="text-white">Spark:</strong> a free community challenge.</span></p>
-              <p className="flex gap-3"><Coins className="mt-0.5 h-4 w-4 shrink-0 text-yellow-200" /><span><strong className="text-white">Dare:</strong> a task that can carry a reward.</span></p>
-              <p className="flex gap-3 sm:col-span-2"><Users className="mt-0.5 h-4 w-4 shrink-0 text-cyan-200" /><span><strong className="text-white">Rally:</strong> a time-bound social plan that needs people.</span></p>
+              <p className="flex gap-3"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" /><span><strong className="text-white">Free adventure:</strong> a self-guided idea you can start now. A published free challenge (Spark) has its own rules.</span></p>
+              <p className="flex gap-3"><Coins className="mt-0.5 h-4 w-4 shrink-0 text-yellow-200" /><span><strong className="text-white">Paid mission (Dare):</strong> funded work with requirements, review and a stated reward.</span></p>
+              <p className="flex gap-3 sm:col-span-2"><Users className="mt-0.5 h-4 w-4 shrink-0 text-cyan-200" /><span><strong className="text-white">Meetup:</strong> a plan to do something together. Check its place, time and any separate costs.</span></p>
             </div>
           </details>
 

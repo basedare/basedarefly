@@ -10,7 +10,6 @@ import Link from "next/link";
 
 // === CORE COMPONENTS ===
 import ViewToggle from "@/components/ViewToggle";
-import GlitchText from "@/components/GlitchText";
 import { LiquidInput } from "@/components/LiquidInput";
 import InitProtocolButton from "@/components/InitProtocolButton";
 import ProtocolLoader from "@/components/ProtocolLoader";
@@ -193,11 +192,18 @@ function HomeContent() {
           >
             <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
               <div className="w-full relative">
-                <div className="relative z-[60] mx-auto max-w-lg px-4 pt-4 text-center" aria-label="Discover BaseDare">
-                  <h1 className="sr-only">BaseDare — find something worth doing nearby</h1>
-                  <StreetAccent className="mx-auto mb-2 w-24" />
-                  <p className="text-sm font-bold leading-6 text-white/80">{BASEDARE_INTRO}</p>
-                  <DiscoveryLink href="/now?source=home-intro" prefetch={false} className="bd-action bd-action--gold mt-3 px-5 uppercase tracking-[0.12em]">Find something nearby →</DiscoveryLink>
+                <div className="relative z-[60] mx-auto max-w-3xl px-1 pt-4 text-center sm:px-4 md:pt-7" aria-label="Discover BaseDare">
+                  <StreetAccent className="mx-auto mb-3 w-20" />
+                  <h1 className="text-[clamp(1.9rem,9.3vw,4.5rem)] font-black italic uppercase leading-[0.98] tracking-[-0.045em] text-white">
+                    Find something<br /><span className="text-[#f5c518] drop-shadow-[0_2px_14px_rgba(245,197,24,0.18)]">worth doing.</span>
+                  </h1>
+                  <p className="mx-auto mt-4 max-w-lg text-sm font-semibold leading-6 text-white/75 sm:text-base">{BASEDARE_INTRO}</p>
+                  <DiscoveryLink href="/now?source=home-intro" prefetch={false} className="bd-action bd-action--gold mt-5 px-6 !text-sm">Find something nearby →</DiscoveryLink>
+                  <p className="mt-3 text-xs leading-5 text-white/60">Try a free adventure without signing in.</p>
+                  <nav aria-label="Work with BaseDare" className="mt-2 flex flex-wrap justify-center gap-x-6 text-sm font-semibold text-white/70">
+                    <DiscoveryLink href="/earn?source=home-intro" prefetch={false} className="inline-flex min-h-11 items-center hover:text-yellow-100">For creators <span className="ml-1" aria-hidden="true">↗</span></DiscoveryLink>
+                    <a href="#work-with-basedare" className="inline-flex min-h-11 items-center hover:text-cyan-100">For businesses <span className="ml-1" aria-hidden="true">↓</span></a>
+                  </nav>
                 </div>
                 {/* Desktop: Full 3D Hero with orbiting cards */}
                 <div className="hidden lg:block">
@@ -213,34 +219,6 @@ function HomeContent() {
 
                   {/* Mobile Conveyor Strip - Always uses featured dares (same as desktop orbit) */}
                   {!desktopHero ? <PeeBearConveyor /> : null}
-                </div>
-              </div>
-
-              <div className="relative z-30 mb-8 flex w-full max-w-[100vw] flex-col items-center justify-center overflow-hidden px-4 text-center">
-                <GlitchText glowColor="#FFD700" className="z-20 text-[9.5vw] font-black italic leading-[0.92] tracking-tighter text-white md:text-7xl lg:text-8xl">
-                  FIND SOMETHING
-                </GlitchText>
-                <h2 className="mt-1 text-[10vw] font-black italic uppercase leading-none tracking-tighter text-white md:text-7xl lg:text-8xl">
-                  WORTH DOING.
-                </h2>
-                <p className="mt-2 text-[9vw] font-black italic uppercase leading-none tracking-tighter text-[#f5c518] drop-shadow-[0_0_18px_rgba(245,197,24,0.26)] md:text-6xl lg:text-7xl">
-                  RIGHT NOW.
-                </p>
-              </div>
-
-              {/* Consumer first: understand the live map before seeing its earning and funding rails. */}
-              <div className="relative z-30 mb-8 w-full max-w-3xl px-6 text-center">
-                <p className="mx-auto max-w-2xl text-sm font-bold leading-6 text-white/64 sm:text-base">
-                  Play free challenges. Meet people. Earn from paid dares.
-                </p>
-                <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] font-black uppercase tracking-[0.14em]">
-                  <Link
-                    href="/map?source=home"
-                    prefetch={false}
-                    className="inline-flex items-center gap-1.5 text-[#f8dd72] transition hover:text-white"
-                  >
-                    Open the map →
-                  </Link>
                 </div>
               </div>
 
@@ -269,14 +247,9 @@ function HomeContent() {
                 </div>
               </div>
 
-              <div className="relative z-30 mb-12 w-full max-w-3xl px-6 text-center">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/42">
-                  Want to earn or fund something?
-                </p>
-                <div className="mt-5">
-                  <RoleChoiceCards />
-                </div>
-              </div>
+              <section id="work-with-basedare" aria-label="Paid work and business briefs" className="relative z-30 mb-12 w-full max-w-3xl scroll-mt-28 px-6 text-center">
+                <RoleChoiceCards />
+              </section>
 
               <div className="w-full max-w-4xl px-6 mb-24 relative z-30">
                 <div className="flex flex-col md:flex-row items-center justify-center gap-6">

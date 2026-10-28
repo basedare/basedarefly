@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Authored free-adventure area marker, separate from a verified place or live event. */
+.bd-siargao-challenge-marker {
+  display: flex; align-items: center; gap: 7px; min-height: 44px;
+  padding: 6px 12px 6px 7px; border: 2px solid #e8c1ff; border-radius: 18px 18px 18px 5px;
+  background: linear-gradient(145deg, #382047, #100d1b); color: #fff2b2;
+  box-shadow: 0 6px 15px #0009, inset 0 1px 0 #ffffff30;
+  font-size: 12px; font-weight: 800; text-decoration: none; white-space: nowrap;
+}
+.bd-siargao-challenge-marker img { object-fit: contain; }
+.bd-siargao-challenge-marker:focus-visible { outline: 3px solid #ffe36b; outline-offset: 4px; }
+
 @source "../app/**/*.{js,ts,jsx,tsx,mdx}";
 @source "../components/**/*.{js,ts,jsx,tsx,mdx}";
 @source "../pages/**/*.{js,ts,jsx,tsx,mdx}";

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import ProtocolLoader from './ProtocolLoader';
 
 let hasProtocolLoadedInMemory = false;
@@ -22,16 +23,19 @@ function shouldShowProtocolLoader() {
     return false;
   }
 
-  return window.sessionStorage.getItem('protocol-loaded') !== 'true';
+  try { return window.sessionStorage.getItem('protocol-loaded') !== 'true'; }
+  catch { return false; }
 }
 
 export default function ClientLoader({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isGuestAdventure = pathname === '/adventures' || pathname?.startsWith('/adventures/');
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleComplete = useCallback(() => {
     if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem('protocol-loaded', 'true');
+      try { window.sessionStorage.setItem('protocol-loaded', 'true'); } catch { /* Memory keeps this visit usable. */ }
     }
     hasProtocolLoadedInMemory = true;
     setIsLoading(false);
@@ -44,6 +48,7 @@ export default function ClientLoader({ children }: { children: React.ReactNode }
 
     const frameId = window.requestAnimationFrame(() => {
       setIsHydrated(true);
+      if (isGuestAdventure) { setIsLoading(false); return; }
 
       if (shouldShowProtocolLoader()) {
         setIsLoading(true);
@@ -54,7 +59,7 @@ export default function ClientLoader({ children }: { children: React.ReactNode }
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [handleComplete]);
+  }, [handleComplete, isGuestAdventure]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !isHydrated || !isLoading) {
@@ -65,7 +70,7 @@ export default function ClientLoader({ children }: { children: React.ReactNode }
     return () => window.clearTimeout(timeoutId);
   }, [handleComplete, isHydrated, isLoading]);
 
-  const shouldMaskContent = isHydrated && isLoading;
+  const shouldMaskContent = !isGuestAdventure && isHydrated && isLoading;
 
   return (
     <>

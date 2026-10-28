@@ -1,5 +1,6 @@
 import type { LivePlan } from './live-plans';
 import { assessRecommendation, destinationHour, solarElevation } from './recommendation-policy';
+import { SIARGAO_CHALLENGE_ID, inSiargaoChallengeArea, siargaoCampaignOpen } from './siargao-challenge';
 
 export const SIARGAO_ACTIVITY_AREA = { lat: 9.7905, lng: 126.158, label: 'General Luna, Siargao', timeZone: 'Asia/Manila' };
 export type ActivityArea = { lat: number; lng: number; label: string; timeZone?: string };
@@ -60,13 +61,17 @@ export const ACTIVITY_SUGGESTIONS: ActivitySuggestion[] = [
     steps: ['Open the map and pick somewhere that makes you think “I’d go there.” Keep it easy enough to fit into your day.', 'Check that you can visit and pick a good time to go. Save outdoor daylight adventures for daytime.', 'Save the idea for yourself, or send it to a friend and agree a time together. Sending an invitation doesn’t book a place or sign anyone up.'] },
   { id: 'postcard', moods: ['create', 'unwind'], title: 'Send a little ‘wish you were here’', summary: 'One photo and a few words for someone back home. The messy, funny bits count too.', minutes: 10,
     steps: ['Choose one of your own photos from today. It doesn’t need to be perfect: pick the one with a story.', 'Add a sentence about something that surprised you or made you smile. Write it like you’d say it to a friend.', 'Send your little postcard to someone you know. Rather keep the moment to yourself? Save it as a private memory.'] },
+  { id: SIARGAO_CHALLENGE_ID, moods: ['explore'], title: 'Is Siargao worth the hype?', summary: 'Start with the waves. Find the island’s overlooked side. Then give your honest verdict.', minutes: 45, daylight: true,
+    steps: ['THE HYPE — Head towards Cloud 9 and take it in from an accessible public spot. If access is restricted or paid, choose a nearby free public viewpoint instead. Stay out of the water and competition areas.',
+      'THE UNDERDOG — Find something beyond the famous wave: a public corner, a handmade detail, or a story someone is happy to share. What would you point out to a friend? No purchase or photo needed.',
+      'THE VERDICT — Worth the hype, overrated, or a bit of both? Pick your take below. Add a private note if you like, then challenge a friend to find their own answer.'] },
 ];
 
 export function suggestionsForArea(area: ActivityArea, now: Date, rotation = 0) {
   const hour = destinationHour(now, area.lng, area.timeZone);
   const daylight = (solarElevation(now, area.lat, area.lng) ?? -90) > 0
     && (solarElevation(new Date(now.getTime() + 45 * 60000), area.lat, area.lng) ?? -90) > 0;
-  const eligible = ACTIVITY_SUGGESTIONS.filter((item) => (!item.daylight || daylight)
+  const eligible = ACTIVITY_SUGGESTIONS.filter((item) => (item.id !== SIARGAO_CHALLENGE_ID || (inSiargaoChallengeArea(area) && siargaoCampaignOpen(now))) && (!item.daylight || daylight)
     && (!item.evening || (!daylight && hour >= 17 && hour < 23)));
   const day = Math.floor((now.getTime() + area.lng * 240000) / 86400000);
   const offset = ((day + rotation) % eligible.length + eligible.length) % eligible.length;

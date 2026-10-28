@@ -31,6 +31,9 @@ jobs:
       - name: Block high and critical production dependency advisories
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Check patched validation and wallet schema compatibility
+        run: node --test scripts/validation-dependency-security.test.mjs
+
       - name: Prevent credential leaks across HTTP redirects
         run: npm run test:http-redirect-security
 

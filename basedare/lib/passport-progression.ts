@@ -19,6 +19,7 @@ export function canonicalPersonalProgress(input: unknown, now = Date.now()): Adv
     area: { lat: Math.round(run.area.lat * 1000) / 1000, lng: Math.round(run.area.lng * 1000) / 1000,
       label: run.area.label, ...(run.area.timeZone ? { timeZone: run.area.timeZone } : {}) },
     ...(run.placeSlug ? { placeSlug: run.placeSlug } : {}),
+    ...(run.verdict ? { verdict: run.verdict } : {}),
   })) };
 }
 
@@ -32,6 +33,7 @@ export function mergePersonalProgress(saved: unknown, device: unknown, now = Dat
     if (!old) { byId.set(run.runId, run); continue; }
     if (old.activityId !== run.activityId || old.placeSlug !== run.placeSlug || old.area.lat !== run.area.lat || old.area.lng !== run.area.lng) throw new Error('A saved run has different activity context. Export your device record before choosing which record to keep.');
     byId.set(run.runId, { ...old, startedAt: Math.min(old.startedAt, run.startedAt),
+      ...(old.completedAt ? {} : run.verdict ? { verdict: run.verdict } : {}),
       steps: [...new Set([...old.steps, ...run.steps])].sort((x, y) => x - y),
       ...(old.completedAt || run.completedAt ? { completedAt: Math.max(old.completedAt ?? 0, run.completedAt ?? 0) } : {}),
     });

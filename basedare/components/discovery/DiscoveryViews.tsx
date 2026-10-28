@@ -15,7 +15,7 @@ export default function DiscoveryViews({ active, queryString, filters = false }:
   const area = queryString === undefined ? context : readDiscovery(source);
   function href(path: string, patch: Record<string, string> = {}) {
     const query = new URLSearchParams(source);
-    const values = { lat: String(area.lat), lng: String(area.lng), radiusKm: String(area.radiusKm), mode: worldPulseModeQuery(area.mode), participation: area.participation, ...patch };
+    const values = { lat: String(area.lat), lng: String(area.lng), radiusKm: String(area.radiusKm), mode: worldPulseModeQuery(area.mode), participation: area.participation, areaLabel: area.label, ...(area.timeZone ? { timeZone: area.timeZone } : {}), ...patch };
     Object.entries(values).forEach(([key, value]) => query.set(key, value));
     if (path === '/map') query.set('pulse', values.mode);
     return `${path}?${query}`;
