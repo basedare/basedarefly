@@ -29,7 +29,7 @@ function shouldShowProtocolLoader() {
 
 export default function ClientLoader({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isGuestAdventure = pathname === '/adventures' || pathname?.startsWith('/adventures/') || pathname === '/island-trials' || pathname?.startsWith('/island-trials/');
+  const isGuestAdventure = pathname === '/moments' || pathname?.startsWith('/moments/') || pathname === '/adventures' || pathname?.startsWith('/adventures/') || pathname === '/island-trials' || pathname?.startsWith('/island-trials/');
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 

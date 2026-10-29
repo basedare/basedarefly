@@ -58,6 +58,14 @@ jobs:
       - name: Adventure discovery regression checks
         run: npm run test:discovery
 
+      - name: Social Moment policy checks
+        run: npm run test:moments
+
+      - name: Social Moment forward migration and privacy regression
+        run: |
+          export PATH="$(pg_config --bindir):$PATH"
+          npm run test:adventure-sharing:db
+
       - name: Business request and delivery regression
         run: npm run test:revenue-focus
 

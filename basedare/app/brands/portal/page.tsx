@@ -991,7 +991,7 @@ export default function BrandPortalPage() {
         <p className="mb-6 flex flex-wrap gap-x-2 gap-y-1 px-1 text-sm leading-6 text-white/60">
           Need content or promotion for a place?
           <Link href={businessRequestHref('content-brief')} className="font-bold text-[#f8dd72] underline decoration-[#f8dd72]/30 underline-offset-4">Plan a content brief →</Link>
-          <span>Agree on the deliverable, price and permissions before work starts.</span>
+          <Link href={businessRequestHref('activity-brief')} className="min-h-11 font-bold text-cyan-100 underline">Bring people in →</Link><Link href={businessRequestHref('visibility-brief')} className="min-h-11 font-bold text-violet-100 underline">Get more visibility →</Link><span>Agree on the scope, price and permissions before work starts.</span>
         </p>
 
         {hasBrandActivity ? (

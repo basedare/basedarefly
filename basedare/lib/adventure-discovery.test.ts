@@ -60,7 +60,7 @@ test('every route that may render a participation tray suppresses optional insta
 });
 
 test('focused adventure and creation flows stay clear while installation remains available elsewhere', () => {
-  for (const path of ['/adventures', '/adventures/postcard', '/adventures/passport', '/create', '/start', '/claim-tag', '/community/rally/new']) {
+  for (const path of ['/moments', '/moments/example', '/adventures', '/adventures/postcard', '/adventures/passport', '/create', '/start', '/claim-tag', '/community/rally/new']) {
     assert.ok(suppressInstallPrompt(path), path);
   }
   for (const path of ['/', '/faq', '/about']) assert.equal(suppressInstallPrompt(path), false, path);

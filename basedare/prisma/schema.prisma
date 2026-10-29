@@ -1877,12 +1877,24 @@ model AdventureSubmission {
   wallet String
   activityId String
   runId String
-  venueSlug String
-  venue Venue @relation(fields: [venueSlug], references: [slug], onDelete: Restrict, onUpdate: Cascade)
+  venueSlug String?
+  venue Venue? @relation(fields: [venueSlug], references: [slug], onDelete: Restrict, onUpdate: Cascade)
   caption String
   hashtag String
-  mediaUrl String
+  mediaUrl String?
   mediaType String
+  socialUrl String?
+  socialPlatform String?
+  sourceKey String?
+  privateMediaCid String?
+  privateMediaMime String?
+  creatorCreditConsent Boolean?
+  spotlightConsent Boolean @default(false)
+  featuredAt DateTime?
+  featuredBy String?
+  parentMomentId String?
+  parentMoment AdventureSubmission? @relation("MomentRelay", fields: [parentMomentId], references: [id], onDelete: SetNull)
+  replies AdventureSubmission[] @relation("MomentRelay")
   status String @default("PENDING")
   publicConsentVersion String
   promotionContact Boolean @default(false)
@@ -1892,6 +1904,8 @@ model AdventureSubmission {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@unique([wallet, runId])
+  @@unique([wallet, sourceKey])
+  @@index([parentMomentId, status])
   @@index([status, createdAt])
   @@index([venueSlug, status])
   @@index([hashtag, status])

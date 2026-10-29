@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Camera, MapPin } from 'lucide-react';
+import { ArrowRight, Camera, MapPin, Sparkles } from 'lucide-react';
 import { BUSINESS_REQUESTS, businessRequestHref, type BusinessRequestKind } from '@/lib/business-request';
 import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
 import { usePaymentReadiness } from '@/hooks/usePaymentReadiness';
@@ -9,13 +9,13 @@ import { usePaymentReadiness } from '@/hooks/usePaymentReadiness';
 export default function BusinessRequestOptions() {
   const payment = usePaymentReadiness();
   return <div className="mt-6 text-left">
-    <div className="grid gap-3 sm:grid-cols-2">
-      {(['content-brief', 'activity-brief'] as BusinessRequestKind[]).map((kind) => {
-        const Icon = kind === 'content-brief' ? Camera : MapPin;
+    <div className="grid gap-3 lg:grid-cols-3">
+      {(['activity-brief', 'content-brief', 'visibility-brief'] as BusinessRequestKind[]).map((kind) => {
+        const Icon = kind === 'content-brief' ? Camera : kind === 'visibility-brief' ? Sparkles : MapPin;
         return <Link key={kind} href={businessRequestHref(kind)} className="bd-card group p-5 transition hover:border-amber-200/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-100">
           <Icon className="text-amber-100" size={22} aria-hidden="true" />
           <h2 className="mt-3 text-lg font-black text-white">{BUSINESS_REQUESTS[kind].title}</h2>
-          <p className="mt-2 text-sm leading-6 text-white/70">{kind === 'content-brief' ? 'Request a specific photo or video, with a clear brief and usage permissions.' : 'Fund a useful challenge with an agreed action, evidence and reward.'}</p>
+          <p className="mt-2 text-sm leading-6 text-white/70">{kind === 'content-brief' ? 'Request a specific photo or video, with a clear brief and usage permissions.' : kind === 'visibility-brief' ? 'Plan a local idea worth sharing, with agreed creative scope and no promised views or sales.' : 'Plan a safe local activity with agreed action, evidence and genuinely funded rewards.'}</p>
           <span className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-amber-100">Describe your brief <ArrowRight size={16} aria-hidden="true" /></span>
         </Link>;
       })}

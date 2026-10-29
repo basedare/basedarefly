@@ -9,14 +9,14 @@ const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body)
 
 test('content and activity enquiries carry their intent without a fixed Sprint price, identity or funding', () => {
   for (const source of ['buyer-workspace', 'home-business'] as const) {
-    for (const kind of ['content-brief', 'activity-brief'] as const) {
+    for (const kind of ['content-brief', 'activity-brief', 'visibility-brief'] as const) {
       const url = new URL(businessRequestHref(kind, source), 'https://www.basedare.xyz');
       assert.equal(url.pathname, '/activations');
       assert.equal(url.searchParams.get('missionType'), kind);
       assert.equal(url.searchParams.get('source'), source);
       assert.equal(url.searchParams.get('budgetRange'), 'discuss');
       assert.equal(url.searchParams.get('packageId'), 'pilot-drop');
-      assert.equal(url.searchParams.get('goal'), kind === 'content-brief' ? 'ugc' : 'other');
+      assert.equal(url.searchParams.get('goal'), kind === 'content-brief' ? 'ugc' : kind === 'visibility-brief' ? 'launch' : 'other');
       for (const key of ['buyerWallet', 'payout', 'contentRights', 'offer']) assert.equal(url.searchParams.has(key), false);
     }
   }

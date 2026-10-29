@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import SharedAdventures from '@/components/adventures/SharedAdventures';
 import type { Session } from 'next-auth';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
@@ -623,6 +625,7 @@ export default async function VenueDetailPage(
                 </div>
 
                 <div className="grid min-w-0 gap-3">
+                  <details className="bd-surface p-4"><summary className="min-h-12 cursor-pointer py-3 text-sm font-bold text-violet-100">Moments from this place</summary><Suspense fallback={<p className="text-sm">Opening Moments…</p>}><SharedAdventures venueSlug={venue.slug} compact /></Suspense></details>
                   <div id="venue-actions" className={`${softCardClass} scroll-mt-24 px-5 py-5`}>
                     <LocalSpendPilot slug={venue.slug} />
                     <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
