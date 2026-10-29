@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import IslandLaunchOperations from '@/components/adventures/IslandLaunchOperations';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
@@ -133,6 +134,7 @@ export default function FounderScoreboardPage() {
       <GradualBlurOverlay />
 
       <section className="relative z-10 mx-auto flex max-w-7xl flex-col gap-8">
+        <IslandLaunchOperations />
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div>
             <Link

@@ -1,10 +1,11 @@
+import { ISLAND_TRIAL_ID, readTrialIsland, type TrialIsland } from './island-trials';
 import { ACTIVITY_SUGGESTIONS, type ActivityArea, type AdventurePreferences } from './home-activities';
 import { SIARGAO_CHALLENGE_ID, readSiargaoVerdict, type SiargaoVerdict } from './siargao-challenge';
 
 export type AdventureRun = {
   runId: string; activityId: string; startedAt: number; completedAt?: number;
   steps: number[]; area: ActivityArea; placeSlug?: string;
-  verdict?: SiargaoVerdict;
+  verdict?: SiargaoVerdict; island?: TrialIsland;
 };
 export type AdventureProgress = { runs: AdventureRun[] };
 export const ADVENTURE_KEY = 'basedare:adventures:v1';
@@ -30,6 +31,8 @@ export function readAdventureProgress(value: unknown, now = Date.now()): Adventu
     if (run.placeSlug !== undefined && (typeof run.placeSlug !== 'string' || !/^[a-z0-9-]{1,120}$/.test(run.placeSlug))) return false;
     if (run.verdict !== undefined && (run.activityId !== SIARGAO_CHALLENGE_ID || !readSiargaoVerdict(run.verdict))) return false;
     if (run.activityId === SIARGAO_CHALLENGE_ID && run.completedAt !== undefined && !readSiargaoVerdict(run.verdict)) return false;
+    if (run.island !== undefined && (run.activityId !== ISLAND_TRIAL_ID || !readTrialIsland(run.island))) return false;
+    if (run.activityId === ISLAND_TRIAL_ID && !readTrialIsland(run.island)) return false;
     seen.add(run.runId);
     return true;
   }).slice(0, 30) };
@@ -52,6 +55,7 @@ export function completeAdventure(progress: AdventureProgress, runId: string, no
   const activity = ACTIVITY_SUGGESTIONS.find((a) => a.id === run?.activityId);
   if (!run || run.runId !== runId || !activity || run.steps.length !== activity.steps.length) return progress;
   if (run.activityId === SIARGAO_CHALLENGE_ID && !readSiargaoVerdict(run.verdict)) return progress;
+  if (run.activityId === ISLAND_TRIAL_ID && !readTrialIsland(run.island)) return progress;
   return { runs: progress.runs.map((r) => r.runId !== runId ? r : { ...r, completedAt: now }) };
 }
 
@@ -67,6 +71,7 @@ export function updateAdventureVerdict(progress: AdventureProgress, runId: strin
 
 export function adventureHref(id?: string, placeSlug?: string, area?: ActivityArea, preferences?: AdventurePreferences) {
   const query = new URLSearchParams();
+  if (id === ISLAND_TRIAL_ID) return '/island-trials/no-beaches-allowed';
   if (placeSlug) query.set('place', placeSlug);
   else if (area) {
     query.set('lat', String(area.lat)); query.set('lng', String(area.lng));

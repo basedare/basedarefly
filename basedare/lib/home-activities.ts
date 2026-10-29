@@ -1,3 +1,5 @@
+import { NO_BEACHES_TRIAL } from './island-trials';
+import { CHAOS_QUESTS } from './chaos-quests';
 import type { LivePlan } from './live-plans';
 import { assessRecommendation, destinationHour, solarElevation } from './recommendation-policy';
 import { SIARGAO_CHALLENGE_ID, inSiargaoChallengeArea, siargaoCampaignOpen } from './siargao-challenge';
@@ -41,6 +43,10 @@ export type ActivitySuggestion = {
   id: string; title: string; summary: string; minutes: number; steps: string[];
   moods: Exclude<AdventureMood, 'any'>[];
   daylight?: boolean; evening?: boolean;
+  collection?: 'Chaos Quests' | 'Island Trials'; category?: string; hook?: string; company?: string;
+  cover?: { art: string; line: string; tone: 'cyan' | 'violet' | 'gold' };
+  creator?: { hook: string; filming: string; caption: string; invitation: string };
+  result?: string;
 };
 
 // Authored activities, never synthetic events, attendance, rewards or venue hours.
@@ -65,6 +71,8 @@ export const ACTIVITY_SUGGESTIONS: ActivitySuggestion[] = [
     steps: ['THE HYPE — Head towards Cloud 9 and take it in from an accessible public spot. If access is restricted or paid, choose a nearby free public viewpoint instead. Stay out of the water and competition areas.',
       'THE UNDERDOG — Find something beyond the famous wave: a public corner, a handmade detail, or a story someone is happy to share. What would you point out to a friend? No purchase or photo needed.',
       'THE VERDICT — Worth the hype, overrated, or a bit of both? Pick your take below. Add a private note if you like, then challenge a friend to find their own answer.'] },
+  ...CHAOS_QUESTS,
+  NO_BEACHES_TRIAL,
 ];
 
 export function suggestionsForArea(area: ActivityArea, now: Date, rotation = 0) {

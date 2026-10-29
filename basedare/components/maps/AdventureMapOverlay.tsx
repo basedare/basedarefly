@@ -23,10 +23,13 @@ import type { AdventureSpriteKind } from "@/lib/map-adventure-policy";
 import type { SiargaoSurfSignal } from "@/lib/siargao-surf-signal";
 import { rankTonightActivities } from "@/lib/tonight-recommendations";
 import { formatRecommendationTime, solarElevation } from "@/lib/recommendation-policy";
+import MapFreeAdventures from './MapFreeAdventures';
+import type { ActivityArea } from '@/lib/home-activities';
 import MapSurfGuide from "./MapSurfGuide";
 import { getSiargaoNightGuide, getSiargaoNightGuideForWeekday, type SiargaoWeekday } from "@/lib/siargao-nightlife";
 
 type AdventureMapOverlayProps = {
+  adventureArea: ActivityArea;
   nightPlaces: Array<{ id: string; slug: string; name: string }>;
   now: Date;
   timeZone?: string;
@@ -113,6 +116,7 @@ function getActivityMeta(activity: TonightActivity, now: Date, timeZone?: string
 }
 
 export default function AdventureMapOverlay({
+  adventureArea,
   nightPlaces,
   now,
   timeZone,
@@ -326,6 +330,7 @@ export default function AdventureMapOverlay({
             setGuideSpeechOpen(false);
           }} className="min-h-11 rounded-full border border-[#f5c518]/25 bg-[#211b0d]/95 px-3 text-[10px] font-black text-[#fff0a8] shadow-lg">Ask PeeBear</button>
         </div>
+        {!obscured ? <MapFreeAdventures area={adventureArea} now={now} /> : null}
         {showSurfPanel && !obscured ? <MapSurfGuide surfSignal={surfSignal} daylight={surfDaylight} onSelectPlace={onSelectPlace} onClose={() => setSurfPanelOpen(false)} /> : null}
 
         {showIntentCard ? (

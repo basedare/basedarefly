@@ -74,6 +74,9 @@ jobs:
       - name: Creator onboarding authorization regression
         run: npm run test:creator-onboarding
 
+      - name: Check local-spend pilot boundaries
+        run: npm run test:local-spend
+
       - name: Read-only funding audit regression
         run: node --test scripts/funding-audit.test.mjs
 

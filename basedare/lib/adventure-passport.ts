@@ -1,3 +1,4 @@
+import { ISLAND_TRIAL_ID, trialInviteHref } from './island-trials';
 import { adventureHref, readAdventureProgress, type AdventureRun } from './adventure-progress';
 import { ACTIVITY_SUGGESTIONS, suggestionsForArea, type ActivityArea } from './home-activities';
 
@@ -41,7 +42,8 @@ export function nextPassportActivity(value: unknown, area: ActivityArea, now = n
 }
 
 /** An invitation transfers public activity context, never the sender's run or completion. */
-export function personalAdventureInvite(run: Pick<AdventureRun, 'activityId' | 'placeSlug' | 'area'>) {
+export function personalAdventureInvite(run: Pick<AdventureRun, 'activityId' | 'placeSlug' | 'area' | 'island'>) {
+  if (run.activityId === ISLAND_TRIAL_ID) return trialInviteHref(run.island);
   const href = adventureHref(run.activityId, run.placeSlug, {
     ...run.area,
     lat: Math.round(run.area.lat * 1000) / 1000,

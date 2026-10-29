@@ -110,9 +110,9 @@ export function WalletOverview() {
         </details> : null}
       </>}
       <div className="mt-5 border-t border-white/10 pt-4 text-sm leading-6 text-white/70">
-        <p className="font-bold text-white">Spend at a local venue</p>
-        <p>At pilot venues, open the place page and look for “Pay with stablecoins using Yodl”. Checkout is in Yodl’s app; its wallet balance is separate from the balance shown here.</p>
-        <Link href="/map" className="bd-action mt-3">Find a venue →</Link>
+        <p className="font-bold text-white">Pay like a local</p>
+        <p>At pilot venues, open the place page and look for “Scan a merchant QR with Yodl”. Checkout is in Yodl’s app; its wallet balance is separate from the balance shown here.</p>
+        <Link href="/pay-local" className="bd-action mt-3">See local payment options →</Link>
       </div>
     </div>}
   </section>;

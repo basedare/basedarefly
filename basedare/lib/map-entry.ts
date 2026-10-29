@@ -1,10 +1,11 @@
+import { calculateDistance } from './geo';
 import {
   DEFAULT_DISCOVERY,
   readDiscovery,
   type DiscoveryArea,
 } from "./discovery-context";
 
-export type MapArea = Pick<DiscoveryArea, "lat" | "lng" | "label">;
+export type MapArea = Pick<DiscoveryArea, "lat" | "lng" | "label" | "timeZone">;
 export type MapEntry = MapArea & {
   zoom: number;
   source: "link" | "saved" | "approximate" | "demo";
@@ -82,6 +83,7 @@ export function mapEntry(
     return {
       ...linked,
       label: readDiscovery(query).label,
+      ...(readDiscovery(query).timeZone ? { timeZone: readDiscovery(query).timeZone } : {}),
       zoom:
         query.has("zoom") && Number.isFinite(zoom)
           ? Math.min(18, Math.max(2, zoom))
@@ -94,6 +96,7 @@ export function mapEntry(
     return {
       ...restored,
       label: readDiscovery(saved!).label,
+      ...(readDiscovery(saved!).timeZone ? { timeZone: readDiscovery(saved!).timeZone } : {}),
       zoom: 13,
       source: "saved",
     };
@@ -106,4 +109,11 @@ export function mapEntry(
     zoom: 14,
     source: "demo",
   };
+}
+
+/** Camera rounding within a browsing city must not erase that city’s timezone. */
+export function mapViewportArea(lat: number, lng: number, browse: MapArea): MapArea {
+  const local = calculateDistance(lat, lng, browse.lat, browse.lng) < 30;
+  return { lat: Math.round(lat * 1000) / 1000, lng: Math.round(lng * 1000) / 1000,
+    label: local ? browse.label : 'Selected map area', timeZone: local ? browse.timeZone : undefined };
 }

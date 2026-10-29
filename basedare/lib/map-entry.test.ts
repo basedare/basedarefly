@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { approximateMapArea, mapCoordinates, mapEntry } from "./map-entry";
+import { approximateMapArea, mapCoordinates, mapEntry, mapViewportArea } from "./map-entry";
 import {
   DEFAULT_DISCOVERY,
   discoveryHref,
@@ -106,4 +106,20 @@ test("default navigation leaves location undecided; chosen city labels round-tri
     }).label,
     sydney.label
   );
+});
+
+test('explicit and restored map areas preserve their own timezone for adventure handoffs', () => {
+  const query = new URLSearchParams('lat=-33.8688&lng=151.2093&areaLabel=Sydney&timeZone=Australia%2FSydney');
+  assert.equal(mapEntry(query, null, null).timeZone, 'Australia/Sydney');
+  query.set('selected', '1');
+  assert.equal(mapEntry(new URLSearchParams(), query, null).timeZone, 'Australia/Sydney');
+  const invalid = new URLSearchParams(query); invalid.set('timeZone', 'invented/zone');
+  assert.equal(mapEntry(invalid, null, null).timeZone, undefined);
+});
+
+test('small camera changes keep the browsing timezone, while distant pans discard the old city context', () => {
+  const browse = { ...sydney, timeZone: 'Australia/Sydney' };
+  assert.equal(mapViewportArea(-33.86879, 151.20931, browse).timeZone, 'Australia/Sydney');
+  assert.equal(mapViewportArea(-33.86879, 151.20931, browse).label, 'Sydney, AU');
+  assert.deepEqual(mapViewportArea(51.5074, -0.1278, browse), { lat: 51.507, lng: -0.128, label: 'Selected map area', timeZone: undefined });
 });

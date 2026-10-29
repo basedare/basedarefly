@@ -3,25 +3,27 @@ import Link from "@/components/DiscoveryLink";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSocialAction } from "@/hooks/useSocialAction";
-import { adventureTemplate, type AdventurePost } from "@/lib/adventure-sharing";
+import { adventureTemplate, adventureHashtag, type AdventurePost } from "@/lib/adventure-sharing";
 import PlanShareButton from "@/components/community/PlanShareButton";
 import { useDiscovery } from "@/components/DiscoveryProvider";
 import { calculateDistance } from "@/lib/geo";
 export default function SharedAdventures({
   compact = false,
+  activityId,
 }: {
   compact?: boolean;
+  activityId?: string;
 }) {
   const query = useSearchParams();
   const { area } = useDiscovery();
   const { wallet, headers } = useSocialAction();
-  const [mine, setMine] = useState(query.get("shared") === "mine");
-  const [tag, setTag] = useState(query.get("hashtag") ?? "");
+  const [mine, setMine] = useState(!activityId && query.get("shared") === "mine");
+  const [tag, setTag] = useState(activityId ? adventureHashtag(activityId) : query.get("hashtag") ?? "");
   const [posts, setPosts] = useState<AdventurePost[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(0);
-  const queryTag = query.get("hashtag") ?? "";
+  const queryTag = activityId ? adventureHashtag(activityId) : query.get("hashtag") ?? "";
   useEffect(() => { setTag(queryTag); }, [queryTag]);
   useEffect(() => {
     const restore = () => setRefresh((n) => n + 1);
@@ -78,6 +80,7 @@ export default function SharedAdventures({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mine, wallet, tag, refresh, query, area.lat, area.lng, area.radiusKm]);
   const visible = posts
+    .filter((post) => !activityId || post.activityId === activityId)
     .filter(
       (p) =>
         mine ||
@@ -100,7 +103,7 @@ export default function SharedAdventures({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-black text-white">
-            Adventures people shared
+            {activityId ? 'Island stories people shared' : 'Adventures people shared'}
           </h2>
           <p className="mt-2 text-xs text-white/55">
             {tag
@@ -117,7 +120,7 @@ export default function SharedAdventures({
           Try an adventure →
         </Link>
       </div>
-      <div className="my-4 flex flex-wrap gap-2">
+      {!activityId ? <div className="my-4 flex flex-wrap gap-2">
         <input
           aria-label="Find adventures by hashtag"
           placeholder="Find a #hashtag"
@@ -134,7 +137,7 @@ export default function SharedAdventures({
             {mine ? "Show community" : "My submissions"}
           </button>
         ) : null}
-      </div>
+      </div> : null}
       {error ? (
         <p role="status" className="text-sm text-amber-100">
           {error}{" "}

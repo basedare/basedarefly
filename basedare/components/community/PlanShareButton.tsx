@@ -14,6 +14,7 @@ export default function PlanShareButton({
   compact = false,
   className = '',
   analyticsSource = 'live_plan',
+  copyOnly = false,
 }: {
   title: string;
   text: string;
@@ -22,6 +23,7 @@ export default function PlanShareButton({
   compact?: boolean;
   className?: string;
   analyticsSource?: string;
+  copyOnly?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -44,7 +46,7 @@ export default function PlanShareButton({
 
   const sharePlan = async () => {
     setFailed(false);
-    if (typeof navigator.share === 'function') {
+    if (!copyOnly && typeof navigator.share === 'function') {
       try {
         await navigator.share({ title, text, url });
         trackClientEvent('live_plan_invite_shared', {
