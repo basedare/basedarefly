@@ -39,13 +39,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     } else if (body.action === 'record') {
       const parsed = PilotRecordSchema.safeParse(body.record);
       if (!parsed.success) return NextResponse.json({ success: false, error: parsed.error.issues[0].message }, { status: 400 });
-      if (!activeLocalSpendPilot(venue.metadataJson)) return NextResponse.json({ success: false, error: 'Configure a current tested pilot first.' }, { status: 409 });
+      const pilot = activeLocalSpendPilot(venue.metadataJson);
+      if (!pilot) return NextResponse.json({ success: false, error: 'Configure a current tested pilot first.' }, { status: 409 });
       const record = parsed.data;
-      await prisma.founderEvent.upsert({
-        where: { dedupeKey: `local-spend:${venue.id}:${record.recordId}` }, update: {},
-        create: { eventType: 'local_spend_pilot', source: 'venue-operator', dedupeKey: `local-spend:${venue.id}:${record.recordId}`,
-          title: venue.name, venueId: venue.id, venueSlug: slug, actor: wallet, status: record.evidence,
-          metadataJson: { ...record, confirmationMethod: 'manual_operator_entry', provider: 'YODL' }, },
+      if (record.network !== pilot.network || record.stablecoin !== pilot.asset || record.qrMethod !== pilot.qrMethod) return NextResponse.json({ success: false, error: 'Use the exact asset, network and merchant method that were tested for this pilot.' }, { status: 400 });
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Venue" WHERE id = ${venue.id} FOR UPDATE`;
+        const latest = await tx.venue.findUniqueOrThrow({ where: { id: venue.id }, select: { claimedBy: true, metadataJson: true } });
+        const currentPilot = activeLocalSpendPilot(latest.metadataJson);
+        if (latest.claimedBy?.toLowerCase() !== wallet || !currentPilot || record.network !== currentPilot.network || record.stablecoin !== currentPilot.asset || record.qrMethod !== currentPilot.qrMethod) throw new Error('Pilot or owner changed');
+        await tx.founderEvent.upsert({
+          where: { dedupeKey: `local-spend:${venue.id}:${record.recordId}` }, update: {},
+          create: { eventType: 'local_spend_pilot', source: 'venue-operator', dedupeKey: `local-spend:${venue.id}:${record.recordId}`,
+            title: venue.name, venueId: venue.id, venueSlug: slug, actor: wallet, status: record.evidence,
+            metadataJson: { ...record, confirmationMethod: 'manual_operator_entry', provider: 'YODL' }, },
+        });
       });
     } else return NextResponse.json({ success: false, error: 'Unknown action.' }, { status: 400 });
     return NextResponse.json({ success: true });

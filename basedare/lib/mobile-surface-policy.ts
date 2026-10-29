@@ -5,6 +5,6 @@ export function isActivityTrayRoute(pathname: string | null) {
 }
 
 export function suppressInstallPrompt(pathname: string | null) {
-  return isActivityTrayRoute(pathname) || ['/claim-tag', '/adventures', '/start', '/create', '/community/rally/new']
+  return isActivityTrayRoute(pathname) || ['/claim-tag', '/island-trials', '/adventures', '/start', '/create', '/community/rally/new']
     .some((path) => pathname === path || pathname?.startsWith(`${path}/`));
 }

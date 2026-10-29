@@ -1,3 +1,4 @@
+import { TRIAL_ISLANDS } from './island-trials';
 import { ACTIVITY_SUGGESTIONS, type ActivityArea } from './home-activities';
 import { readAdventureProgress, type AdventureProgress, type AdventureRun } from './adventure-progress';
 
@@ -20,6 +21,7 @@ export function canonicalPersonalProgress(input: unknown, now = Date.now()): Adv
       label: run.area.label, ...(run.area.timeZone ? { timeZone: run.area.timeZone } : {}) },
     ...(run.placeSlug ? { placeSlug: run.placeSlug } : {}),
     ...(run.verdict ? { verdict: run.verdict } : {}),
+    ...(run.island ? { island: run.island } : {}),
   })) };
 }
 
@@ -31,7 +33,7 @@ export function mergePersonalProgress(saved: unknown, device: unknown, now = Dat
   for (const run of b.runs) {
     const old = byId.get(run.runId);
     if (!old) { byId.set(run.runId, run); continue; }
-    if (old.activityId !== run.activityId || old.placeSlug !== run.placeSlug || old.area.lat !== run.area.lat || old.area.lng !== run.area.lng) throw new Error('A saved run has different activity context. Export your device record before choosing which record to keep.');
+    if (old.island !== run.island || old.activityId !== run.activityId || old.placeSlug !== run.placeSlug || old.area.lat !== run.area.lat || old.area.lng !== run.area.lng) throw new Error('A saved run has different activity context. Export your device record before choosing which record to keep.');
     byId.set(run.runId, { ...old, startedAt: Math.min(old.startedAt, run.startedAt),
       ...(old.completedAt ? {} : run.verdict ? { verdict: run.verdict } : {}),
       steps: [...new Set([...old.steps, ...run.steps])].sort((x, y) => x - y),
@@ -76,8 +78,9 @@ const xml = (value: string) => value.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', 
 export function personalCompletionSvg(run: AdventureRun, publicName?: string) {
   const activity = ACTIVITY_SUGGESTIONS.find((a) => a.id === run.activityId);
   if (!activity || !run.completedAt) throw new Error('Complete this adventure before making a card.');
-  const title = xml(activity.title.slice(0, 38));
-  const place = xml(run.area.label.slice(0, 64));
+  const island = TRIAL_ISLANDS.find((item) => item.id === run.island);
+  const title = xml((island ? 'I DEFENDED ' + island.label.toUpperCase() : activity.result ?? activity.title).slice(0, 46));
+  const place = xml(island ? 'ISLAND TRIAL #001 · NO BEACHES ALLOWED' : run.area.label.slice(0, 64));
   const name = publicName ? xml(publicName.slice(0, 30)) : 'A BaseDare Explorer';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" rx="36" fill="#090812"/><rect x="24" y="24" width="1152" height="582" rx="28" fill="none" stroke="#f5c518" stroke-width="3"/><circle cx="1050" cy="160" r="65" fill="#241a35" stroke="#b87fff" stroke-width="4"/><path d="M1015 163l24 24 46-56" fill="none" stroke="#f5c518" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><g font-family="Arial,sans-serif" fill="#fff"><text x="70" y="100" font-size="24" fill="#f5c518">BASEDARE · PERSONAL MEMORY</text><text x="70" y="205" font-size="40" font-weight="bold">${title}</text><text x="70" y="275" font-size="26" fill="#d8c6ef">${place}</text><text x="70" y="340" font-size="26">${name}</text><text x="70" y="430" font-size="40" font-weight="bold" fill="#f5c518">TRY THIS WITH ME</text><text x="70" y="490" font-size="22">Self-reported adventure · no verified visit or cash reward</text><text x="70" y="550" font-size="22" fill="#ccc">basedare.xyz/adventures/${xml(run.activityId)}</text></g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" rx="36" fill="#090812"/><rect x="24" y="24" width="1152" height="582" rx="28" fill="none" stroke="#f5c518" stroke-width="3"/><circle cx="1050" cy="160" r="65" fill="#241a35" stroke="#b87fff" stroke-width="4"/><path d="M1015 163l24 24 46-56" fill="none" stroke="#f5c518" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><g font-family="Arial,sans-serif" fill="#fff"><text x="70" y="100" font-size="24" fill="#f5c518">BASEDARE · PERSONAL MEMORY</text><text x="70" y="205" font-size="40" font-weight="bold">${title}</text><text x="70" y="275" font-size="26" fill="#d8c6ef">${place}</text><text x="70" y="340" font-size="26">${name}</text><text x="70" y="430" font-size="40" font-weight="bold" fill="#f5c518">TRY THIS WITH ME</text><text x="70" y="490" font-size="22">Self-reported adventure · no verified visit or cash reward</text><text x="70" y="550" font-size="22" fill="#ccc">basedare.xyz/${island ? 'island-trials/no-beaches-allowed' : 'adventures/' + xml(run.activityId)}</text></g></svg>`;
 }

@@ -83,13 +83,13 @@ test('perk dates control availability and claimed expiry cannot outlast the offe
 });
 test('a payment option cannot go live without merchant test evidence', () => {
   assert.equal(PilotConfigSchema.safeParse({ enabled: true, merchantQrTested: false, merchantReceiptConfirmed: false, testedAt: null, testReference: '' }).success, false);
-  const config = { enabled: true, merchantQrTested: true, merchantReceiptConfirmed: true, testedAt: new Date(now - 1000).toISOString(), testReference: 'receipt-1' };
+  const config = { merchantPermission: true, testedNetwork: 'Base', testedAsset: 'USDC', qrMethod: 'QR_PH_MERCHANT', enabled: true, merchantQrTested: true, merchantReceiptConfirmed: true, testedAt: new Date(now - 1000).toISOString(), testReference: 'receipt-1' };
   assert.ok(activeLocalSpendPilot({ localSpendPilot: config }, now));
   assert.equal(activeLocalSpendPilot({ localSpendPilot: config }, now + 31 * 86400000), null);
   assert.equal(PilotConfigSchema.safeParse({ ...config, enabled: false, testedAt: new Date(now - 31 * 86400000).toISOString() }).success, true, 'an expired pilot can always be disabled');
 });
 test('merchant-confirmed purchase requires amount received and receipt; failed zero-spend attempts can be recorded', () => {
-  const record = { recordId: '3dfb0c28-d720-44bb-82ab-8b3b4e3c4b9a', consent: true, outcome: 'COMPLETED', evidence: 'MERCHANT_CONFIRMED', stablecoin: 'USDC', amountSpent: '2.10', elapsedSeconds: 30 };
+  const record = { network: 'Base', qrMethod: 'QR_PH_MERCHANT', providerReference: 'provider-1', recordId: '3dfb0c28-d720-44bb-82ab-8b3b4e3c4b9a', consent: true, outcome: 'COMPLETED', evidence: 'MERCHANT_CONFIRMED', stablecoin: 'USDC', amountSpent: '2.10', elapsedSeconds: 30 };
   assert.equal(PilotRecordSchema.safeParse(record).success, false);
   assert.equal(PilotRecordSchema.safeParse({ ...record, phpReceived: '120', receiptReference: 'merchant-1' }).success, true);
   assert.equal(PilotRecordSchema.safeParse({ ...record, consent: false, phpReceived: '120', receiptReference: 'merchant-1' }).success, false);

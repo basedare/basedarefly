@@ -1,5 +1,7 @@
 'use client';
 
+import { mapViewportArea } from '@/lib/map-entry';
+
 import 'maplibre-gl/dist/maplibre-gl.css';
 import MapAreaPicker from '@/components/maps/MapAreaPicker';
 import { mapCoordinates, mapEntry, type MapArea } from '@/lib/map-entry';
@@ -3708,7 +3710,7 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
   useEffect(() => {
     if (!discoveryReady || entrySynced.current || hasDeepLinkedPlace) return;
     entrySynced.current = true;
-    updateArea({lat:entry.lat,lng:entry.lng,label:entry.label});
+    updateArea({lat:entry.lat,lng:entry.lng,label:entry.label,timeZone:entry.timeZone});
   }, [discoveryReady,entry,hasDeepLinkedPlace,updateArea]);
   const isCreatorSource = controlSource === 'creator';
   const showBackToControl = controlSource === 'control' || Boolean(deepLinkedCampaignId);
@@ -5207,8 +5209,7 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
         return { latitude, longitude };
       });
       setMapZoom((current) => (Math.abs(current - zoom) < 0.01 ? current : zoom));
-      const label = calculateDistance(latitude,longitude,browseArea.lat,browseArea.lng) < 30 ? browseArea.label : 'Selected map area';
-      updateArea({lat:Math.round(latitude*1000)/1000,lng:Math.round(longitude*1000)/1000,label});
+      updateArea(mapViewportArea(latitude, longitude, browseArea));
       scheduleNearbyPlaceFetch(latitude, longitude, zoom);
     },
     [browseArea, isMobileViewport, scheduleNearbyPlaceFetch, updateArea]
@@ -11374,6 +11375,7 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
             <div className="adventure-map-atmosphere pointer-events-none absolute inset-0 z-[2]" aria-hidden="true" />
 
             <AdventureMapOverlay
+              adventureArea={{ lat: adventureCenter.latitude, lng: adventureCenter.longitude, label: calculateDistance(adventureCenter.latitude, adventureCenter.longitude, discoveryArea.lat, discoveryArea.lng) < 25 ? discoveryArea.label : 'Selected map area', timeZone: recommendationTimeZone ?? (calculateDistance(adventureCenter.latitude, adventureCenter.longitude, discoveryArea.lat, discoveryArea.lng) < 25 ? discoveryArea.timeZone : undefined) }}
               nightPlaces={nearbyPlaces.map(place => ({ id: place.id, slug: place.slug, name: place.name }))}
               enabled={adventureMode}
               panelOpen={adventurePanelOpen}

@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { useAccount } from 'wagmi';
 
 import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
+import { adventureLaunchPreset } from '@/lib/adventure-launch-kit';
+import { ACTIVITY_SUGGESTIONS } from '@/lib/home-activities';
 import { CREATOR_DROP_CATEGORIES, creatorDropCategoryLabel, type CreatorDropCategory } from '@/lib/creator-drops';
 
 type CreatorDropSummary = {
@@ -200,6 +202,11 @@ export default function CreatorDropsAdminPage() {
         <section className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <form onSubmit={createDrop} className="rounded-[28px] border border-[#f5c518]/20 bg-[linear-gradient(150deg,rgba(245,197,24,.07),rgba(255,255,255,.035)_30%,rgba(0,0,0,.62))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.08)]">
             <h2 className="flex items-center gap-2 text-xl font-black"><Plus className="h-5 w-5 text-[#ffe36a]" /> New creator drop</h2>
+            <label className="mt-4 block text-sm font-bold text-violet-100">Start with an adventure template<select defaultValue="" className={inputClass} onChange={(event) => {
+              const preset = adventureLaunchPreset(event.target.value);
+              if (preset) { setForm((previous) => ({ ...previous, ...preset })); setMessage('Template loaded. Choose a real consenting creator and unique link codes before creating. Nothing has been published.'); }
+            }}><option value="" disabled>Choose a free trial or Chaos Quest</option>{ACTIVITY_SUGGESTIONS.filter((item) => item.collection || item.id === 'siargao-verdict').map((item) => <option key={item.id} value={item.id}>{item.collection ?? 'Siargao trial'} · {item.title}</option>)}</select></label>
+            <p className="mt-2 text-xs leading-5 text-white/55">This fills the draft only. Assign real creator codes, get permission and review the destination. A guest attempt never becomes a verified completion metric.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Field label="slug" value={form.slug} onChange={(value) => update('slug', value)} placeholder="maya-cloud9-rumor" required />
               <Field label="creatorCode" value={form.creatorCode} onChange={(value) => update('creatorCode', value)} placeholder="maya" required />
