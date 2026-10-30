@@ -9,3 +9,8 @@ Before a future verified-view reward, define platform-authorized evidence access
 Before qualified-action rewards, specify the exact independently supported action and its evidence. An attributable free start is not arrival, a QR+GPS presence claim is not a purchase, and a post review is not task acceptance. Retain existing durable authorization, anti-self-referral/collusion controls, dedupe, campaign budgets, funding reserves, signed commercial terms, review, settlement/retry/refund and dispute policy. No marketing intent may mark a paid task complete.
 
 Reuse the existing Campaign/assignment/AttributionEvent/Dare/ContentRightsAcceptance systems if evidence justifies implementation. Preserve financial canon; any new pricing requires an explicit decision. Begin with a bounded manual reconciliation pilot after paid infrastructure is proven. AR/VR, new XP/tokens, auth migration, public bots and autonomous outreach remain outside this release.
+
+
+## Optional future Telegram community bot
+
+Reuse only deep links to public canonical challenges, genuine plans and approved Moments. A future user must explicitly opt in to alerts and choose an area/topic; provide stop/unsubscribe and bounded frequency. The bot must recheck current publication/authorization, never expose private room messages or live personal location, and never gain privileged admin-bot permissions. No contacts import, unsolicited outreach or automatic promotional posting. Telegram sharing already opens a user-controlled draft; it does not deploy a bot or prove message delivery.

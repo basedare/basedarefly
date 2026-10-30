@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { momentSubmissionHref } from "./adventure-sharing";
 import { publicSocialPost, socialPostIdentity } from "./social-post-url";
 import {
   publicMomentAllowed,
@@ -197,4 +198,15 @@ test("sponsored terms are bounded, proposed and incapable of enabling payouts or
     { ...draft, activityId: undefined },
   ])
     assert.equal(SponsoredBriefSchema.safeParse(bad).success, false);
+});
+
+test('submission handoff preserves the canonical activity/public source without transferring guest progress', () => {
+  const href = momentSubmissionHref('wave-or-ex', 'public-moment-001', 'real-public-place');
+  const url = new URL(href, 'https://www.basedare.xyz');
+  assert.equal(url.pathname, '/adventures/wave-or-ex/submit');
+  assert.equal(url.searchParams.get('moment'), 'public-moment-001');
+  assert.equal(url.searchParams.get('place'), 'real-public-place');
+  assert.deepEqual([...url.searchParams.keys()].sort(), ['moment','place']);
+  assert.equal(momentSubmissionHref('unknown'), '/adventures');
+  assert.equal(momentSubmissionHref('wave-or-ex', 'private/value', '../../secret'), '/adventures/wave-or-ex/submit');
 });

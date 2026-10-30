@@ -10,6 +10,7 @@ export default function MomentSubmit({ activityId }: { activityId: string }) {
     <ShareAdventure
       activityId={activityId}
       runId={runId}
+      placeSlug={query.get("place") ?? undefined}
       parentMomentId={
         parent && /^[a-zA-Z0-9-]{8,80}$/.test(parent) ? parent : undefined
       }

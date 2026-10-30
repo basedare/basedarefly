@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import CreatorShareKit from './CreatorShareKit';
+import { momentSubmissionHref } from '@/lib/adventure-sharing';
 import { recordAdventureEvent } from '@/lib/adventure-funnel';
 import Link from '@/components/DiscoveryLink';
 import { useSearchParams } from 'next/navigation';
@@ -28,7 +29,6 @@ import { trackClientEvent } from '@/lib/analytics';
 
 const PersonalCompletionCard = dynamic(() => import('./PersonalCompletionCard'), { loading: () => <p role="status" className="mt-4 text-sm text-white/65">Opening your memory…</p> });
 const SharedAdventures = dynamic(() => import('./SharedAdventures'), { loading: () => <p role="status" className="mt-5 text-sm text-white/65">Opening shared adventures…</p> });
-const ShareAdventure = dynamic(() => import('./ShareAdventure'), { loading: () => <p role="status" className="mt-5 text-sm text-white/65">Opening sharing…</p> });
 const panel = 'bd-surface p-5 sm:p-7';
 
 export default function AdventureHub({ activityId, invitedVerdict, invitedIsland }: { activityId?: string; invitedVerdict?: Verdict; invitedIsland?: TrialIsland }) {
@@ -184,7 +184,7 @@ export default function AdventureHub({ activityId, invitedVerdict, invitedIsland
             <Link href="/now?participation=meet" className="bd-action !text-sm">Find a group plan</Link>
           </div>
           <button type="button" className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-white/65" aria-expanded={memoryRunId === latestCompleted.runId} aria-controls="adventure-memory" onClick={() => setMemoryRunId((id) => id === latestCompleted.runId ? null : latestCompleted.runId)}>Your memory · optional <ChevronDown size={16} aria-hidden="true" /></button>
-          <CreatorShareKit activityId={activity.id} /><ShareAdventure key={latestCompleted.runId} activityId={activity.id} runId={latestCompleted.runId} placeSlug={placeSlug} parentMomentId={query.get('moment') ?? undefined} />
+          <CreatorShareKit activityId={activity.id} /><Link href={momentSubmissionHref(activity.id, query.get('moment'), placeReady ? placeSlug : undefined)} className="bd-action mt-5 min-h-12 !text-sm">Share your take · optional</Link>
           {memoryRunId === latestCompleted.runId ? <div id="adventure-memory">{activity.collection !== 'Chaos Quests' && !isTrial ? <PersonalCompletionCard run={latestCompleted} /> : null}<div className="mt-3">{passportEntry}</div></div> : null}
         </div> : null}
         {!canStart && !current && !finished ? <p role="status" className="bd-well mt-4 p-4 text-sm leading-6 text-amber-100">{!ready || !discoveryReady ? 'Opening your progress…' : isChallenge && !siargaoCampaignOpen(now) ? 'This Siargao pilot has ended. Your saved result stays in your memories. Try another free adventure.' : isTrial && !trialIsland ? 'Pick your island above, then accept the dare.' : !placeReady ? 'Let’s find this place before you start.' : 'The local time isn’t right for this one. Try another idea, or come back in daylight.'}</p> : null}

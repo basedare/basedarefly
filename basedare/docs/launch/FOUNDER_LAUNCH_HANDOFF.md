@@ -2,6 +2,14 @@
 
 29 October 2026. Source: revised shared brief `t_6ae328e8e2d081918839970d5b35d2a2`. This release extends the shipped Chaos Quests and Island Trials. It does not replace the map, guest journal, identity, plan membership or paid settlement systems.
 
+## Review links and implementation revisions
+
+- Branch: `codex/social-moments-alpha-20261029`.
+- Draft PR and current head: https://github.com/basedare/basedarefly/pull/40.
+- Product implementation: https://github.com/basedare/basedarefly/commit/dbccd6602d050127939fef4ff50925d5f87dc202.
+- Linux disposable-database repair: https://github.com/basedare/basedarefly/commit/42a521bbdd83f3340bffb41bd7ac00849dfb80de.
+- Follow the PR for subsequent documentation-only revisions and exact CI/preview state. A READY preview build is not a tested hosted Moment database.
+
 ## Status
 
 - **Built, under verification:** guest offer → optional contribution → private review → canonical approved Moment → another participant’s independent attempt. Social post URL and private original-file adapters, separate display/credit/spotlight permissions, reporting, withdrawal and editorial selection.
@@ -9,6 +17,13 @@
 - **Production:** this release is not deployed and its migration has not been applied to production. Existing public challenge URLs below already belong to the prior release; new Moment URLs do not exist until this release is approved and a real submission is approved.
 - **Unverified:** private Pinata account capability and actual uploaded-file playback; real phone/passkey recovery; native sharing into installed messaging/social apps; public social source availability/ownership; hosted runtime on an isolated migrated preview database; physical QR/perk redemption; paid mainnet end-to-end settlement. Fixture success does not prove these integrations.
 - No creator/business outreach, social posting, contacts import, production row mutation, funds allocation or chain transaction was performed.
+
+## Partial and deliberately missing
+
+- **Partial:** map discovery reuses the existing genuine place-story markers and View place handoff to a venue’s Moments. A new inline map-panel Moment gallery is not added to the renderer. Creator Spotlight and independent relay links are implemented; there is no separate contest/comparison engine or winner logic.
+- **Partial:** recorded journey/attempt/approval attribution is available. Unique-human reproduction, verified social impressions, moderator hands-on minutes and causal sales need independent evidence; they are not inferred from these records. First-week founder review should record real review minutes manually.
+- **Unverified integrations:** see Status and the top five blockers. A provider adapter, configured secret or fixture is not a live upload, recovery, delivery or payout receipt.
+- **Design only:** automated view/action compensation, new fees, public bots, Privy migration, automatic social posting/scraping, universal XP/tokens and AR/VR. Existing funded work and evidence rules retain their own readiness gates.
 
 ## Exact entry points
 
@@ -32,7 +47,7 @@ A real approved contribution receives `/moments/{actualSubmissionId}`. Its **Bea
 ## Founder operation
 
 1. Play the free challenge as a guest. Keep the original authored rules, local-time suitability, safety guidance and personal progress. No account, wallet, purchase, filming or public post is required to finish.
-2. A contributor can optionally open **Share your take**, or the exact `/submit` route. Sign-in is required only to send/manage the contribution. Accept one full public TikTok video, Instagram post/Reel or X post URL, or one original JPG/PNG/GIF/MP4/MOV/WebM under 4 MB. Profiles, short links, embeds and arbitrary URLs are rejected. Place is optional and must be a genuine active Venue when supplied.
+2. A contributor can optionally open **Share your take**, which opens the exact dedicated `/submit` route. That page preserves the activity across sign-in without depending on the guest/account journal or automatically saving private guest history. Sign-in is required only to send/manage the contribution. Accept one full public TikTok video, Instagram post/Reel or X post URL, or one original JPG/PNG/GIF/MP4/MOV/WebM under 4 MB. Profiles, short links, embeds and arbitrary URLs are rejected. Place is optional and must be a genuine active Venue when supplied.
 3. New original files go only to Pinata’s private API. There is no public-storage fallback. Failure leaves the contribution unpublished; the client tells the contributor to check My submissions before retrying. Orphaned private uploads after a provider/transaction failure may need provider-side cleanup; no automated deletion is claimed.
 4. In `/admin/adventures`, establish the existing administrator session. Load **PENDING**. Open the actual source and inspect the exact challenge, appropriateness, permissions, private details and any claimed place. A social URL does not verify the social account or attendance. If the source cannot be reviewed, do not approve it.
 5. Enter a review reason. **Publish Moment** records the authorized reviewer, reason and time, sends the existing in-app notification and exposes the canonical Moment. **Decline / remove** records the reason and keeps it off public surfaces. A previously withdrawn item cannot be republished. **FLAGGED** is the report queue; review before restoring.

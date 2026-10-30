@@ -2,7 +2,7 @@
 
 ## Result
 
-Free adventures retain guest play, saved steps and personal completion cards. Optional contributions accept a canonical full TikTok/Instagram/X post URL or a supported original file. A venue is optional. New original files use private Pinata storage and revocable app delivery; the existing paid-proof uploader is unchanged. Pending, flagged, rejected and withdrawn contributions have no public Moment or preview card.
+Free adventures retain guest play, saved steps and personal completion cards. Optional contributions accept a canonical full TikTok/Instagram/X post URL or a supported original file. A venue is optional. Completion opens a dedicated optional submission route so switching from guest to account journals during sign-in cannot remove the form; no private guest history is automatically attached. New original files use private Pinata storage and revocable app delivery; the existing paid-proof uploader is unchanged. Pending, flagged, rejected and withdrawn contributions have no public Moment or preview card.
 
 Approved display-consented contributions get `/moments/{id}` and a genuine original-challenge action, optional place, authorized Baretag credit, separate spotlight selection, native/copy/platform share kit, report and independent relay. A Reality Receipt says **Reviewed creation**, never location/task/outcome verified from a URL. No scraped embeds or invented previews, participants or venues. New active sources deduplicate across wallets under a database lock/partial index; canonical tracking parameters/author-handle variations cannot create another active copy.
 
