@@ -46,9 +46,10 @@
     "test:revenue:db": "bash scripts/run-revenue-readiness-db.sh",
     "test:prisma-config": "node scripts/prisma-config-safety-check.mjs",
     "test:http-redirect-security": "node --test scripts/http-redirect-security.test.mjs",
-    "test:revenue-focus": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/revenue-focus.test.ts lib/revenue-return-paths.test.ts lib/content-delivery.test.ts lib/financial-canon.test.ts",
+    "test:revenue-focus": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/revenue-focus.test.ts lib/revenue-return-paths.test.ts lib/content-delivery.test.ts lib/financial-canon.test.ts lib/business-entry-policy.test.ts",
     "test:local-spend": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/local-spend-route-check.ts",
-    "test:moments": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register --test lib/social-moments.test.ts"
+    "test:moments": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register --test lib/social-moments.test.ts",
+    "test:uri-decoder-security": "node --test scripts/uri-decoder-security.test.mjs"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.6",
@@ -96,7 +97,8 @@
     "viem": "^2.44.1",
     "wagmi": "^2.19.5",
     "web-push": "^3.6.7",
-    "zod": "^4.6.6"
+    "zod": "^4.6.6",
+    "decode-uri-component": "file:vendor/decode-uri-component-cjs"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
@@ -155,7 +157,8 @@
     "ws@>=7 <8": "7.5.11",
     "hono": "4.13.7",
     "socket.io-parser": "4.2.7",
-    "zod": "$zod"
+    "zod": "$zod",
+    "decode-uri-component": "$decode-uri-component"
   },
   "optionalDependencies": {
     "@tailwindcss/oxide-linux-x64-gnu": "4.1.18",

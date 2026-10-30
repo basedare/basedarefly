@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { adventureArea } from './adventure-discovery';
 import { adventureHref } from './adventure-progress';
 import { SIARGAO_ACTIVITY_AREA, matchingAdventureSuggestions } from './home-activities';
-import { isActivityTrayRoute, suppressInstallPrompt } from './mobile-surface-policy';
+import { bypassDecorativeLoader, isActivityTrayRoute, suppressInstallPrompt } from './mobile-surface-policy';
 
 const sydney = { lat: -33.8688, lng: 151.2093, label: 'Sydney', timeZone: 'Australia/Sydney' };
 
@@ -60,8 +60,13 @@ test('every route that may render a participation tray suppresses optional insta
 });
 
 test('focused adventure and creation flows stay clear while installation remains available elsewhere', () => {
-  for (const path of ['/moments', '/moments/example', '/adventures', '/adventures/postcard', '/adventures/passport', '/create', '/start', '/claim-tag', '/community/rally/new']) {
+  for (const path of ['/brands/portal', '/activations', '/activations/close/example', '/moments', '/moments/example', '/adventures', '/adventures/postcard', '/adventures/passport', '/create', '/start', '/claim-tag', '/community/rally/new']) {
     assert.ok(suppressInstallPrompt(path), path);
   }
   for (const path of ['/', '/faq', '/about']) assert.equal(suppressInstallPrompt(path), false, path);
+});
+
+test('business and free participation open immediately without decorative loading', () => {
+  for (const path of ['/brands/portal', '/activations', '/activations/close/example', '/moments/example', '/adventures/example', '/island-trials/example']) assert.equal(bypassDecorativeLoader(path), true);
+  for (const path of ['/', '/faq', '/activations-other', '/brands/portal-other']) assert.equal(bypassDecorativeLoader(path), false);
 });

@@ -27,7 +27,7 @@ import {
   shouldPreferLightweightClient,
 } from "@/lib/client-performance";
 import { MANAGED_FIELD_SPRINT } from "@/lib/financial-canon";
-import { businessRequestHref } from '@/lib/business-request';
+import { BUSINESS_DEFINITION } from '@/lib/business-request';
 
 const HeroEllipticalStream = dynamic(() => import("@/components/HeroEllipticalStream"), {
   loading: () => <div className="h-[560px] w-full md:h-[680px]" aria-hidden="true" />,
@@ -363,7 +363,7 @@ function HomeContent() {
                 Control Mode
               </h1>
               <p className="mx-auto mt-5 max-w-md px-6 text-base font-bold leading-7 text-zinc-800 md:max-w-lg md:px-0 md:text-lg lg:-mt-16">
-                Put your brand into action with paid dares for creators and local communities.
+                {BUSINESS_DEFINITION}
               </p>
             </div>
 
@@ -379,20 +379,11 @@ function HomeContent() {
                       Get people creating, sharing and showing up.
                     </h2>
                     <p className="mt-4 max-w-2xl text-sm font-bold leading-6 text-white/62 sm:text-base sm:leading-7">
-                      Turn your brief into a paid dare. Commission content, plan a promotion or fund a local activity. Agree on the work, rewards and permissions before it begins.
+                      Bring people in, get creator content or help new customers discover your business. Start with your goal; review a proposed plan before anything goes live.
                     </p>
                     <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                      <Link
-                        href={businessRequestHref('content-brief', 'home-business')}
-                        className="bd-action bd-action--gold min-h-12 px-6"
-                      >
-                        Request content →
-                      </Link>
-                      <Link
-                        href={businessRequestHref('activity-brief', 'home-business')}
-                        className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/12 bg-white/[0.05] px-6 text-xs font-black uppercase tracking-[0.16em] text-white/75 transition hover:bg-white/[0.09] hover:text-white"
-                      >
-                        Plan a local activity
+                      <Link href="/brands/portal?from=home" className="bd-action bd-action--gold min-h-12 px-6">
+                        Grow my business →
                       </Link>
                     </div>
                   </div>

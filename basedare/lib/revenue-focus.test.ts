@@ -83,7 +83,7 @@ test('different enquiry kinds stay separate while retries and legacy sources rem
 
 import { buildActivationCloseRoomFromEvent, buildActivationCloseRoomAdminState } from './activation-close-room.ts';
 test('content and activity review keep the real brief and cannot inherit a First Spark offer', () => {
-  for (const kind of ['content-brief', 'activity-brief']) {
+  for (const kind of ['content-brief', 'activity-brief', 'visibility-brief']) {
     const metadata = { routedMissionType: kind, company: 'Test buyer', city: 'Sydney', packageId: 'pilot-drop', budgetRange: 'discuss', notes: 'One exact scoped deliverable', routedTimeWindow: 'Next month' };
     const room = buildActivationCloseRoomFromEvent({ id: 'qa-only', title: 'Brief', amount: null, status: 'NEW', actor: null, metadataJson: metadata, occurredAt: new Date(), updatedAt: new Date() });
     assert.equal(room.isFirstSpark, false);

@@ -1,3 +1,4 @@
+import { boundedRequestBytes } from '@/lib/bounded-request';
 import { businessRequestDedupeSource, businessRequestKind } from '@/lib/business-request';
 import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const body = JSON.parse(new TextDecoder().decode(await boundedRequestBytes(request, 65536)));
     const validation = ActivationIntakeSchema.safeParse(body);
 
     if (!validation.success) {
@@ -401,6 +402,8 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
+    if (error instanceof SyntaxError) return NextResponse.json({ success: false, error: 'That request could not be read. Check your details and try again.' }, { status: 400 });
+    if (error instanceof Error && error.message === 'BODY_TOO_LARGE') return NextResponse.json({ success: false, error: 'That request is too large. Shorten the brief and try again.' }, { status: 413 });
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ACTIVATION_INTAKE] Failed:', message);
     return NextResponse.json(

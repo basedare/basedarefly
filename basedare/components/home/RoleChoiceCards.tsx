@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Store } from 'lucide-react';
 import { controlSoftCard } from '@/components/control/tokens';
-import { businessRequestHref } from '@/lib/business-request';
 import DiscoveryLink from '@/components/DiscoveryLink';
 
 /**
@@ -67,8 +66,7 @@ export default function RoleChoiceCards() {
             </p>
           </div>
           <div className="relative mt-auto grid gap-2">
-            <Link href={businessRequestHref('content-brief', 'home-business')} prefetch={false} className="bd-action bd-action--gold w-full !text-sm">Request content <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
-            <Link href={businessRequestHref('activity-brief', 'home-business')} prefetch={false} className="bd-action w-full !text-sm">Plan a local activity <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+            <Link href="/brands/portal?from=home" prefetch={false} className="bd-action bd-action--gold w-full !text-sm">Grow my business <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
           </div>
           <p className="relative text-sm leading-6 text-white/60">No account or payment needed to enquire. A request does not start work or reserve contributors.</p>
           <Link href="/create?sparkType=paid&source=home-mission-buyer" prefetch={false} className="relative inline-flex min-h-11 items-center text-sm font-bold text-cyan-100 underline decoration-cyan-100/30 underline-offset-4">Set up a paid mission yourself →</Link>

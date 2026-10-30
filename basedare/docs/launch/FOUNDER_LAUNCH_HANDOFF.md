@@ -8,11 +8,12 @@
 - Draft PR and current head: https://github.com/basedare/basedarefly/pull/40.
 - Product implementation: https://github.com/basedare/basedarefly/commit/dbccd6602d050127939fef4ff50925d5f87dc202.
 - Linux disposable-database repair: https://github.com/basedare/basedarefly/commit/42a521bbdd83f3340bffb41bd7ac00849dfb80de.
-- Follow the PR for subsequent documentation-only revisions and exact CI/preview state. A READY preview build is not a tested hosted Moment database.
+- Optional sign-in handoff repair: https://github.com/basedare/basedarefly/commit/fe3516c4.
+- Follow the PR for subsequent business-entry/security revisions and exact CI/preview state. A READY preview build is not a tested hosted Moment database.
 
 ## Status
 
-- **Built, under verification:** guest offer → optional contribution → private review → canonical approved Moment → another participant’s independent attempt. Social post URL and private original-file adapters, separate display/credit/spotlight permissions, reporting, withdrawal and editorial selection.
+- **Built and locally verified:** guest offer → optional contribution → private review → canonical approved Moment → another participant’s independent attempt. Social post URL and private original-file adapters, separate display/credit/spotlight permissions, reporting, withdrawal and editorial selection.
 - **Built:** Community entry points, genuine place/creator Moment history, creator share kit, private sponsor brief drafts in the existing founder/intake ledger and a founder growth panel over existing attribution records.
 - **Production:** this release is not deployed and its migration has not been applied to production. Existing public challenge URLs below already belong to the prior release; new Moment URLs do not exist until this release is approved and a real submission is approved.
 - **Unverified:** private Pinata account capability and actual uploaded-file playback; real phone/passkey recovery; native sharing into installed messaging/social apps; public social source availability/ownership; hosted runtime on an isolated migrated preview database; physical QR/perk redemption; paid mainnet end-to-end settlement. Fixture success does not prove these integrations.
@@ -127,3 +128,13 @@ Prefer a forward fix. Leave the additive schema and records intact on rollback. 
 ## Verification record
 
 Focused policies, legacy forward migration/RLS and real handler/DB privacy tests pass; the prior discovery, Passport and buyer regressions pass. The optimized app also passed actual signed-localhost submission, admin approval, card generation and withdrawal. Final browser/build/Graphify and remote CI results are recorded with the PR. Database tests use a real disposable PostgreSQL database and actual route handlers with explicit auth/storage fixtures; those fixtures are not real wallet/provider/chain evidence. No test success should be presented as a live participant or launch receipt.
+
+## 30 October continuation — business entry
+
+The previous social-loop implementation and sign-in handoff repair are complete locally. Its last remote build hit a newly reported URI decoder advisory; the compatibility-preserving patch and regression checks are included in this continuation. Final head/CI state lives on draft PR40.
+
+Local checks passed: 25 business policies, 70 discovery, 6 Moments, 3 URI security and 4 provider validation tests; real buyer-state DB regressions; both actual optimized local HTTP suites; guest business forms at 320/390px and desktop at 1440px; clean install, typecheck, 0 lint errors, static safety, build and Graphify (4,307 nodes / 5,199 edges).
+
+Business owners now get a plain-language offer, Bring people in / Get creator content / Get more visibility, then Grow my business and a five-field guest enquiry. Existing workspace, targeted campaign/venue/report links, legacy offers and admin intake remain. Requests are saved proposals, never funded or published campaigns. Review remains before live work; no pricing, availability, rights or results are invented. See `docs/releases/business-entry-clarity-2026-10-30.md` for tests and boundaries.
+
+This does not clear the production Moments migration/provider/device gates above or the separate paid-mainnet gates. No outreach, production mutation or funds movement.

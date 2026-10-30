@@ -1,3 +1,5 @@
+import BusinessWelcome from '@/components/BusinessWelcome';
+import { isGeneralBusinessEntry } from '@/lib/business-entry-policy';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -70,6 +72,7 @@ export default async function ActivationsPage({ searchParams }: ActivationsPageP
     routedSource === 'venue-guest-mission' || resolvedSearchParams.missionType === 'guest';
   const requestKind = businessRequestKind(resolvedSearchParams.missionType);
   const businessRequest = requestKind ? BUSINESS_REQUESTS[requestKind] : null;
+  if (requestKind || isGeneralBusinessEntry(resolvedSearchParams)) return <BusinessWelcome kind={requestKind ?? undefined} city={routedCity} venue={routedVenue} venueId={routedVenueId} venueSlug={routedVenueSlug} creator={routedCreator} source={routedSource} />;
   const isVerifiedFieldSprintRoute = resolvedSearchParams.missionType === 'field-mission';
   const hasRoutedContext = Boolean(
     routedCreator ||
