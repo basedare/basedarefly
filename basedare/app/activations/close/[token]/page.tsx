@@ -62,7 +62,7 @@ export default async function ActivationCloseRoomPage({
   if (closeRoom.businessBrief) return <main className="bd-page-top relative min-h-screen px-4 pb-24 text-white sm:px-6">
     <CloseRoomTracker token={token} />
     <div className="relative mx-auto max-w-2xl">
-      <Link href="/brands/portal" className="bd-back">Buyer workspace</Link>
+      <Link href="/brands/portal?workspace=1" className="bd-back">Buyer workspace</Link>
       <section className="bd-surface mt-5 p-5 sm:p-7">
         <p className="text-sm font-bold text-amber-100">Brief review · {closeRoom.statusLabel}</p>
         <h1 className="mt-3 text-3xl font-black tracking-tight">{closeRoom.businessBrief.title}</h1>

@@ -876,6 +876,7 @@ export default function CreatorProfilePage() {
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white">{displayTag}</h1>
+                                        <Link href={'/moments?creator=' + encodeURIComponent(displayTag.replace(/^@/, ''))} className="inline-flex min-h-11 items-center text-sm font-bold text-violet-100">Reviewed Moments →</Link>
                                         {profile?.verified && (
                                             <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 uppercase tracking-[0.18em]">
                                                 Verified

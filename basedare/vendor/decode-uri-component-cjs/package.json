@@ -1,0 +1,10 @@
+{
+  "name": "@basedare/decode-uri-component-cjs",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "decode-uri-component-patched": "npm:decode-uri-component@0.5.1"
+  }
+}

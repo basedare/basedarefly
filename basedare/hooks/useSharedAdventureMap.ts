@@ -39,8 +39,9 @@ export function useSharedAdventureMap(
           markers = [];
           const seen = new Set<string>();
           for (const post of b.data as AdventurePost[]) {
-            if (seen.has(post.venue.slug)) continue;
-            seen.add(post.venue.slug);
+            const venue = post.venue;
+            if (!venue || seen.has(venue.slug)) continue;
+            seen.add(venue.slug);
             const el = document.createElement("button");
             el.type = "button";
             const icon = document.createElement("img");
@@ -50,7 +51,7 @@ export function useSharedAdventureMap(
             icon.height = 32;
             icon.style.objectFit = "contain";
             el.appendChild(icon);
-            el.title = "Shared adventures · " + post.venue.name;
+            el.title = "Shared adventures · " + venue.name;
             el.setAttribute("aria-label", el.title);
             Object.assign(el.style, {
               display: "grid",
@@ -70,7 +71,7 @@ export function useSharedAdventureMap(
               e.stopPropagation();
               window.location.assign(
                 "/adventures?place=" +
-                  encodeURIComponent(post.venue.slug) +
+                  encodeURIComponent(venue.slug) +
                   "&shared=public",
               );
             };
@@ -80,7 +81,7 @@ export function useSharedAdventureMap(
                 anchor: "bottom",
                 offset: [22, -20],
               })
-                .setLngLat([post.venue.longitude, post.venue.latitude])
+                .setLngLat([venue.longitude, venue.latitude])
                 .addTo(map),
             );
           }

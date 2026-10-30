@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ArrowRight, Loader2, Send, Sparkles } from 'lucide-react';
 import SquircleButton from '@/components/ui/SquircleButton';
-import { BUSINESS_REQUESTS, businessRequestKind } from '@/lib/business-request';
+import { BUSINESS_REQUESTS, businessRequestKind, confirmedBusinessEnquiry } from '@/lib/business-request';
 import { buildActivationStoryBrief, type ActivationBrandMemoryInput } from '@/lib/activation-brand-memory';
 import {
   getActivationFunnelAttribution,
@@ -334,6 +334,10 @@ export default function ActivationIntakeForm({
   const [error, setError] = useState<string | null>(null);
   const routedContextRef = useRef<string | null>(initialContextKey || null);
   const formStartTrackedRef = useRef(false);
+  const submissionHeadingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (submittedId) submissionHeadingRef.current?.focus();
+  }, [submittedId]);
   const hasRoutedContext = Boolean(
     form.routedCreator ||
     form.routedVenueId ||
@@ -596,7 +600,7 @@ export default function ActivationIntakeForm({
     : isPilotCloseLoop
       ? 'Send request'
       : 'Send your request';
-  const routingActionLabel = isFieldSprintRequest
+  const routingActionLabel = businessRequestKind(form.routedMissionType) ? 'Sending your enquiry' : isFieldSprintRequest
     ? 'Sending invoice request'
     : isPilotCloseLoop
       ? 'Sending pilot request'
@@ -724,6 +728,7 @@ export default function ActivationIntakeForm({
       });
 
       const response = await fetch('/api/activation-intake', {
+        signal: AbortSignal.timeout(15000),
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -756,13 +761,15 @@ export default function ActivationIntakeForm({
         throw new Error(payload.error || 'Failed to route activation request');
       }
 
-      setSubmittedId(payload.data?.id || 'received');
-      setSubmittedCloseRoomHref(payload.data?.closeRoomHref || null);
+      const confirmed = confirmedBusinessEnquiry(payload);
+      if (!confirmed) throw new Error('We couldn’t confirm that your request was saved. Please check the details and retry.');
+      setSubmittedId(confirmed.id);
+      setSubmittedCloseRoomHref(confirmed.closeRoomHref);
       setSubmittedFieldSprint(isFieldSprintRequest);
       setForm(initialFormState);
       formStartTrackedRef.current = false;
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Failed to route activation request');
+      setError(submitError instanceof Error && (submitError.name === 'TimeoutError' || submitError.name === 'AbortError') ? 'The response timed out. Your details are still here. Check for a confirmation or retry before submitting another request.' : submitError instanceof Error ? submitError.message : 'Could not save your request. Please retry.');
     } finally {
       setSubmitting(false);
     }
@@ -774,18 +781,18 @@ export default function ActivationIntakeForm({
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-emerald-200/22 bg-emerald-300/[0.12] text-2xl font-black text-emerald-100">
           OK
         </div>
-        <h3 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">
-          {submittedFieldSprint ? 'Request received.' : 'Request received.'}
+        <h3 ref={submissionHeadingRef} tabIndex={-1} className="mt-4 scroll-mt-28 text-2xl font-black tracking-[-0.04em] text-white outline-none">
+          {businessRequestKind(form.routedMissionType) ? 'Your enquiry is saved.' : 'Request received.'}
         </h3>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/58">
-          {submittedFieldSprint
+          {businessRequestKind(form.routedMissionType) ? 'We’ll review your goal and reply using the details you provided. You can review the proposed plan before deciding what happens next.' : submittedFieldSprint
             ? 'BaseDare will review the attached question, coverage, evidence rules, and quote before sending the invoice route.'
             : submittedCloseRoomHref
               ? 'Open your request to review the venue, visitor offer, costs and launch requirements.'
               : 'BaseDare will review your request and contact you to agree on the activity, evidence and costs before work starts.'}
         </p>
         <p className="mx-auto mt-3 max-w-md rounded-2xl border border-white/10 bg-black/24 px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-yellow-100/75">
-          {submittedFieldSprint
+          {businessRequestKind(form.routedMissionType) ? 'Request for a proposal · Nothing is live or charged. Creators, rewards and content rights are not reserved or agreed.' : submittedFieldSprint
             ? 'No work starts and no payment is taken until you approve the details.'
             : submittedCloseRoomHref
               ? 'Your request keeps the approvals and payment details together.'
@@ -832,14 +839,13 @@ export default function ActivationIntakeForm({
             <label className={labelClass}>{businessRequest ? 'Business or organization' : 'Venue name'}<input required minLength={2} maxLength={140} value={form.company} onChange={event => setForm(current => ({ ...current, company: event.target.value, ...(businessRequest ? {} : { venue: event.target.value }) }))} className={`${inputClass} mt-2`} placeholder={businessRequest ? 'Who is this brief for?' : 'Your venue'} /></label>
             <label className={labelClass}>City or area<input required minLength={2} maxLength={140} value={form.city} onChange={event => updateField('city', event.target.value)} className={`${inputClass} mt-2`} placeholder="e.g. Sydney, Australia" /></label>
           </div>}
-          {businessRequest ? <label className={labelClass}>Place, if known <span className="font-normal text-white/55">(optional)</span><input maxLength={180} value={form.venue} onChange={event => updateField('venue', event.target.value)} className={`${inputClass} mt-2`} placeholder="Venue name, public place or area" /></label> : null}
           <label className={labelClass}>{businessRequest?.prompt ?? 'What would you like to do?'}<textarea required minLength={2} maxLength={1200} value={form.notes} onChange={event => updateField('notes', event.target.value)} className={`${inputClass} mt-2 min-h-28 normal-case tracking-normal`} placeholder={businessRequest?.placeholder ?? 'e.g. Bring people in on Friday afternoon with a coffee meetup. We can offer a free upgrade.'} /></label>
           {(form.deadWindowTime || form.routedTimeWindow || form.deadWindowPerk || form.routedPerkLabel || form.routedProofRequired) ? <div className="rounded-2xl border border-white/10 p-4 text-sm leading-6 text-white/65"><p className="font-bold text-white/85">Details carried from your place</p>{(form.deadWindowTime || form.routedTimeWindow) ? <p>When: {form.deadWindowTime || form.routedTimeWindow}</p> : null}{(form.deadWindowPerk || form.routedPerkLabel) ? <p>Offer: {form.deadWindowPerk || form.routedPerkLabel}</p> : null}{form.routedProofRequired ? <p>Evidence: {form.routedProofRequired}</p> : null}<p>Add any changes in your request above.</p></div> : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass}>Your name<input required minLength={2} maxLength={120} autoComplete="name" value={form.contactName} onChange={event => updateField('contactName', event.target.value)} className={`${inputClass} mt-2 normal-case tracking-normal`} /></label>
             <label className={labelClass}>Reply email<input required type="email" maxLength={180} autoComplete="email" value={form.email} onChange={event => updateField('email', event.target.value)} className={`${inputClass} mt-2 normal-case tracking-normal`} /></label>
           </div>
-          <details className={detailsClass}><summary className={summaryClass}>Budget and timing, if you know them</summary><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Planning budget<select value={form.budgetRange} onChange={event => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])} className={`${inputClass} mt-2`}>{Object.entries(BUDGET_RANGE_LABELS).filter(([value]) => !businessRequest || value !== MANAGED_FIELD_SPRINT_BUDGET_RANGE).map(([value,label]) => <option key={value} value={value} className="bg-[#080814]">{label}</option>)}</select></label><label className={labelClass}>Preferred time<input maxLength={businessRequest ? 160 : 180} value={businessRequest ? form.routedTimeWindow : form.deadWindowTime} onChange={event => updateField(businessRequest ? 'routedTimeWindow' : 'deadWindowTime',event.target.value)} className={`${inputClass} mt-2`} placeholder="e.g. Friday afternoon" /></label></div><p className="mt-3 text-xs text-white/55">Planning information only. BaseDare confirms the appropriate service and price with you before any invoice.</p></details>
+          <details className={detailsClass}><summary className={summaryClass}>Optional details: place, budget & timing</summary>{businessRequest ? <label className={labelClass}>Place, if known (optional)<input maxLength={180} value={form.venue} onChange={event => updateField('venue', event.target.value)} className={`${inputClass} mt-2`} placeholder="Venue name or public place" /></label> : null}<div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Planning budget<select value={form.budgetRange} onChange={event => updateField('budgetRange', event.target.value as IntakeState['budgetRange'])} className={`${inputClass} mt-2`}>{Object.entries(BUDGET_RANGE_LABELS).filter(([value]) => !businessRequest || value !== MANAGED_FIELD_SPRINT_BUDGET_RANGE).map(([value,label]) => <option key={value} value={value} className="bg-[#080814]">{label}</option>)}</select></label><label className={labelClass}>Preferred time<input maxLength={businessRequest ? 160 : 180} value={businessRequest ? form.routedTimeWindow : form.deadWindowTime} onChange={event => updateField(businessRequest ? 'routedTimeWindow' : 'deadWindowTime',event.target.value)} className={`${inputClass} mt-2`} placeholder="e.g. Friday afternoon" /></label></div><p className="mt-3 text-xs text-white/55">Planning information only. BaseDare confirms the appropriate service and price with you before any invoice.</p></details>
           <input tabIndex={-1} autoComplete="off" value={form.companyWebsite} onChange={event => updateField('companyWebsite',event.target.value)} className="hidden" aria-hidden="true" />
           <p className="text-xs leading-5 text-white/60">{businessRequest ? 'We’ll agree on the scope, permissions, availability, service costs and separate reward budget before work starts. Sending this brief does not publish, charge or reserve contributors.' : 'We’ll reply to agree on the activity, price and venue approval. Sending this request doesn’t publish an activity or take payment.'}</p>
         </>

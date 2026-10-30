@@ -50,7 +50,7 @@ async function main() {
   assert.equal(evidence.stamps.length,3);
   assert.ok(evidence.achievements.find((item)=>item.id==='pathfinder')?.earnedAt);
   assert.equal(evidence.achievements.find((item)=>item.id==='storyteller')?.earnedAt,null);
-  const post = await prisma.adventureSubmission.create({data:{wallet:a,activityId:activity.id,runId:'post-run',venueSlug:venues[0].slug,caption:'Test only',hashtag:'test',mediaUrl:'https://example.com/test.jpg',mediaType:'IMAGE',publicConsentVersion:'test',status:'APPROVED',reviewedAt:now}});
+  const post = await prisma.adventureSubmission.create({data:{wallet:a,activityId:activity.id,runId:'post-run',venueSlug:venues[0].slug,caption:'Test only',hashtag:'test',mediaUrl:'https://example.com/test.jpg',mediaType:'IMAGE',publicConsentVersion:'adventure-display-v1',status:'APPROVED',reviewedAt:now}});
   const tags = await Promise.all([0,1,2].map(()=>prisma.placeTag.create({data:{venueId:venues[0].id,walletAddress:a,status:'APPROVED',reviewedAt:now,proofMediaUrl:'https://example.com/test.jpg'}})));
   await prisma.placeTag.create({data:{venueId:venues[0].id,walletAddress:a,status:'APPROVED',reviewedAt:now,source:'SEEDED_MEMORY',proofMediaUrl:'https://example.com/test.jpg'}});
   evidence = await getPassportEvidence(a,area);

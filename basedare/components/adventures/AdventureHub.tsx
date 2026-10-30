@@ -1,6 +1,9 @@
 "use client";
 
 import dynamic from 'next/dynamic';
+import CreatorShareKit from './CreatorShareKit';
+import { momentSubmissionHref } from '@/lib/adventure-sharing';
+import { recordAdventureEvent } from '@/lib/adventure-funnel';
 import Link from '@/components/DiscoveryLink';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -26,7 +29,6 @@ import { trackClientEvent } from '@/lib/analytics';
 
 const PersonalCompletionCard = dynamic(() => import('./PersonalCompletionCard'), { loading: () => <p role="status" className="mt-4 text-sm text-white/65">Opening your memory…</p> });
 const SharedAdventures = dynamic(() => import('./SharedAdventures'), { loading: () => <p role="status" className="mt-5 text-sm text-white/65">Opening shared adventures…</p> });
-const ShareAdventure = dynamic(() => import('./ShareAdventure'), { loading: () => <p role="status" className="mt-5 text-sm text-white/65">Opening sharing…</p> });
 const panel = 'bd-surface p-5 sm:p-7';
 
 export default function AdventureHub({ activityId, invitedVerdict, invitedIsland }: { activityId?: string; invitedVerdict?: Verdict; invitedIsland?: TrialIsland }) {
@@ -114,9 +116,11 @@ export default function AdventureHub({ activityId, invitedVerdict, invitedIsland
   function handleStart() {
     if (!activity || !canStart) return;
     const startedAt = Date.now();
-    change((previous) => ({ runs: [{ runId: crypto.randomUUID(), activityId: activity.id, startedAt, steps: [], area, ...(isTrial && trialIsland ? { island: trialIsland.id } : {}), placeSlug: placeReady ? placeSlug : undefined },
+    const runId = crypto.randomUUID();
+    change((previous) => ({ runs: [{ runId, activityId: activity.id, startedAt, steps: [], area, ...(isTrial && trialIsland ? { island: trialIsland.id } : {}), placeSlug: placeReady ? placeSlug : undefined },
       ...previous.runs.filter((saved) => saved.completedAt)].slice(0, 30) }));
     setMessage('You’re off! We’ll save your steps as you go.');
+    recordAdventureEvent(activity.id, runId, 'STARTED');
     trackClientEvent('adventure_started', { activity_id: activity.id, source: query.get('from') === 'passport' ? 'passport_invite' : isTrial ? 'island_trials' : 'adventures' });
   }
 
@@ -144,6 +148,7 @@ export default function AdventureHub({ activityId, invitedVerdict, invitedIsland
       <p className="mt-3 text-base leading-7 text-white/70">{activity?.hook ?? activity?.summary ?? (viewingShared ? 'See what people made, then try an adventure yourself.' : 'A little time, a bit of curiosity. Let’s find you something worth doing.')}</p>
       <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-cyan-100"><MapPin size={16} className="mt-1 shrink-0" aria-hidden="true" />{!discoveryReady ? 'Finding your area…' : placeFailed ? 'We couldn’t load this place.' : !placeReady ? 'Finding this place…' : isTrial ? trialIsland ? trialIsland.label + ' · your chosen island' : 'Siargao · El Nido · Boracay' : activity?.collection === 'Chaos Quests' ? 'Play anywhere suitable · your chosen map area is saved' : area.label}</p>
       {placeFailed ? <button type="button" className="bd-action mt-3 !text-sm" onClick={() => setPlaceRetry((attempt) => attempt + 1)}>Retry place details</button> : null}
+      {activity && invitationSource === 'moment' ? <p className="bd-well mt-5 p-4 text-sm leading-6 text-violet-100">Inspired by a community Moment. Make your own attempt; their steps and result haven’t been transferred. <a className="underline" href={'/moments/' + encodeURIComponent(query.get('moment') ?? '')}>See the original →</a></p> : null}
       {activity && invitationSource === 'passport' ? <p className="bd-well mt-5 p-4 text-sm leading-6 text-violet-100">You’ve got an adventure to try. Go solo or bring a friend; you’ll save your own progress.</p> : null}
       {isChallenge ? <p className="mt-4 text-sm leading-6 text-white/60">Independent BaseDare challenge. No event ticket, purchase or social post required.</p> : null}
       {isChallenge && invitedVerdict ? <p className="bd-well mt-5 p-4 text-base leading-7 text-violet-100">Someone’s verdict: <strong>{SIARGAO_VERDICTS.find((item) => item.id === invitedVerdict)?.label}.</strong> Yours might be different. Try the challenge and decide for yourself.</p> : null}
@@ -167,6 +172,7 @@ export default function AdventureHub({ activityId, invitedVerdict, invitedIsland
         </>}
       </div> : activity ? <section className={panel + ' mt-6'} aria-label="Your adventure steps">
         <p className="text-sm font-semibold text-violet-100">About {activity.minutes} min · Free · {activity.company ?? 'Solo or with friends'}</p>
+        {!current && !finished ? <p className="mt-3 text-base leading-7 text-white/75">{activity.result ?? 'A small story to keep, a fresh idea to try, and a reason to get out.'} Your personal card is yours to keep; sharing is optional.</p> : null}
         {finished && latestCompleted ? <div className="mt-5">
           <h2 className="text-2xl font-black">{isTrial && latestCompleted.island ? 'I defended ' + TRIAL_ISLANDS.find((island) => island.id === latestCompleted.island)?.label + '!' : isChallenge ? 'Your island. Your verdict.' : activity.result ?? 'You did it.'}</h2>
           <p className="mt-3 text-base leading-7 text-white/70">{activity.collection ? 'Your attempt is saved. Keep your card or pass the dare to a friend.' : 'One for the memories. You marked this adventure complete yourself; it isn’t a verified check-in or a cash reward.'}</p>
@@ -178,14 +184,15 @@ export default function AdventureHub({ activityId, invitedVerdict, invitedIsland
             <Link href="/now?participation=meet" className="bd-action !text-sm">Find a group plan</Link>
           </div>
           <button type="button" className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-white/65" aria-expanded={memoryRunId === latestCompleted.runId} aria-controls="adventure-memory" onClick={() => setMemoryRunId((id) => id === latestCompleted.runId ? null : latestCompleted.runId)}>Your memory · optional <ChevronDown size={16} aria-hidden="true" /></button>
-          {memoryRunId === latestCompleted.runId ? <div id="adventure-memory">{activity.collection !== 'Chaos Quests' && !isTrial ? <PersonalCompletionCard run={latestCompleted} /> : null}<div className="mt-3">{passportEntry}</div><ShareAdventure key={latestCompleted.runId} activityId={activity.id} runId={latestCompleted.runId} placeSlug={placeSlug} /></div> : null}
+          <CreatorShareKit activityId={activity.id} /><Link href={momentSubmissionHref(activity.id, query.get('moment'), placeReady ? placeSlug : undefined)} className="bd-action mt-5 min-h-12 !text-sm">Share your take · optional</Link>
+          {memoryRunId === latestCompleted.runId ? <div id="adventure-memory">{activity.collection !== 'Chaos Quests' && !isTrial ? <PersonalCompletionCard run={latestCompleted} /> : null}<div className="mt-3">{passportEntry}</div></div> : null}
         </div> : null}
         {!canStart && !current && !finished ? <p role="status" className="bd-well mt-4 p-4 text-sm leading-6 text-amber-100">{!ready || !discoveryReady ? 'Opening your progress…' : isChallenge && !siargaoCampaignOpen(now) ? 'This Siargao pilot has ended. Your saved result stays in your memories. Try another free adventure.' : isTrial && !trialIsland ? 'Pick your island above, then accept the dare.' : !placeReady ? 'Let’s find this place before you start.' : 'The local time isn’t right for this one. Try another idea, or come back in daylight.'}</p> : null}
         {current && !canStart ? <p className="mt-4 text-sm leading-6 text-amber-100">Time has moved on. Only keep going if the place is still safe and suitable. Your progress is saved.</p> : null}
         {!current && !finished ? <div className="mt-5">
           <p className="text-sm leading-6 text-white/60">{isChallenge ? '30–60 minutes of exploring, plus travel. Start freely; your progress stays in this browser. Come back to tick off each stage.' : 'Go at your own pace. We’ll save your steps as you go. This is a free activity, with no cash or venue reward.'}</p>
           {run ? <p className="mt-3 text-sm leading-6 text-amber-100">Starting this replaces your unfinished adventure. Completed memories stay in your journal.</p> : null}
-          <button type="button" className="bd-action bd-action--gold mt-4 w-full !text-sm" disabled={!canStart} onClick={handleStart}>{run ? 'Switch to this adventure' : isTrial ? 'Accept the dare' : isChallenge ? 'Take the challenge' : 'Start this adventure'}</button>
+          <button type="button" className="bd-action bd-action--gold mt-4 w-full !text-sm" disabled={!canStart} onClick={handleStart}>{run ? 'Switch to this adventure' : isTrial ? 'Accept the dare' : isChallenge ? 'Take the challenge' : 'Play free'}</button>
         </div> : null}
         {!finished ? <h2 className="mt-7 text-lg font-bold">{current ? 'One step at a time' : 'What you’ll do'}</h2> : null}
         {current ? <p className="mt-2 text-sm leading-6 text-white/65">Tap a numbered circle when you finish that step.</p> : null}
@@ -198,6 +205,7 @@ export default function AdventureHub({ activityId, invitedVerdict, invitedIsland
         {current ? <button type="button" className="bd-action bd-action--gold mt-5 w-full !text-sm" disabled={current.steps.length !== activity.steps.length || (isChallenge && !current.verdict)} onClick={() => {
           change((previous) => completeAdventure(previous, current.runId));
           setMessage('You did it! This one’s saved in your memories.');
+          recordAdventureEvent(activity.id, current.runId, 'COMPLETED_SELF_REPORTED');
           trackClientEvent('adventure_completed', { activity_id: activity.id, completion_kind: 'self_reported' });
         }}>{isTrial ? 'I defended my island' : isChallenge ? 'Save my verdict' : 'I finished this adventure'}</button> : null}
         {activity.creator ? <details className="bd-well mt-5 p-4"><summary className="min-h-11 cursor-pointer py-2 text-sm font-bold text-violet-100">Creator inspiration · optional</summary><p className="mt-2 text-sm leading-6 text-white/65">No filming, upload, tag or public post is required. Make it your own.</p><dl className="mt-4 space-y-4">{[['Video hook', activity.creator.hook], ['Filming idea', activity.creator.filming], ['Suggested caption', activity.creator.caption], ['Dare a friend', activity.creator.invitation]].map(([label, value]) => <div key={label}><dt className="text-sm font-bold text-amber-100">{label}</dt><dd className="mt-1 text-base leading-7 text-white/80">{value}</dd></div>)}</dl></details> : null}

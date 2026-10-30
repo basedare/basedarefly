@@ -36,6 +36,9 @@ jobs:
 
       - name: Prevent credential leaks across HTTP redirects
         run: npm run test:http-redirect-security
+      - name: Check patched URI decoder and wallet handoffs
+        working-directory: basedare
+        run: npm run test:uri-decoder-security
 
       - name: Run static production safety checks
         run: npm run safety:static
@@ -57,6 +60,14 @@ jobs:
       
       - name: Adventure discovery regression checks
         run: npm run test:discovery
+
+      - name: Social Moment policy checks
+        run: npm run test:moments
+
+      - name: Social Moment forward migration and privacy regression
+        run: |
+          export PATH="$(pg_config --bindir):$PATH"
+          npm run test:adventure-sharing:db
 
       - name: Business request and delivery regression
         run: npm run test:revenue-focus

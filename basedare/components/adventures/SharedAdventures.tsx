@@ -1,293 +1,333 @@
 "use client";
-import Link from "@/components/DiscoveryLink";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useSocialAction } from "@/hooks/useSocialAction";
-import { adventureTemplate, adventureHashtag, type AdventurePost } from "@/lib/adventure-sharing";
-import PlanShareButton from "@/components/community/PlanShareButton";
 import { useDiscovery } from "@/components/DiscoveryProvider";
-import { calculateDistance } from "@/lib/geo";
+import { useSocialAction } from "@/hooks/useSocialAction";
+import {
+  adventureTemplate,
+  adventureHashtag,
+  type AdventurePost,
+} from "@/lib/adventure-sharing";
+import { MOMENT_REVIEW_LABEL } from "@/lib/adventure-evidence";
+import PlanShareButton from "@/components/community/PlanShareButton";
+import MomentMedia from "./MomentMedia";
 export default function SharedAdventures({
   compact = false,
   activityId,
+  venueSlug,
+  creatorTag: explicitCreator,
 }: {
   compact?: boolean;
   activityId?: string;
+  venueSlug?: string;
+  creatorTag?: string;
 }) {
   const query = useSearchParams();
   const { area } = useDiscovery();
   const { wallet, headers } = useSocialAction();
-  const [mine, setMine] = useState(!activityId && query.get("shared") === "mine");
-  const [tag, setTag] = useState(activityId ? adventureHashtag(activityId) : query.get("hashtag") ?? "");
-  const [posts, setPosts] = useState<AdventurePost[]>([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [refresh, setRefresh] = useState(0);
-  const queryTag = activityId ? adventureHashtag(activityId) : query.get("hashtag") ?? "";
-  useEffect(() => { setTag(queryTag); }, [queryTag]);
+  const liveWallet = useRef(wallet);
+  liveWallet.current = wallet;
+  const [mine, setMine] = useState(
+    !activityId &&
+      !venueSlug &&
+      !explicitCreator &&
+      !query.get("creator") &&
+      query.get("shared") === "mine",
+  );
+  const [tag, setTag] = useState(
+    activityId ? adventureHashtag(activityId) : (query.get("hashtag") ?? ""),
+  );
+  const [postScope, setPostScope] = useState<string | null>(null);
+  const [posts, setPosts] = useState<AdventurePost[]>([]),
+    [error, setError] = useState(""),
+    [loading, setLoading] = useState(true),
+    [refresh, setRefresh] = useState(0),
+    [busy, setBusy] = useState("");
+  const creatorTag = explicitCreator ?? query.get("creator") ?? undefined;
+  const postId = query.get("post"),
+    place = venueSlug ?? query.get("place");
   useEffect(() => {
     const restore = () => setRefresh((n) => n + 1);
-    const interval = window.setInterval(restore, 60000);
     window.addEventListener("focus", restore);
-    return () => { window.clearInterval(interval); window.removeEventListener("focus", restore); };
+    const timer = setInterval(restore, 60000);
+    return () => {
+      window.removeEventListener("focus", restore);
+      clearInterval(timer);
+    };
   }, []);
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError("");
+    const controller = new AbortController();
     setPosts([]);
-    const load = async () => {
-      try {
-        if (mine && !wallet) {
-          setError("Sign in to see your submissions.");
-          return;
-        }
-        const q = new URLSearchParams();
-        if (tag) q.set("tag", tag);
-        if (query.get("post")) q.set("id", query.get("post")!);
-        if (query.get("place")) q.set("place", query.get("place")!);
-        if (!mine && !tag && !query.get("post") && !query.get("place")) {
-          q.set("lat", String(area.lat));
-          q.set("lng", String(area.lng));
-          q.set("radiusKm", String(area.radiusKm));
-        }
-        if (mine) {
-          q.set("mine", "1");
-          q.set("wallet", wallet!);
-        }
-        const r = await fetch("/api/adventure-submissions?" + q, {
-          headers: mine ? await headers("adventure:read") : {},
-          cache: "no-store",
-        });
-        const b = await r.json();
-        if (!r.ok || !b.success) throw Error(b.error);
-        if (!cancelled) setPosts(b.data);
-      } catch (e) {
-        if (!cancelled)
-          setError(
-            e instanceof Error ? e.message : "Could not load adventures.",
-          );
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    const timer = setTimeout(() => void load(), 250);
+    setError("");
+    setLoading(true);
+    const deadline = setTimeout(() => {
+      controller.abort();
+      setError("Moments are taking too long to load. Please retry.");
+      setLoading(false);
+    }, 10000);
+    const timer = setTimeout(
+      () =>
+        void (async () => {
+          try {
+            if (mine && !wallet) {
+              setError("Sign in to see your submissions.");
+              return;
+            }
+            const q = new URLSearchParams();
+            if (tag) q.set("tag", tag);
+            if (activityId) q.set("activityId", activityId);
+            if (postId) q.set("id", postId);
+            if (place) q.set("place", place);
+            if (creatorTag) q.set("creator", creatorTag);
+            if (
+              !mine &&
+              !tag &&
+              !postId &&
+              !place &&
+              !creatorTag &&
+              !activityId
+            ) {
+              q.set("lat", String(area.lat));
+              q.set("lng", String(area.lng));
+              q.set("radiusKm", String(area.radiusKm));
+            }
+            if (mine) {
+              q.set("mine", "1");
+              q.set("wallet", wallet!);
+            }
+            const auth = mine ? await headers("adventure:read") : {};
+            if (controller.signal.aborted) return;
+            const r = await fetch("/api/adventure-submissions?" + q, {
+              headers: auth,
+              cache: "no-store",
+              signal: controller.signal,
+            });
+            const b = await r.json();
+            if (!r.ok || !b.success || !Array.isArray(b.data))
+              throw Error(b.error || "Moments could not be loaded.");
+            if (!controller.signal.aborted) {
+              setPosts(b.data);
+              setPostScope(mine ? (wallet ?? null) : null);
+            }
+          } catch (e) {
+            if (!controller.signal.aborted)
+              setError(
+                e instanceof Error ? e.message : "Moments could not be loaded.",
+              );
+          } finally {
+            clearTimeout(deadline);
+            if (!controller.signal.aborted) setLoading(false);
+          }
+        })(),
+      200,
+    );
     return () => {
-      cancelled = true;
+      controller.abort();
       clearTimeout(timer);
+      clearTimeout(deadline);
     };
-    // Authentication is requested only for the explicitly selected private view.
+    // Only the explicit private view requests authenticated reads.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mine, wallet, tag, refresh, query, area.lat, area.lng, area.radiusKm]);
-  const visible = posts
-    .filter((post) => !activityId || post.activityId === activityId)
-    .filter(
-      (p) =>
-        mine ||
-        tag ||
-        query.get("post") ||
-        query.get("place") ||
-        calculateDistance(
-          area.lat,
-          area.lng,
-          p.venue.latitude,
-          p.venue.longitude,
-        ) <= area.radiusKm,
-    )
-    .slice(0, compact ? 3 : 30);
+  }, [
+    mine,
+    wallet,
+    tag,
+    refresh,
+    postId,
+    place,
+    creatorTag,
+    activityId,
+    area.lat,
+    area.lng,
+    area.radiusKm,
+  ]);
+  const visible = mine && postScope !== wallet ? [] : posts;
   return (
-    <section
-      id="shared-adventures"
-      className="mt-7 rounded-[1.7rem] border border-white/10 bg-black/40 p-5 sm:p-7"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section id="shared-adventures" className="bd-surface mt-6 p-5 sm:p-7">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black text-white">
-            {activityId ? 'Island stories people shared' : 'Adventures people shared'}
+          <h2 className="text-xl font-black">
+            {mine ? "My submissions" : "Community Moments"}
           </h2>
-          <p className="mt-2 text-xs text-white/55">
-            {tag
-              ? "Hashtag results · all places"
-              : mine
-                ? "Your uploads and review status"
-                : area.label + " · community photos and clips"}
+          <p className="mt-2 text-sm leading-6 text-white/55">
+            {mine
+              ? "Private status, review notes and withdrawal."
+              : place
+                ? "Contributions linked to this place. Not proof of attendance."
+                : activityId || tag || creatorTag
+                  ? "People’s takes on the same challenge."
+                  : "Nearby place stories and challenges you can play anywhere."}
           </p>
         </div>
         <Link
           href="/adventures"
-          className="min-h-11 py-3 text-xs font-bold text-cyan-100"
+          className="min-h-11 py-3 text-sm font-bold text-cyan-100"
         >
-          Try an adventure →
+          Play free →
         </Link>
       </div>
-      {!activityId ? <div className="my-4 flex flex-wrap gap-2">
-        <input
-          aria-label="Find adventures by hashtag"
-          placeholder="Find a #hashtag"
-          value={tag}
-          onChange={(e) => setTag(e.target.value.replace(/^#/, ""))}
-          className="min-h-11 min-w-0 rounded-full border border-white/15 bg-black/30 px-4 text-sm text-white"
-        />
-        {!compact ? (
+      {!compact && !activityId && !venueSlug && !creatorTag ? (
+        <div className="my-4 flex flex-wrap gap-2">
+          <label className="min-w-0 flex-1 text-xs text-white/60">
+            Find a hashtag
+            <input
+              aria-label="Find Moments by hashtag"
+              placeholder="basedare…"
+              value={tag}
+              maxLength={100}
+              onChange={(e) => setTag(e.target.value.replace(/^#/, ""))}
+              className="mt-1 min-h-12 w-full rounded-xl border border-white/15 bg-black/30 px-4 text-base text-white"
+            />
+          </label>
           <button
             aria-pressed={mine}
-            className="bd-action min-h-11 rounded-full border border-white/15 px-4 text-xs text-white"
-            onClick={() => setMine(!mine)}
+            className="bd-action self-end min-h-12 !text-sm"
+            onClick={() => {
+              setPosts([]);
+              setMine(!mine);
+            }}
           >
-            {mine ? "Show community" : "My submissions"}
+            {mine ? "Community" : "My submissions"}
           </button>
-        ) : null}
-      </div> : null}
+        </div>
+      ) : null}
       {error ? (
-        <p role="status" className="text-sm text-amber-100">
+        <p role="status" className="mt-4 text-sm leading-6 text-amber-100">
           {error}{" "}
           <button
-            className="underline"
-            onClick={() => mine && !wallet ? window.dispatchEvent(new Event("basedare:sign-in")) : setRefresh((n) => n + 1)}
+            className="min-h-11 underline"
+            onClick={() =>
+              mine && !wallet
+                ? window.dispatchEvent(new Event("basedare:sign-in"))
+                : setRefresh((n) => n + 1)
+            }
           >
             {mine && !wallet ? "Sign in" : "Retry"}
           </button>
         </p>
       ) : loading ? (
-        <p className="text-sm text-white/55">Loading adventures…</p>
+        <p role="status" className="mt-4 text-sm text-white/60">
+          Loading Moments…
+        </p>
       ) : !visible.length ? (
-        <p className="text-sm text-white/55">
+        <p className="mt-4 text-sm leading-6 text-white/60">
           {mine
-            ? "No submissions yet. Finish an adventure, then choose Share what you made."
-            : "No shared adventures here yet. Yours could inspire the next person."}
+            ? "No submissions here yet. Try an adventure, then share your take if you like."
+            : "No approved Moments here yet. A first take can inspire the next person."}
         </p>
       ) : null}
       <div
         className={
-          "grid gap-4 " + (compact ? "md:grid-cols-3" : "sm:grid-cols-2")
+          "mt-4 grid gap-5 " + (compact ? "md:grid-cols-3" : "sm:grid-cols-2")
         }
       >
-        {visible.map((p) => (
+        {visible.slice(0, compact ? 3 : 30).map((post) => (
           <article
-            key={p.id}
-            className="min-w-0 rounded-2xl border border-white/10 bg-[#131020]/80 p-4"
+            key={post.id}
+            className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-black/20"
           >
-            {p.mediaType === "VIDEO" ? (
-              <video
-                src={p.mediaUrl}
-                controls
-                preload="none"
-                className="aspect-video w-full rounded-xl object-contain"
-              />
-            ) : (
-              <img
-                src={p.mediaUrl}
-                alt={p.caption}
-                loading="lazy"
-                className="aspect-video w-full rounded-xl object-cover"
-              />
-            )}
-            <h3 className="mt-3 font-bold text-white">
-              {adventureTemplate(p.activityId)?.title}
-            </h3>
-            <p className="mt-2 break-words text-sm text-white/75">
-              {p.caption}
-            </p>
-            <p className="mt-2 text-xs text-white/50">
-              {p.creatorTag ? (
-                <Link
-                  href={
-                    "/creator/" +
-                    encodeURIComponent(p.creatorTag.replace(/^@/, ""))
-                  }
-                >
-                  {p.creatorTag}
-                </Link>
-              ) : (
-                "Community contributor"
-              )}{" "}
-              · {new Date(p.createdAt).toLocaleDateString()} ·{" "}
-              {p.status === "APPROVED"
-                ? "Shared adventure · self-reported"
-                : p.status.toLowerCase()}
-            </p>
-            <Link
-              className="mt-3 block text-xs text-cyan-100"
-              href={"/map?place=" + encodeURIComponent(p.venue.slug)}
-            >
-              📍 {p.venue.name}
-            </Link>
-            <Link
-              className="mt-3 block break-all text-xs text-violet-200"
-              href={"/?hashtag=" + p.hashtag + "#shared-adventures"}
-            >
-              #{p.hashtag}
-            </Link>
-            {p.reviewReason && mine ? (
-              <p className="mt-3 text-xs text-amber-100">
-                Review: {p.reviewReason}
+            <MomentMedia
+              post={post}
+              privateView={mine && post.status !== "APPROVED"}
+            />
+            <div className="p-4">
+              <p className="text-xs font-bold text-cyan-100">
+                {post.status === "APPROVED"
+                  ? post.featured
+                    ? "Creator spotlight · Reviewed creation"
+                    : MOMENT_REVIEW_LABEL
+                  : post.status === "FLAGGED"
+                    ? "Hidden · needs review"
+                    : post.status.toLowerCase()}
               </p>
-            ) : null}
-            {p.status === "APPROVED" ? (
-              <div className="mt-4 flex flex-wrap gap-3">
-                <PlanShareButton
-                  href={"/adventures?post=" + p.id}
-                  title={
-                    adventureTemplate(p.activityId)?.title ??
-                    "BaseDare adventure"
-                  }
-                  text={p.caption + " #" + p.hashtag + " #BaseDare"}
-                  label="Share"
-                  analyticsSource="shared-adventure"
-                />
+              <h3 className="mt-2 text-lg font-black">
+                {adventureTemplate(post.activityId)?.title}
+              </h3>
+              <p className="mt-3 break-words text-sm leading-6 text-white/75">
+                {post.caption}
+              </p>
+              <p className="mt-3 text-sm text-white/50">
+                {post.creatorTag ?? "Community contributor"}
+              </p>
+              {post.venue ? (
                 <Link
-                  className="min-h-11 py-3 text-xs font-bold text-yellow-200"
-                  href={
-                    "/adventures/" + p.activityId + "?place=" + p.venue.slug
-                  }
+                  className="mt-1 inline-flex min-h-11 items-center text-sm text-cyan-100"
+                  href={"/venues/" + encodeURIComponent(post.venue.slug)}
                 >
-                  Try this adventure →
+                  {post.venue.name} →
                 </Link>
-              </div>
-            ) : null}
-            <Link
-              className="mt-3 inline-block min-h-11 py-3 text-xs text-white/45 underline"
-              href={
-                "/chat?support=1&subject=Report%20adventure&message=" +
-                encodeURIComponent(
-                  "Please review adventure " +
-                    p.id +
-                    " at " +
-                    p.venue.name +
-                    ": ",
-                )
-              }
-            >
-              Report
-            </Link>
-            {mine && p.status !== "WITHDRAWN" ? (
-              <button
-                className="mt-3 min-h-11 text-xs text-white/55 underline"
-                onClick={async () => {
-                  try {
-                    const r = await fetch("/api/adventure-submissions", {
-                      method: "DELETE",
-                      headers: {
-                        "Content-Type": "application/json",
-                        ...(await headers("adventure:withdraw")),
-                      },
-                      body: JSON.stringify({ wallet, id: p.id }),
-                    });
-                    if (!r.ok) throw Error("Withdrawal failed. Retry.");
-                    setRefresh((n) => n + 1);
-                  } catch (e) {
-                    setError(
-                      e instanceof Error ? e.message : "Withdrawal failed.",
-                    );
-                  }
-                }}
-              >
-                Withdraw from BaseDare
-              </button>
-            ) : null}
+              ) : null}
+              {post.status === "APPROVED" ? (
+                <>
+                  <Link
+                    href={post.momentHref!}
+                    className="mt-3 flex min-h-12 items-center text-sm font-bold text-violet-100"
+                  >
+                    View Moment & try it →
+                  </Link>
+                  <PlanShareButton
+                    href={post.momentHref!}
+                    title={adventureTemplate(post.activityId)!.title}
+                    text="Someone tried it. Your turn?"
+                    label="Share Moment"
+                    analyticsSource="moment_card"
+                  />
+                </>
+              ) : null}
+              {mine && post.reviewReason ? (
+                <p className="mt-3 text-sm leading-6 text-amber-100">
+                  Review: {post.reviewReason}
+                </p>
+              ) : null}
+              {mine && post.status !== "WITHDRAWN" ? (
+                <button
+                  disabled={busy === post.id}
+                  className="mt-3 min-h-12 text-sm text-white/60 underline"
+                  onClick={async () => {
+                    const owner = wallet;
+                    setBusy(post.id);
+                    setError("");
+                    try {
+                      const auth = await headers("adventure:withdraw");
+                      if (liveWallet.current !== owner) return;
+                      const r = await fetch("/api/adventure-submissions", {
+                        method: "DELETE",
+                        headers: {
+                          "Content-Type": "application/json",
+                          ...auth,
+                        },
+                        body: JSON.stringify({ wallet: owner, id: post.id }),
+                        signal: AbortSignal.timeout(10000),
+                      });
+                      if (!r.ok)
+                        throw Error("Withdrawal failed. Please retry.");
+                      if (liveWallet.current === owner)
+                        setRefresh((n) => n + 1);
+                    } catch (e) {
+                      if (liveWallet.current === owner)
+                        setError(
+                          e instanceof Error ? e.message : "Withdrawal failed.",
+                        );
+                    } finally {
+                      setBusy("");
+                    }
+                  }}
+                >
+                  {busy === post.id ? "Withdrawing…" : "Withdraw from BaseDare"}
+                </button>
+              ) : null}
+            </div>
           </article>
         ))}
       </div>
+      {mine ? (
+        <p className="mt-5 text-xs leading-5 text-white/50">
+          Withdrawal removes BaseDare display. Copies shared elsewhere and
+          legacy files previously uploaded to public storage may remain
+          accessible.
+        </p>
+      ) : null}
     </section>
   );
 }

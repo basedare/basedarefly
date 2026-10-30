@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import ProtocolLoader from './ProtocolLoader';
+import { bypassDecorativeLoader } from '@/lib/mobile-surface-policy';
 
 let hasProtocolLoadedInMemory = false;
 const LOADER_FAILSAFE_MS = 2000;
@@ -29,7 +30,7 @@ function shouldShowProtocolLoader() {
 
 export default function ClientLoader({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isGuestAdventure = pathname === '/adventures' || pathname?.startsWith('/adventures/') || pathname === '/island-trials' || pathname?.startsWith('/island-trials/');
+  const isImmediateEntry = bypassDecorativeLoader(pathname);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,7 +49,7 @@ export default function ClientLoader({ children }: { children: React.ReactNode }
 
     const frameId = window.requestAnimationFrame(() => {
       setIsHydrated(true);
-      if (isGuestAdventure) { setIsLoading(false); return; }
+      if (isImmediateEntry) { setIsLoading(false); return; }
 
       if (shouldShowProtocolLoader()) {
         setIsLoading(true);
@@ -59,7 +60,7 @@ export default function ClientLoader({ children }: { children: React.ReactNode }
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [handleComplete, isGuestAdventure]);
+  }, [handleComplete, isImmediateEntry]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !isHydrated || !isLoading) {
@@ -70,7 +71,7 @@ export default function ClientLoader({ children }: { children: React.ReactNode }
     return () => window.clearTimeout(timeoutId);
   }, [handleComplete, isHydrated, isLoading]);
 
-  const shouldMaskContent = !isGuestAdventure && isHydrated && isLoading;
+  const shouldMaskContent = !isImmediateEntry && isHydrated && isLoading;
 
   return (
     <>
