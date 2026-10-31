@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import SharedAdventures from "@/components/adventures/SharedAdventures";
+import WeeklySpotlight from "@/components/adventures/WeeklySpotlight";
+export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Community Moments | BaseDare",
   description:
@@ -20,6 +22,7 @@ export default function MomentsPage() {
         Explore people’s takes on BaseDare challenges. Free to try, with sharing
         entirely up to you.
       </p>
+      <Suspense fallback={<p className="mt-5 text-sm text-white/65">Opening the weekly Spotlight…</p>}><WeeklySpotlight /></Suspense>
       <Suspense fallback={<p className="mt-5">Opening Moments…</p>}>
         <SharedAdventures />
       </Suspense>
