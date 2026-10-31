@@ -20,6 +20,7 @@ Production SQL ran in one transaction with a five-second lock timeout and a thir
 - Founder attribution no longer reports a complete linked-start count when either the starts or Moment-touch input exceeds the 10,000-row sample. The actual database regression fails against the old implementation and passes with this fix.
 - Migration tests now generate actual old/new Prisma readers, preserve legacy and paid-proof fixtures, restore a real backup, inject a late SQL failure to verify full transaction rollback, exercise explicit ledger registration, repeat normal Prisma deploy, and check constraints, indexes and browser-role denial.
 - Business HTTP checks cover three distinct guest enquiries, retry deduplication, private saved reviews, chunked-body limits, and authorized NEEDS_INFO/operator-note updates without setting a price or sending a message.
+- Final CI caught the newly indexed [cross-realm sensitive-header advisory](https://github.com/advisories/GHSA-mrwp-f3q8-3g9p). Pin upstream follow-redirects 1.16.2 without changing Axios or wallet providers. Seven loopback regressions cover built-in credentials, same-origin continuity and custom credentials with ordinary/cross-realm lists and object/array headers. The two cross-realm cases demonstrably fail against 1.16.1 and pass with the patch. Keep the high/critical audit gate unchanged.
 
 ## Verification and limits
 
