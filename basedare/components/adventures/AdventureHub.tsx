@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import CreatorShareKit from './CreatorShareKit';
-import { momentSubmissionHref } from '@/lib/adventure-sharing';
+import { adventureHashtag, momentSubmissionHref } from '@/lib/adventure-sharing';
 import { recordAdventureEvent } from '@/lib/adventure-funnel';
 import Link from '@/components/DiscoveryLink';
 import { useSearchParams } from 'next/navigation';
@@ -172,7 +172,12 @@ export default function AdventureHub({ activityId, invitedVerdict, invitedIsland
         </>}
       </div> : activity ? <section className={panel + ' mt-6'} aria-label="Your adventure steps">
         <p className="text-sm font-semibold text-violet-100">About {activity.minutes} min · Free · {activity.company ?? 'Solo or with friends'}</p>
-        {!current && !finished ? <p className="mt-3 text-base leading-7 text-white/75">{activity.result ?? 'A small story to keep, a fresh idea to try, and a reason to get out.'} Your personal card is yours to keep; sharing is optional.</p> : null}
+        {!current && !finished ? activity.collection === 'Chaos Quests' ? <div className="mt-3">
+          <p className="text-base leading-7 text-white/80">{activity.summary}</p>
+          <p className="mt-3 text-sm font-bold text-amber-100">Your version. Your card. Your friend’s next dare.</p>
+          <p className="mt-2 text-sm leading-6 text-white/65">Keep a personal card and dare a willing friend to bring their own twist. Sharing is optional; approved creations with permission can be considered for editorial Spotlight. No promised selection or prize.</p>
+          <Link href={'/moments?hashtag=' + adventureHashtag(activity.id)} className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-cyan-100">See approved takes →</Link>
+        </div> : <p className="mt-3 text-base leading-7 text-white/75">{activity.result ?? 'A small story to keep, a fresh idea to try, and a reason to get out.'} Your personal card is yours to keep; sharing is optional.</p> : null}
         {finished && latestCompleted ? <div className="mt-5">
           <h2 className="text-2xl font-black">{isTrial && latestCompleted.island ? 'I defended ' + TRIAL_ISLANDS.find((island) => island.id === latestCompleted.island)?.label + '!' : isChallenge ? 'Your island. Your verdict.' : activity.result ?? 'You did it.'}</h2>
           <p className="mt-3 text-base leading-7 text-white/70">{activity.collection ? 'Your attempt is saved. Keep your card or pass the dare to a friend.' : 'One for the memories. You marked this adventure complete yourself; it isn’t a verified check-in or a cash reward.'}</p>

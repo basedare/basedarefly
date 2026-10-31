@@ -14,6 +14,15 @@ import {
 } from "@/lib/adventure-evidence";
 import { momentAudit } from "@/lib/moment-events";
 import { z } from "zod";
+import {
+  spotlightKey,
+  spotlightWeek,
+  WEEKLY_SPOTLIGHT_EVENT,
+} from "@/lib/moment-motivation";
+import {
+  getWeeklySpotlight,
+  removeWeeklySpotlights,
+} from "@/lib/moment-spotlight-server";
 export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const auth = await authorizeAdminRequest(request);
@@ -22,7 +31,7 @@ export async function GET(request: NextRequest) {
     const status = request.nextUrl.searchParams.get("status") ?? "PENDING";
     if (
       !["PENDING", "APPROVED", "FLAGGED", "REJECTED", "WITHDRAWN"].includes(
-        status,
+        status
       )
     )
       return socialError("Unknown queue.");
@@ -32,10 +41,17 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "asc" },
       take: 50,
     });
-    const posts = await momentPosts(rows, true);
+    const [posts, selection] = await Promise.all([
+      momentPosts(rows, true),
+      getWeeklySpotlight(),
+    ]);
     return NextResponse.json(
       {
         success: true,
+        spotlight: {
+          ...spotlightWeek(),
+          selectedId: selection?.post.id ?? null,
+        },
         data: posts.map((post) => {
           const row = rows.find((r) => r.id === post.id)!;
           return {
@@ -46,7 +62,7 @@ export async function GET(request: NextRequest) {
           };
         }),
       },
-      { headers: { "Cache-Control": "private, no-store" } },
+      { headers: { "Cache-Control": "private, no-store" } }
     );
   } catch {
     return socialError("Review queue unavailable. Retry.", 503);
@@ -57,6 +73,10 @@ const decision = z
     id: z.string().regex(/^[a-zA-Z0-9-]{8,80}$/),
     status: z.enum(["APPROVED", "REJECTED"]).optional(),
     featured: z.boolean().optional(),
+    spotlightWeek: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
     reason: z.string().trim().min(3).max(300),
   })
   .refine((v) => (v.status !== undefined) !== (v.featured !== undefined));
@@ -67,13 +87,22 @@ export async function PUT(request: NextRequest) {
   try {
     const parsed = decision.safeParse(
       JSON.parse(
-        new TextDecoder().decode(await boundedRequestBytes(request, 4096)),
-      ),
+        new TextDecoder().decode(await boundedRequestBytes(request, 4096))
+      )
     );
     if (!parsed.success)
       return socialError("Choose one decision and explain it.");
     const { id, status, featured, reason } = parsed.data;
+    const week = spotlightWeek();
+    if (parsed.data.spotlightWeek && parsed.data.spotlightWeek !== week.key)
+      return socialError("The editorial week changed. Refresh the queue.", 409);
     const changed = await prisma.$transaction(async (tx) => {
+      // Always lock the weekly slot before a candidate row. Two editors cannot
+      // select different creations for one week or deadlock on each other's rows.
+      if (featured === true)
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${spotlightKey(
+          week.key
+        )}))::text`;
       await tx.$queryRaw`SELECT id FROM "AdventureSubmission" WHERE id = ${id} FOR UPDATE`;
       const post = await tx.adventureSubmission.findUnique({
         where: { id },
@@ -95,6 +124,18 @@ export async function PUT(request: NextRequest) {
           (featured && (!post.spotlightConsent || !creator))
         )
           return false;
+        const previous = featured
+          ? await tx.founderEvent.findUnique({
+              where: { dedupeKey: spotlightKey(week.key) },
+            })
+          : null;
+        if (
+          featured &&
+          previous?.status === "SELECTED" &&
+          previous.subjectId === id &&
+          post.featuredAt
+        )
+          return true;
         await tx.adventureSubmission.update({
           where: { id },
           data: {
@@ -102,6 +143,45 @@ export async function PUT(request: NextRequest) {
             featuredBy: featured ? auth.walletAddress : null,
           },
         });
+        if (featured) {
+          const selection = {
+            eventType: WEEKLY_SPOTLIGHT_EVENT,
+            source: "admin",
+            subjectType: "ADVENTURE_SUBMISSION",
+            subjectId: id,
+            title: "Weekly editorial spotlight",
+            status: "SELECTED",
+            actor: auth.walletAddress,
+            href: week.href,
+            metadataJson: {
+              week: week.key,
+              startsAt: week.startsAt,
+              endsAt: week.endsAt,
+              momentId: id,
+              reason,
+              evidence: "editorial_selection_only",
+            },
+          };
+          await tx.founderEvent.upsert({
+            where: { dedupeKey: spotlightKey(week.key) },
+            create: { dedupeKey: spotlightKey(week.key), ...selection },
+            update: selection,
+          });
+          await tx.notification.create({
+            data: {
+              wallet: post.wallet,
+              type: "ADVENTURE_REVIEW",
+              title: "Your creation made the Spotlight",
+              message:
+                "An editor selected your approved creation for " +
+                week.label +
+                ". This is recognition, with no prize or commercial reuse rights.",
+              link: "/moments/" + id,
+            },
+          });
+        } else {
+          await removeWeeklySpotlights(tx, id);
+        }
       } else {
         if (
           !(
@@ -129,7 +209,15 @@ export async function PUT(request: NextRequest) {
             featuredBy: null,
           },
         });
-        await tx.founderEvent.updateMany({ where: { eventType: 'ADVENTURE_REPORT', status: 'NEEDS_REVIEW', metadataJson: { path: ['momentId'], equals: id } }, data: { status: status === 'APPROVED' ? 'RESOLVED' : 'REMOVED' } });
+        await removeWeeklySpotlights(tx, id);
+        await tx.founderEvent.updateMany({
+          where: {
+            eventType: "ADVENTURE_REPORT",
+            status: "NEEDS_REVIEW",
+            metadataJson: { path: ["momentId"], equals: id },
+          },
+          data: { status: status === "APPROVED" ? "RESOLVED" : "REMOVED" },
+        });
         await tx.notification.create({
           data: {
             wallet: post.wallet,
@@ -155,7 +243,9 @@ export async function PUT(request: NextRequest) {
       }
       await tx.founderEvent.create({
         data: {
-          dedupeKey: `moment-review:${id}:${post.updatedAt.getTime()}:${featured ?? status}`,
+          dedupeKey: `moment-review:${id}:${post.updatedAt.getTime()}:${
+            featured ?? status
+          }`,
           eventType: "MOMENT_REVIEW",
           source: "admin",
           title:
@@ -170,6 +260,7 @@ export async function PUT(request: NextRequest) {
             previousStatus: post.status,
             decision: status ?? (featured ? "FEATURE" : "UNFEATURE"),
             reason,
+            ...(featured === true ? { week: week.key } : {}),
             evidence: "display_review_only",
           },
         },
@@ -180,12 +271,12 @@ export async function PUT(request: NextRequest) {
       ? NextResponse.json({ success: true })
       : socialError(
           "Submission changed or isn’t eligible. Refresh the queue.",
-          409,
+          409
         );
   } catch {
     return socialError(
       "Could not save this review. Refresh before retrying.",
-      503,
+      503
     );
   }
 }

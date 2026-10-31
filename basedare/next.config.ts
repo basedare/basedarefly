@@ -45,6 +45,12 @@ if (isVercelBuild && isNestedAppRoot) {
 const nextConfig: NextConfig = {
   turbopack: {},
   outputFileTracingRoot: appRoot,
+  // Owned artwork/font used by server-generated invitation and Moment cards.
+  outputFileTracingIncludes: {
+    '/moments/**/opengraph-image': ['public/assets/siargao-challenge/{wordmark.png,peebear.png,figtree-800.woff}'],
+    '/adventures/*/opengraph-image': ['public/assets/siargao-challenge/{wordmark.png,peebear.png,figtree-800.woff}'],
+    '/island-trials/**': ['public/assets/siargao-challenge/{wordmark.png,peebear.png,figtree-800.woff}'],
+  },
   async redirects() {
     return [
       {

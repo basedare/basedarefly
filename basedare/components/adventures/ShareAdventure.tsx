@@ -429,8 +429,8 @@ export default function ShareAdventure({
                   name="spotlightConsent"
                   value="true"
                 />
-                Allow editorial spotlight inside BaseDare, with my creator
-                credit. This grants no reposting, editing, advertising or
+                Allow editorial Spotlight inside BaseDare, including weekly picks, with my creator
+                credit. Selection isn’t promised. This grants no reposting, editing, advertising or
                 commercial-use rights.
               </label>
               <label className="flex gap-3 text-sm leading-6">

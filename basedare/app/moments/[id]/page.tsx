@@ -15,6 +15,7 @@ import MomentMedia from "@/components/adventures/MomentMedia";
 import MomentViewed from "@/components/adventures/MomentViewed";
 import MomentReport from "@/components/adventures/MomentReport";
 import CreatorShareKit from "@/components/adventures/CreatorShareKit";
+import { compareMomentHref } from "@/lib/moment-motivation";
 export const dynamic = "force-dynamic";
 export async function generateMetadata({
   params,
@@ -131,7 +132,7 @@ export default async function MomentPage({
             Beat my dare · play free →
           </a>
           <p className="mt-3 text-sm leading-6 text-white/60">
-            About {activity.minutes} minutes. Make your own attempt—no account,
+            Think you can bring a better twist? About {activity.minutes} minutes. Make your own attempt—no account,
             filming or purchase required. No cash or venue reward.
           </p>
           <CreatorShareKit activityId={post.activityId} momentId={post.id} />
@@ -142,17 +143,14 @@ export default async function MomentPage({
         <section className="bd-surface mt-5 p-5">
           <h2 className="text-xl font-black">Reality Relay</h2>
           <p className="mt-2 text-sm leading-6 text-white/60">
-            Independent, approved contributions to the same challenge. Each has
-            its own review; there’s no contest or winner.
+            Someone took the dare and made it their own. See both versions,
+            then make the next one. These are reviewed creations, with no scores or winner.
           </p>
           {relay.map((item) => (
-            <Link
-              className="mt-3 block min-h-12 rounded-xl border border-white/10 p-4 text-sm text-cyan-100"
-              key={item.id}
-              href={item.momentHref!}
-            >
-              {item.creatorTag ?? "A community contributor"}’s take →
-            </Link>
+            <div key={item.id} className="mt-3 rounded-xl border border-white/10 p-4">
+              <Link className="inline-flex min-h-12 items-center text-sm text-cyan-100" href={item.momentHref!}>{item.creatorTag ?? "A community contributor"}’s take →</Link>
+              <Link className="bd-action mt-2 min-h-12 w-full !text-sm" href={item.id === post.parentMomentId ? compareMomentHref(item.id, post.id) : compareMomentHref(post.id,item.id)}>See the two takes together →</Link>
+            </div>
           ))}
         </section>
       ) : null}

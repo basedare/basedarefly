@@ -152,3 +152,9 @@ PR40 itself merged on 30 October. Its failed production build left the prior liv
 - **NONBLOCKING FOLLOW-UP:** remaining moderate/low dependency advisories and warning-only lint debt; a temporary protected test project is not a permanent isolated staging service. No provider credential presence or fixture success clears the gates above.
 
 Final implementation, verification scope, rollback limits and physical-device checklist: [31 October cutover report](../releases/moments-production-cutover-2026-10-31.md).
+
+## Next release — weekly recognition and staged link activation
+
+The founder's next two shared briefs request social links independently of originals, a dated weekly editorial pick and a clearer way to see genuine independent takes. The implementation reuses approved Moments, the existing review queue and FounderEvent; there is no new migration or prize economy. See [the motivation release](../releases/weekly-spotlight-motivation-2026-10-31.md) for exact routes and the controlled founder-test sequence.
+
+Ship code with both production intake flags off. Arrange a bounded founder acceptance window once a genuine permissioned attempt and phones are ready; prove the real flow before broad link activation. Originals remain disabled. Every submission stays pending until real review. The founder supplied official profiles and both phones, but no real challenge post/device result is inferred from those. Guest challenges and business enquiries stay available. Public launch claims still require the genuine source, physical sharing/reconnect and moderation checks; paid gates remain separate.

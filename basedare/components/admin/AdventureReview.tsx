@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { useSessionAdminSecret } from "@/hooks/useSessionAdminSecret";
 import type { AdventurePost } from "@/lib/adventure-sharing";
 import MomentMedia from "@/components/adventures/MomentMedia";
+import type { spotlightWeek } from "@/lib/moment-motivation";
 type Review = AdventurePost & {
   spotlightConsent: boolean;
   creditAllowed: boolean;
@@ -17,6 +18,9 @@ export default function AdventureReview() {
     [busy, setBusy] = useState(false),
     [reasons, setReasons] = useState<Record<string, string>>({});
   const currentQueue = useRef(status);
+  const [spotlight, setSpotlight] = useState<
+    (ReturnType<typeof spotlightWeek> & { selectedId: string | null }) | null
+  >(null);
   currentQueue.current = status;
   async function load() {
     const queue = status;
@@ -33,6 +37,7 @@ export default function AdventureReview() {
       if (!r.ok || !b.success) throw Error(b.error || "Queue unavailable.");
       if (currentQueue.current === queue) {
         setPosts(b.data);
+        setSpotlight(b.spotlight ?? null);
         setMessage(b.data.length ? "" : "No submissions in this queue.");
       }
     } catch (e) {
@@ -44,7 +49,7 @@ export default function AdventureReview() {
   }
   async function decide(
     id: string,
-    change: { status?: string; featured?: boolean },
+    change: { status?: string; featured?: boolean }
   ) {
     setBusy(true);
     setMessage("");
@@ -54,7 +59,14 @@ export default function AdventureReview() {
       const r = await fetch("/api/admin/adventures", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...change, reason: reasons[id] }),
+        body: JSON.stringify({
+          id,
+          ...change,
+          reason: reasons[id],
+          ...(change.featured === true
+            ? { spotlightWeek: spotlight?.key }
+            : {}),
+        }),
         signal: AbortSignal.timeout(10000),
       });
       const b = await r.json();
@@ -100,7 +112,7 @@ export default function AdventureReview() {
           {["PENDING", "FLAGGED", "APPROVED", "REJECTED", "WITHDRAWN"].map(
             (value) => (
               <option key={value}>{value}</option>
-            ),
+            )
           )}
         </select>
         <button
@@ -114,6 +126,30 @@ export default function AdventureReview() {
       <p role="status" className="my-4 text-sm text-amber-100">
         {message}
       </p>
+      {spotlight ? (
+        <aside className="bd-well mb-5 p-4 text-sm leading-6">
+          <h2 className="font-bold text-violet-100">
+            Weekly Spotlight · one editorial pick
+          </h2>
+          <p className="mt-2 text-white/65">
+            {spotlight.label}. Choose an approved creation with current
+            spotlight and creator-credit permission. Selecting another replaces
+            this week’s pick. This is not a contest or a prize.
+          </p>
+          {spotlight.selectedId ? (
+            <a
+              href={spotlight.href}
+              className="mt-2 inline-flex min-h-11 items-center font-bold text-cyan-100"
+            >
+              View this week’s selection →
+            </a>
+          ) : (
+            <p className="mt-2 text-white/65">
+              No eligible creation selected this week.
+            </p>
+          )}
+        </aside>
+      ) : null}
       <div className="grid gap-5 sm:grid-cols-2">
         {posts.map((p) => (
           <article key={p.id} className="bd-surface min-w-0 overflow-hidden">
@@ -152,8 +188,8 @@ export default function AdventureReview() {
                     {(["PENDING", "FLAGGED"].includes(p.status)
                       ? ["APPROVED", "REJECTED"]
                       : p.status === "APPROVED"
-                        ? ["REJECTED"]
-                        : []
+                      ? ["REJECTED"]
+                      : []
                     ).map((decision) => (
                       <button
                         key={decision}
@@ -178,10 +214,16 @@ export default function AdventureReview() {
                         }
                         className="bd-action min-h-12 !text-sm disabled:opacity-40"
                         onClick={() =>
-                          void decide(p.id, { featured: !p.featured })
+                          void decide(p.id, {
+                            featured: spotlight?.selectedId !== p.id,
+                          })
                         }
                       >
-                        {p.featured ? "Remove spotlight" : "Select spotlight"}
+                        {spotlight?.selectedId === p.id
+                          ? "Remove weekly Spotlight"
+                          : p.featured
+                          ? "Select for this week"
+                          : "Select weekly Spotlight"}
                       </button>
                     ) : null}
                   </div>
