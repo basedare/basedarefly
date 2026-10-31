@@ -29,4 +29,4 @@ Clean `npm ci`, callable query-string, malformed 224 KB percent input in a timeo
 
 ## Release boundary
 
-Draft PR40 contains this work plus the previous social Moments migration. Business entry alone needs no new production configuration or schema. The combined PR must not be deployed over an unmigrated production database. Follow the social Moments compatibility, provider, device and mainnet gates in `docs/launch/FOUNDER_LAUNCH_HANDOFF.md`. No production migration, financial transaction, campaign publication or outreach was performed.
+PR40 merged with this work and the social Moments migration. Business entry alone needs no new schema. Its initial production build correctly stopped at the database compatibility gate. The required migration was intentionally applied on 31 October after a verified backup restore; [the cutover report](moments-production-cutover-2026-10-31.md) tracks the final hardening rollout. Follow the remaining provider, device and mainnet gates in `docs/launch/FOUNDER_LAUNCH_HANDOFF.md`. No financial transaction, campaign publication or outreach was performed.

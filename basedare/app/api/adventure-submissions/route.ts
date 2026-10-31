@@ -15,6 +15,7 @@ import { momentInclude, momentPosts } from "@/lib/moment-server";
 import { publicMomentAllowed } from "@/lib/adventure-evidence";
 import { momentAudit } from "@/lib/moment-events";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { momentReleaseOptions, MOMENT_SHARING_PAUSED, MOMENT_FILES_PAUSED } from '@/lib/moment-release';
 export const dynamic = "force-dynamic";
 class SubmissionError extends Error {
   constructor(
@@ -167,6 +168,7 @@ export async function GET(req: NextRequest) {
 }
 export async function POST(req: NextRequest) {
   if (!sameOrigin(req)) return socialError("Invalid origin.", 403);
+  if (!momentReleaseOptions().socialLinks) return socialError(MOMENT_SHARING_PAUSED, 503);
   if (
     !checkRateLimit(getClientIp(req), {
       limit: 12,
@@ -214,6 +216,7 @@ export async function POST(req: NextRequest) {
         "Use a full public TikTok video, Instagram post/Reel or X post URL. Profiles, short links and embeds aren’t supported.",
       );
     if (hasFile) {
+      if (!momentReleaseOptions().originalMedia) return socialError(MOMENT_FILES_PAUSED, 503);
       const invalid = await validateMomentFile(file);
       if (invalid) return socialError(invalid);
     }

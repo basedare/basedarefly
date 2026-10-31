@@ -19,6 +19,22 @@ function storage() {
       process.env.PINATA_GATEWAY || "purple-void-gateway.pinata.cloud",
   });
 }
+/** Bound the SDK wait as well as gateway fetches. SDK requests may finish later;
+ * a timed-out private orphan needs operator cleanup, never publication/fallback. */
+async function storageDeadline<T>(operation: PromiseLike<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error("PRIVATE_STORAGE_TIMEOUT")),
+      12000,
+    );
+  });
+  try {
+    return await Promise.race([Promise.resolve(operation), timeout]);
+  } finally {
+    clearTimeout(timer!);
+  }
+}
 export async function validateMomentFile(file: File) {
   if (
     file.size > ADVENTURE_MEDIA_LIMIT ||
@@ -51,9 +67,9 @@ export async function uploadPrivateMoment(file: File) {
     "basedare-moment" + TYPES[file.type],
     { type: file.type },
   );
-  const upload = await storage()
-    .upload.private.file(safeFile)
-    .name("BaseDare_Moment");
+  const upload = await storageDeadline(
+    storage().upload.private.file(safeFile).name("BaseDare_Moment"),
+  );
   if (!/^[a-zA-Z0-9]{40,120}$/.test(upload.cid))
     throw new Error("PRIVATE_STORAGE_UNAVAILABLE");
   return {
@@ -70,7 +86,9 @@ export async function privateMomentResponse(
   if (!/^[a-zA-Z0-9]{40,120}$/.test(cid) || !TYPES[mime])
     throw new Error("PRIVATE_STORAGE_UNAVAILABLE");
   const link = new URL(
-    await storage().gateways.private.createAccessLink({ cid, expires: 30 }),
+    await storageDeadline(
+      storage().gateways.private.createAccessLink({ cid, expires: 30 }),
+    ),
   );
   const gateway =
     process.env.PINATA_GATEWAY || "purple-void-gateway.pinata.cloud";

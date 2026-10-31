@@ -8,6 +8,7 @@ import {
   adventureHashtag,
 } from "@/lib/adventure-sharing";
 import { publicSocialPost } from "@/lib/social-post-url";
+import { MOMENT_SHARING_PAUSED } from "@/lib/moment-release";
 const input =
   "mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-black/30 p-3 text-base";
 export default function ShareAdventure({
@@ -28,6 +29,12 @@ export default function ShareAdventure({
   liveWallet.current = wallet;
   const [open, setOpen] = useState(initiallyOpen),
     [mode, setMode] = useState<"link" | "file">("link");
+  const [release, setRelease] = useState<{
+    socialLinks: boolean;
+    originalMedia: boolean;
+  } | null>(null);
+  const [releaseError, setReleaseError] = useState(false);
+  const [releaseRetry, setReleaseRetry] = useState(0);
   const [query, setQuery] = useState(""),
     [places, setPlaces] = useState<
       { slug: string; name: string; city: string }[]
@@ -41,6 +48,43 @@ export default function ShareAdventure({
     setMessage("");
     setBusy(false);
   }, [wallet, activityId, runId]);
+  useEffect(() => {
+    if (!open) return;
+    const controller = new AbortController();
+    const deadline = setTimeout(() => controller.abort(), 8000);
+    setRelease(null);
+    setReleaseError(false);
+    void fetch("/api/adventure-submissions/options", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (r) => {
+        const b = await r.json();
+        if (
+          !r.ok ||
+          b.success !== true ||
+          typeof b.data?.socialLinks !== "boolean" ||
+          typeof b.data?.originalMedia !== "boolean"
+        )
+          throw Error();
+        if (!controller.signal.aborted) {
+          setRelease(b.data);
+          if (!b.data.originalMedia) setMode("link");
+        }
+      })
+      .catch(() => {
+        if (
+          !controller.signal.aborted ||
+          controller.signal.reason?.name === "AbortError"
+        )
+          setReleaseError(true);
+      })
+      .finally(() => clearTimeout(deadline));
+    return () => {
+      clearTimeout(deadline);
+      controller.abort(new Error("Navigation"));
+    };
+  }, [open, releaseRetry]);
   useEffect(() => {
     if (!open || query.trim().length < 2) {
       setPlaces([]);
@@ -90,11 +134,51 @@ export default function ShareAdventure({
             Your take could start the next adventure.
           </h2>
           <p className="text-sm leading-6 text-white/65">
-            Already posted? Paste the full post link. Or send an original photo
-            or short clip. After review it can become a BaseDare Moment with a
-            link for others to try. #{adventureHashtag(activityId)}
+            Already posted? Paste the full post link.{" "}
+            {release?.originalMedia
+              ? "Or send an original photo or short clip. "
+              : ""}
+            After review it can become a BaseDare Moment with a link for others
+            to try. #{adventureHashtag(activityId)}
           </p>
-          {!wallet ? (
+          {release?.socialLinks ? (
+            <details className="bd-well p-4 text-sm leading-6 text-white/70">
+              <summary className="min-h-11 cursor-pointer py-2 font-bold">
+                Copied link not accepted?
+              </summary>
+              <p className="mt-2">
+                Open your post in your browser, let it load, then copy the full
+                address. For TikTok, use the address containing @name/video/…;
+                for Instagram, /reel/… or /p/…; for X, /name/status/….
+              </p>
+              <p className="mt-2">
+                TikTok vm.tiktok.com / vt.tiktok.com links and Instagram /share/
+                links need this extra step. Paste only the address, without the
+                caption or embed code. BaseDare does not open or follow
+                shortened links for you.
+              </p>
+            </details>
+          ) : null}
+          {releaseError ? (
+            <div role="status" className="bd-well p-4 text-sm leading-6">
+              <p>
+                We couldn’t check whether sharing is open. Your adventure is
+                safe.
+              </p>
+              <button
+                className="bd-action mt-3 min-h-12"
+                onClick={() => setReleaseRetry((v) => v + 1)}
+              >
+                Check again
+              </button>
+            </div>
+          ) : !release ? (
+            <p role="status">Checking sharing availability…</p>
+          ) : !release.socialLinks ? (
+            <p role="status" className="bd-well p-4 text-sm leading-6">
+              {MOMENT_SHARING_PAUSED}
+            </p>
+          ) : !wallet ? (
             <div className="bd-well p-4">
               <p className="text-sm leading-6 text-white/70">
                 Playing stays free and open. Sign in only to send and manage a
@@ -200,7 +284,10 @@ export default function ShareAdventure({
                   What would you like to share?
                 </legend>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {(["link", "file"] as const).map((choice) => (
+                  {(release.originalMedia
+                    ? (["link", "file"] as const)
+                    : (["link"] as const)
+                  ).map((choice) => (
                     <button
                       key={choice}
                       type="button"
@@ -216,6 +303,12 @@ export default function ShareAdventure({
                   ))}
                 </div>
               </fieldset>
+              {!release.originalMedia ? (
+                <p className="text-sm leading-6 text-white/60">
+                  Public post links are available. Original uploads will open
+                  after storage and privacy checks.
+                </p>
+              ) : null}
               {mode === "link" ? (
                 <label className="block text-sm font-bold">
                   TikTok, Instagram or X post
@@ -249,6 +342,7 @@ export default function ShareAdventure({
                   </span>
                 </label>
               )}
+
               <label className="block text-sm font-bold">
                 What happened?
                 <textarea

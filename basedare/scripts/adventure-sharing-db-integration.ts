@@ -95,6 +95,15 @@ async function main() {
       longitude: 126.15,
     },
   });
+  delete process.env.MOMENT_SUBMISSIONS_ENABLED;
+  delete process.env.MOMENT_ORIGINAL_MEDIA_ENABLED;
+  assert.equal((await routes.POST(upload('paused-fixture-run'))).status, 503);
+  assert.equal(await prisma.adventureSubmission.count(), 0);
+  process.env.MOMENT_SUBMISSIONS_ENABLED = 'true';
+  process.env.PINATA_JWT = 'isolated-fixture-not-a-provider-key';
+  assert.equal((await routes.POST(upload('files-paused-fixture-run'))).status, 503);
+  assert.equal(await prisma.adventureSubmission.count(), 0);
+  process.env.MOMENT_ORIGINAL_MEDIA_ENABLED = 'true';
   assert.equal((await routes.POST(upload("test-run-0001", false))).status, 401);
   assert.equal(
     (await routes.POST(upload("test-run-0001", true, false))).status,
@@ -132,6 +141,7 @@ async function main() {
   const publicPost = (await read())[0];
   assert.equal(publicPost.wallet, undefined);
   assert.equal(publicPost.promotionContact, undefined);
+  process.env.MOMENT_SUBMISSIONS_ENABLED = 'false';
   await routes.DELETE(
     new NextRequest("https://example.com/api/adventure-submissions", {
       method: "DELETE",
@@ -149,6 +159,7 @@ async function main() {
   );
   assert.equal((await read()).length, 0);
   assert.equal((await review(post.id, "APPROVED")).status, 409);
+  process.env.MOMENT_SUBMISSIONS_ENABLED = 'true';
   await routes.POST(upload("test-run-0002"));
   await routes.POST(upload("test-run-0003"));
   assert.equal((await routes.POST(upload("test-run-0004"))).status, 429);
@@ -270,6 +281,12 @@ async function attributionAndDraftScenarios(momentId: string, activityId: string
   for (let i = 0; i < 2; i++) assert.equal((await drafts.POST(new NextRequest('https://example.com/api/admin/sponsored-briefs', { method: 'POST', headers: { 'x-test-admin': 'yes' }, body: JSON.stringify(draft) }))).status, 200);
   assert.equal(await prisma.founderEvent.count({ where: { eventType: 'SPONSORED_BRIEF_DRAFT' } }), 1);
   assert.equal(await prisma.campaign.count(), 0); assert.equal(await prisma.campaignSlot.count(), 0); assert.equal(await prisma.contentRightsAcceptance.count(), 0); assert.equal(await prisma.dare.count(), 0); assert.equal(await prisma.pointsEvent.count(), 0); assert.equal(await prisma.venueCheckIn.count(), 0);
+  const growth = require('@/app/api/admin/moment-growth/route');
+  await prisma.attributionEvent.createMany({data:Array.from({length:10001},(_,i)=>({eventType:'MOMENT_TRY',dedupeKey:'growth-overflow-fixture:'+i,touchId:intent.primaryTouchId}))});
+  const growthResult = await growth.GET(new NextRequest('https://example.com/api/admin/moment-growth',{headers:{'x-test-admin':'yes'}}));
+  assert.equal(growthResult.status,200);
+  assert.equal((await growthResult.json()).data.metrics['Starts linked to a Moment touch'],null,'A truncated touch query must be unavailable, not a partial total');
+  await prisma.attributionEvent.deleteMany({where:{dedupeKey:{startsWith:'growth-overflow-fixture:'}}});
   console.log('PASS: actual Moment → fresh challenge redirect → self-reported start/finish → existing frozen intent (no payment completion); private idempotent sponsor draft creates no campaign/slot/rights/payment/points/presence.');
 }
 main()

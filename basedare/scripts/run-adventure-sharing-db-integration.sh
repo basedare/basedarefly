@@ -59,7 +59,33 @@ done
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
 INSERT INTO "Venue" (id, slug, name, latitude, longitude, "updatedAt") VALUES ('legacy-fixture-venue', 'legacy-fixture', 'Legacy fixture only', 9.79, 126.15, NOW()); INSERT INTO "AdventureSubmission" (id, wallet, "activityId", "runId", "venueSlug", caption, hashtag, "mediaUrl", "mediaType", status, "publicConsentVersion", "updatedAt") VALUES ('legacy-fixture-row', '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'postcard', 'legacy-fixture-run', 'legacy-fixture', 'Legacy fixture only', 'basedarepostcard', 'https://example.com/legacy.jpg', 'IMAGE', 'REJECTED', 'adventure-display-v1', NOW());
 SQL
+export LEGACY_MOMENT_CLIENT_DIR="$TMP_DIR/legacy-client"
+./node_modules/.bin/prisma generate --schema scripts/fixtures/moment-legacy.prisma >/dev/null
+compatibility_check() {
+  NODE_PATH="$ROOT_DIR/node_modules" TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","moduleResolution":"Node"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/moment-migration-compatibility-check.ts "$1"
+}
+compatibility_check before
+pg_dump "$DATABASE_URL" --format=custom --file="$TMP_DIR/legacy.dump"
+createdb -h 127.0.0.1 -p "$PORT" -U postgres "${DB_NAME}_restored"
+pg_restore --dbname="postgresql://postgres@127.0.0.1:$PORT/${DB_NAME}_restored" --no-owner --exit-on-error "$TMP_DIR/legacy.dump"
+DATABASE_URL="postgresql://postgres@127.0.0.1:$PORT/${DB_NAME}_restored" compatibility_check restored
+RESTORED_URL="postgresql://postgres@127.0.0.1:$PORT/${DB_NAME}_restored"
+# Rehearse the operator's transactional SQL + explicit migration-ledger registration.
+# Inject a late error first: none of the ALTERs may survive the rolled-back transaction.
+if psql "$RESTORED_URL" --single-transaction -v ON_ERROR_STOP=1 -f prisma/migrations/20261029100000_adventure_moments/migration.sql -c 'SELECT 1/0;' > "$TMP_DIR/expected-transaction-failure.log" 2>&1; then
+  echo 'Fault-injected migration unexpectedly succeeded' >&2; exit 1
+fi
+DATABASE_URL="$RESTORED_URL" compatibility_check restored
+if [[ "$(psql "$RESTORED_URL" -At -c "SELECT count(*) FROM information_schema.columns WHERE table_name='AdventureSubmission' AND column_name='socialUrl'")" != '0' ]]; then
+  echo 'Failed transactional migration left new columns behind' >&2; exit 1
+fi
+PGOPTIONS='-c lock_timeout=5s -c statement_timeout=30s' psql "$RESTORED_URL" --single-transaction -v ON_ERROR_STOP=1 -f prisma/migrations/20261029100000_adventure_moments/migration.sql >/dev/null
+DATABASE_URL="$RESTORED_URL" DIRECT_URL="$RESTORED_URL" ./node_modules/.bin/prisma migrate resolve --applied 20261029100000_adventure_moments >/dev/null
+DATABASE_URL="$RESTORED_URL" compatibility_check after
 ./node_modules/.bin/prisma migrate deploy
+# Prisma's migration runner, rather than raw ALTER replay, must be idempotent.
+./node_modules/.bin/prisma migrate deploy
+compatibility_check after
 TS_NODE_TRANSPILE_ONLY=true \
 TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","moduleResolution":"Node"}' \
   node \
