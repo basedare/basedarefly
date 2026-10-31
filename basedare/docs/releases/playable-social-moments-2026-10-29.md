@@ -16,7 +16,7 @@ Participation recording reuses existing Journey/Touch/ActionIntent/AttributionEv
 
 Additive migration `20261029100000_adventure_moments`: nullable place/media URL, optional canonical social source, private-media reference, granular credit/spotlight consent and one self-relation for lineage. Original mandatory consent/review fields and wallet/run uniqueness remain. RLS stays service-only, browser roles retain no table access. Source/MIME/status constraints and an active-source unique index enforce the new state. Legacy v1 records remain supported, including their public-storage limitation.
 
-No production migration or deploy is included. A previous app cannot safely display new nullable/social rows; use the explicit compatibility/rollback plan in the handoff rather than blindly rolling back readers. The production build’s existing database compatibility gate remains unchanged.
+The original implementation did not apply production changes. On 31 October the founder authorized unblocking production; the migration was applied after a verified backup restore and migration rehearsal. See [the cutover report](moments-production-cutover-2026-10-31.md) for actual deployment status and default-off sharing controls. A previous app cannot safely display new nullable/social rows; use the explicit compatibility/rollback plan in the handoff rather than blindly rolling back readers. The production build’s existing database compatibility gate remains unchanged.
 
 ## Verification
 

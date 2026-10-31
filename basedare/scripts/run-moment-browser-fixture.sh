@@ -24,6 +24,9 @@ export DIRECT_URL="$DATABASE_URL"
 export MISSION_PASS_HMAC_SECRET="local-browser-fixture-hmac-secret-2026"
 export ADMIN_SECRET="local-browser-fixture-admin-secret-2026"
 export PINATA_JWT=""
+# Enable link-only rehearsal explicitly at invocation; public/default runs are paused.
+export MOMENT_SUBMISSIONS_ENABLED="${MOMENT_SUBMISSIONS_ENABLED:-false}"
+export MOMENT_ORIGINAL_MEDIA_ENABLED=false
 export TELEGRAM_BOT_TOKEN='' TELEGRAM_ADMIN_CHAT_ID='' TELEGRAM_SIGNAL_CHAT_ID='' TELEGRAM_PUBLIC_CHAT_ID=''
 export VAPID_PRIVATE_KEY='' WEB_PUSH_VAPID_PRIVATE_KEY='' RESEND_API_KEY='' REFEREE_HOT_WALLET_PRIVATE_KEY=''
 export NEXTAUTH_SECRET="local-browser-fixture-nextauth-secret-2026"

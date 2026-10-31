@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
         "Currently approved Moments · all time": published,
         "Spotlight selections · all time": spotlight,
         "Starts linked to a Moment touch":
-          rawStarts.length <= 10000
+          rawStarts.length <= 10000 && momentTouches.length <= 10000
             ? rawStarts.filter((e) => e.touchId && sources.has(e.touchId))
                 .length
             : null,

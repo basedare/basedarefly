@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
 
 import followRedirects from 'follow-redirects';
 
@@ -22,11 +23,11 @@ async function serve(handler) {
   };
 }
 
-function readHeaders(url, headers) {
+function readHeaders(url, headers, options = {}) {
   return new Promise((resolve, reject) => {
     // Node does not add Host automatically for its raw array header format.
     const requestHeaders = Array.isArray(headers) ? ['Host', new URL(url).host, ...headers] : headers;
-    const request = http.get(url, { headers: requestHeaders, maxRedirects: 2 }, (response) => {
+    const request = http.get(url, { headers: requestHeaders, maxRedirects: 2, ...options }, (response) => {
       if (response.statusCode !== 200) {
         response.resume();
         reject(new Error(`Local redirect fixture returned HTTP ${response.statusCode}`));
@@ -43,6 +44,34 @@ function readHeaders(url, headers) {
     request.on('error', reject);
     request.setTimeout(3_000, () => request.destroy(new Error('Local redirect fixture timed out')));
   });
+}
+
+for (const headerFormat of ['object', 'array']) {
+  for (const crossRealm of [false, true]) {
+    test(`custom credentials are stripped with ${crossRealm ? 'cross-realm' : 'ordinary'} sensitiveHeaders and ${headerFormat} headers`, { timeout: 5_000 }, async () => {
+      const sensitiveHeaders = crossRealm ? runInNewContext("['X-API-Key']") : ['X-API-Key'];
+      assert.equal(Array.isArray(sensitiveHeaders), true);
+      assert.equal(sensitiveHeaders instanceof Array, !crossRealm);
+      const destination = await serve((request, response) => {
+        response.setHeader('Content-Type', 'application/json');
+        response.end(JSON.stringify(request.headers));
+      });
+      const source = await serve((_request, response) => {
+        response.writeHead(302, { Location: `${destination.url}/receipt` });
+        response.end();
+      });
+      try {
+        const values = { 'X-API-Key': 'local-custom-fixture-only', 'X-Request-Id': 'safe-correlation' };
+        const headers = headerFormat === 'array' ? Object.entries(values).flat() : values;
+        const received = await readHeaders(`${source.url}/redirect`, headers, { sensitiveHeaders });
+        assert.equal(received['x-api-key'], undefined, 'Custom credentials must not reach the redirect destination');
+        assert.equal(received['x-request-id'], 'safe-correlation');
+      } finally {
+        await source.close();
+        await destination.close();
+      }
+    });
+  }
 }
 
 const credentials = {

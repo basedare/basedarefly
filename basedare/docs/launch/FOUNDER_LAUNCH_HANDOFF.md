@@ -5,7 +5,7 @@
 ## Review links and implementation revisions
 
 - Branch: `codex/social-moments-alpha-20261029`.
-- Draft PR and current head: https://github.com/basedare/basedarefly/pull/40.
+- PR40 is merged: https://github.com/basedare/basedarefly/pull/40. Main merge: `9ca1e6d4`.
 - Product implementation: https://github.com/basedare/basedarefly/commit/dbccd6602d050127939fef4ff50925d5f87dc202.
 - Linux disposable-database repair: https://github.com/basedare/basedarefly/commit/42a521bbdd83f3340bffb41bd7ac00849dfb80de.
 - Optional sign-in handoff repair: https://github.com/basedare/basedarefly/commit/fe3516c4.
@@ -15,9 +15,9 @@
 
 - **Built and locally verified:** guest offer → optional contribution → private review → canonical approved Moment → another participant’s independent attempt. Social post URL and private original-file adapters, separate display/credit/spotlight permissions, reporting, withdrawal and editorial selection.
 - **Built:** Community entry points, genuine place/creator Moment history, creator share kit, private sponsor brief drafts in the existing founder/intake ledger and a founder growth panel over existing attribution records.
-- **Production:** this release is not deployed and its migration has not been applied to production. Existing public challenge URLs below already belong to the prior release; new Moment URLs do not exist until this release is approved and a real submission is approved.
+- **Production database:** the required Moments migration was intentionally applied on 31 October after a verified backup restore and exact migration rehearsal. The release gate passes 61 migrations / 78 models; all 78 application tables retain RLS. Application rollout and the final deployment receipt are tracked in [the cutover report](../releases/moments-production-cutover-2026-10-31.md). Both new-contribution switches are explicitly off; free guest challenges remain available. A real public Moment still requires a genuine approved submission.
 - **Unverified:** private Pinata account capability and actual uploaded-file playback; real phone/passkey recovery; native sharing into installed messaging/social apps; public social source availability/ownership; hosted runtime on an isolated migrated preview database; physical QR/perk redemption; paid mainnet end-to-end settlement. Fixture success does not prove these integrations.
-- No creator/business outreach, social posting, contacts import, production row mutation, funds allocation or chain transaction was performed.
+- The 31 October production change is the authorized additive schema migration and its migration-ledger registration. No customer fixture records, creator/business outreach, social posting, contacts import, funds allocation or chain transaction were made.
 
 ## Partial and deliberately missing
 
@@ -107,7 +107,7 @@ Guest starts/finishes can be forged and are not physical proof. A journey/cookie
 
 ## Top five launch blockers
 
-1. **Production data compatibility:** approve and apply `20261029100000_adventure_moments` intentionally after backup and rehearsal; confirm RLS and read-only release gate. No production migration has run.
+1. **Production data compatibility — passed 31 October:** verified backup restore, exact migration rehearsal, transactional production application, Prisma ledger registration, 61-migration compatibility gate and 78-table RLS check. Finish application deployment and live smoke checks; see the cutover report.
 2. **Actual contribution integration:** test one permissioned social contribution plus one real private original upload/owner preview/public playback/withdrawal with production-equivalent Pinata credentials. Existing account configuration alone is not proof.
 3. **Device continuity and sharing:** actual iOS/Android passkey/wallet reconnect and recovery, exact challenge return after sign-in, installed-app native share and recipient’s fresh run. Desktop fixtures do not certify these.
 4. **Operations and rights:** founder owns moderation/report support; set a workable review cadence and launch contact/operating-entity details; get permission before editorial/promotional use. No unreviewed content or unfunded sponsor rewards.
@@ -122,6 +122,8 @@ Guest starts/finishes can be forged and are not physical proof. A journey/cookie
 ## Rollout and rollback
 
 Review the PR and CI. Rehearse the additive migration on an isolated preview database, preserving a legacy submission and browser-role RLS denial. Verify the protected hosted preview against that database. Apply the approved migration before deploying the app, then run the read-only database compatibility gate and the real contribution smoke. Never migrate production as a side effect of build.
+
+31 October update: PR40 is already merged and the migration/backup gate is now satisfied. The ordinary preview shares the production Supabase target and must not be used for synthetic write tests. The hardening continuation adds default-off write switches and visible availability checks; keep both production switches false while device/provider/moderation gates remain.
 
 Prefer a forward fix. Leave the additive schema and records intact on rollback. The previous application assumes a mandatory venue and public media URL; it cannot safely display new nullable/social submissions. A rollback therefore needs an operator-reviewed compatibility plan that pauses new submissions and protects public **and private owner** reads; do not blindly promote an old app over new rows or delete contributions. Stop publication if pending media becomes public, owner scope leaks, withdrawal fails, paid readiness changes, or the map regresses.
 
@@ -138,3 +140,15 @@ Local checks passed: 25 business policies, 70 discovery, 6 Moments, 3 URI securi
 Business owners now get a plain-language offer, Bring people in / Get creator content / Get more visibility, then Grow my business and a five-field guest enquiry. Existing workspace, targeted campaign/venue/report links, legacy offers and admin intake remain. Requests are saved proposals, never funded or published campaigns. Review remains before live work; no pricing, availability, rights or results are invented. See `docs/releases/business-entry-clarity-2026-10-30.md` for tests and boundaries.
 
 This does not clear the production Moments migration/provider/device gates above or the separate paid-mainnet gates. No outreach, production mutation or funds movement.
+
+## PR #40 — FINAL MERGE READINESS
+
+PR40 itself merged on 30 October. Its failed production build left the prior live version healthy. This classification covers the subsequent hardening/cutover, not a claim that the already-merged PR is still a draft.
+
+- **BLOCKING MERGE:** final hardening CI must pass before its follow-up merges. No new feature scope or weakened security gate is required.
+- **BLOCKING PRODUCTION DEPLOYMENT:** required backup, restored migration and production schema checks are now satisfied. Complete the tested hardening rollout and live read/paused-write smoke; keep the migration gate intact.
+- **BLOCKING PUBLIC PILOT:** new contributions stay paused pending physical-phone identity/share checks, one real permissioned contribution journey and named moderation/support operation. Private originals additionally require genuine provider upload/playback/revocation checks. Existing guest adventures remain available.
+- **BLOCKING PAID LAUNCH:** mainnet bytecode/cutover, actual funding/proof/review/payout and rejection/refund, legacy FUNDING reconciliation, rights and operating details remain outstanding.
+- **NONBLOCKING FOLLOW-UP:** remaining moderate/low dependency advisories and warning-only lint debt; a temporary protected test project is not a permanent isolated staging service. No provider credential presence or fixture success clears the gates above.
+
+Final implementation, verification scope, rollback limits and physical-device checklist: [31 October cutover report](../releases/moments-production-cutover-2026-10-31.md).

@@ -119,8 +119,32 @@ async function main() {
     assert.equal(row.city, "General Luna, Siargao");
     assert.equal(row.email, "business-http@example.test");
   }
+  for (const id of ids) {
+    const action = await fetch(origin + "/api/admin/activation-intakes", {
+      method: "PUT",
+      headers: {
+        Cookie: login.headers.get("set-cookie")!.split(";")[0],
+        Origin: origin,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id,
+        status: "NEEDS_INFO",
+        operatorNote:
+          "Local fixture: ask about scope before any work. No contact sent.",
+      }),
+    });
+    assert.equal(action.status, 200, await action.clone().text());
+    const updated = (await action.json()).data;
+    assert.equal(updated.status, "NEEDS_INFO");
+    assert.equal(
+      updated.operatorNote,
+      "Local fixture: ask about scope before any work. No contact sent.",
+    );
+    assert.equal(updated.amount, null);
+  }
   console.log(
-    "PASS: three guest goals, saved private reviews, retry dedupe, chunked body cap and actual NEW/unpriced admin records. Local fixtures only.",
+    "PASS: three guest goals, saved private reviews, retry dedupe, chunked body cap and actual NEW/unpriced admin records and authorized follow-up actions. Local fixtures only.",
   );
 }
 main().catch((error) => {
