@@ -30,6 +30,9 @@ export MOMENT_ORIGINAL_MEDIA_ENABLED=false
 export TELEGRAM_BOT_TOKEN='' TELEGRAM_ADMIN_CHAT_ID='' TELEGRAM_SIGNAL_CHAT_ID='' TELEGRAM_PUBLIC_CHAT_ID=''
 export VAPID_PRIVATE_KEY='' WEB_PUSH_VAPID_PRIVATE_KEY='' RESEND_API_KEY='' REFEREE_HOT_WALLET_PRIVATE_KEY=''
 export NEXTAUTH_SECRET="local-browser-fixture-nextauth-secret-2026"
+# This rehearsal signs with real fixture EOAs. Refuse remote RPC access so viem
+# uses its cryptographic ECDSA fallback; this does not test smart-wallet RPCs.
+export BASE_SEPOLIA_RPC_URL="http://127.0.0.1:9" BASE_MAINNET_RPC_URL="http://127.0.0.1:9"
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'CREATE ROLE service_role NOLOGIN; CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;' >/dev/null
 ./node_modules/.bin/prisma migrate deploy >/dev/null
 TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","moduleResolution":"Node"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/moment-browser-fixture.ts

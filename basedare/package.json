@@ -48,7 +48,7 @@
     "test:http-redirect-security": "node --test scripts/http-redirect-security.test.mjs",
     "test:revenue-focus": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/revenue-focus.test.ts lib/revenue-return-paths.test.ts lib/content-delivery.test.ts lib/financial-canon.test.ts lib/business-entry-policy.test.ts",
     "test:local-spend": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/local-spend-route-check.ts",
-    "test:moments": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register --test lib/social-moments.test.ts lib/moment-release.test.ts scripts/moment-storage-safety.test.ts",
+    "test:moments": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register --test lib/social-moments.test.ts lib/moment-release.test.ts lib/moment-motivation.test.ts scripts/moment-storage-safety.test.ts",
     "test:uri-decoder-security": "node --test scripts/uri-decoder-security.test.mjs"
   },
   "dependencies": {

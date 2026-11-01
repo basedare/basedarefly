@@ -16,6 +16,7 @@ import { publicMomentAllowed } from "@/lib/adventure-evidence";
 import { momentAudit } from "@/lib/moment-events";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { momentReleaseOptions, MOMENT_SHARING_PAUSED, MOMENT_FILES_PAUSED } from '@/lib/moment-release';
+import { removeWeeklySpotlights } from "@/lib/moment-spotlight-server";
 export const dynamic = "force-dynamic";
 class SubmissionError extends Error {
   constructor(
@@ -389,6 +390,7 @@ export async function DELETE(req: NextRequest) {
           featuredBy: null,
         },
       });
+      await removeWeeklySpotlights(tx, rows[0].id);
       await momentAudit(tx, {
         type: "MOMENT_WITHDRAWN",
         id: rows[0].id,

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   );
   const since = new Date(Date.now() - days * 86400000);
   try {
-    const [events, published, spotlight, approvals, enquiries] =
+    const [events, published, spotlight, approvals, enquiries, replies, approvedReplies] =
       await Promise.all([
         prisma.attributionEvent.groupBy({
           by: ["eventType"],
@@ -58,6 +58,8 @@ export async function GET(request: NextRequest) {
         prisma.founderEvent.count({
           where: { eventType: "ACTIVATION_INTAKE", occurredAt: { gte: since } },
         }),
+        prisma.adventureSubmission.count({ where: { parentMomentId: { not: null }, createdAt: { gte: since } } }),
+        prisma.adventureSubmission.count({ where: { parentMomentId: { not: null }, createdAt: { gte: since }, status: "APPROVED" } }),
       ]);
     const count = (type: string) =>
       events.find((e) => e.eventType === type)?._count._all ?? 0;
@@ -86,9 +88,11 @@ export async function GET(request: NextRequest) {
         "Self-reported starts": count("ADVENTURE_STARTED"),
         "Self-reported finishes": count("ADVENTURE_COMPLETED_SELF_REPORTED"),
         "Authenticated submissions": count("MOMENT_SUBMITTED"),
+        "Independent reply submission records": replies,
+        "Currently approved reply records": approvedReplies,
         "First approval records": count("MOMENT_APPROVED"),
         "Currently approved Moments · all time": published,
-        "Spotlight selections · all time": spotlight,
+        "Approved Moment records with Spotlight flag": spotlight,
         "Starts linked to a Moment touch":
           rawStarts.length <= 10000 && momentTouches.length <= 10000
             ? rawStarts.filter((e) => e.touchId && sources.has(e.touchId))
@@ -116,7 +120,7 @@ export async function GET(request: NextRequest) {
         "Recorded business intake submissions": enquiries,
       },
       unavailable: [
-        "Moment opens from configured client analytics (not joined to this ledger)",
+        "Challenge, Moment, comparison and Spotlight opens from configured client analytics (not joined to this ledger)",
         "Social impressions and views",
         "Delivered invitations",
         "Unique people across devices",

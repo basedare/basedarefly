@@ -18,8 +18,8 @@ export default function CreatorShareKit({
   if (!activity) return null;
   const href = momentId ? "/moments/" + momentId : adventureHref(activityId),
     url = getBaseDareUrl(href);
-  const caption = `${activity.creator?.caption ?? `I tried “${activity.title}”. Your turn?`} #BaseDare`;
-  const invite = `Your turn: ${activity.title}. Play it free on BaseDare.`;
+  const caption = `${momentId ? `Someone tried “${activity.title}”. Think you can bring a different twist?` : activity.creator?.caption ?? `I tried “${activity.title}”. Your turn?`} #BaseDare`;
+  const invite = momentId ? `This is one take on ${activity.title}. What would yours look like? Play free on BaseDare.` : `Your turn: ${activity.title}. Play it free on BaseDare.`;
   return (
     <details className="bd-well mt-5 p-4 sm:p-5">
       <summary className="min-h-11 cursor-pointer py-2 text-sm font-bold text-violet-100">

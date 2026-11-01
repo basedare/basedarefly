@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { removeWeeklySpotlights } from "@/lib/moment-spotlight-server";
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { sameOrigin, socialWallet, socialError } from "@/lib/social-request";
@@ -54,6 +55,7 @@ export async function POST(
         data: { status: "FLAGGED", featuredAt: null, featuredBy: null },
       });
       if (!changed.count) return false;
+      await removeWeeklySpotlights(tx, id);
       await tx.founderEvent.upsert({
         where: { dedupeKey: `moment-report:${id}:${key}` },
         update: {},

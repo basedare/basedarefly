@@ -1,6 +1,7 @@
 import { privateKeyToAccount } from "viem/accounts";
 import { prisma } from "@/lib/prisma";
 import { adventureHashtag } from "@/lib/adventure-sharing";
+import { spotlightKey, spotlightWeek, WEEKLY_SPOTLIGHT_EVENT } from "@/lib/moment-motivation";
 const target = new URL(process.env.DATABASE_URL || "");
 if (
   target.hostname !== "127.0.0.1" ||
@@ -11,6 +12,7 @@ async function seed() {
   const wallet = privateKeyToAccount(
     ("0x" + "1".repeat(64)) as `0x${string}`,
   ).address.toLowerCase();
+  await prisma.streamerTag.create({ data: { tag: "@fixture-first-take", walletAddress: "0x1111111111111111111111111111111111111111", status: "ACTIVE", verificationMethod: "local-fixture" } });
   const host = await prisma.streamerTag.create({
     data: {
       tag: "@fixture-meetup-host",
@@ -56,9 +58,25 @@ async function seed() {
         socialPlatform: "INSTAGRAM",
         mediaType: "SOCIAL",
         publicConsentVersion: "adventure-display-v2",
-        creatorCreditConsent: false,
+        creatorCreditConsent: true,
+        spotlightConsent: true,
+        featuredAt: new Date(),
         status: "APPROVED",
         reviewedAt: new Date(),
+      },
+      {
+        id: "moment-browser-reply",
+        wallet: "0x2222222222222222222222222222222222222222",
+        activityId: "wave-or-ex",
+        runId: "browser-reply-run",
+        parentMomentId: "moment-browser-approved",
+        caption: "Local verification fixture — not a real participant. A different dramatic take.",
+        hashtag: adventureHashtag("wave-or-ex"),
+        socialUrl: "https://www.instagram.com/reel/FixtureReply01/",
+        mediaType: "SOCIAL",
+        publicConsentVersion: "adventure-display-v2",
+        creatorCreditConsent: true,
+        status: "APPROVED",
       },
       {
         id: "moment-browser-fresh",
@@ -91,5 +109,7 @@ async function seed() {
       },
     ],
   });
+  const week = spotlightWeek();
+  await prisma.founderEvent.create({ data: { eventType: WEEKLY_SPOTLIGHT_EVENT, dedupeKey: spotlightKey(week.key), subjectType: "ADVENTURE_SUBMISSION", subjectId: "moment-browser-approved", status: "SELECTED", source: "local-fixture", title: "Local fixture selection only", metadataJson: { week: week.key, startsAt: week.startsAt, endsAt: week.endsAt, momentId: "moment-browser-approved" } } });
 }
 seed().finally(() => prisma.$disconnect());
