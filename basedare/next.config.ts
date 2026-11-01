@@ -54,6 +54,12 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/',
+        has: [{ type: 'query', key: 'mode', value: 'control' }],
+        destination: '/brands/portal?from=home',
+        permanent: false,
+      },
+      {
         source: '/streamers',
         destination: '/creators',
         permanent: true,

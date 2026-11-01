@@ -37,25 +37,23 @@ export default function BusinessWelcome({
         aria-hidden="true"
       />
       <div className="relative mx-auto max-w-5xl">
-        {kind ? (
-          <nav
-            aria-label="Business navigation"
-            className="mb-5 flex flex-wrap items-center justify-between gap-3 text-sm font-bold"
+        <nav
+          aria-label="Business navigation"
+          className="mb-5 flex flex-wrap items-center justify-between gap-3 text-sm font-bold"
+        >
+          <Link
+            className="inline-flex min-h-11 items-center text-white/60"
+            href={kind ? allGoalsHref : "/"}
           >
-            <Link
-              className="inline-flex min-h-11 items-center text-white/60"
-              href={kind ? allGoalsHref : "/"}
-            >
-              {kind ? "← All business goals" : "← Home"}
-            </Link>
-            <Link
-              href="/brands/portal?workspace=1"
-              className="inline-flex min-h-11 items-center text-cyan-100"
-            >
-              Existing workspace →
-            </Link>
-          </nav>
-        ) : null}
+            {kind ? "← All business goals" : "← Community"}
+          </Link>
+          <Link
+            href="/brands/portal?workspace=1"
+            className="inline-flex min-h-11 items-center text-cyan-100"
+          >
+            Existing workspace →
+          </Link>
+        </nav>
         <section className="bd-surface p-5 sm:p-8">
           <p className="text-sm font-bold text-amber-100">
             BaseDare for businesses

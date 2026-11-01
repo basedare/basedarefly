@@ -80,12 +80,15 @@ function HomeContent() {
 
   // Custom view setter that triggers transitions
   const handleViewChange = (newView: 'FAN' | 'BUSINESS') => {
+    // The switch is a business entry, just like the homepage business links.
+    // Do not activate the separate legacy Control landing view.
+    if (newView === 'BUSINESS') {
+      router.push('/brands/portal?from=home');
+      return;
+    }
     if (view === 'BUSINESS' && newView === 'FAN') {
       // Control → Chaos: Sin City lightning strike
       setTriggerRealityShift(true);
-    } else if (view === 'FAN' && newView === 'BUSINESS') {
-      // Chaos → Control: Matrix rain
-      setTriggerMatrixRain(true);
     }
     setView(newView); // Updates global context
   };
@@ -96,8 +99,8 @@ function HomeContent() {
     const fromControl = searchParams.get('from');
 
     if (mode === 'control') {
-      const timeoutId = window.setTimeout(() => setView('BUSINESS'), 0);
-      return () => window.clearTimeout(timeoutId);
+      router.replace('/brands/portal?from=home');
+      return;
     }
 
     // Trigger reality shift when returning from Control pages
@@ -110,7 +113,7 @@ function HomeContent() {
       }, 0);
       return () => window.clearTimeout(timeoutId);
     }
-  }, [searchParams, setView]);
+  }, [searchParams, router]);
 
   // Parse dare input to extract streamer tag and dare title
   const parseDareInput = (input: string) => {
@@ -404,7 +407,7 @@ function HomeContent() {
                 </div>
 
                 <div className="relative mt-7 border-t border-white/[0.08] pt-5 text-center sm:text-left">
-                  <Link href="/brands/portal?from=home" className="text-[11px] font-black uppercase tracking-[0.17em] text-cyan-100/72 transition hover:text-cyan-100">
+                  <Link href="/brands/portal?workspace=1" className="text-[11px] font-black uppercase tracking-[0.17em] text-cyan-100/72 transition hover:text-cyan-100">
                     Already running missions? Open your Buyer Workspace →
                   </Link>
                 </div>
