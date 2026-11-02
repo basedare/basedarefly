@@ -156,11 +156,21 @@ export function buildCreatorDropOutreachCopy(input: {
   actionLabel?: string | null;
   rewardLabel?: string | null;
   creatorBrief?: string | null;
+  freePlay?: boolean;
 }) {
   const name = optionalText(input.creatorName, 80) ?? `@${normalizeCreatorAssignmentCode(input.creatorCode)}`;
   const actionLabel = optionalText(input.actionLabel, 36) ?? 'open it on BaseDare';
   const rewardLine = optionalText(input.rewardLabel, 80);
   const brief = optionalText(input.creatorBrief, 320);
+
+  if (input.freePlay) return [
+    `Hey ${name} — your take on “${input.title.trim()}” could be fun.`,
+    input.hook.trim(),
+    'Try it free, make it yours and, if you feel like it, dare two willing friends to bring their own twist. No account or public post is required to play.',
+    brief,
+    `Your challenge: ${input.publicUrl}`,
+    'This is a voluntary creative invitation, with no cash offer, promised reach or guaranteed feature. Public display and credit need separate permission.',
+  ].filter(Boolean).join('\n');
 
   return [
     `Hey ${name} — I made you a BaseDare drop: ${input.title.trim()}.`,

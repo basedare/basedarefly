@@ -2,6 +2,8 @@
 
 import dynamic from 'next/dynamic';
 import CreatorShareKit from './CreatorShareKit';
+import AdventureInvite from './AdventureInvite';
+import NextDareUpdates from './NextDareUpdates';
 import { adventureHashtag, momentSubmissionHref } from '@/lib/adventure-sharing';
 import { recordAdventureEvent } from '@/lib/adventure-funnel';
 import Link from '@/components/DiscoveryLink';
@@ -47,6 +49,7 @@ export default function AdventureHub({ activityId, invitedVerdict, invitedIsland
     if (!activityId || trackedLanding.current === activityId) return;
     trackedLanding.current = activityId;
     trackClientEvent('adventure_landing_opened', { activity_id: activityId, source: invitedIsland ? 'island_invite' : invitedVerdict ? 'verdict_invite' : invitationSource === 'challenge' ? 'challenge_invite' : 'direct' });
+    if (activityId) recordAdventureEvent(activityId, 'landing-rendered', 'LANDING_RENDERED');
     if (invitedIsland) trackClientEvent('adventure_invite_opened', { activity_id: activityId, source: 'island_trials' });
     if (invitedVerdict || invitationSource === 'challenge') trackClientEvent('adventure_invite_opened', { activity_id: activityId, source: 'siargao_challenge' });
   }, [activityId, invitedVerdict, invitedIsland, invitationSource]);
@@ -185,9 +188,10 @@ export default function AdventureHub({ activityId, invitedVerdict, invitedIsland
           {isChallenge ? <SiargaoVerdict key={latestCompleted.runId} runId={latestCompleted.runId} value={latestCompleted.verdict} finished onChange={() => {}} /> : null}
           <div className="mt-5 flex flex-wrap gap-3">
             <Link href={href()} className="bd-action bd-action--gold w-full !text-sm">Find another adventure <ArrowRight size={17} aria-hidden="true" /></Link>
-            {!isChallenge && activity.collection !== 'Chaos Quests' && !isTrial ? <PlanShareButton href={personalAdventureInvite(latestCompleted)} title={activity.title} text={`I tried “${activity.title}”. Want to try it with me?`} label="Invite a friend" analyticsSource="passport_completion" /> : null}
             <Link href="/now?participation=meet" className="bd-action !text-sm">Find a group plan</Link>
           </div>
+          <NextDareUpdates key={`updates-${latestCompleted.runId}`} activityId={activity.id} runId={latestCompleted.runId} />
+          <AdventureInvite key={latestCompleted.runId} activityId={activity.id} runId={latestCompleted.runId} href={personalAdventureInvite(latestCompleted)} title={activity.title} />
           <button type="button" className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-white/65" aria-expanded={memoryRunId === latestCompleted.runId} aria-controls="adventure-memory" onClick={() => setMemoryRunId((id) => id === latestCompleted.runId ? null : latestCompleted.runId)}>Your memory · optional <ChevronDown size={16} aria-hidden="true" /></button>
           <CreatorShareKit activityId={activity.id} /><Link href={momentSubmissionHref(activity.id, query.get('moment'), placeReady ? placeSlug : undefined)} className="bd-action mt-5 min-h-12 !text-sm">Share your take · optional</Link>
           {memoryRunId === latestCompleted.runId ? <div id="adventure-memory">{activity.collection !== 'Chaos Quests' && !isTrial ? <PersonalCompletionCard run={latestCompleted} /> : null}<div className="mt-3">{passportEntry}</div></div> : null}

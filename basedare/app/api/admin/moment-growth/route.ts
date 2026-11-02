@@ -5,6 +5,7 @@ import {
   unauthorizedAdminResponse,
 } from "@/lib/admin-auth";
 import { socialError } from "@/lib/social-request";
+import { acquisitionCohorts } from '@/lib/acquisition-cohorts';
 export async function GET(request: NextRequest) {
   const auth = await authorizeAdminRequest(request);
   if (!auth.authorized) return unauthorizedAdminResponse(auth);
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
   );
   const since = new Date(Date.now() - days * 86400000);
   try {
-    const [events, published, spotlight, approvals, enquiries, replies, approvedReplies] =
+    const [events, published, spotlight, approvals, enquiries, replies, approvedReplies, cohorts, buyerConversations] =
       await Promise.all([
         prisma.attributionEvent.groupBy({
           by: ["eventType"],
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
                 "ADVENTURE_COMPLETED_SELF_REPORTED",
                 "MOMENT_SUBMITTED",
                 "MOMENT_APPROVED",
+                "ADVENTURE_INVITATION_ACTION",
               ],
             },
           },
@@ -60,6 +62,8 @@ export async function GET(request: NextRequest) {
         }),
         prisma.adventureSubmission.count({ where: { parentMomentId: { not: null }, createdAt: { gte: since } } }),
         prisma.adventureSubmission.count({ where: { parentMomentId: { not: null }, createdAt: { gte: since }, status: "APPROVED" } }),
+        acquisitionCohorts(since),
+        prisma.founderEvent.count({ where: { eventType: 'ACTIVATION_INTAKE', occurredAt: { gte: since }, OR: [{ metadataJson: { path: ['operator', 'conversationStage'], equals: 'REPLIED' } }, { metadataJson: { path: ['operator', 'conversationStage'], equals: 'PROPOSAL_REVIEW' } }] } }),
       ]);
     const count = (type: string) =>
       events.find((e) => e.eventType === type)?._count._all ?? 0;
@@ -83,10 +87,12 @@ export async function GET(request: NextRequest) {
     const data = {
       days,
       since: since.toISOString(),
+      cohorts,
       metrics: {
         "Moment try requests · distinct journey + Moment": count("MOMENT_TRY"),
         "Self-reported starts": count("ADVENTURE_STARTED"),
         "Self-reported finishes": count("ADVENTURE_COMPLETED_SELF_REPORTED"),
+        "Recorded invitation actions · not deliveries": count("ADVENTURE_INVITATION_ACTION"),
         "Authenticated submissions": count("MOMENT_SUBMITTED"),
         "Independent reply submission records": replies,
         "Currently approved reply records": approvedReplies,
@@ -118,6 +124,7 @@ export async function GET(request: NextRequest) {
               ].filter((n) => n > 1).length
             : null,
         "Recorded business intake submissions": enquiries,
+        "Buyer replies / proposals · operator recorded": buyerConversations,
       },
       unavailable: [
         "Challenge, Moment, comparison and Spotlight opens from configured client analytics (not joined to this ledger)",

@@ -1,5 +1,6 @@
 'use client';
 import SponsoredBriefDraft from '@/components/admin/SponsoredBriefDraft';
+import AcquisitionKit from '@/components/admin/AcquisitionKit';
 
 import { BarChart3, Copy, Loader2, Plus, RefreshCw, Send, Share2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -269,6 +270,7 @@ export default function CreatorDropsAdminPage() {
             </div>
           </div>
         </section>
+        <AcquisitionKit key={address?.toLowerCase() ?? (hasAdminSession ? 'admin-session' : 'signed-out')} authenticate={authenticate} headers={headers} />
         <SponsoredBriefDraft authenticate={authenticate} authHeaders={headers} authScope={address?.toLowerCase() ?? (hasAdminSession ? 'admin-session' : 'signed-out')} />
       </div>
     </main>

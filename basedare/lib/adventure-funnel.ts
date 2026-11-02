@@ -4,7 +4,7 @@ let queue = Promise.resolve();
 export function recordAdventureEvent(
   activityId: string,
   runId: string,
-  event: "STARTED" | "COMPLETED_SELF_REPORTED",
+  event: "STARTED" | "COMPLETED_SELF_REPORTED" | "LANDING_RENDERED",
 ) {
   queue = queue.then(async () => {
     try {
