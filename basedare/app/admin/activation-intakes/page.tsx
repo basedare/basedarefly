@@ -1,5 +1,7 @@
 'use client';
 
+import { BUSINESS_CONVERSATION_STAGES } from '@/lib/business-followup';
+
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -84,6 +86,8 @@ type ActivationIntake = {
   assignedCreator: string;
   assignedVenue: string;
   operatorNote: string;
+  followupOwner: string;
+  conversationStage: string;
   nextActionAt: string;
   paymentLink: string;
   paymentReference: string;
@@ -216,6 +220,8 @@ type IntakeDraft = {
   assignedCreator?: string;
   assignedVenue?: string;
   operatorNote?: string;
+  followupOwner?: string;
+  conversationStage?: string;
   nextActionAt?: string;
   paymentLink?: string;
   paymentReference?: string;
@@ -591,6 +597,8 @@ export default function ActivationIntakesPage() {
       assignedCreator: draft.assignedCreator ?? intake.assignedCreator,
       assignedVenue: draft.assignedVenue ?? intake.assignedVenue,
       operatorNote: draft.operatorNote ?? intake.operatorNote,
+      followupOwner: draft.followupOwner ?? intake.followupOwner,
+      conversationStage: draft.conversationStage ?? intake.conversationStage,
       nextActionAt: toIsoFromLocal(draft.nextActionAt ?? formatNextActionInput(intake.nextActionAt)),
       paymentLink: draft.paymentLink ?? intake.paymentLink,
       paymentReference: draft.paymentReference ?? intake.paymentReference,
@@ -1221,6 +1229,13 @@ export default function ActivationIntakesPage() {
                           </div>
                         )}
 
+                        <label className="block text-sm font-bold text-white/70">Human follow-up owner
+                          <input value={draft.followupOwner ?? intake.followupOwner ?? ''} onChange={e => updateDraft(intake.id, { followupOwner: e.target.value })} maxLength={100} className="bd-well mt-2 min-h-12 w-full px-3 text-white" placeholder="Who will reply to this buyer?" />
+                        </label>
+                        <label className="block text-sm font-bold text-white/70">Conversation / proposal · operator recorded
+                          <select value={draft.conversationStage ?? intake.conversationStage ?? 'NOT_CONTACTED'} onChange={e => updateDraft(intake.id, { conversationStage: e.target.value })} className="bd-well mt-2 min-h-12 w-full px-3 text-white">{Object.entries(BUSINESS_CONVERSATION_STAGES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+                        </label>
+                        <p className="text-xs leading-5 text-white/55">Recording a follow-up does not send a message, accept a proposal, charge or launch work.</p>
                         <label className="block">
                           <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">Next action</span>
                           <input

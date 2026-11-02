@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
+import RetentionStatus from "./RetentionStatus";
 type Report = {
   metrics: Record<string, number | null>;
   unavailable: string[];
   since: string;
+  cohorts?: { note: string; rows: null | { id: string; slug: string; creatorCode: string; campaign: string | null; channel: string; activityId: string; entries: number; landings: number; starts: number; finishes: number; invitationActions: number; recipientStarts: number; approvedContributions: number }[] };
 };
 export default function MomentGrowthPanel({
   enabled,
@@ -70,6 +72,11 @@ export default function MomentGrowthPanel({
               </div>
             ))}
           </dl>
+          {report.cohorts ? <section className="mt-7">
+            <h3 className="text-xl font-black">Which invitations bring the next attempt?</h3>
+            <p className="mt-3 text-sm leading-6 text-white/60">{report.cohorts.note}</p>
+            {report.cohorts.rows === null ? <p role="status" className="mt-3 text-amber-100">Cohort totals unavailable.</p> : !report.cohorts.rows.length ? <p className="mt-3 text-sm text-white/65">No prepared acquisition links yet. Prepare them in Creator Drops; no participants have been invented.</p> : <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Tracked challenge cohorts</caption><thead><tr>{['Source / challenge', 'Entries', 'Landings', 'Starts', 'Finishes', 'Invite actions', 'Recipient starts', 'Approved contributions'].map(label => <th key={label} className="min-w-24 p-3 text-white/60">{label}</th>)}</tr></thead><tbody>{report.cohorts.rows.map(row => <tr key={row.id} className="border-t border-white/10"><th className="min-w-52 p-3 font-normal"><strong>{row.channel}</strong><br />{row.creatorCode} · {row.campaign ?? 'No campaign'}<br />{row.activityId} · /go/{row.slug}</th>{[row.entries, row.landings, row.starts, row.finishes, row.invitationActions, row.recipientStarts, row.approvedContributions].map((n, i) => <td key={i} className="p-3 font-bold text-amber-100">{n}</td>)}</tr>)}</tbody></table></div>}
+          </section> : null}
           <p className="mt-4 text-xs leading-6 text-white/50">
             Unavailable: {report.unavailable.join(" · ")}.
           </p>
@@ -79,6 +86,7 @@ export default function MomentGrowthPanel({
           {error || "Reading growth records…"}
         </p>
       )}
+      <RetentionStatus headers={headers} />
       {error ? (
         <button
           className="bd-action mt-3 min-h-11 !text-sm"

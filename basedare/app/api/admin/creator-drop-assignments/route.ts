@@ -14,6 +14,7 @@ import {
 } from '@/lib/creator-drop-assignments';
 import { parseCreatorDropMetadata } from '@/lib/creator-drops';
 import { prisma } from '@/lib/prisma';
+import { acquisitionDropMetadata } from '@/lib/acquisition-policy';
 
 const noStoreHeaders = {
   'Cache-Control': 'private, no-store, max-age=0',
@@ -80,9 +81,9 @@ async function metricsForLink(link: LinkRow | null) {
 
   const [touches, intents, missionPasses, verifiedCompletions] = await Promise.all([
     prisma.attributionTouch.count({ where: { linkId: link.id } }),
-    prisma.actionIntent.count({ where: { targetType: link.targetType, targetId: link.targetId } }),
+    prisma.actionIntent.count({ where: { primaryTouch: { linkId: link.id } } }),
     prisma.missionPass.count({
-      where: { actionIntent: { targetType: link.targetType, targetId: link.targetId } },
+      where: { actionIntent: { primaryTouch: { linkId: link.id } } },
     }),
     prisma.attributionEvent.count({
       where: {
@@ -105,10 +106,10 @@ async function metricsForLink(link: LinkRow | null) {
 
 async function summarizeAssignment(row: AssignmentRow, origin: string) {
   const link = row.link;
-  const metadata = parseCreatorDropMetadata(link?.metadataJson ?? null);
+  const metadata = parseCreatorDropMetadata(link?.metadataJson ?? null) ?? acquisitionDropMetadata(link?.metadataJson);
   const metrics = await metricsForLink(link);
   const status = normalizeCreatorDropAssignmentStatus(row.status);
-  const suggestedVerdict = creatorDropAssignmentVerdict(metrics);
+  const suggestedVerdict = metadata?.category === 'free_play' ? null : creatorDropAssignmentVerdict(metrics);
   const publicPath = link ? `/go/${link.slug}` : null;
   const publicUrl = publicPath ? `${origin}${publicPath}` : null;
   const activationCopy = metadata && publicUrl
@@ -121,6 +122,7 @@ async function summarizeAssignment(row: AssignmentRow, origin: string) {
         actionLabel: metadata.actionLabel,
         rewardLabel: metadata.rewardLabel,
         creatorBrief: metadata.creatorBrief,
+        freePlay: metadata.category === 'free_play',
       })
     : row.askText;
 
@@ -169,9 +171,10 @@ function requestOrigin(request: NextRequest) {
 }
 
 async function resolveCreatorDropLink(input: { linkId?: string | null; linkSlug?: string | null }) {
+  const eligible = { OR: [{ targetHref: { startsWith: '/drops/' } }, { metadataJson: { path: ['kind'], equals: 'acquisition_v1' } }] };
   if (input.linkId) {
     return prisma.creatorAttributionLink.findFirst({
-      where: { id: input.linkId, targetHref: { startsWith: '/drops/' } },
+      where: { id: input.linkId, ...eligible },
       select: linkSelect,
     });
   }
@@ -179,7 +182,7 @@ async function resolveCreatorDropLink(input: { linkId?: string | null; linkSlug?
   if (input.linkSlug) {
     const slug = normalizeCreatorAssignmentCode(input.linkSlug, 'linkSlug');
     return prisma.creatorAttributionLink.findFirst({
-      where: { slug, targetHref: { startsWith: '/drops/' } },
+      where: { slug, ...eligible },
       select: linkSelect,
     });
   }
@@ -203,7 +206,7 @@ export async function GET(request: NextRequest) {
   const linkedIds = assignments.map((assignment) => assignment.linkId).filter(Boolean) as string[];
   const unassignedLinks = await prisma.creatorAttributionLink.findMany({
     where: {
-      targetHref: { startsWith: '/drops/' },
+      OR: [{ targetHref: { startsWith: '/drops/' } }, { metadataJson: { path: ['kind'], equals: 'acquisition_v1' } }],
       id: { notIn: linkedIds },
     },
     orderBy: { createdAt: 'desc' },
@@ -219,7 +222,7 @@ export async function GET(request: NextRequest) {
       assignments: await Promise.all(assignments.map((assignment) => summarizeAssignment(assignment, origin))),
       unassignedDrops: unassignedLinks
         .map((link) => {
-          const metadata = parseCreatorDropMetadata(link.metadataJson);
+          const metadata = parseCreatorDropMetadata(link.metadataJson) ?? acquisitionDropMetadata(link.metadataJson);
           if (!metadata) return null;
           return {
             id: link.id,
@@ -249,7 +252,7 @@ export async function POST(request: NextRequest) {
       return json({ success: false, error: 'Creator drop link not found.' }, { status: 404 });
     }
 
-    const metadata = parseCreatorDropMetadata(link?.metadataJson ?? null);
+    const metadata = parseCreatorDropMetadata(link?.metadataJson ?? null) ?? acquisitionDropMetadata(link?.metadataJson);
     const publicUrl = link ? `${requestOrigin(request)}/go/${link.slug}` : null;
     const askText = metadata && publicUrl
       ? buildCreatorDropOutreachCopy({
@@ -261,6 +264,7 @@ export async function POST(request: NextRequest) {
           actionLabel: metadata.actionLabel,
           rewardLabel: metadata.rewardLabel,
           creatorBrief: metadata.creatorBrief,
+        freePlay: metadata.category === 'free_play',
         })
       : null;
 

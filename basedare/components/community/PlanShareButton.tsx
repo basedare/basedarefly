@@ -15,6 +15,7 @@ export default function PlanShareButton({
   className = '',
   analyticsSource = 'live_plan',
   copyOnly = false,
+  onShareAction,
 }: {
   title: string;
   text: string;
@@ -24,6 +25,7 @@ export default function PlanShareButton({
   className?: string;
   analyticsSource?: string;
   copyOnly?: boolean;
+  onShareAction?: (method: 'native' | 'copy_link') => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -32,6 +34,7 @@ export default function PlanShareButton({
   const copyPlan = async () => {
     try {
       await navigator.clipboard.writeText(`${text}\n\n${url}`);
+      onShareAction?.('copy_link');
       trackClientEvent('live_plan_invite_shared', {
         method: 'copy_link',
         plan_path: href,
@@ -49,6 +52,7 @@ export default function PlanShareButton({
     if (!copyOnly && typeof navigator.share === 'function') {
       try {
         await navigator.share({ title, text, url });
+        onShareAction?.('native');
         trackClientEvent('live_plan_invite_shared', {
           method: 'native',
           plan_path: href,

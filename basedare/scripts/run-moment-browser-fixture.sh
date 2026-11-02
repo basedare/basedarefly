@@ -33,6 +33,16 @@ export NEXTAUTH_SECRET="local-browser-fixture-nextauth-secret-2026"
 # This rehearsal signs with real fixture EOAs. Refuse remote RPC access so viem
 # uses its cryptographic ECDSA fallback; this does not test smart-wallet RPCs.
 export BASE_SEPOLIA_RPC_URL="http://127.0.0.1:9" BASE_MAINNET_RPC_URL="http://127.0.0.1:9"
+# Explicit, local-only optional email UI rehearsal. No provider credential or real recipient.
+if [[ "${LOCAL_RETENTION_BROWSER_FIXTURE:-false}" == 'true' ]]; then
+  export RESEND_API_KEY='fixture-only' RETENTION_FROM_EMAIL='updates@example.test'
+  export RETENTION_SECRET='local-browser-retention-secret-at-least-32-chars'
+  export RESEND_WEBHOOK_SECRET='whsec_Zml4dHVyZS1vbmx5LXdlYmhvb2stc2VjcmV0'
+  export RETENTION_EMAIL_ENABLED=true RETENTION_SEND_ENABLED=false
+  export RETENTION_FIXTURE_OUTBOX="$TASK_DIR/retention-outbox.jsonl"
+  export NODE_OPTIONS="--require=$PWD/scripts/retention-browser-outbox.cjs"
+  echo "Local-only stub outbox: $RETENTION_FIXTURE_OUTBOX"
+fi
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'CREATE ROLE service_role NOLOGIN; CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;' >/dev/null
 ./node_modules/.bin/prisma migrate deploy >/dev/null
 TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","moduleResolution":"Node"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/moment-browser-fixture.ts

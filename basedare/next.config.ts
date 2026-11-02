@@ -112,6 +112,7 @@ const nextConfig: NextConfig = {
     ];
 
     return [
+      { source: "/updates/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Cache-Control", value: "private, no-store" }] },
       { source: '/missions', headers: privateSurfaceHeaders },
       { source: '/continue/:path*', headers: privateSurfaceHeaders },
       { source: '/field-sprints/:path*', headers: privateSurfaceHeaders },

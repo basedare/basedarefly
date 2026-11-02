@@ -12,6 +12,9 @@ import {
   normalizeTargetType,
 } from '@/lib/creator-attribution-policy';
 import { prisma } from '@/lib/prisma';
+import { AcquisitionSchema, acquisitionTarget } from '@/lib/acquisition-policy';
+import { boundedRequestBytes } from '@/lib/bounded-request';
+import { sameOrigin } from '@/lib/social-request';
 
 const LinkSchema = z.object({
   slug: z.string().min(1).max(64),
@@ -22,6 +25,7 @@ const LinkSchema = z.object({
   targetId: z.string().min(1).max(191),
   targetHref: z.string().min(1).max(1024),
   participationOwner: z.boolean().optional().default(false),
+  acquisition: AcquisitionSchema.optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -54,7 +58,8 @@ export async function POST(request: NextRequest) {
   if (!auth.authorized) return unauthorizedAdminResponse(auth);
 
   try {
-    const body = LinkSchema.parse(await request.json());
+    if (!sameOrigin(request)) return NextResponse.json({ success: false, error: 'Invalid origin.' }, { status: 403 });
+    const body = LinkSchema.parse(JSON.parse(new TextDecoder().decode(await boundedRequestBytes(request, 8192))));
     const data = {
       slug: normalizeAttributionCode(body.slug, 'slug'),
       creatorCode: normalizeAttributionCode(body.creatorCode, 'creatorCode'),
@@ -65,6 +70,7 @@ export async function POST(request: NextRequest) {
       targetHref: normalizeTargetHref(body.targetHref),
       participationOwner: body.participationOwner,
       createdBy: auth.walletAddress,
+      ...(body.acquisition ? acquisitionTarget(body.acquisition) : {}),
     };
 
     if (data.targetType === 'DARE') {

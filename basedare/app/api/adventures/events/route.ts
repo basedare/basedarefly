@@ -11,6 +11,7 @@ import {
 import { currentAdventureIntent } from "@/lib/moment-events";
 import { sameOrigin, socialError } from "@/lib/social-request";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { JOURNEY_COOKIE_NAME, hashOpaqueToken } from '@/lib/mission-pass-crypto';
 export async function POST(request: NextRequest) {
   if (!sameOrigin(request)) return socialError("Invalid origin.", 403);
   if (
@@ -29,6 +30,15 @@ export async function POST(request: NextRequest) {
       typeof body.activityId === "string"
         ? adventureTemplate(body.activityId)
         : null;
+    if (activity && body.event === 'LANDING_RENDERED') {
+      // A page render is separate from a redirect. Do not create a journey for
+      // an otherwise untracked guest merely to measure a landing.
+      const raw = request.cookies.get(JOURNEY_COOKIE_NAME)?.value;
+      const touch = raw ? await prisma.attributionTouch.findFirst({ where: { targetType: 'PAGE', targetId: activity.id, journey: { cookieHash: hashOpaqueToken(raw), status: 'ACTIVE', expiresAt: { gt: new Date() } } }, orderBy: { occurredAt: 'desc' } }) : null;
+      if (!touch) return NextResponse.json({ success: true, recorded: false }, { headers: { 'Cache-Control': 'private, no-store' } });
+      await prisma.attributionEvent.upsert({ where: { dedupeKey: `adventure-landing:${touch.id}` }, update: {}, create: { eventType: 'ADVENTURE_LANDING_RENDERED', dedupeKey: `adventure-landing:${touch.id}`, journeyId: touch.journeyId, touchId: touch.id, creatorCode: touch.creatorCode, contentCode: touch.contentCode, campaignCode: touch.campaignCode, targetType: 'PAGE', targetId: activity.id, metadataJson: { evidence: 'client_reported_render_not_human_identity' } } });
+      return NextResponse.json({ success: true, recorded: true }, { headers: { 'Cache-Control': 'private, no-store' } });
+    }
     if (
       !activity ||
       typeof body.runId !== "string" ||

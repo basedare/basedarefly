@@ -39,6 +39,8 @@ const IntakeUpdateSchema = z.object({
   assignedCreator: z.string().max(120).nullable().optional(),
   assignedVenue: z.string().max(180).nullable().optional(),
   operatorNote: z.string().max(1200).nullable().optional(),
+  followupOwner: z.string().trim().max(100).nullable().optional(),
+  conversationStage: z.enum(['NOT_CONTACTED', 'CONTACTED', 'REPLIED', 'PROPOSAL_REVIEW', 'CLOSED_NO_FIT']).optional(),
   nextActionAt: z.string().datetime().nullable().optional(),
   paymentLink: z.string().max(500).nullable().optional(),
   paymentReference: z.string().max(180).nullable().optional(),
@@ -1096,6 +1098,8 @@ function mapIntakeEvent(event: {
   const assignedCreator = stringValue(operator.assignedCreator);
   const assignedVenue = stringValue(operator.assignedVenue) || venue;
   const operatorNote = stringValue(operator.operatorNote);
+  const followupOwner = stringValue(operator.followupOwner);
+  const conversationStage = stringValue(operator.conversationStage) || 'NOT_CONTACTED';
   const nextActionAt = stringValue(operator.nextActionAt);
   const paymentLink = stringValue(operator.paymentLink) || defaultPaymentLink();
   const paymentReference = stringValue(operator.paymentReference) || `BD-${event.id.slice(0, 8).toUpperCase()}`;
@@ -1267,6 +1271,8 @@ function mapIntakeEvent(event: {
     assignedCreator,
     assignedVenue,
     operatorNote,
+    followupOwner,
+    conversationStage,
     nextActionAt,
     paymentLink,
     paymentReference,
@@ -1517,6 +1523,8 @@ export async function PUT(request: NextRequest) {
     if (input.assignedCreator !== undefined) nextOperator.assignedCreator = cleanOptional(input.assignedCreator);
     if (input.assignedVenue !== undefined) nextOperator.assignedVenue = cleanOptional(input.assignedVenue);
     if (input.operatorNote !== undefined) nextOperator.operatorNote = cleanOptional(input.operatorNote);
+    if (input.followupOwner !== undefined) nextOperator.followupOwner = cleanOptional(input.followupOwner);
+    if (input.conversationStage !== undefined) nextOperator.conversationStage = input.conversationStage;
     if (input.nextActionAt !== undefined) nextOperator.nextActionAt = input.nextActionAt;
     if (input.paymentLink !== undefined) nextOperator.paymentLink = cleanOptional(input.paymentLink);
     if (input.paymentReference !== undefined) nextOperator.paymentReference = cleanOptional(input.paymentReference);
