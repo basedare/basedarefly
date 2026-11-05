@@ -7362,13 +7362,14 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
     }, { now: recommendationNow, window: 'now', timeZone: recommendationTimeZone }).eligible).slice(0, 3).forEach((signal) => {
       if (items.length >= 5) return;
 
+      const isStory = signal.postType === 'story';
       const isAsk = signal.postType === 'ask';
       const isOffer = signal.postType === 'offer';
 
       items.push({
         id: `approved-signal:${signal.id}`,
         kind: 'local-event',
-        eyebrow: isAsk ? 'Ask nearby' : isOffer ? 'Local offer' : signal.category === 'community' ? 'Community hang' : 'Local tip',
+        eyebrow: isStory ? 'Community experience' : isAsk ? 'Ask nearby' : isOffer ? 'Local offer' : signal.category === 'community' ? 'Community hang' : 'Local tip',
         title: signal.title,
         detail:
           signal.notes ||
@@ -7377,8 +7378,8 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
             : 'A reviewed local happening from BaseDare.'),
         timingLabel: formatSignalTimingLabel(signal, happeningWindow.label),
         distanceLabel: signal.distanceDisplay,
-        rewardLabel: isAsk ? '72h ask' : isOffer ? '72h offer' : signal.category,
-        actionLabel: signal.sourceUrl ? 'Official details' : isAsk || isOffer ? 'Open place room' : 'Open',
+        rewardLabel: isStory ? 'Self-reported' : isAsk ? '72h ask' : isOffer ? '72h offer' : signal.category,
+        actionLabel: isStory ? 'Read story' : signal.sourceUrl ? 'Official details' : isAsk || isOffer ? 'Open place room' : 'Open',
         href: getLocalPostMapHref(signal),
         place: signal.venueSlug ? nearbyPlaceBySlug.get(signal.venueSlug) ?? null : null,
         tone: getLocalSignalTone(signal.category),
@@ -9397,6 +9398,7 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
         .filter(
           (signal) =>
             signal.status === 'APPROVED' &&
+            signal.postType !== 'story' &&
             Number.isFinite(signal.latitude) &&
             Number.isFinite(signal.longitude) &&
             shouldRenderLocalSignalMarker({

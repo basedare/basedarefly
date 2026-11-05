@@ -9,7 +9,7 @@ import {
 } from '@/lib/world-pulse';
 
 export const metadata: Metadata = {
-  title: 'Things to do nearby | BaseDare',
+  title: 'The Pulse — your real-world feed | BaseDare',
   description: 'Find local plans, start a free adventure or arrange a meetup. See what is happening in your selected area on BaseDare.',
   alternates: { canonical: '/now' },
 };
