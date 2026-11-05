@@ -206,6 +206,7 @@ function CommunityHub() {
     }
   };
 
+  const ComposerHeading = composing ? 'h1' : 'h2';
   const composer = (
           <form
             id="local-post"
@@ -218,7 +219,7 @@ function CommunityHub() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.22em] text-emerald-200/68">{postType === 'story' ? 'Community experience' : '72-hour local post'}</p>
-                <h2 className="mt-2 text-2xl font-black">What would you like to share?</h2>
+                <ComposerHeading className="mt-2 text-2xl font-black">What would you like to share?</ComposerHeading>
               </div>
               <Store className="h-6 w-6 text-emerald-200/72" aria-hidden="true" />
             </div>

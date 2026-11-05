@@ -339,7 +339,8 @@ export default function LivePlansClient({
   const startAdventureHref = adventureHref(undefined, undefined, area);
   const showFreeIdeas = participation === 'all' || participation === 'play';
   const freeIdeasFirst = showFreeIdeas && plans.length === 0;
-  const freeIdeas = <AdventureSuggestions area={{ ...area, timeZone: snapshot?.window.tz ?? area.timeZone }} />;
+  // An empty inventory falls back to UTC; it must not replace the selected city's timezone.
+  const freeIdeas = <AdventureSuggestions area={{ ...area, timeZone: area.timeZone ?? snapshot?.window.tz }} />;
 
   return (
     <main className="now-page relative min-h-screen overflow-hidden bd-page-top px-4 pb-36 text-white sm:px-6 lg:px-10">

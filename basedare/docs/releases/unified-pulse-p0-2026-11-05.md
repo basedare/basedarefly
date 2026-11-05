@@ -12,6 +12,7 @@ The previous Create entry only offered missions/challenges/meetups. Ordinary exp
 - Creator identity transfers cannot inherit old stories: public reads require the original wallet, while the original author retains withdrawal. Owner status and withdrawal reuse identity authorization, with account-scoped client state. Owner management can withdraw even after tag eligibility is lost. A first authenticated report returns the post to NEW in the existing queue; private reasons appear for the moderator. Reports cap at five/account/day and retries cannot re-hide resolved content. Withdrawal and review share a row lock; withdrawal is terminal. Story approvals never trigger the legacy Telegram broadcast.
 - Now and map consume the same canonical story source. Stories never create independent map markers; linked place markers remain canonical. Timing labels distinguish personal stories from scheduled plans, live activity and verified visits. Public reads never fabricate an event when the database fails.
 - Existing stable three-details adventure becomes Make the ordinary look unreal / Dare001, reusing its three steps, journal and invitations. Filming/sharing stays optional and no reward is promised.
+- Responsive browser acceptance found an empty-inventory UTC fallback overriding the selected city in adventure links. Suggestions now prefer the existing validated browsing timezone. The focused composer uses a page-level heading without changing the shared form's Community heading hierarchy.
 
 ## Verification
 
