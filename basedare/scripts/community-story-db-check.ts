@@ -1,0 +1,65 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Only the operator identity is local to this test process; author signatures are real. */
+import assert from 'node:assert/strict';
+import { privateKeyToAccount } from 'viem/accounts';
+import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { buildWalletActionMessage } from '@/lib/wallet-action-auth';
+import { STORY_CONSENT, publicStory } from '@/lib/community-stories';
+const target = new URL(process.env.DATABASE_URL || '');
+if (target.hostname !== '127.0.0.1' || !target.pathname.includes('_test')) throw Error('Disposable local database only.');
+process.env.BASE_MAINNET_RPC_URL = 'http://127.0.0.1:9'; process.env.BASE_SEPOLIA_RPC_URL = 'http://127.0.0.1:9';
+process.env.NEXTAUTH_SECRET = 'local-community-story-test-secret-2026';
+const Module = require('node:module'), original = Module._load;
+Module._load = function(name: string, ...args: unknown[]) { if (name === 'next-auth') return { getServerSession: async () => null }; if (name === '@/lib/admin-auth') return { authorizeAdminRequest: async (r: NextRequest) => ({ authorized: r.headers.get('x-test-admin') === 'yes', walletAddress: 'fixture-operator' }), unauthorizedAdminResponse: () => new Response('{}', { status: 401 }) }; return original.call(this, name, ...args); };
+const admin = require('@/app/api/admin/local-signals/route');
+const api = require('@/app/api/local-signals/route'), detail = require('@/app/api/local-signals/[id]/route'), mine = require('@/app/api/local-signals/mine/route');
+Module._load = original;
+const author = privateKeyToAccount(('0x' + '7'.repeat(64)) as `0x${string}`), stranger = privateKeyToAccount(('0x' + '8'.repeat(64)) as `0x${string}`), origin = 'https://www.basedare.xyz';
+let sequence = 0;
+async function request(path: string, body: Record<string, unknown>, signer: typeof author | null = author, method = 'POST', operator = false) {
+  const issuedAt = new Date().toISOString(), walletAddress = signer?.address.toLowerCase();
+  const action = path === '/api/local-signals' ? 'community-post:create' : 'community-post:manage', resource = action === 'community-post:create' ? `venue:${body.venueSlug ?? ''}` : 'community';
+  const headers = { Origin: origin, 'x-forwarded-for': `192.0.2.${++sequence}`, ...(operator ? { 'x-test-admin': 'yes' } : {}), ...(signer ? { 'x-basedare-wallet': walletAddress!, 'x-basedare-wallet-issued-at': issuedAt, 'x-basedare-wallet-signature': await signer.signMessage({ message: buildWalletActionMessage({ walletAddress: walletAddress!, action, resource, issuedAt }) }) } : {}) };
+  return new NextRequest(origin + path, { method, headers, ...(method === 'GET' ? {} : { body: JSON.stringify(body) }) });
+}
+async function main() {
+  const tag = await prisma.streamerTag.create({ data: { tag: '@fixture-story-author', walletAddress: author.address.toLowerCase(), status: 'ACTIVE', verificationMethod: 'local-fixture' } });
+  const venue = await prisma.venue.create({ data: { slug: 'fixture-story-place', name: 'Local fixture only', latitude: 9.79, longitude: 126.15 } });
+  const body = { postType: 'story', title: 'Local story fixture only', notes: 'A real handler test, not a public participant.', city: 'General Luna', latitude: 9.79123, longitude: 126.15888, submissionKey: crypto.randomUUID(), publicConsentVersion: STORY_CONSENT, walletAddress: author.address.toLowerCase(), venueSlug: venue.slug, submittedBy: '@forged-name', officialVenueUpdate: true };
+  assert.equal((await api.POST(await request('/api/local-signals', body, null))).status, 401);
+  assert.equal((await api.POST(await request('/api/local-signals', { ...body, publicConsentVersion: '' }))).status, 400);
+  const responses = await Promise.all([api.POST(await request('/api/local-signals', body)), api.POST(await request('/api/local-signals', body))]);
+  for (const r of responses) assert.equal(r.status, 200, await r.clone().text());
+  const id = (await responses[0].json()).data.id; assert.equal((await responses[1].json()).data.id, id);
+  assert.equal((await api.POST(await request('/api/local-signals', { ...body, title: 'Different content' }))).status, 409);
+  assert.equal(await publicStory(id), null, 'Pending stays private.');
+  const context = { params: Promise.resolve({ id }) };
+  const review = async () => admin.PATCH(await request('/api/admin/local-signals', { id, status: 'APPROVED', operatorNote: 'PRIVATE_OPERATOR_CANARY', broadcast: false }, null, 'PATCH', true));
+  assert.equal((await review()).status, 200);
+  const story = await publicStory(id); assert.equal(story?.submittedBy, '@fixture-story-author'); assert.doesNotMatch(JSON.stringify(story), /PRIVATE_OPERATOR_CANARY|authorTagId|fingerprint|officialVenueUpdate|walletAddress|forged-name/);
+  const list = await api.GET(new NextRequest(origin + '/api/local-signals?postType=story&lat=9.79&lng=126.15&radiusKm=25'));
+  assert.equal(list.status, 200); assert.equal(list.headers.get('Cache-Control'), 'private, no-store'); assert.ok((await list.json()).data.signals.some((s: { id: string }) => s.id === id));
+  const remote = await api.GET(new NextRequest(origin + '/api/local-signals?postType=story&lat=-33.86&lng=151.20&radiusKm=25')); assert.ok(!(await remote.json()).data.signals.some((s: { id: string }) => s.id === id));
+  const mineReq = await request('/api/local-signals/mine?wallet=' + author.address, {}, author, 'GET');
+  assert.equal((await mine.GET(mineReq)).status, 200);
+  assert.equal((await detail.POST(await request('/api/local-signals/' + id, { action: 'withdraw', wallet: stranger.address }, stranger), context)).status, 403);
+  await prisma.venue.update({ where: { id: venue.id }, data: { status: 'SUSPENDED' } }); assert.equal(await publicStory(id), null);
+  await prisma.venue.update({ where: { id: venue.id }, data: { status: 'ACTIVE' } });
+  await prisma.streamerTag.update({ where: { id: tag.id }, data: { status: 'REJECTED' } }); assert.equal(await publicStory(id), null);
+  await prisma.streamerTag.update({ where: { id: tag.id }, data: { status: 'ACTIVE' } });
+  await prisma.streamerTag.update({ where: { id: tag.id }, data: { walletAddress: stranger.address.toLowerCase() } }); assert.equal(await publicStory(id), null, 'A transferred identity cannot inherit an old story.');
+  assert.equal((await detail.POST(await request('/api/local-signals/' + id, { action: 'withdraw', wallet: stranger.address }, stranger), context)).status, 403);
+  await prisma.streamerTag.update({ where: { id: tag.id }, data: { walletAddress: author.address.toLowerCase() } });
+  const report = async () => detail.POST(await request('/api/local-signals/' + id, { action: 'report', wallet: stranger.address, reason: 'Private report fixture only' }, stranger), context);
+  assert.equal((await report()).status, 200); assert.equal(await publicStory(id), null);
+  assert.equal((await review()).status, 200); assert.equal((await report()).status, 200); assert.ok(await publicStory(id), 'A resolved report retry cannot hide again.');
+  await Promise.all([review(), detail.POST(await request('/api/local-signals/' + id, { action: 'withdraw', wallet: author.address }), context)]);
+  assert.equal((await prisma.founderEvent.findUniqueOrThrow({ where: { id } })).status, 'WITHDRAWN'); assert.equal(await publicStory(id), null);
+  assert.notEqual((await review()).status, 200); assert.equal((await detail.GET(new NextRequest(origin + '/api/local-signals/' + id), context)).status, 404);
+  const unplaced = await api.POST(await request('/api/local-signals', { ...body, venueSlug: '', submissionKey: crypto.randomUUID() })); assert.equal(unplaced.status, 200);
+  const row = await prisma.founderEvent.findUniqueOrThrow({ where: { id: (await unplaced.json()).data.id } });
+  assert.equal((row.metadataJson as { latitude: number }).latitude, 9.79, 'No exact private GPS on unplaced story.');
+  assert.equal(row.venueId, null); assert.equal(await prisma.venue.count({ where: { slug: 'fixture-story-place' } }), 1);
+  console.log('PASS: real ECDSA author/stranger authorization, explicit consent, canonical optional venue, coarse area, concurrent retry, public/private projection, source revocation, report/review retry and withdrawal-vs-approval race. Local DB only; no media, funds, provider or public participant.');
+}
+main().then(() => prisma.$disconnect()).then(() => process.exit(0)).catch(async e => { console.error(e); await prisma.$disconnect(); process.exit(1); });

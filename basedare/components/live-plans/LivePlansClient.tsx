@@ -25,6 +25,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import LivePlanCard from '@/components/live-plans/LivePlanCard';
+import CommunityStories from '@/components/community/CommunityStories';
 import AdventureSuggestions from '@/components/adventures/AdventureSuggestions';
 import { adventureHref } from '@/lib/adventure-progress';
 import PeeBearDecisionCard from '@/components/live-plans/PeeBearDecisionCard';
@@ -338,7 +339,8 @@ export default function LivePlansClient({
   const startAdventureHref = adventureHref(undefined, undefined, area);
   const showFreeIdeas = participation === 'all' || participation === 'play';
   const freeIdeasFirst = showFreeIdeas && plans.length === 0;
-  const freeIdeas = <AdventureSuggestions area={{ ...area, timeZone: snapshot?.window.tz ?? area.timeZone }} />;
+  // An empty inventory falls back to UTC; it must not replace the selected city's timezone.
+  const freeIdeas = <AdventureSuggestions area={{ ...area, timeZone: area.timeZone ?? snapshot?.window.tz }} />;
 
   return (
     <main className="now-page relative min-h-screen overflow-hidden bd-page-top px-4 pb-36 text-white sm:px-6 lg:px-10">
@@ -347,8 +349,8 @@ export default function LivePlansClient({
         <section className="bd-surface p-5 sm:p-8">
           <div className="flex flex-col gap-6">
             <div>
-              <p className="bd-page-kicker"><Radio className="h-3.5 w-3.5" /> Discover nearby</p>
-              <h1 className="bd-page-title mt-3 max-w-4xl">Find your next move. </h1>
+              <p className="bd-page-kicker"><Radio className="h-3.5 w-3.5" /> The Pulse · discover nearby</p>
+              <h1 className="bd-page-title mt-3 max-w-4xl">The world is your feed.</h1>
               <p className="mt-3 text-sm text-slate-300">{area.label} · within {radiusKm} km</p>
             </div>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -478,6 +480,7 @@ export default function LivePlansClient({
         {guideStep === 1 ? <LivePlansGuideCue step={1} onBack={() => moveGuide('back')} onNext={() => moveGuide('next')} onClose={closeIntro} /> : null}
         {showFreeIdeas && !freeIdeasFirst ? freeIdeas : null}
 
+        <CommunityStories />
         {guideStep === 2 ? (
           <div id="live-plan-next-move" className="scroll-mt-32 mt-6 rounded-[1.4rem] border border-emerald-200/22 bg-emerald-300/[0.07] p-4 ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70">
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/60">My Next Move</p>

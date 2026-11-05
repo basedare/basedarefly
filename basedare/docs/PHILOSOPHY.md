@@ -1,3 +1,5 @@
+> **5 November 2026 — superseding founder decision:** [Product Constitution](../brain-vault/00-control/product-constitution.md). BaseDare is the social network for the real world: one Feed + Map, Siargao first. Earlier proof-first and market-tournament positioning below is retained as history. Financial canon and safety gates remain authoritative.
+
 # BaseDare — Core Philosophy & Operating Principles
 
 > The durable "why" behind BaseDare. Read this before building features, writing copy, spending treasury, or planning GTM. This file and `brain-vault/00-control/vision.md` are one canon and must remain aligned.

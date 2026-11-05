@@ -198,7 +198,7 @@ function HomeContent() {
                 <div className="relative z-[60] mx-auto max-w-3xl px-1 pt-4 text-center sm:px-4 md:pt-7" aria-label="Discover BaseDare">
                   <StreetAccent className="mx-auto mb-3 w-20" />
                   <h1 className="text-[clamp(1.9rem,9.3vw,4.5rem)] font-black italic uppercase leading-[0.98] tracking-[-0.045em] text-white">
-                    Find something<br /><span className="text-[#f5c518] drop-shadow-[0_2px_14px_rgba(245,197,24,0.18)]">worth doing.</span>
+                    The world<br /><span className="text-[#f5c518] drop-shadow-[0_2px_14px_rgba(245,197,24,0.18)]">is your feed.</span>
                   </h1>
                   <p className="mx-auto mt-4 max-w-lg text-sm font-semibold leading-6 text-white/75 sm:text-base">{BASEDARE_INTRO}</p>
                   <DiscoveryLink href="/now?source=home-intro" prefetch={false} className="bd-action bd-action--gold mt-5 px-6 !text-sm">Find something nearby →</DiscoveryLink>

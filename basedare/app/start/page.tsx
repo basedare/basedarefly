@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 };
 
 const START_OPTIONS = [
+  { title: 'Share an experience', description: 'Tell a story or recommend a place. Add your words now; it appears after review.', href: '/community?compose=story#local-post', cta: 'Share a story', icon: Radio, accent: 'border-cyan-200/24 bg-cyan-300/[0.08] text-cyan-100' },
   {
     title: 'Create a paid mission',
     description: 'Set a useful real-world task, reward and proof rule before it goes live.',
@@ -51,14 +52,14 @@ export default function StartPage() {
           <div className={controlHairline} />
           <p className="bd-page-kicker">Create</p>
           <h1 className="bd-page-title mx-auto mt-4 max-w-3xl text-white">
-            What do you want to put on the map?
+            What would you like to share?
           </h1>
           <p className="bd-page-copy mx-auto mt-4 max-w-xl">
-            Set a paid task, share a free challenge or bring people together at a meetup.
+            Share an experience, bring people together or set a Dare.
           </p>
         </section>
 
-        <section className="mt-5 grid gap-4 md:grid-cols-3" aria-label="Ways to start">
+        <section className="mt-5 grid gap-4 md:grid-cols-2" aria-label="Ways to start">
           {START_OPTIONS.map((option) => (
             <OnboardingLink
               key={option.title}
@@ -82,6 +83,7 @@ export default function StartPage() {
           ))}
         </section>
 
+        <details className="bd-well mt-5 p-4"><summary className="min-h-11 cursor-pointer py-2 font-bold">More ways to contribute</summary><div className="mt-3 flex flex-wrap gap-3"><OnboardingLink href="/adventures" intent="create" placement="path-card" preserveDiscovery className="bd-action min-h-12 !text-sm">Challenge photos & Moments</OnboardingLink><OnboardingLink href="/brands/portal?workspace=1" intent="create" placement="path-card" className="bd-action min-h-12 !text-sm">Authorized venue tools</OnboardingLink></div><p className="mt-3 text-sm leading-6 text-white/60">Media uses its existing permission and review checks. Official venue publishing stays with authorized representatives.</p></details>
         <nav
           aria-label="Quick ways to explore BaseDare"
           className={`${controlInset} mx-auto mt-5 grid w-full max-w-xl grid-cols-2 gap-2 p-2`}

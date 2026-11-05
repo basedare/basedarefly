@@ -1,3 +1,5 @@
+> **5 November 2026 — superseding founder decision:** [Product Constitution](product-constitution.md). BaseDare is the social network for the real world: one Feed + Map, Siargao first. Earlier proof-first and market-tournament positioning below is retained as history. Financial canon and safety gates remain authoritative.
+
 ---
 type: strategic_vision
 system: basedare-brain

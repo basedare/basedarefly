@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   );
   const since = new Date(Date.now() - days * 86400000);
   try {
-    const [events, published, spotlight, approvals, enquiries, replies, approvedReplies, cohorts, buyerConversations] =
+    const [events, published, spotlight, approvals, enquiries, replies, approvedReplies, cohorts, buyerConversations, communityStories] =
       await Promise.all([
         prisma.attributionEvent.groupBy({
           by: ["eventType"],
@@ -63,7 +63,10 @@ export async function GET(request: NextRequest) {
         prisma.adventureSubmission.count({ where: { parentMomentId: { not: null }, createdAt: { gte: since } } }),
         prisma.adventureSubmission.count({ where: { parentMomentId: { not: null }, createdAt: { gte: since }, status: "APPROVED" } }),
         acquisitionCohorts(since),
+        // The story count below is separate from verified participation.
+
         prisma.founderEvent.count({ where: { eventType: 'ACTIVATION_INTAKE', occurredAt: { gte: since }, OR: [{ metadataJson: { path: ['operator', 'conversationStage'], equals: 'REPLIED' } }, { metadataJson: { path: ['operator', 'conversationStage'], equals: 'PROPOSAL_REVIEW' } }] } }),
+        prisma.founderEvent.count({ where: { eventType: 'LOCAL_SIGNAL', subjectType: 'community_story', createdAt: { gte: since } } }),
       ]);
     const count = (type: string) =>
       events.find((e) => e.eventType === type)?._count._all ?? 0;
@@ -89,6 +92,7 @@ export async function GET(request: NextRequest) {
       since: since.toISOString(),
       cohorts,
       metrics: {
+        "Community story submissions · not verified visits": communityStories,
         "Moment try requests · distinct journey + Moment": count("MOMENT_TRY"),
         "Self-reported starts": count("ADVENTURE_STARTED"),
         "Self-reported finishes": count("ADVENTURE_COMPLETED_SELF_REPORTED"),

@@ -1,5 +1,9 @@
 'use client';
 
+import StoryManagement from './StoryManagement';
+import CommunityStories from './CommunityStories';
+import { trackClientEvent } from '@/lib/analytics';
+import { useSearchParams } from 'next/navigation';
 import SharedAdventures from '@/components/adventures/SharedAdventures';
 import PeoplePanel from './PeoplePanel';
 import Link from '@/components/DiscoveryLink';
@@ -46,12 +50,20 @@ type LocalActivity = {
   submittedBy: string;
 };
 
-function postTypeLabel(postType: 'ask' | 'offer') {
+function postTypeLabel(postType: 'ask' | 'offer' | 'story') {
+  if (postType === 'story') return 'Share a story';
   return postType === 'ask' ? 'Ask nearby' : 'Offer nearby';
 }
 
 export default function CommunityHubClient() {
+  const { address } = useActiveWallet();
+  const query = useSearchParams();
+  return <CommunityHub key={`${address ?? 'guest'}:${query.get('compose') ?? 'default'}`} />;
+}
+function CommunityHub() {
   const { area } = useDiscovery();
+  const query = useSearchParams();
+  const composing = query.get('compose') === 'story';
   const { data: session } = useSession();
   const { address: actorWallet, isResolving } = useActiveWallet();
   const { identity: identityState, retry: retryIdentity, refreshing: refreshingIdentity } = useBaretagIdentity(actorWallet, isResolving);
@@ -66,8 +78,10 @@ export default function CommunityHubClient() {
   const [venues, setVenues] = useState<VenueChoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [postType, setPostType] = useState<'ask' | 'offer'>('ask');
+  const [postType, setPostType] = useState<'ask' | 'offer' | 'story'>(query.get('compose') === 'story' ? 'story' : 'ask');
   const [venueSlug, setVenueSlug] = useState('');
+  const [displayConsent, setDisplayConsent] = useState(false);
+  const [submissionKey, setSubmissionKey] = useState(() => crypto.randomUUID());
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -75,6 +89,11 @@ export default function CommunityHubClient() {
 
   useEffect(() => {
     const controller = new AbortController();
+    if (composing) {
+      const deadline = setTimeout(() => { controller.abort(); setLoadFailed(true); setLoading(false); }, 8000);
+      void fetch('/api/venues/active', { signal: controller.signal }).then(async r => { const b = await r.json(); if (!r.ok || !b.success) throw Error(); if (!controller.signal.aborted) setVenues(b.data.venues); }).catch(() => { if (!controller.signal.aborted) setLoadFailed(true); }).finally(() => { clearTimeout(deadline); if (!controller.signal.aborted) setLoading(false); });
+      return () => { controller.abort(); clearTimeout(deadline); };
+    }
     const load = () => { void Promise.all([
       fetch(`/api/live-plans?lat=${area.lat}&lng=${area.lng}&radiusKm=${area.radiusKm}&horizonHours=72&limit=18`, { cache: 'no-store', signal: controller.signal }),
       fetch(`/api/local-signals?lat=${area.lat}&lng=${area.lng}&radiusKm=${area.radiusKm}&limit=20`, { cache: 'no-store', signal: controller.signal }),
@@ -87,7 +106,7 @@ export default function CommunityHubClient() {
           venueResponse.json(),
         ]);
         if (controller.signal.aborted) return;
-        setLoadFailed(!livePlanResponse.ok || !livePlanPayload?.success);
+        setLoadFailed(!livePlanResponse.ok || !livePlanPayload?.success || !localResponse.ok || !localPayload?.success);
         if (livePlanResponse.ok && livePlanPayload?.success && Array.isArray(livePlanPayload.data?.plans)) {
           setLivePlans(livePlanPayload.data.plans);
         }
@@ -112,17 +131,17 @@ export default function CommunityHubClient() {
     document.addEventListener('visibilitychange', refresh);
     window.addEventListener('basedare:live-plans-updated', refresh);
     return () => { controller.abort(); window.clearInterval(interval); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('basedare:live-plans-updated', refresh); };
-  }, [area.lat, area.lng, area.radiusKm]);
+  }, [area.lat, area.lng, area.radiusKm, composing]);
 
   const visibleLocalActivities = useMemo(
-    () => localActivities.filter((activity) => activity.postType !== 'signal' || activity.category === 'community'),
+    () => localActivities.filter((activity) => activity.postType !== 'story' && (activity.postType !== 'signal' || activity.category === 'community')),
     [localActivities]
   );
 
   const submitPost = async () => {
     setSubmitState(null);
     if (!actorWallet) {
-      setSubmitState({ type: 'error', message: 'Connect the wallet that owns your Baretag first.' });
+      setSubmitState({ type: 'error', message: 'Sign in to share your experience.' });
       return;
     }
     if (identityState.status === 'checking') {
@@ -137,8 +156,8 @@ export default function CommunityHubClient() {
       setSubmitState({ type: 'error', message: 'Claim a Baretag before posting in the community.' });
       return;
     }
-    if (!venueSlug || title.trim().length < 3) {
-      setSubmitState({ type: 'error', message: 'Choose a place and add a clear short title.' });
+    if ((postType !== 'story' && !venueSlug) || title.trim().length < 3 || (postType === 'story' && (notes.trim().length < 3 || !displayConsent))) {
+      setSubmitState({ type: 'error', message: 'Add a short title and your experience, choose a place for an Ask or Offer, and confirm display permission for a story.' });
       return;
     }
 
@@ -162,17 +181,20 @@ export default function CommunityHubClient() {
           venueSlug,
           category: 'community',
           walletAddress: actorWallet,
+          ...(postType === 'story' ? { submissionKey, publicConsentVersion: displayConsent ? 'community-story-display-v1' : '', city: area.label, latitude: area.lat, longitude: area.lng } : {}),
         }),
       });
       const payload = await response.json().catch(() => null);
-      if (!response.ok || !payload?.success) {
+      if (!response.ok || !payload?.success || !payload?.data?.id) {
         throw new Error(payload?.error || 'Could not submit this post.');
       }
+      if (postType === 'story') trackClientEvent('community_story_submitted', { source: 'community', status: 'pending_review' });
+      setSubmissionKey(crypto.randomUUID()); setDisplayConsent(false);
       setTitle('');
       setNotes('');
       setSubmitState({
         type: 'success',
-        message: 'Sent to safety review. Approved posts stay live for 72 hours in this place room.',
+        message: postType === 'story' ? 'Saved for review. Check My posts below for its status or to withdraw it.' : 'Sent to safety review. Approved posts stay live for 72 hours in this place room.',
       });
     } catch (error) {
       setSubmitState({
@@ -183,6 +205,113 @@ export default function CommunityHubClient() {
       setSubmitting(false);
     }
   };
+
+  const ComposerHeading = composing ? 'h1' : 'h2';
+  const composer = (
+          <form
+            id="local-post"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submitPost();
+            }}
+            className="bd-surface scroll-mt-28 p-5 sm:p-6"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-emerald-200/68">{postType === 'story' ? 'Community experience' : '72-hour local post'}</p>
+                <ComposerHeading className="mt-2 text-2xl font-black">What would you like to share?</ComposerHeading>
+              </div>
+              <Store className="h-6 w-6 text-emerald-200/72" aria-hidden="true" />
+            </div>
+
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              Share a real experience, ask a local question or offer a helping hand. Stories appear after review. Ask and Offer posts last 72 hours.
+            </p>
+
+            <p className="mt-3 text-sm leading-6 text-white/65">Sharing around {area.label}. Change your browsing area from the Pulse.</p>
+            {loadFailed ? <p role="status" className="mt-3 text-sm text-amber-100">Places could not load. A story can still use the area shown above; reload to try the place list again.</p> : null}
+            <div className={`mt-4 flex flex-col items-stretch gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${identityState.status === 'ready' ? 'border-emerald-200/18 bg-emerald-300/[0.07]' : identityState.status === 'pending' ? 'border-amber-200/18 bg-amber-300/[0.06]' : 'border-violet-200/14 bg-violet-300/[0.055]'}`}>
+              <span className="flex min-w-0 items-center gap-3">
+                {identityState.status === 'ready' ? <BadgeCheck className="h-5 w-5 shrink-0 text-emerald-200" aria-hidden="true" /> : <AtSign className="h-5 w-5 shrink-0 text-violet-200" aria-hidden="true" />}
+                <span className="min-w-0">
+                  <strong className="block text-sm leading-5 text-slate-100">
+                    {identityNotice.title}
+                  </strong>
+                  <span className="mt-1 block text-xs leading-5 text-slate-300">
+                    {identityNotice.detail}
+                  </span>
+                </span>
+              </span>
+              {identityNotice.action === 'claim' || identityNotice.action === 'review' ? (
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {identityNotice.action === 'claim' ? <button type="button" onClick={openAccount} className="bd-action text-xs">Check account</button> : null}
+                  <Link href="/claim-tag?source=community" className="bd-action text-xs">
+                    {identityNotice.action === 'review' ? 'View my tag' : 'Claim @tag'}
+                  </Link>
+                </div>
+              ) : identityNotice.action === 'retry' ? (
+                <button type="button" onClick={() => void retryIdentity()} disabled={refreshingIdentity} className="bd-action text-xs">{refreshingIdentity ? 'Checking…' : 'Retry lookup'}</button>
+              ) : identityNotice.action === 'sign-in' ? (
+                <button type="button" onClick={openAccount} className="bd-action text-xs">Sign in</button>
+              ) : null}
+            </div>
+
+            <div className="bd-segmented mt-5 grid grid-cols-3">
+              {(['story', 'ask', 'offer'] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPostType(value)}
+                  className="px-3"
+                  aria-pressed={postType === value}
+                >
+                  {postTypeLabel(value)}
+                </button>
+              ))}
+            </div>
+
+            <label className="mt-4 block text-sm font-bold text-white/70" htmlFor="community-place">{postType === 'story' ? 'Place · optional' : 'Place'}</label>
+            <select id="community-place" value={venueSlug} onChange={(event) => setVenueSlug(event.target.value)} className="bd-field mt-2 px-4 text-sm font-semibold">
+              <option value="">Choose a public place</option>
+              {venues.map((venue) => <option key={venue.slug} value={venue.slug}>{venue.name} · {venue.area}</option>)}
+            </select>
+
+            <label className="mt-4 block text-sm font-bold text-white/70" htmlFor="community-title">Short title</label>
+            <input id="community-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={140} placeholder={postType === 'story' ? 'The tiny café I nearly walked past' : postType === 'ask' ? 'Anyone heading to Cloud 9 sunrise?' : 'Spare board bag available today'} className="bd-field mt-2 px-4 text-base" />
+
+            <label className="mt-4 block text-sm font-bold text-white/70" htmlFor="community-notes">{postType === 'story' ? 'Your story' : 'Useful detail'}</label>
+            <textarea id="community-notes" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={700} placeholder={postType === 'story' ? 'What made it worth sharing? Keep other people’s private details out.' : 'Keep it specific, friendly, and easy to answer in the place room.'} className="bd-field mt-2 min-h-28 resize-none px-4 py-3 text-base leading-relaxed" />
+
+            <div className="mt-4 rounded-2xl border border-amber-200/14 bg-amber-300/[0.055] p-3 text-[11px] leading-relaxed text-amber-50/62">
+              <p className="flex items-center gap-2 font-black text-amber-100/78"><ShieldCheck className="h-4 w-4" aria-hidden="true" /> Keep it safe and local</p>
+              <p className="mt-1.5">{postType === 'story' ? 'Share your own experience. Leave out private contact details and ask permission before describing other people. Every post is reviewed.' : 'No payments, shipping, prohibited goods, housing deals, or anonymous DMs. Meet in public; replies stay in the place room. Every post is reviewed.'}</p>
+            </div>
+
+            {postType === 'story' ? <label className="mt-4 flex min-h-11 items-start gap-3 text-sm leading-6"><input type="checkbox" checked={displayConsent} onChange={e => setDisplayConsent(e.target.checked)} className="mt-1" />I agree to display this text with my Baretag and selected place or coarse browsing area after review. I can withdraw it in My posts. This does not grant commercial reuse rights.</label> : null}
+            {submitState ? (
+              <p className={`mt-4 rounded-2xl border p-3 text-xs font-bold ${submitState.type === 'success' ? 'border-emerald-200/20 bg-emerald-300/[0.08] text-emerald-100' : 'border-rose-200/20 bg-rose-300/[0.08] text-rose-100'}`} role="status">
+                {submitState.message}
+              </p>
+            ) : null}
+
+            <button type="submit" disabled={submitting || (postType !== 'story' && venues.length === 0) || (postType === 'story' && !displayConsent) || identityState.status === 'disconnected' || identityState.status === 'checking' || identityState.status === 'pending' || identityState.status === 'missing'} className="bd-action bd-action--cyan mt-4 w-full">
+              {submitting
+                ? 'Sending for review…'
+                : identityState.status === 'disconnected'
+                  ? 'Sign in to post'
+                  : identityState.status === 'checking'
+                    ? 'Checking Baretag…'
+                    : identityState.status === 'pending'
+                      ? 'Baretag in review'
+                      : identityState.status === 'missing'
+                        ? 'Claim a Baretag to post'
+                        : `Submit ${postType}`}
+            </button>
+            {identityState.status === 'unknown' ? <p className="mt-3 text-center text-[10px] text-white/38">We&apos;ll verify your Baretag securely when you post.</p> : null}
+            <StoryManagement />
+          </form>
+  );
+  if (composing) return <main className="bd-page-top mx-auto min-h-screen max-w-2xl px-4 pb-12 text-white"><Link href="/now" className="inline-flex min-h-12 items-center font-bold text-cyan-100">← Back to the Pulse</Link>{composer}</main>;
 
   return (
     <main className="community-page relative min-h-screen overflow-hidden bd-page-top px-4 pb-24 text-white sm:px-6 lg:px-10">
@@ -212,6 +341,7 @@ export default function CommunityHubClient() {
           </Link>
         </div>
 
+        <CommunityStories />
         <section id="community-crew" className="mt-8 scroll-mt-24">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -284,104 +414,7 @@ export default function CommunityHubClient() {
             </div>
           </div>
 
-          <form
-            id="local-post"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void submitPost();
-            }}
-            className="bd-surface scroll-mt-28 p-5 sm:p-6"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-emerald-200/68">72-hour local post</p>
-                <h2 className="mt-2 text-2xl font-black">Ask or offer something useful</h2>
-              </div>
-              <Store className="h-6 w-6 text-emerald-200/72" aria-hidden="true" />
-            </div>
-
-            <p className="mt-3 text-sm leading-6 text-slate-300">
-              Pick a place once. After review, your post appears here and on that place&apos;s map room for 72 hours.
-            </p>
-
-            <div className={`mt-4 flex flex-col items-stretch gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${identityState.status === 'ready' ? 'border-emerald-200/18 bg-emerald-300/[0.07]' : identityState.status === 'pending' ? 'border-amber-200/18 bg-amber-300/[0.06]' : 'border-violet-200/14 bg-violet-300/[0.055]'}`}>
-              <span className="flex min-w-0 items-center gap-3">
-                {identityState.status === 'ready' ? <BadgeCheck className="h-5 w-5 shrink-0 text-emerald-200" aria-hidden="true" /> : <AtSign className="h-5 w-5 shrink-0 text-violet-200" aria-hidden="true" />}
-                <span className="min-w-0">
-                  <strong className="block text-sm leading-5 text-slate-100">
-                    {identityNotice.title}
-                  </strong>
-                  <span className="mt-1 block text-xs leading-5 text-slate-300">
-                    {identityNotice.detail}
-                  </span>
-                </span>
-              </span>
-              {identityNotice.action === 'claim' || identityNotice.action === 'review' ? (
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  {identityNotice.action === 'claim' ? <button type="button" onClick={openAccount} className="bd-action text-xs">Check account</button> : null}
-                  <Link href="/claim-tag?source=community" className="bd-action text-xs">
-                    {identityNotice.action === 'review' ? 'View my tag' : 'Claim @tag'}
-                  </Link>
-                </div>
-              ) : identityNotice.action === 'retry' ? (
-                <button type="button" onClick={() => void retryIdentity()} disabled={refreshingIdentity} className="bd-action text-xs">{refreshingIdentity ? 'Checking…' : 'Retry lookup'}</button>
-              ) : identityNotice.action === 'sign-in' ? (
-                <button type="button" onClick={openAccount} className="bd-action text-xs">Sign in</button>
-              ) : null}
-            </div>
-
-            <div className="bd-segmented mt-5 grid grid-cols-2">
-              {(['ask', 'offer'] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setPostType(value)}
-                  className="px-3"
-                  aria-pressed={postType === value}
-                >
-                  {postTypeLabel(value)}
-                </button>
-              ))}
-            </div>
-
-            <label className="mt-4 block text-[10px] font-black uppercase tracking-[0.14em] text-white/46" htmlFor="community-place">Place</label>
-            <select id="community-place" value={venueSlug} onChange={(event) => setVenueSlug(event.target.value)} className="bd-field mt-2 px-4 text-sm font-semibold">
-              <option value="">Choose a public place</option>
-              {venues.map((venue) => <option key={venue.slug} value={venue.slug}>{venue.name} · {venue.area}</option>)}
-            </select>
-
-            <label className="mt-4 block text-[10px] font-black uppercase tracking-[0.14em] text-white/46" htmlFor="community-title">Short title</label>
-            <input id="community-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={140} placeholder={postType === 'ask' ? 'Anyone heading to Cloud 9 sunrise?' : 'Spare board bag available today'} className="bd-field mt-2 px-4 text-sm" />
-
-            <label className="mt-4 block text-[10px] font-black uppercase tracking-[0.14em] text-white/46" htmlFor="community-notes">Useful detail</label>
-            <textarea id="community-notes" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={700} placeholder="Keep it specific, friendly, and easy to answer in the place room." className="bd-field mt-2 min-h-28 resize-none px-4 py-3 text-sm leading-relaxed" />
-
-            <div className="mt-4 rounded-2xl border border-amber-200/14 bg-amber-300/[0.055] p-3 text-[11px] leading-relaxed text-amber-50/62">
-              <p className="flex items-center gap-2 font-black text-amber-100/78"><ShieldCheck className="h-4 w-4" aria-hidden="true" /> Keep it safe and local</p>
-              <p className="mt-1.5">No payments, shipping, prohibited goods, housing deals, or anonymous DMs. Meet in public; replies stay in the place room. Every post is reviewed.</p>
-            </div>
-
-            {submitState ? (
-              <p className={`mt-4 rounded-2xl border p-3 text-xs font-bold ${submitState.type === 'success' ? 'border-emerald-200/20 bg-emerald-300/[0.08] text-emerald-100' : 'border-rose-200/20 bg-rose-300/[0.08] text-rose-100'}`} role="status">
-                {submitState.message}
-              </p>
-            ) : null}
-
-            <button type="submit" disabled={submitting || venues.length === 0 || identityState.status === 'disconnected' || identityState.status === 'checking' || identityState.status === 'pending' || identityState.status === 'missing'} className="bd-action bd-action--cyan mt-4 w-full">
-              {submitting
-                ? 'Sending for review…'
-                : identityState.status === 'disconnected'
-                  ? 'Connect to post'
-                  : identityState.status === 'checking'
-                    ? 'Checking Baretag…'
-                    : identityState.status === 'pending'
-                      ? 'Baretag in review'
-                      : identityState.status === 'missing'
-                        ? 'Claim a Baretag to post'
-                        : `Submit ${postType}`}
-            </button>
-            {identityState.status === 'unknown' ? <p className="mt-3 text-center text-[10px] text-white/38">We&apos;ll verify your Baretag securely when you post.</p> : null}
-          </form>
+          {composer}
         </section>
       </div>
     </main>

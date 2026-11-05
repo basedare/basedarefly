@@ -13,6 +13,8 @@ This is the repo-native memory layer for BaseDare Brain.
 
 Obsidian can open this folder as a vault, but BaseDare does not depend on Obsidian. The durable asset is plain Markdown with structured frontmatter that agents and humans can both read and update.
 
+Active product authority: [[00-control/product-constitution|Product Constitution — 5 November 2026]]. The dated founder decision supersedes conflicting historical positioning.
+
 ## Start Here
 
 - [[00-control/vision|Vision]]
@@ -36,4 +38,4 @@ Obsidian can open this folder as a vault, but BaseDare does not depend on Obsidi
 
 BaseDare Brain may research, dedupe, rank, draft, summarize, and update memory automatically. External sends, public posts, commercial promises, legal commitments, payments, and destructive actions require human review.
 
-The active strategic direction is defined in [[00-control/vision|Vision]]. If a city-specific plan, venue pilot, or event concept conflicts with that file, the vision wins: BaseDare must operate remotely as a bounty-funded discovery network, with events treated as optional local-partner products.
+The active strategic direction is defined in [[00-control/product-constitution|Product Constitution]], with historical context in [[00-control/vision|Vision]]. If a plan conflicts with the Product Constitution, the dated Constitution governs: one real-world social Feed + Map, Siargao first, with financial canon and safety gates preserved.

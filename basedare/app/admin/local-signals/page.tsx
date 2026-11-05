@@ -9,15 +9,16 @@ import GradualBlurOverlay from '@/components/GradualBlurOverlay';
 import LiquidBackground from '@/components/LiquidBackground';
 import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
 
-type LocalSignalStatus = 'NEW' | 'APPROVED' | 'REJECTED';
+type LocalSignalStatus = 'NEW' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN';
 type StatusFilter = LocalSignalStatus | 'ALL';
 
 type LocalSignalItem = {
+  reports?: string[];
   id: string;
   title: string;
   status: LocalSignalStatus;
   category: string;
-  postType: 'signal' | 'ask' | 'offer';
+  postType: 'signal' | 'ask' | 'offer' | 'story';
   venueSlug: string;
   venueName: string;
   city: string;
@@ -332,6 +333,7 @@ export default function AdminLocalSignalsPage() {
                         {formatDateTime(signal.startsAt)}
                       </span>
                     </div>
+                    {signal.reports?.map((reason, index) => <p key={index} className="mt-3 rounded-xl border border-amber-200/20 p-3 text-sm text-amber-100">Report: {reason}</p>)}
                     <h2 className="mt-3 text-2xl font-black tracking-[-0.04em] text-white">{signal.title}</h2>
                     <p className="mt-2 text-sm font-bold text-white/58">{signalLocation(signal)}</p>
                     {signal.notes ? (
