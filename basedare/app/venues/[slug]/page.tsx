@@ -1,3 +1,4 @@
+import SocialActions from '@/components/social/SocialActions';
 import { Suspense } from 'react';
 import SharedAdventures from '@/components/adventures/SharedAdventures';
 import type { Session } from 'next-auth';
@@ -444,6 +445,7 @@ export default async function VenueDetailPage(
                       <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">{venue.name}</h1>
                     </div>
                   </div>
+                  <SocialActions kind="VENUE" targetKey={venue.slug} />
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-white/68 sm:mt-4 sm:text-base">{venueProfile.bio}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {venueProfile.legends.map((legend) => (

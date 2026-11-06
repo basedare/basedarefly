@@ -12,8 +12,8 @@ export async function publishCommunityStory(request: NextRequest, raw: unknown) 
   const input = parsed.data;
   const author = await resolveHostBaretag(request, input.walletAddress, { action: 'community-post:create', resource: `venue:${input.venueSlug}` });
   if (!author) return socialError('Sign in with your approved Baretag to share an experience.', 401);
-  const currentAuthor = await prisma.streamerTag.findUnique({ where: { id: author.id }, select: { walletAddress: true } });
-  if (currentAuthor?.walletAddress.toLowerCase() !== input.walletAddress.toLowerCase()) return socialError('Your account changed. Sign in again.', 401);
+  const currentAuthor = await prisma.streamerTag.findUnique({ where: { id: author.id }, select: { walletAddress: true, status: true, revokedAt: true } });
+  if (!currentAuthor || currentAuthor.revokedAt || !['ACTIVE', 'VERIFIED'].includes(currentAuthor.status) || currentAuthor.walletAddress.toLowerCase() !== input.walletAddress.toLowerCase()) return socialError('Your account changed. Sign in again.', 401);
   const venue = input.venueSlug ? await prisma.venue.findUnique({ where: { slug: input.venueSlug }, select: { id: true, slug: true, name: true, city: true, latitude: true, longitude: true, status: true } }) : null;
   if (input.venueSlug && venue?.status !== 'ACTIVE') return socialError('Choose an available public place.');
   const fingerprint = createHash('sha256').update(JSON.stringify([input.title, input.notes, input.venueSlug, input.city, input.latitude, input.longitude])).digest('hex');

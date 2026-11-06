@@ -76,5 +76,7 @@
   "PlaceMemoryObservation",
   "ContentRightsAcceptance",
   "AdventureSubmission",
-  "FriendConnection"
+  "FriendConnection",
+  "SocialFollow",
+  "SavedItem"
 ]

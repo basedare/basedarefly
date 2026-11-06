@@ -1,5 +1,6 @@
 'use client';
 
+import SocialActions from '@/components/social/SocialActions';
 import Link from 'next/link';
 import {
   Anchor,
@@ -253,6 +254,7 @@ export default function LivePlanCard({
           className="min-w-20"
         />
       </div>
+      {plan.type === 'venue_event' || plan.type === 'meetup' ? <SocialActions kind="ACTIVITY" targetKey={plan.id} mode="save" /> : null}
     </article>
   );
 }

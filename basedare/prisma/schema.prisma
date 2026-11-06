@@ -1922,3 +1922,31 @@ model FriendConnection {
   @@index([requester, status])
   @@index([recipient, status])
 }
+
+// Private relationship records. Targets resolve canonical sources at read time;
+// neither these references nor their counts grant chat, attendance or reward rights.
+model SocialFollow {
+  id String @id @default(cuid())
+  wallet String
+  targetKind String
+  targetKey String
+  targetWallet String? // Original person wallet; a transferred tag cannot inherit followers.
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([wallet, targetKind, targetKey])
+  @@index([wallet, active, updatedAt])
+  @@index([targetKind, targetKey, active])
+}
+
+model SavedItem {
+  id String @id @default(cuid())
+  wallet String
+  targetKind String
+  targetKey String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([wallet, targetKind, targetKey])
+  @@index([wallet, active, updatedAt])
+}

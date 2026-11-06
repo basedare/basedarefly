@@ -73,6 +73,8 @@ DECLARE
     'VoterPoints',
     'CreatorPassport',
     'AdventureJournal',
+    'SocialFollow',
+    'SavedItem',
     'PointsEvent',
     'Notification',
     'InboxThread',
