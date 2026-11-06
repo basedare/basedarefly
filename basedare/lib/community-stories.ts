@@ -7,9 +7,10 @@ export const record = (v: unknown) => v && typeof v === 'object' && !Array.isArr
 export const isStory = (event: FounderEvent) => record(event.metadataJson).postType === 'story';
 /** Both Pulse and map read this projection. Private author/review/contact fields never leave it. */
 export async function publicLocalSignalItems(events: FounderEvent[], origin?: { latitude: number; longitude: number } | null) {
+  if (!events.length) return [];
   const ids = events.filter(isStory).map(e => String(record(e.metadataJson).authorTagId));
   const [authors, venues] = await Promise.all([
-    prisma.streamerTag.findMany({ where: { id: { in: ids }, status: { in: ['ACTIVE', 'VERIFIED'] } }, select: { id: true, tag: true, walletAddress: true } }),
+    prisma.streamerTag.findMany({ where: { id: { in: ids }, status: { in: ['ACTIVE', 'VERIFIED'] }, revokedAt: null }, select: { id: true, tag: true, walletAddress: true } }),
     prisma.venue.findMany({ where: { id: { in: events.flatMap(e => e.venueId ? [e.venueId] : []) }, status: 'ACTIVE' }, select: { id: true } }),
   ]);
   const tags = new Map(authors.map(a => [a.id, a])), places = new Set(venues.map(v => v.id));

@@ -131,7 +131,7 @@ export async function PATCH(request: NextRequest) {
       if (current.status === 'WITHDRAWN') throw Error('POST_WITHDRAWN');
       if (isStory(current) && parsed.data.status === 'APPROVED') {
         const data = record(current.metadataJson);
-        const author = await tx.streamerTag.findFirst({ where: { id: String(data.authorTagId), status: { in: ['ACTIVE', 'VERIFIED'] } } });
+        const author = await tx.streamerTag.findFirst({ where: { id: String(data.authorTagId), status: { in: ['ACTIVE', 'VERIFIED'] }, revokedAt: null } });
         if (!author || author.walletAddress.toLowerCase() !== data.authorWallet || data.publicConsentVersion !== STORY_CONSENT) throw Error('POST_NOT_ELIGIBLE');
         if (current.venueId && !await tx.venue.findFirst({ where: { id: current.venueId, status: 'ACTIVE' } })) throw Error('POST_NOT_ELIGIBLE');
       }

@@ -1,3 +1,4 @@
+import SocialActions from '@/components/social/SocialActions';
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -136,6 +137,7 @@ export default async function MomentPage({
             filming or purchase required. No cash or venue reward.
           </p>
           <CreatorShareKit activityId={post.activityId} momentId={post.id} />
+          <SocialActions kind="MOMENT" targetKey={post.id} mode="save" />
           <MomentReport id={post.id} />
         </div>
       </article>

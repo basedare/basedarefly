@@ -1,5 +1,7 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
+import FollowingFeed from '@/components/social/FollowingFeed';
 import Link from '@/components/DiscoveryLink';
 import { useDiscovery } from '@/components/DiscoveryProvider';
 import { useRecommendationClock } from '@/hooks/useRecommendationClock';
@@ -82,6 +84,8 @@ export default function LivePlansClient({
   initialNeedsPeople = false,
 }: LivePlansClientProps) {
   const now = useRecommendationClock();
+  const search = useSearchParams();
+  const feed = search.get('feed') === 'following' ? 'following' : search.get('feed') === 'happening' ? 'happening' : 'nearby';
   const { area, ready: areaReady, updateArea } = useDiscovery();
   const center = useMemo(() => ({ latitude: area.lat, longitude: area.lng }), [area.lat, area.lng]);
   const setCenter = (value: { latitude: number; longitude: number }) => updateArea({ lat: value.latitude, lng: value.longitude, label: 'Selected map area' });
@@ -133,7 +137,7 @@ export default function LivePlansClient({
   }, [center.latitude, center.longitude, radiusKm]);
 
   useEffect(() => {
-    if (!areaReady) return;
+    if (!areaReady || feed === 'following') return;
     const controller = new AbortController();
     setSnapshot(null);
     void load(controller.signal);
@@ -147,11 +151,11 @@ export default function LivePlansClient({
       document.removeEventListener('visibilitychange', refresh);
       window.removeEventListener('basedare:live-plans-updated', refresh);
     };
-  }, [areaReady, load]);
+  }, [areaReady, load, feed]);
 
   useEffect(() => {
     if (!areaReady) return;
-    const href = getWorldPulseViewHref({
+    let href = getWorldPulseViewHref({
       mode,
       center,
       radiusKm,
@@ -161,9 +165,10 @@ export default function LivePlansClient({
       areaLabel: area.label,
       timeZone: area.timeZone,
     });
+    if (feed !== 'nearby') href += '&feed=' + feed;
     window.history.replaceState(window.history.state, '', href);
     window.dispatchEvent(new Event('basedare:plan-area-updated'));
-  }, [areaReady, area.label, area.timeZone, center, mode, needsPeopleOnly, pickedPlanId, radiusKm, participation]);
+  }, [areaReady, area.label, area.timeZone, center, mode, needsPeopleOnly, pickedPlanId, radiusKm, participation, feed]);
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -337,7 +342,7 @@ export default function LivePlansClient({
   if (!areaReady) return <main className="bd-page-top min-h-screen px-4 text-white sm:px-6"><div className="bd-surface mx-auto max-w-7xl p-6" role="status">Opening your area…</div></main>;
 
   const startAdventureHref = adventureHref(undefined, undefined, area);
-  const showFreeIdeas = participation === 'all' || participation === 'play';
+  const showFreeIdeas = feed === 'nearby' && (participation === 'all' || participation === 'play');
   const freeIdeasFirst = showFreeIdeas && plans.length === 0;
   // An empty inventory falls back to UTC; it must not replace the selected city's timezone.
   const freeIdeas = <AdventureSuggestions area={{ ...area, timeZone: area.timeZone ?? snapshot?.window.tz }} />;
@@ -363,9 +368,9 @@ export default function LivePlansClient({
                 </Link>
               </div>
               <div className="grid grid-cols-[1fr_1.2fr_auto] items-start gap-2 sm:flex sm:flex-wrap" aria-label="Discovery tools">
-                <button type="button" onClick={() => setPeebearOpen((current) => !current)} aria-expanded={peebearOpen} className="bd-action !px-3 !text-xs">
+                {feed === 'following' ? <Link href="/community?compose=story#local-post" className="bd-action !px-3 !text-xs">Share a story</Link> : <button type="button" onClick={() => setPeebearOpen((current) => !current)} aria-expanded={peebearOpen} className="bd-action !px-3 !text-xs">
                   <Dices className="h-4 w-4 shrink-0 text-amber-200" /> Ask PeeBear
-                </button>
+                </button>}
                 <button type="button" onClick={useMyLocation} disabled={locating} className="bd-action !px-3 !text-xs">
                   {locating ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Crosshair className="h-4 w-4 shrink-0 text-cyan-200" />}
                   {usingDeviceLocation ? 'Near me' : 'Use my location'}
@@ -376,9 +381,9 @@ export default function LivePlansClient({
                     <span className="hidden sm:inline">More options</span><ChevronDown className="hidden h-4 w-4 group-open/options:rotate-180 sm:block" aria-hidden="true" />
                   </summary>
                   <div className="bd-card absolute right-0 z-30 mt-2 flex min-w-44 flex-col gap-2 p-2">
-                    <button type="button" onClick={startGuide} className="bd-action !text-xs">
+                    {feed === 'following' ? <Link href="/now?feed=nearby" className="bd-action !text-xs">Browse nearby</Link> : <button type="button" onClick={startGuide} className="bd-action !text-xs">
                       <CircleHelp className="h-4 w-4" /> How it works
-                    </button>
+                    </button>}
                     <button type="button" onClick={() => void sharePulse()} className="bd-action !text-xs">
                       <Share2 className="h-4 w-4" /> Share view
                     </button>
@@ -387,7 +392,7 @@ export default function LivePlansClient({
               </div>
             </div>
           </div>
-          {peebearOpen ? (
+          {peebearOpen && feed !== 'following' ? (
             <div className="mt-5 rounded-2xl border border-yellow-200/12 bg-black/28 p-3" role="group" aria-label="Choose a vibe for PeeBear">
               <p className="px-1 text-[9px] font-black uppercase tracking-[0.18em] text-yellow-100/52">What are we doing?</p>
               <div className="scrollbar-hide mt-2 flex gap-2 overflow-x-auto">
@@ -403,6 +408,10 @@ export default function LivePlansClient({
           {shareStatus ? <p role="status" className="mt-4 text-right text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100/60">{shareStatus}</p> : null}
         </section>
 
+        <nav className="bd-segmented mt-5 grid grid-cols-3" aria-label="Pulse view">
+          {(['nearby', 'following', 'happening'] as const).map(view => <Link key={view} href={'/now?feed=' + view} aria-current={feed === view ? 'page' : undefined} className={`flex min-h-12 items-center justify-center rounded-full px-2 text-sm font-bold ${feed === view ? 'bg-white/10 text-amber-100' : 'text-white/65'}`}>{view === 'nearby' ? 'Nearby' : view === 'following' ? 'Following' : 'Happening'}</Link>)}
+        </nav>
+        {feed === 'following' ? <FollowingFeed /> : <>
         <div className="bd-segmented mt-6 grid grid-cols-2 sm:grid-cols-4" role="group" aria-label="Choose an activity type">
           {PARTICIPATION_FILTERS.map((filter) => (
             <button key={filter.id} type="button" aria-pressed={participation === filter.id} onClick={() => { setParticipation(filter.id); setPickedPlanId(null); setPeebearDecision(null); }} className="px-3">{filter.label}</button>
@@ -480,7 +489,7 @@ export default function LivePlansClient({
         {guideStep === 1 ? <LivePlansGuideCue step={1} onBack={() => moveGuide('back')} onNext={() => moveGuide('next')} onClose={closeIntro} /> : null}
         {showFreeIdeas && !freeIdeasFirst ? freeIdeas : null}
 
-        <CommunityStories />
+        {feed === 'nearby' ? <CommunityStories /> : null}
         {guideStep === 2 ? (
           <div id="live-plan-next-move" className="scroll-mt-32 mt-6 rounded-[1.4rem] border border-emerald-200/22 bg-emerald-300/[0.07] p-4 ring-2 ring-yellow-300/55 ring-offset-4 ring-offset-black/70">
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/60">My Next Move</p>
@@ -494,6 +503,7 @@ export default function LivePlansClient({
             <Map className="h-4 w-4 text-cyan-200" /> Open live map
           </Link>
         </div>
+        </>}
       </div>
 
     </main>
