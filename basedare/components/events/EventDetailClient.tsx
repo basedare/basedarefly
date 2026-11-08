@@ -1,5 +1,6 @@
 "use client";
 
+import SocialActions from '@/components/social/SocialActions';
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -126,6 +127,7 @@ export default function EventDetailClient({
           <h1 className="mt-3 text-4xl font-black leading-[0.96] sm:text-5xl">
             {event.title}
           </h1>
+          <SocialActions kind="ACTIVITY" targetKey={'venue_event:' + event.id} mode="save" />
           <div className="mt-5 space-y-2 text-sm font-bold text-white/64">
             <p className="flex items-center gap-2">
               <CalendarClock className="h-4 w-4 text-[#f8dd72]" />{" "}

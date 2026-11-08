@@ -1,5 +1,6 @@
 'use client';
 
+import SocialActions from '@/components/social/SocialActions';
 import { useEffect, useState, type CSSProperties, type ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -887,6 +888,7 @@ export default function CreatorProfilePage() {
                                         </span>
                                     </div>
 
+                                    <SocialActions kind="PERSON" targetKey={displayTag} mode="follow" />
                                     <div className="flex flex-wrap items-center gap-2.5 mt-3">
                                         {connectedPlatforms.map((platform) => (
                                             platform.href ? (
@@ -911,7 +913,7 @@ export default function CreatorProfilePage() {
                                         ))}
                                         {typeof profile?.followerCount === 'number' && (
                                             <span className={`${pillClass} normal-case tracking-normal text-xs text-white/60`}>
-                                                {(profile.followerCount || 0).toLocaleString()} followers
+                                                {(profile.followerCount || 0).toLocaleString()} external followers
                                             </span>
                                         )}
                                     </div>

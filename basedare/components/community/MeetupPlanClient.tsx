@@ -1,5 +1,6 @@
 'use client';
 
+import SocialActions from '@/components/social/SocialActions';
 import Link from 'next/link';
 import { ArrowLeft, CalendarClock, Check, MapPin, Repeat2, ShieldCheck, Users, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -185,6 +186,7 @@ export default function MeetupPlanClient({ initialPlan }: { initialPlan: MeetupP
             {plan.minimumPeople ? <span className={`rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] ${unlocked ? 'border-emerald-200/22 bg-emerald-300/[0.09] text-emerald-100' : 'border-[#f5c518]/25 bg-[#f5c518]/[0.08] text-[#fff0a8]'}`}>{unlocked ? 'Unlocked' : `${plan.rsvpCount}/${plan.minimumPeople}`}</span> : null}
           </div>
           <h1 className="mt-3 text-4xl font-black leading-[0.96] sm:text-5xl">{plan.title}</h1>
+          <SocialActions kind="ACTIVITY" targetKey={'meetup:' + plan.id} mode="save" />
           <div className="mt-5 space-y-2 text-sm font-bold text-white/64">
             <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-cyan-200" /> {plan.placeLabel}</p>
             <p className="flex items-center gap-2"><CalendarClock className="h-4 w-4 text-[#f8dd72]" /> {formatWhen(plan.startTime)}</p>
