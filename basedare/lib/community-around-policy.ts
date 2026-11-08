@@ -1,4 +1,4 @@
-export const LOCAL_POST_TYPES = ['signal', 'ask', 'offer'] as const;
+export const LOCAL_POST_TYPES = ['signal', 'ask', 'offer', 'story'] as const;
 export type LocalPostType = (typeof LOCAL_POST_TYPES)[number];
 
 export const COMMUNITY_POST_TTL_HOURS = 72;
@@ -138,7 +138,9 @@ export function getLocalPostMapHref(input: {
   postType: LocalPostType;
   venueSlug?: string | null;
   sourceUrl?: string | null;
+  id?: string;
 }) {
+  if (input.postType === 'story' && input.id) return '/community/posts/' + encodeURIComponent(input.id);
   if (input.sourceUrl) return input.sourceUrl;
   if (input.venueSlug) {
     const params = new URLSearchParams({

@@ -7,7 +7,7 @@ import { calculateDistance } from '@/lib/geo';
 
 export const LOCAL_SIGNAL_EVENT_TYPE = 'LOCAL_SIGNAL';
 
-export const LOCAL_SIGNAL_STATUSES = ['NEW', 'APPROVED', 'REJECTED'] as const;
+export const LOCAL_SIGNAL_STATUSES = ['NEW', 'APPROVED', 'REJECTED', 'WITHDRAWN'] as const;
 export type LocalSignalStatus = (typeof LOCAL_SIGNAL_STATUSES)[number];
 
 export type LocalSignalItem = {
@@ -68,7 +68,7 @@ export function formatLocalSignalDistance(distanceKm: number | null) {
   return `${Math.round(distanceKm)}km`;
 }
 
-export function localSignalIsCurrentlyRelevant(signal: LocalSignalItem, now = new Date()) {
+export function localSignalIsCurrentlyRelevant(signal: Pick<LocalSignalItem, 'startsAt' | 'endsAt'>, now = new Date()) {
   const startsAt = signal.startsAt ? new Date(signal.startsAt) : null;
   const endsAt = signal.endsAt ? new Date(signal.endsAt) : null;
   const nowMs = now.getTime();

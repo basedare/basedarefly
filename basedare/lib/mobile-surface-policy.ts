@@ -11,6 +11,6 @@ export function suppressInstallPrompt(pathname: string | null) {
 
 /** Immediate entry for participation and guest business enquiries. */
 export function bypassDecorativeLoader(pathname: string | null) {
-  return ['/updates', '/brands/portal', '/activations', '/moments', '/adventures', '/island-trials']
+  return ['/start', '/now', '/community', '/updates', '/brands/portal', '/activations', '/moments', '/adventures', '/island-trials']
     .some(path => pathname === path || pathname?.startsWith(`${path}/`));
 }

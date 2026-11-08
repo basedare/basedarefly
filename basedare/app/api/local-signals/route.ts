@@ -1,3 +1,7 @@
+import { publicLocalSignalItems } from '@/lib/community-stories';
+import { publishCommunityStory } from '@/lib/community-story-publish';
+import { boundedRequestBytes } from '@/lib/bounded-request';
+import { sameOrigin } from '@/lib/social-request';
 import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
@@ -5,7 +9,6 @@ import { isAddress } from 'viem';
 import { z } from 'zod';
 
 import {
-  buildSundayCommunityHangSignal,
   getCommunityPostSafetyError,
   getLocalPostDefaultWindow,
   localPostRequiresPlace,
@@ -15,7 +18,6 @@ import { ensureCuratedVenueRecords } from '@/lib/curated-venues';
 import {
   LOCAL_SIGNAL_EVENT_TYPE,
   localSignalIsCurrentlyRelevant,
-  serializeLocalSignal,
 } from '@/lib/local-signals';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
@@ -26,10 +28,11 @@ const LocalSignalQuerySchema = z.object({
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
   radiusKm: z.coerce.number().min(0.2).max(100).default(15),
+  postType: z.enum(['story']).optional(),
   limit: z.coerce.number().min(1).max(25).default(10),
 });
 const LOCAL_SIGNALS_TIMEOUT_MS = 1200;
-const LOCAL_SIGNALS_CACHE_HEADER = 'public, max-age=20, stale-while-revalidate=90';
+const LOCAL_SIGNALS_CACHE_HEADER = 'private, no-store';
 
 const LocalSignalPostSchema = z.object({
   title: z.string().min(3).max(140),
@@ -64,27 +67,6 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
   });
 }
 
-function localSignalsFallback(
-  message: string,
-  origin: { latitude: number; longitude: number } | null,
-  radiusKm: number
-) {
-  const curated = buildSundayCommunityHangSignal(new Date(), origin);
-  const signals = curated.distanceKm === null || curated.distanceKm <= radiusKm ? [curated] : [];
-  const response = NextResponse.json({
-    success: true,
-    data: {
-      signals,
-      count: signals.length,
-    },
-    source: 'fallback',
-    warning: message,
-  });
-  response.headers.set('Cache-Control', LOCAL_SIGNALS_CACHE_HEADER);
-  response.headers.set('X-BaseDare-Data-Source', 'fallback');
-  return response;
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -93,6 +75,7 @@ export async function GET(request: NextRequest) {
       lng: searchParams.get('lng') ?? undefined,
       radiusKm: searchParams.get('radiusKm') ?? undefined,
       limit: searchParams.get('limit') ?? undefined,
+      postType: searchParams.get('postType') ?? undefined,
     });
 
     if (!parsed.success) {
@@ -111,18 +94,20 @@ export async function GET(request: NextRequest) {
       where: {
         eventType: LOCAL_SIGNAL_EVENT_TYPE,
         status: 'APPROVED',
+        ...(parsed.data.postType ? { metadataJson: { path: ['postType'], equals: parsed.data.postType } } : {}),
       },
       orderBy: [{ occurredAt: 'desc' }],
       take: 100,
     }), LOCAL_SIGNALS_TIMEOUT_MS, 'Local signals query timed out');
 
     const signals = [
-      ...events.map((event) => serializeLocalSignal(event, origin)),
-      buildSundayCommunityHangSignal(new Date(), origin),
+      ...await publicLocalSignalItems(events, origin),
+
     ]
       .filter((signal) => localSignalIsCurrentlyRelevant(signal))
       .filter((signal) => signal.distanceKm === null || signal.distanceKm <= parsed.data.radiusKm)
       .sort((a, b) => {
+        if (parsed.data.postType === 'story') return Date.parse(b.createdAt) - Date.parse(a.createdAt);
         const aStart = a.startsAt ? new Date(a.startsAt).getTime() : Number.MAX_SAFE_INTEGER;
         const bStart = b.startsAt ? new Date(b.startsAt).getTime() : Number.MAX_SAFE_INTEGER;
         if (aStart !== bStart) return aStart - bStart;
@@ -142,20 +127,12 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('[LOCAL_SIGNALS] Failed to load public signals:', error);
-    const { searchParams } = new URL(request.url);
-    const latParam = searchParams.get('lat');
-    const lngParam = searchParams.get('lng');
-    const lat = latParam === null ? Number.NaN : Number(latParam);
-    const lng = lngParam === null ? Number.NaN : Number(lngParam);
-    const radiusKm = Number(searchParams.get('radiusKm')) || 15;
-    const origin = Number.isFinite(lat) && Number.isFinite(lng)
-      ? { latitude: lat, longitude: lng }
-      : null;
-    return localSignalsFallback('Local signals are temporarily warming up.', origin, radiusKm);
+    return NextResponse.json({ success: false, error: 'Local posts could not load. Try again.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
   }
 }
 
 export async function POST(request: NextRequest) {
+  if (!sameOrigin(request)) return NextResponse.json({ success: false, error: 'Invalid origin.' }, { status: 403 });
   const clientIp = getClientIp(request);
   const rateLimit = checkRateLimit(clientIp, {
     limit: 8,
@@ -171,7 +148,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const body = JSON.parse(new TextDecoder().decode(await boundedRequestBytes(request, 8192)));
+    if (body.postType === 'story') return await publishCommunityStory(request, body);
     const parsed = LocalSignalPostSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -314,8 +292,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[LOCAL_SIGNALS] Failed to submit local signal:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to submit local signal' },
-      { status: 500, headers: createRateLimitHeaders(rateLimit) }
+      { success: false, error: error instanceof Error && error.message === 'STORY_LIMIT' ? 'You can share five experiences per day.' : 'Could not submit this post. Try again.' },
+      { status: error instanceof Error && error.message === 'STORY_LIMIT' ? 429 : 503, headers: createRateLimitHeaders(rateLimit) }
     );
   }
 }

@@ -29,6 +29,10 @@ async function seed() {
       verificationMethod: "local-fixture",
     },
   });
+  const storyAuthor = await prisma.streamerTag.findFirstOrThrow({ where: { walletAddress: wallet } });
+  const storyVenue = await prisma.venue.create({ data: { slug: 'local-story-browser-place', name: 'Local fixture place', city: 'General Luna', latitude: 9.79, longitude: 126.15 } });
+  await prisma.founderEvent.create({ data: { id: 'local-story-browser-fixture', eventType: 'LOCAL_SIGNAL', subjectType: 'community_story', subjectId: storyAuthor.id, dedupeKey: 'local-story-browser-fixture', title: 'Local story fixture — not a real participant', status: 'APPROVED', venueId: storyVenue.id, venueSlug: storyVenue.slug, metadataJson: { postType: 'story', category: 'community', authorTagId: storyAuthor.id, authorWallet: wallet, publicConsentVersion: 'community-story-display-v1', notes: 'Three little details worth looking at. Disposable local browser verification only.', venueName: storyVenue.name, city: 'General Luna', latitude: 9.79, longitude: 126.15, startsAt: new Date().toISOString() } } });
+
   await prisma.meetup.create({
     data: {
       id: "moment-browser-meetup",
