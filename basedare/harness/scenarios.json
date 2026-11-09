@@ -1,0 +1,7 @@
+{
+  "discovery": ["test:discovery", "test:usability", "test:community-identity"],
+  "qr": ["test:adventure-sharing:db"],
+  "social": ["test:adventure-sharing:db", "test:moments"],
+  "business": ["test:revenue-focus", "test:revenue:db"],
+  "safety": ["safety:static", "test:refund-safety", "test:http-redirect-security"]
+}

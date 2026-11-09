@@ -1,0 +1,27 @@
+# Direct discovery QR and engineering harness
+
+The existing Field Station rail routes to nearby inventory and protects verified-outcome experiments. It did not provide the new sprint's simple direct invitation/sticker workflow. This release extends the existing creator-attribution workspace rather than creating another dashboard, graph store, onboarding system or merchant marketplace.
+
+## User journey and reuse
+
+An authorized admin creates a paused QR linked to an actual public host and canonical place, free adventure, published event, upcoming meetup or current creator. The existing CreatorAttributionLink holds metadata and its existing host Venue relation; creator/campaign/placement codes reuse AttributionJourney/Touch/Event. No migration or dependency is added. Existing Field Station/rotating check-in, generic links, paid Dares and creator drops retain their distinct controls.
+
+Current source, local-time/area adventure eligibility, host status, creator ownership/revocation, event expiry, placement permission and tracking readiness are checked before activation/printing. A concurrent stale activation cannot overwrite permission revocation. The UI disables activation while prerequisites are missing; the real API independently rejects it. Scans use a current canonical destination rather than an editable URL snapshot. Paused/expired/removed experiences provide a useful public fallback without registering a fresh touch. Redirects are no-store. An analytics outage does not prevent safe discovery or create false evidence.
+
+Two approved-palette sticker designs reuse the actual liquid wordmark, retain a four-module white QR quiet zone/high correction, embed the logo in self-contained SVG and export 100 × 140 mm dimensions. They contain no claim of a partner, prize or payout. The short-link host is visible; scan the printed output on both phones before placement. Static QR is discovery, not proof of presence.
+
+## Bounded learning harness
+
+The small offline runner reuses registered tests and the actual Graphify code index, strips production/provider variables from evaluation subprocesses, limits commands/time, stops on failure, validates aggregate-only observations and writes new private JSON reports outside source. It is an allowlist, not an OS security sandbox. It never invokes automatic Codex edits, submits a PR, sends, merges, deploys or moves money. Its prepared draft-PR brief requires independent review and founder approval.
+
+No input requests reviewed evidence without diagnosing a broken funnel. An incomplete export remains unknown; incomparable stages yield only a measurement proposal. Tiny samples cannot produce a conversion winner. Example observations are fixtures and generated recommendations are not measured product lift. The operating guide, example experiment and persistent learning journal live under `harness/` and link back to the existing constitution/architecture/Brain rules.
+
+The existing admin report exports only an authored-free-adventure browser-journey/target cohort: bounded source/window/unit/completeness and six counts, without identities, raw events or exact locations. Other destination participation stages are N/A. Repeat redirect requests, browser journeys, rendered landings, self-reported finishes, share actions, independent verification and revenue remain separate. Source overflow or missing tracking configuration makes counts unavailable, not zero.
+
+## Verification and rollout
+
+Meaningful local checks cover real admin authorization/origin, canonical and malicious snapshot redirects, paused creation, permission/activation/revocation, current sources, host suspension, creator transfer, event cancellation/expiry, guest start/self-reported finish, repeated requests, bounded cohort export, tracking outage and legacy-rail isolation. Existing migration/privacy/social/retention, discovery, business and financial safety suites remain in CI. Harness negative controls cover arbitrary-suite refusal, private/malformed observation refusal, no report overwrite, graph defects, unknown evidence and incomparable stages. Typecheck and optimized build passed; lint reported zero errors and 234 existing warnings. Eight harness regression tests passed. The disposable PostgreSQL suite passed with actual admin/redirect/attribution behavior. Local browser checks at 320 and 390 px found no horizontal overflow, exercised permission → activation → both actual SVG downloads, then pause → public fallback. Exported SVGs have 100 × 140 mm dimensions and an embedded logo. Those are browser/fixture checks, not physical-phone or print-scan acceptance.
+
+The founder authorized merging/deployment on November 9, 2026. Require clean checks and exact live source verification; no production fixture, migration, credential change, message, financial action or media/email flag activation is included. Ordinary Preview has no runtime database; local fixture/CI success is not hosted provider or physical-phone acceptance. Roll back by pausing affected links and retaining attribution/source/privacy safeguards; no schema rollback is needed.
+
+The complete master plan is not declared done. [Comprehensive status](../launch/comprehensive-build-status-2026-11-09.md) separates shipped software, missing capabilities, real acceptance and commercial P2. [Sprint audit and Siargao checklist](../design/irl-growth-harness-2026-11-08.md) record reuse and deferred scope. Final commit/PR, CI and live receipts are reported after the release, not inferred here.

@@ -1,3 +1,4 @@
+import { createDiscoveryQr, updateDiscoveryQr } from '@/lib/discovery-qr-server';
 import { privateKeyToAccount } from "viem/accounts";
 import { prisma } from "@/lib/prisma";
 import { adventureHashtag } from "@/lib/adventure-sharing";
@@ -118,6 +119,8 @@ async function seed() {
       },
     ],
   });
+  const qr = await createDiscoveryQr({ slug: 'local-fixture-qr', creatorCode: 'basedare', contentCode: 'local-fixture-placement', campaignCode: 'local-fixture-only', placementPermissionConfirmed: true, discoveryQr: { kind: 'ADVENTURE', key: 'postcard', hostVenueSlug: 'local-following-place', expiresInDays: 7 } }, 'local-fixture');
+  await updateDiscoveryQr({ linkId: qr.id, active: true }, 'local-fixture');
   const week = spotlightWeek();
   await prisma.founderEvent.create({ data: { eventType: WEEKLY_SPOTLIGHT_EVENT, dedupeKey: spotlightKey(week.key), subjectType: "ADVENTURE_SUBMISSION", subjectId: "moment-browser-approved", status: "SELECTED", source: "local-fixture", title: "Local fixture selection only", metadataJson: { week: week.key, startsAt: week.startsAt, endsAt: week.endsAt, momentId: "moment-browser-approved" } } });
 }

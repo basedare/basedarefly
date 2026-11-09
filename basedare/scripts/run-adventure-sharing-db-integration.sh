@@ -102,3 +102,6 @@ TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","modu
   node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/community-story-db-check.ts
 TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","moduleResolution":"Node"}' \
   node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/social-retention-db-check.ts
+
+TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{"module":"CommonJS","moduleResolution":"Node"}' \
+  node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/discovery-qr-db-check.ts

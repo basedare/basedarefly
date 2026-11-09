@@ -1,27 +1,28 @@
-# BaseDare Architecture
+# BaseDare architecture
 
-## High-Level Overview
+Current engineering map — November 9, 2026. Product authority is the [Product Constitution](../brain-vault/00-control/product-constitution.md); money follows the [Financial Canon](FINANCIAL_CANON.md). The [legacy bounty-era sketch](archive/architecture-legacy-bounty.md) is historical, not current release evidence.
 
-BaseDare is a decentralized dare/bounty platform running on the Base network. The application architecture is split between a Next.js frontend, a Prisma-backed PostgreSQL database, and smart contracts deployed on Base.
+BaseDare is a real-world social discovery application on Base, not a separate chain. The Next.js/React application uses Prisma/PostgreSQL for canonical product records, MapLibre for the real-world map, existing passkey/wallet/session identity and protected action authorization. Free discovery and authored adventures do not require payment or an upfront wallet.
 
-### 1. Dare Creation Flow
-1. **Frontend**: User fills out the dare creation form (`app/create/page.tsx`).
-2. **Blockchain**: User connects their wallet via Wagmi and calls the `createBounty` function on the `BaseDareBounty` smart contract, depositing USDC.
-3. **Backend API**: Upon a successful transaction, the frontend sends the transaction hash and details to the backend `/api/bounties/create` route.
-4. **Database**: Prisma creates a new `Dare` record with `status="PENDING"`, linking the on-chain ID and the target streamer's handle.
+| Layer | Existing authority / entry points | Boundary |
+| --- | --- | --- |
+| Discovery | Map/Pulse, `lib/discovery-context.ts`, current plans and place sources | Explicit/remembered/GPS browsing context is not evidence of physical presence. Failed sources remain unavailable. |
+| Places and plans | Canonical Venue, VenueEvent, Meetup, community Sparks and existing public inventory policies | Current place/author/source status, publication and time rules determine public availability. Independent stories are not official venue updates. |
+| Stories and media | LOCAL_SIGNAL / FounderEvent and shared community-story serializers; existing AdventureSubmission/Moments | Review, display consent, current identity, reporting and terminal withdrawal remain authoritative. Media switches/provider acceptance are separate from text publishing. |
+| Social retention | SocialFollow/SavedItem references and `lib/social-targets-server.ts` | Current sources are re-resolved; blocks, revocation, ownership transfer and expiry constrain private lists/Following. Saves are not attendance. |
+| Identity and authorization | Existing StreamerTag/Baretag, session and signed-wallet action infrastructure | No parallel user/provider system. Protected publishing/follow/save uses real authorization; guest free progress remains local where already supported. |
+| Acquisition | CreatorAttributionLink, AttributionJourney/Touch/Event, frozen intents, existing invitations/drops/assignments | Raw entries, browser cohorts, client renders/self-reports, verified completion and cash are different evidence. No scan creates a reward entitlement. |
+| Physical QR | Existing Field Stations/rotating venue check-in, plus direct discovery QR in the existing attribution admin | Direct invitation QR is marketing discovery. Rotating QR/GPS use the existing trusted check-in rail; neither is automatically paid-task proof. New direct links start paused and recheck canonical sources. |
+| Commercial | Guest business enquiry, existing private operator review, venue workspace/campaign/service delivery | A proposal is not a live funded campaign, accepted rights, booked revenue or a successful referral. No generalized booking marketplace. |
+| Paid Dares | Existing Dare state machine, funding/review/settlement/refund APIs and contracts | Use current readiness gates, source state, real receipts and financial canon. Verification and settlement are separate. This architecture document does not prove mainnet deployment or a successful payout. |
+| Engineering/growth learning | Existing CI and test suites, Brain vault, Graphify and `harness/` | Graphify indexes code, not live travellers. The bounded harness consumes explicit aggregates and prepares hypotheses/PR briefs; it cannot merge, deploy, send or move funds. |
 
-### 2. Proof Upload Flow
-1. **Frontend**: The targeted streamer (or anyone for an open bounty) visits the dare page (`app/dare/[shortId]/page.tsx`) and uploads a video/image proof via the UI.
-2. **Backend API**: The file is sent to `/api/upload/route.ts`.
-3. **Decentralized Storage (IPFS)**: The backend securely uploads the file to IPFS via Pinata.
-4. **Database Sync**: The resulting IPFS CID (`proofCid`) and Gateway URL are saved to the `Dare` record. The status is updated to `PENDING_REVIEW` to trigger community voting.
+## Core data flow
 
-### 3. Community Verification Flow (TruthOracle)
-1. **Frontend**: The community views the proof on the `verify` page.
-2. **Voting**: Users cast "Approve" or "Reject" votes.
-3. **Backend**: Votes are tallied and stored in Prisma.
-4. **Consensus**: Once a vote threshold is met, the dare status changes to `VERIFIED` or `FAILED`.
+Guest discovery → canonical source eligibility → existing place/activity → appropriate participation action. Authenticated text publishing → private NEW review record → approved current-source projection → Pulse/Map/detail. Report/withdraw/revocation removes subsequent eligible reads; already rendered public content and printed artwork are not instant global erasure promises.
 
-### 4. Escrow & Payout Setup (Pending)
-1. **Backend**: An admin/referee wallet script or API route (`api/bounties/settle`) listens for verified dares.
-2. **Blockchain**: The referee triggers the `releaseBounty()` or `refundBounty()` function on the smart contract, distributing the staked USDC to the appropriate party.
+A discovery short link → current host/subject/permission/expiry check → safe same-origin canonical destination → existing attribution where configured → guest adventure start/self-reported finish → optional independent invitation. Attribution failure does not fabricate a participant or prevent safe discovery. The private bounded export is a source for reviewed harness hypotheses, never verified growth on its own.
+
+## Release and operation
+
+Production migrations remain explicit operator actions, independent of the read-only build compatibility gate. No preview receives production credentials or synthetic hosted records. Local PostgreSQL fixtures and CI exercise real handlers, authorization and privacy; physical phones, private media providers, sending and mainnet acceptance remain separate gates. See [comprehensive status](launch/comprehensive-build-status-2026-11-09.md), [QR/harness release](releases/irl-qr-harness-2026-11-09.md), [harness operation](../harness/README.md) and the existing launch runbooks.
