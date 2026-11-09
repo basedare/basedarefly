@@ -43,6 +43,9 @@ jobs:
       - name: Run static production safety checks
         run: npm run safety:static
 
+      - name: Check the bounded engineering harness and code graph
+        run: npm run harness:check
+
       - name: Expired refund safety regression
         run: npm run test:refund-safety
 

@@ -1,3 +1,11 @@
+## Start here — active engineering context (2026-11-09)
+- Product authority: [Product Constitution](brain-vault/00-control/product-constitution.md), [architecture](docs/architecture.md), [financial canon](docs/FINANCIAL_CANON.md).
+- Current QR/harness slice: [audit, scope and pilot checklist](docs/design/irl-growth-harness-2026-11-08.md), [harness operation](harness/README.md), [persistent learning](harness/learning/journal.md). Preserve existing Brain memory/ops documents and the historical safeguards below.
+- P0/P1 social release is on main at 0f5a9b6e. Original P2 commercial validation is not done; it needs a real fulfilled booking and reconciled commission. The new IRL sprint's phase numbers are separate.
+- Discovery QR reuses canonical sources, CreatorAttributionLink and existing attribution. It is not check-in proof. No migration, new auth/provider, fabricated pilot, reward, payout, external message or production fixture. New links start paused; printing/activation require current sources and host permission. Existing Field Station and payment gates remain.
+- Run relevant scenario suites, typecheck/lint/build, Graphify rebuild and harness checks. Harness reports are bounded evidence/hypotheses, not verified product lift. It never merges, deploys or changes production; independent review and founder release approval remain necessary. Real-device/provider acceptance stays distinct.
+- The founder subsequently authorized finishing this QR/harness increment and pushing it to main on November 9, 2026. Ship only after checks, then verify the exact live deployment. This does not authorize production fixtures, outreach, provider/payment activation or a claim that commercial P2 is complete.
+
 ### Codex product clarity and destination continuity (2026-10-24)
 - The visible homepage headline leads with “Find something worth doing,” one discovery CTA and quieter creator/business links. PeeBear, orbit, Chaos/Control and funding controls remain; do not restore the duplicate adventure box or repeated full-size slogan below the artwork.
 - Public entry/help/discovery labels use free adventures, meetups and paid missions (Dares). Published free challenges remain separate from self-guided adventures. Keep example cards labelled Example and actual inventory truthful; the founding market is described as a pilot.

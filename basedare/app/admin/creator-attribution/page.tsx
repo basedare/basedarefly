@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { useAccount } from 'wagmi';
 
 import { useSessionAdminSecret } from '@/hooks/useSessionAdminSecret';
+import DiscoveryQrAdmin from '@/components/discovery/DiscoveryQrAdmin';
 
 type Report = {
   generatedAt: string;
@@ -72,7 +73,7 @@ export default function CreatorAttributionAdminPage() {
     }
   }, [authenticate, headers, periodDays]);
 
-  useEffect(() => { if (address || hasAdminSession) void load(); }, [address, hasAdminSession, load]);
+  useEffect(() => { setReport(null); if (address || hasAdminSession) void load(); }, [address, hasAdminSession, load]);
 
   const createLink = async (event: FormEvent) => {
     event.preventDefault();
@@ -147,6 +148,7 @@ export default function CreatorAttributionAdminPage() {
 
         {report ? (
           <>
+            <DiscoveryQrAdmin key={`${address ?? 'admin'}:${hasAdminSession}`} headers={headers} authenticate={authenticate} periodDays={periodDays} />
             <section className="mt-8 grid gap-3 md:grid-cols-3">
               {report.creators.length === 0 ? (
                 <div className="col-span-full rounded-2xl border border-dashed border-white/10 p-8 text-center text-white/35">No creator touches in this period yet.</div>

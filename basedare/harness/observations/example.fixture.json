@@ -1,0 +1,8 @@
+{
+  "source": "fixture",
+  "windowStart": "2026-11-01T00:00:00Z",
+  "windowEnd": "2026-11-08T00:00:00Z",
+  "complete": true,
+  "unit": "browser_journey_target",
+  "counts": { "entries": 150, "landings": 100, "starts": 8, "selfReportedFinishes": 4, "shareActions": 1, "verifiedCompletions": 0 }
+}
