@@ -9,6 +9,7 @@ import { assessRecommendation } from '@/lib/recommendation-policy';
 import { PARTICIPATION_FILTERS, type ParticipationFilter } from '@/lib/participation-filter';
 import { browsePlanInventory } from '@/lib/activity-presentation';
 import DiscoveryViews from '@/components/discovery/DiscoveryViews';
+import IntentDiscovery from '@/components/discovery/IntentDiscovery';
 import {
   ChevronDown,
   CircleHelp,
@@ -393,16 +394,19 @@ export default function LivePlansClient({
             </div>
           </div>
           {peebearOpen && feed !== 'following' ? (
-            <div className="mt-5 rounded-2xl border border-yellow-200/12 bg-black/28 p-3" role="group" aria-label="Choose a vibe for PeeBear">
-              <p className="px-1 text-[9px] font-black uppercase tracking-[0.18em] text-yellow-100/52">What are we doing?</p>
-              <div className="scrollbar-hide mt-2 flex gap-2 overflow-x-auto">
-                {PEEBEAR_VIBES.map((vibe) => (
-                  <button key={vibe.id} type="button" onClick={() => letPeebearPick(vibe.id)} className="min-h-11 shrink-0 rounded-full border border-white/10 bg-white/[0.045] px-5 text-[9px] font-black uppercase tracking-[0.13em] text-white/70 hover:border-yellow-200/24 hover:text-yellow-100">
-                    {vibe.label}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 px-1 text-[9px] font-bold leading-4 text-white/30">PeeBear only compares real plans in this time window. Food and drink stay out until venue hours are trustworthy.</p>
+            <div className="mt-5 rounded-2xl border border-yellow-200/12 bg-black/28 p-3 sm:p-4">
+              <IntentDiscovery area={area} surface="pulse" />
+              <details className="mt-3 border-t border-white/[0.07] pt-1">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-xs font-bold text-white/60 [&::-webkit-details-marker]:hidden">More PeeBear picks <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" /></summary>
+                <div className="scrollbar-hide mt-2 flex gap-2 overflow-x-auto" role="group" aria-label="Choose a vibe for PeeBear">
+                  {PEEBEAR_VIBES.map((vibe) => (
+                    <button key={vibe.id} type="button" onClick={() => letPeebearPick(vibe.id)} className="min-h-11 shrink-0 rounded-full border border-white/10 bg-white/[0.045] px-5 text-[9px] font-black uppercase tracking-[0.13em] text-white/70 hover:border-yellow-200/24 hover:text-yellow-100">
+                      {vibe.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 px-1 text-[10px] leading-4 text-white/45">These picks compare real plans in the selected time window. Check a place directly for opening hours.</p>
+              </details>
             </div>
           ) : null}
           {shareStatus ? <p role="status" className="mt-4 text-right text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100/60">{shareStatus}</p> : null}

@@ -2,7 +2,7 @@
 
 import { BASEDARE_INTRO } from '@/lib/product-copy';
 
-import React, { Suspense, useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -56,6 +56,16 @@ function HomeContent() {
   const [showDossier, setShowDossier] = useState(false);
   const [triggerRealityShift, setTriggerRealityShift] = useState(false);
   const [triggerMatrixRain, setTriggerMatrixRain] = useState(false);
+  const finishBusinessEntry = useCallback(() => {
+    setTriggerMatrixRain(false);
+    router.push('/brands/portal?from=home');
+  }, [router]);
+  useEffect(() => {
+    if (!triggerMatrixRain) return;
+    // A delayed decoration must never strand the business entry.
+    const deadline = window.setTimeout(finishBusinessEntry, 1500);
+    return () => window.clearTimeout(deadline);
+  }, [triggerMatrixRain, finishBusinessEntry]);
   const [showBelowFoldSections, setShowBelowFoldSections] = useState(false);
   const [useLightweightHome, setUseLightweightHome] = useState(true);
   const [desktopHero, setDesktopHero] = useState(false);
@@ -83,7 +93,7 @@ function HomeContent() {
     // The switch is a business entry, just like the homepage business links.
     // Do not activate the separate legacy Control landing view.
     if (newView === 'BUSINESS') {
-      router.push('/brands/portal?from=home');
+      if (!triggerMatrixRain) setTriggerMatrixRain(true);
       return;
     }
     if (view === 'BUSINESS' && newView === 'FAN') {
@@ -172,7 +182,7 @@ function HomeContent() {
       {/* Matrix Rain - Digital rain from Chaos to Control */}
       <MatrixRain
         trigger={triggerMatrixRain}
-        onComplete={() => setTriggerMatrixRain(false)}
+        onComplete={finishBusinessEntry}
       />
 
       {view === 'FAN' ? (

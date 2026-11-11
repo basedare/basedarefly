@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CURATED_SIARGAO_VENUES, getCuratedVenueSlugsForQuery } from '@/lib/curated-venues';
+import { hasRecordedRewardFunding } from '@/lib/reward-funding';
+import { isCreatorMissionAvailable, isPublicFacingDareTitle } from '@/lib/creator-mission-policy';
+import { readContentDelivery } from '@/lib/content-delivery';
+import { contentRightsReleaseEnabled } from '@/lib/content-rights-server';
+import { getViewerWallet } from '@/lib/meetups-server';
+import { resolveSocialTargets, socialContext } from '@/lib/social-targets-server';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 // ============================================================================
 // GET /api/search - Universal app search for places, creators, dares, and actions.
@@ -91,11 +98,6 @@ function getIntentLabelsForCategories(categories: string[] = [], preferredKeys: 
     return [...preferred, ...fallback].slice(0, 2);
 }
 
-function compactWallet(address: string | null | undefined) {
-    if (!address || address.length < 10) return 'Creator profile';
-    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-}
-
 function buildActionResults(query: string, intents: SearchIntent[]): UniversalSearchResult[] {
     const normalized = query.trim().toLowerCase();
     const results: UniversalSearchResult[] = [];
@@ -135,6 +137,7 @@ function buildActionResults(query: string, intents: SearchIntent[]): UniversalSe
 }
 
 export async function GET(request: NextRequest) {
+    if(!checkRateLimit('universal-search:'+getClientIp(request),{limit:60,windowMs:60000}).allowed) return NextResponse.json({success:false,error:'Please wait before searching again.'},{status:429,headers:{'Cache-Control':'private, no-store'}});
     try {
         const { searchParams } = new URL(request.url);
         const query = searchParams.get('q');
@@ -144,6 +147,7 @@ export async function GET(request: NextRequest) {
         }
 
         const searchTerm = query.trim();
+        if (searchTerm.length > 120) return NextResponse.json({success:false,error:'Use a shorter search.'},{status:400,headers:{'Cache-Control':'private, no-store'}});
         const normalizedSearchTerm = searchTerm.toLowerCase();
         const normalizedSlugQuery = normalizedSearchTerm.replace(/\s+/g, '-');
         const normalizedTagQuery = searchTerm.replace(/^#/, '').toLowerCase();
@@ -247,6 +251,7 @@ export async function GET(request: NextRequest) {
         const streamers = await prisma.streamerTag.findMany({
             where: {
                 status: { in: ['ACTIVE', 'VERIFIED'] },
+                revokedAt: null,
                 OR: [
                     {
                         tag: {
@@ -263,6 +268,7 @@ export async function GET(request: NextRequest) {
             },
             take: 5,
             select: {
+                id: true,
                 tag: true,
                 walletAddress: true,
                 tags: true,
@@ -271,6 +277,16 @@ export async function GET(request: NextRequest) {
 
         const dares = await prisma.dare.findMany({
             where: {
+                status: 'PENDING',
+                claimedBy: null,
+                targetWalletAddress: null,
+                AND: [
+                    { OR: [{venueId:null},{venue:{status:'ACTIVE'}}] },
+                    { OR: [{expiresAt:null},{expiresAt:{gt:new Date()}}] },
+                    { OR: [{claimRequestStatus:null},{claimRequestStatus:'REJECTED'}] },
+                    { OR: [{streamerHandle:null},{streamerHandle:{in:['@open','@everyone'],mode:'insensitive'}}] },
+                    { OR: [{bounty:0,tag:'community'},{bounty:{gt:0},isSimulated:false,txHash:{not:null},onChainDareId:{not:null}}] },
+                ],
                 OR: [
                     { title: { contains: searchTerm, mode: 'insensitive' } },
                     { streamerHandle: { contains: normalizedTagQuery, mode: 'insensitive' } },
@@ -285,10 +301,20 @@ export async function GET(request: NextRequest) {
                 bounty: true,
                 status: true,
                 streamerHandle: true,
+                tag: true, isSimulated: true, txHash: true, onChainDareId: true, missionMode: true,
+                venueId: true,
+                claimedBy: true, targetWalletAddress: true, claimRequestStatus: true, expiresAt: true, outcomeContractSnapshot: true,
             },
         });
 
-        const placesFromDb = venues
+        const context = await socialContext(await getViewerWallet());
+        const publicTargets = await resolveSocialTargets([
+            ...venues.map(v=>({kind:'VENUE' as const,key:v.id})),
+            ...streamers.map(s=>({kind:'PERSON' as const,key:s.id})),
+            ...dares.flatMap(d=>d.venueId?[{kind:'VENUE' as const,key:d.venueId}]:[]),
+        ],context);
+        const knownCurated = curatedSlugsForQuery.length ? await prisma.venue.findMany({where:{slug:{in:curatedSlugsForQuery}},select:{slug:true}}) : [];
+        const placesFromDb = venues.filter(v=>publicTargets.has('VENUE:'+v.id))
             .map((venue) => {
                 const categoryMatchCount = categoryTokens.filter((token) =>
                     venue.categories.map(normalizeToken).includes(token)
@@ -325,7 +351,7 @@ export async function GET(request: NextRequest) {
             })
             .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
             .slice(0, 6);
-        const dbPlaceSlugSet = new Set(venues.map((venue) => venue.slug));
+        const dbPlaceSlugSet = new Set(knownCurated.map((venue) => venue.slug));
         const curatedFallbackPlaces = CURATED_SIARGAO_VENUES
             .filter((venue) => curatedSlugsForQuery.includes(venue.slug) && !dbPlaceSlugSet.has(venue.slug))
             .map((venue) => {
@@ -345,7 +371,7 @@ export async function GET(request: NextRequest) {
                     title: venue.name,
                     subtitle: signalParts.join(' · ') || 'Open on map',
                     url: `/map?q=${encodeURIComponent(venue.name)}`,
-                    eyebrow: 'Place',
+                    eyebrow: 'Curated map suggestion · check current details',
                     score: (exactNameMatch ? 110 : 0) + categoryMatchCount * 28,
                 };
             })
@@ -366,32 +392,28 @@ export async function GET(request: NextRequest) {
             success: true,
             results: {
                 places,
-                streamers: streamers.map(s => ({
+                streamers: streamers.filter(s=>publicTargets.has('PERSON:'+s.id)).map(s => ({
                     type: 'streamer',
-                    title: `@${s.tag}`,
-                    subtitle:
-                        s.tags && s.tags.length > 0
-                            ? `${s.walletAddress.substring(0, 6)}...${s.walletAddress.substring(38)} • ${s.tags.slice(0, 3).map((t) => `#${t}`).join(' ')}`
-                            : compactWallet(s.walletAddress),
-                    url: `/creator/${s.tag.toLowerCase()}`,
+                    title: `@${s.tag.replace(/^@+/, '')}`,
+                    subtitle: s.tags && s.tags.length > 0 ? s.tags.slice(0,3).map(t=>'#'+t).join(' ') : 'Public creator profile',
+                    url: `/creator/${encodeURIComponent(s.tag.replace(/^@+/, '').toLowerCase())}`,
                     eyebrow: 'Creator',
                 })),
-                dares: dares.map(d => ({
+                dares: dares.filter(d => (!d.venueId || publicTargets.has('VENUE:'+d.venueId)) && isPublicFacingDareTitle(d.title) && (d.bounty === 0 || (hasRecordedRewardFunding(d) && isCreatorMissionAvailable(d) && (!readContentDelivery(d.outcomeContractSnapshot) || contentRightsReleaseEnabled())))).map(d => ({
                     type: 'dare',
                     title: d.title,
-                    subtitle: `$${d.bounty} USDC${d.streamerHandle ? ` • ${d.streamerHandle}` : ''}${d.status ? ` • ${d.status.toLowerCase()}` : ''}`,
+                    subtitle: d.bounty === 0 ? 'Free challenge · see participation requirements' : `$${d.bounty} USDC recorded reward · check brief and availability`,
                     url: `/dare/${d.shortId || d.id}`,
                     eyebrow: 'Dare',
                 })),
                 actions,
             },
-        });
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('[SEARCH] Query failed:', message);
+        }, {headers:{'Cache-Control':'private, no-store'}});
+    } catch {
+        console.error('[SEARCH] Query could not complete.');
         return NextResponse.json(
             { success: false, error: 'Failed to perform search' },
-            { status: 500 }
+            { status: 503, headers:{'Cache-Control':'private, no-store'} }
         );
     }
 }

@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useDiscovery } from '@/components/DiscoveryProvider';
 import { useRecommendationClock } from '@/hooks/useRecommendationClock';
 import AdventureCard from './AdventureCard';
@@ -11,6 +12,7 @@ import { ISLAND_TRIAL_ID, NO_BEACHES_TRIAL } from '@/lib/island-trials';
 
 const SharedAdventures = dynamic(() => import('./SharedAdventures'), { loading: () => <p role="status" className="mt-4 text-white/65">Opening reviewed island stories…</p> });
 export default function IslandTrialsHub() {
+  const linkedCampaign = useSearchParams().get('campaign');
   const { area, ready } = useDiscovery();
   const now = useRecommendationClock();
   const [showStories, setShowStories] = useState(false);
@@ -19,6 +21,7 @@ export default function IslandTrialsHub() {
     <p className="mt-5 text-sm font-bold text-violet-200">BaseDare Island Trials</p>
     <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-6xl">Stop voting.<br /><span className="text-amber-200">Start proving.</span></h1>
     <p className="mt-4 max-w-xl text-lg leading-8 text-white/75">Think your island is the best? Show us why. Tiny adventures, big local pride. Choose a side and find something worth sharing.</p>
+    {linkedCampaign && /^[a-zA-Z0-9_-]{1,191}$/.test(linkedCampaign) ? <Link href={'/island-trials/seasons/'+encodeURIComponent(linkedCampaign)} className="bd-action mt-5 !text-sm">Open the linked contribution pilot →</Link> : null}
     <div className="mt-7"><AdventureCard activity={NO_BEACHES_TRIAL} href="/island-trials/no-beaches-allowed" featured /></div>
     <section className="bd-well mt-5 p-5" aria-label="How Island Trials works"><h2 className="text-xl font-black">Pick. Explore. Defend.</h2><ol className="mt-3 space-y-3 text-base leading-7 text-white/75"><li>1. Pick an island and accept the free dare.</li><li>2. Find your moment. A few words count just as much as a clip.</li><li>3. Keep your result or dare a friend to defend their own island.</li></ol><p className="mt-4 text-sm leading-6 text-white/60">No account or public post needed. Your own attempt isn’t a verified visit, competition win or cash reward.</p></section>
     {ready ? <div className="mt-5"><FeaturedSiargaoChallenge area={area} now={now} /></div> : null}

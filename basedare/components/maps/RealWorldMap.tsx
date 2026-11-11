@@ -3569,6 +3569,8 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
   const [saveSpotDraft, setSaveSpotDraft] = useState<SaveSpotDraft | null>(null);
   const [saveSpotPhotoLoading, setSaveSpotPhotoLoading] = useState(false);
   const [saveSpotState, setSaveSpotState] = useState<{ type: 'info' | 'success' | 'error'; message: string } | null>(null);
+  const [pinHelpOpen, setPinHelpOpen] = useState(false);
+  const pinHelpRef = useRef<HTMLDetailsElement | null>(null);
   const saveSpotPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const [pulseFilter, setPulseFilter] = useState<PulseFilter>('all');
   const [mapVenueFocus, setMapVenueFocus] = useState<MapVenueFocus>('all');
@@ -10993,6 +10995,13 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
               <button type="button" className="bd-action !min-h-11 !px-3 !text-xs" onClick={() => { setMapToolsOpen(false); closeSearchPopover(); mapToolsToggleRef.current?.focus(); }}>Back to map <X className="h-4 w-4" aria-hidden="true" /></button>
             </div>
             <MapAreaPicker label={discoveryReady ? discoveryArea.label : browseArea.label} approximate={approximateBrowseArea} locating={locating} locationMessage={locationMessage} onLocate={requestApproximateLocation} onSelect={handleMapAreaSelect} />
+            <details ref={pinHelpRef} open={pinHelpOpen} onToggle={event => setPinHelpOpen(event.currentTarget.open)} className="rounded-2xl border border-white/10 bg-black/20 px-3 text-xs text-white/65">
+              <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-bold text-cyan-100"><MapPin className="h-4 w-4" aria-hidden="true" />Add pins & updates</summary>
+              <p className="leading-5">Find the place with search or tap a named place on the map. Open its card, then choose <strong className="text-white">Add an update</strong> or <strong className="text-white">Verify this place</strong>.</p>
+              <p className="mt-2 leading-5">Public updates need sign-in, a current photo/video and nearby location. A new place is connected through that flow; the update waits for review unless a trusted check-in qualifies it for approval.</p>
+              <button type="button" className="min-h-11 font-bold text-amber-100" onClick={() => { setMapToolsOpen(false); openProofForSelectedPlace(); }}>Add an update at a place →</button>
+              <p className="pb-3 leading-5"><strong className="text-white">Save spot</strong> keeps a personal pin on this device. It does not add a public place or prove a visit.</p>
+            </details>
             {locationMessage ? <p role="status" className="map-location-message px-1 text-xs leading-5 text-amber-100">{locationMessage}</p> : null}
             {mapReady && nearbyPlaces.length === 0 ? <div role="status" className="map-read-status flex h-11 items-center gap-2 px-1 text-[11px] text-white/60">
               <span className="min-w-0 flex-1 truncate">{nearbyReadStatus === 'loading' ? 'Checking BaseDare places…' : nearbyReadStatus === 'error' ? 'Places couldn’t load.' : 'No BaseDare places here yet.'}</span>
@@ -11226,10 +11235,12 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
                           triggerHaptic('selection');
                           closeSearchPopover();
                           setSaveSpotDraft(null);
-                          setSaveSpotState({ type: 'info', message: 'Search or tap the map to pick a venue.' });
+                          setPinHelpOpen(true);
+                          setMapToolsOpen(true);
+                          window.requestAnimationFrame(() => pinHelpRef.current?.scrollIntoView({ block: 'nearest' }));
                           setShowAdvancedMapFilters(false);
                         }}
-                        className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/58 transition hover:border-cyan-200/30 hover:text-cyan-100"
+                        className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/58 transition hover:border-cyan-200/30 hover:text-cyan-100"
                       >
                         <MapPin className="h-3 w-3" />
                         Add place

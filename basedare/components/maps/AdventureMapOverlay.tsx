@@ -27,9 +27,11 @@ import MapFreeAdventures from './MapFreeAdventures';
 import type { ActivityArea } from '@/lib/home-activities';
 import MapSurfGuide from "./MapSurfGuide";
 import { getSiargaoNightGuide, getSiargaoNightGuideForWeekday, type SiargaoWeekday } from "@/lib/siargao-nightlife";
+import IntentDiscovery from '@/components/discovery/IntentDiscovery';
 
 type AdventureMapOverlayProps = {
   adventureArea: ActivityArea;
+  discoveryRadiusKm?: number;
   nightPlaces: Array<{ id: string; slug: string; name: string }>;
   now: Date;
   timeZone?: string;
@@ -117,6 +119,7 @@ function getActivityMeta(activity: TonightActivity, now: Date, timeZone?: string
 
 export default function AdventureMapOverlay({
   adventureArea,
+  discoveryRadiusKm = 25,
   nightPlaces,
   now,
   timeZone,
@@ -335,29 +338,27 @@ export default function AdventureMapOverlay({
 
         {showIntentCard ? (
           <section className="map-attention-card pointer-events-auto relative mt-1 max-h-[min(26rem,55dvh)] w-[min(24rem,calc(100vw-4rem))] overflow-y-auto rounded-[26px] border border-[#f5c518]/24 bg-[radial-gradient(circle_at_92%_0%,rgba(34,211,238,0.13),transparent_34%),radial-gradient(circle_at_5%_0%,rgba(245,197,24,0.16),transparent_36%),linear-gradient(180deg,rgba(18,20,31,0.97),rgba(5,7,14,0.985))] p-3 shadow-[0_28px_64px_rgba(0,0,0,0.56),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl sm:p-4">
-            <button
-              type="button"
-              onClick={() => onGuideOpenChange(false)}
-              aria-label="Close PeeBear suggestions"
-              className="map-guide-close absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-black/30 text-white/48 transition hover:border-white/20 hover:text-white"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-            <p className="pr-10 text-[9px] font-black uppercase tracking-[0.24em] text-[#f8dd72]/70">
-              {fieldStationLabel ? `${fieldStationLabel} · Field Station` : "PeeBear’s picks"}
-            </p>
-            <h2 className="mt-2 max-w-[18rem] pr-7 text-lg font-black leading-5 text-white sm:text-xl sm:leading-6">
-              Where to next?
-            </h2>
-            <p className="mt-2 hidden text-xs leading-5 text-white/52 sm:block">
-              Pick a mood. PeeBear will suggest a few places.
-            </p>
+            <div className="sticky -top-3 z-10 -mx-1 mb-3 flex items-center justify-between gap-2 rounded-2xl bg-[#10121d]/95 px-1 py-1 backdrop-blur-xl sm:-top-4">
+              <button type="button" onClick={() => {
+                setSurfPanelOpen(false);
+                setGuideSpeechOpen(false);
+                onPanelOpenChange(false);
+                onIntentChange(null);
+                onGuideOpenChange(false);
+              }} className="bd-action !min-h-11 !px-3 !text-[10px] !normal-case !tracking-normal"><Compass className="h-3.5 w-3.5 text-emerald-100" /> Free roam</button>
+              <button type="button" onClick={() => onGuideOpenChange(false)} aria-label="Close PeeBear suggestions"
+                className="map-guide-close grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/10 text-white/70 transition hover:border-white/20 hover:text-white"><X className="h-3.5 w-3.5" /></button>
+            </div>
+            <p className="mb-2 text-[9px] font-black uppercase tracking-[0.24em] text-[#f8dd72]/70">{fieldStationLabel ? `${fieldStationLabel} · Field Station` : "PeeBear’s picks"}</p>
+            <IntentDiscovery area={{ ...adventureArea, radiusKm: discoveryRadiusKm }} surface="map" />
             {fieldStationFallback ? (
               <p className="mt-2 rounded-xl border border-cyan-200/12 bg-cyan-300/[0.05] px-3 py-2 text-[10px] leading-4 text-cyan-50/62">
                 That specific layer is quiet nearby right now, so I’m starting with useful choices instead.
               </p>
             ) : null}
-            <div className="mt-3 grid gap-2">
+            <details className="mt-3 border-t border-white/[0.07] pt-1">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold text-white/60 [&::-webkit-details-marker]:hidden">More PeeBear picks <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" /></summary>
+              <div className="mt-1 grid gap-2">
               {INTENT_OPTIONS.map((option) => (
                 <button
                   key={option.id}
@@ -412,31 +413,8 @@ export default function AdventureMapOverlay({
                 ) : null}
                 <ChevronRight className="h-4 w-4 shrink-0 text-white/28 transition group-hover:text-[#f8dd72]" />
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSurfPanelOpen(false);
-                  setGuideSpeechOpen(false);
-                  onPanelOpenChange(false);
-                  onIntentChange(null);
-                  onGuideOpenChange(false);
-                }}
-                className="group flex min-h-12 items-center gap-3 rounded-[18px] border border-emerald-100/14 bg-emerald-300/[0.045] px-3 text-left transition hover:border-emerald-100/28 hover:bg-emerald-300/[0.075]"
-              >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-emerald-100/14 bg-black/25">
-                  <Compass className="h-4 w-4 text-emerald-100" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-black text-white">
-                    Free roam
-                  </span>
-                  <span className="mt-0.5 block text-[10px] font-semibold text-white/44">
-                    Just explore the map
-                  </span>
-                </span>
-                <ChevronRight className="h-4 w-4 text-white/28 transition group-hover:text-emerald-100" />
-              </button>
-            </div>
+              </div>
+            </details>
           </section>
         ) : null}
 

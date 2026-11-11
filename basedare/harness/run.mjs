@@ -32,6 +32,9 @@ const requiredFiles = [
   "app/go/[slug]/route.ts",
   "app/api/social/route.ts",
   "lib/discovery-qr-server.ts",
+  "lib/discovery-intelligence-server.ts",
+  "lib/discovery-relations-server.ts",
+  "lib/contribution-pilot-server.ts",
   "lib/community-stories.ts",
   "lib/creator-attribution-server.ts",
 ];

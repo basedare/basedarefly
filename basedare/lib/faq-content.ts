@@ -1,5 +1,9 @@
 export const FAQ_ITEMS = [
   {
+    q: "How do I add a pin or update a place?",
+    a: "Open the map’s **Search & filters**, then **Add pins & updates**. Find a place by search or tap its named map feature. In its card, choose **Add an update** or **Verify this place**. Public updates require sign-in, a current photo/video and nearby location; they wait for review unless a trusted check-in qualifies them for approval. **Save spot** is different: it keeps a private pin on this device and does not publish a place or prove a visit.",
+  },
+  {
     q: "What is BaseDare?",
     a: "Open BaseDare and **find your next move**: free adventures, community meetups and paid dares around real places. Explore the map or choose Play, Meet or Earn on the homepage. You do not need to earn money to take part.",
   },

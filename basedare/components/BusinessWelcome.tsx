@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BusinessAtmosphere from './BusinessAtmosphere';
 import BusinessGoalPicker from "./BusinessGoalPicker";
 import ActivationIntakeForm from "@/app/activations/ActivationIntakeForm";
 import {
@@ -32,6 +33,7 @@ export default function BusinessWelcome({
     : "/brands/portal";
   return (
     <main className="bd-page-top relative min-h-screen px-4 pb-24 text-white sm:px-6">
+      <BusinessAtmosphere />
       <div
         className="bd-page-wash pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_25%_0%,rgba(139,92,246,0.10),transparent_50%)]"
         aria-hidden="true"
@@ -43,7 +45,7 @@ export default function BusinessWelcome({
         >
           <Link
             className="inline-flex min-h-11 items-center text-white/60"
-            href={kind ? allGoalsHref : "/"}
+            href={kind ? allGoalsHref : "/?from=control"}
           >
             {kind ? "← All business goals" : "← Community"}
           </Link>
