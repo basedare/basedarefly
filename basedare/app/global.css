@@ -2685,7 +2685,7 @@ body.bd-map-route-active {
 
 body.bd-route-no-global-bg .bd-background-root,
 body.bd-route-no-global-bg #particles-js,
-body.bd-route-no-global-bg canvas:not(.maplibregl-canvas):not(.lightning-canvas),
+body.bd-route-no-global-bg canvas:not(.maplibregl-canvas):not(.lightning-canvas):not(.business-network-canvas),
 body.bd-route-no-global-bg .video-background-container,
 body.bd-map-route-active .bd-background-root,
 body.bd-map-route-active #particles-js,

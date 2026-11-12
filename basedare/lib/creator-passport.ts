@@ -170,7 +170,7 @@ function buildComposed(
 async function sumLedgerPoints(wallet: string): Promise<number> {
   try {
     const result = await prisma.pointsEvent.aggregate({
-      where: { walletAddress: wallet },
+      where: { walletAddress: wallet, NOT: { type: { startsWith: 'xp:' } } },
       _sum: { points: true },
     });
     return result._sum.points ?? 0;

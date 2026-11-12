@@ -1,5 +1,6 @@
 'use client';
 import SponsoredBriefDraft from '@/components/admin/SponsoredBriefDraft';
+import ContributionPilotAdmin from '@/components/contributions/ContributionPilotAdmin';
 import AcquisitionKit from '@/components/admin/AcquisitionKit';
 
 import { BarChart3, Copy, Loader2, Plus, RefreshCw, Send, Share2, Sparkles } from 'lucide-react';
@@ -190,6 +191,7 @@ export default function CreatorDropsAdminPage() {
           </div>
         </div>
 
+        {address || hasAdminSession ? <div className="mt-6"><ContributionPilotAdmin key={`${address ?? 'admin'}:${hasAdminSession}`} headers={headers} authenticate={authenticate} /></div> : null}
         {!address && !hasAdminSession ? (
           <section className="mt-8 max-w-lg rounded-2xl border border-white/10 bg-white/[0.04] p-5">
             <label className={labelClass}>Admin secret</label>

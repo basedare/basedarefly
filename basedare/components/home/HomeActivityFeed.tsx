@@ -50,7 +50,7 @@ export default function HomeActivityFeed() {
   const siargaoSelected = area.lat === SIARGAO_ACTIVITY_AREA.lat && area.lng === SIARGAO_ACTIVITY_AREA.lng;
   const areaKey = `${area.lat}:${area.lng}:${area.radiusKm}`;
   const data = snapshot?.areaKey === areaKey ? snapshot.data : null;
-  const effectiveArea = { ...area, timeZone: data?.window.tz ?? area.timeZone };
+  const effectiveArea = { ...area, timeZone: area.timeZone ?? data?.window.tz };
 
   useEffect(() => {
     if (requestedLocation.current && coordinates && !locating && !locationError) {

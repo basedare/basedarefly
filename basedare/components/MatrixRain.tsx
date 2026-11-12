@@ -19,6 +19,8 @@ export default function MatrixRain({ trigger, onComplete }: MatrixRainProps) {
   const [isMobile, setIsMobile] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   // Detect mobile on mount
   useEffect(() => {
@@ -26,22 +28,30 @@ export default function MatrixRain({ trigger, onComplete }: MatrixRainProps) {
   }, []);
 
   useEffect(() => {
-    if (trigger && !isAnimating) {
+    if (trigger) {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const frame = window.requestAnimationFrame(() => onCompleteRef.current?.());
+        return () => window.cancelAnimationFrame(frame);
+      }
       setIsAnimating(true);
       setPhase('rain');
 
       // Shorter duration on mobile
-      const rainDuration = isMobile ? 300 : 400;
-      const totalDuration = isMobile ? 550 : 700;
+      const mobile = window.innerWidth < 768;
+      const rainDuration = mobile ? 300 : 400;
+      const totalDuration = mobile ? 550 : 700;
 
-      setTimeout(() => setPhase('fade'), rainDuration);
-      setTimeout(() => {
+      const fade = window.setTimeout(() => setPhase('fade'), rainDuration);
+      const complete = window.setTimeout(() => {
         setPhase('idle');
         setIsAnimating(false);
-        onComplete?.();
+        onCompleteRef.current?.();
       }, totalDuration);
+      return () => { window.clearTimeout(fade); window.clearTimeout(complete); };
     }
-  }, [trigger, isAnimating, onComplete, isMobile]);
+    setIsAnimating(false);
+    setPhase('idle');
+  }, [trigger]);
 
   // Matrix rain canvas - mobile optimized
   useEffect(() => {

@@ -1,4 +1,5 @@
 import SocialActions from '@/components/social/SocialActions';
+import RelatedDiscovery from '@/components/discovery/RelatedDiscovery';
 import { Suspense } from 'react';
 import SharedAdventures from '@/components/adventures/SharedAdventures';
 import type { Session } from 'next-auth';
@@ -1660,6 +1661,7 @@ export default async function VenueDetailPage(
             </div></details>
           </div>
         </section>
+        <section className="bd-surface mt-6 p-5"><RelatedDiscovery kind="VENUE" targetKey={venue.slug} /></section>
       </main>
     </VenuePageShell>
   );

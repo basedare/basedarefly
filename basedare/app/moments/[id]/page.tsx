@@ -1,4 +1,5 @@
 import SocialActions from '@/components/social/SocialActions';
+import RelatedDiscovery from '@/components/discovery/RelatedDiscovery';
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -138,6 +139,7 @@ export default async function MomentPage({
           </p>
           <CreatorShareKit activityId={post.activityId} momentId={post.id} />
           <SocialActions kind="MOMENT" targetKey={post.id} mode="save" />
+          <RelatedDiscovery kind="MOMENT" targetKey={post.id} />
           <MomentReport id={post.id} />
         </div>
       </article>

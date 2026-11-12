@@ -36,7 +36,7 @@ async function seed() {
   const followed = await prisma.streamerTag.create({ data: { id: 'local-following-person', tag: '@fixture-followed', walletAddress: followedWallet, status: 'ACTIVE', verificationMethod: 'local-fixture' } });
   const followedVenue = await prisma.venue.create({ data: { id: 'local-following-venue', slug: 'local-following-place', name: 'Local social fixture place', city: 'General Luna', latitude: 9.79, longitude: 126.15, timezone: 'Asia/Manila', claimedBy: followedWallet, claimedAt: new Date(), claimRequestStatus: 'APPROVED' } });
   await prisma.founderEvent.create({ data: { id: 'local-following-story', eventType: 'LOCAL_SIGNAL', subjectType: 'community_story', subjectId: followed.id, dedupeKey: 'local-following-story', title: 'Local social fixture — no real participant', status: 'APPROVED', venueId: followedVenue.id, venueSlug: followedVenue.slug, metadataJson: { postType: 'story', authorTagId: followed.id, authorWallet: followedWallet, publicConsentVersion: 'community-story-display-v1', notes: 'A disposable place-linked story for browser verification.', venueName: followedVenue.name, city: 'General Luna', latitude: 9.79, longitude: 126.15 } } });
-  await prisma.venueEvent.create({ data: { id: 'local-following-event', slug: 'local-following-event', venueId: followedVenue.id, title: 'Local social fixture event — not a real gathering', category: 'music', startsAt: new Date(Date.now() + 7200000), endsAt: new Date(Date.now() + 10800000), timezone: 'Asia/Manila', sourceLabel: 'Disposable fixture only', trustLevel: 'VENUE_POSTED', lastConfirmedAt: new Date(), expiresAt: new Date(Date.now() + 14400000) } });
+  await prisma.venueEvent.create({ data: { id: 'local-following-event', slug: 'local-following-event', venueId: followedVenue.id, title: 'Local social fixture event — not a real gathering', category: 'music', priceLabel: '₱400', startsAt: new Date(Date.now() + 7200000), endsAt: new Date(Date.now() + 10800000), timezone: 'Asia/Manila', sourceLabel: 'Disposable fixture only', trustLevel: 'VENUE_POSTED', lastConfirmedAt: new Date(), expiresAt: new Date(Date.now() + 14400000) } });
   await prisma.founderEvent.create({ data: { id: 'local-story-browser-fixture', eventType: 'LOCAL_SIGNAL', subjectType: 'community_story', subjectId: storyAuthor.id, dedupeKey: 'local-story-browser-fixture', title: 'Local story fixture — not a real participant', status: 'APPROVED', venueId: storyVenue.id, venueSlug: storyVenue.slug, metadataJson: { postType: 'story', category: 'community', authorTagId: storyAuthor.id, authorWallet: wallet, publicConsentVersion: 'community-story-display-v1', notes: 'Three little details worth looking at. Disposable local browser verification only.', venueName: storyVenue.name, city: 'General Luna', latitude: 9.79, longitude: 126.15, startsAt: new Date().toISOString() } } });
 
   await prisma.meetup.create({
@@ -58,6 +58,7 @@ async function seed() {
     data: [
       {
         id: "moment-browser-approved",
+        venueSlug: followedVenue.slug,
         wallet: "0x1111111111111111111111111111111111111111",
         activityId: "wave-or-ex",
         runId: "browser-approved-run",
@@ -73,6 +74,7 @@ async function seed() {
         featuredAt: new Date(),
         status: "APPROVED",
         reviewedAt: new Date(),
+        reviewedBy: 'local-browser-fixture-only',
       },
       {
         id: "moment-browser-reply",

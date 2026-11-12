@@ -1,6 +1,7 @@
 'use client';
 
 import SocialActions from '@/components/social/SocialActions';
+import RelatedDiscovery from '@/components/discovery/RelatedDiscovery';
 import { useEffect, useState, type CSSProperties, type ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -889,6 +890,7 @@ export default function CreatorProfilePage() {
                                     </div>
 
                                     <SocialActions kind="PERSON" targetKey={displayTag} mode="follow" />
+                                    <RelatedDiscovery kind="PERSON" targetKey={displayTag} />
                                     <div className="flex flex-wrap items-center gap-2.5 mt-3">
                                         {connectedPlatforms.map((platform) => (
                                             platform.href ? (
