@@ -37,6 +37,7 @@ export default function BusinessAtmosphere() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_12%_8%,rgba(179,158,90,.09),transparent_50%),radial-gradient(ellipse_at_88%_40%,rgba(143,124,190,.08),transparent_55%)]" />
       {animated ? (
         <ParticleNetwork
+          className="business-network-canvas"
           particleCount={85}
           minDist={155}
           particleColor="rgba(208,207,216,0.55)"

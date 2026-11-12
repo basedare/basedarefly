@@ -3675,12 +3675,16 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
   const recommendationNow = useRecommendationClock();
   const tonightActivity = useTonightActivity(adventureCenter, mapReady);
   const recommendationTimeZone = useMemo(() => {
+    // An empty activity snapshot can only fall back to UTC. Retain the chosen
+    // city's timezone while browsing it, including cities with no venue rows.
+    const selectedTimeZone = calculateDistance(adventureCenter.latitude, adventureCenter.longitude, discoveryArea.lat, discoveryArea.lng) < 25
+      ? discoveryArea.timeZone : undefined;
     const nearest = [...nearbyPlaces].filter((place) => place.timezone).sort((a, b) =>
       calculateDistance(adventureCenter.latitude, adventureCenter.longitude, a.latitude, a.longitude) -
       calculateDistance(adventureCenter.latitude, adventureCenter.longitude, b.latitude, b.longitude)
     )[0];
-    return nearest?.timezone ?? tonightActivity.snapshot?.window.tz;
-  }, [adventureCenter, nearbyPlaces, tonightActivity.snapshot?.window.tz]);
+    return selectedTimeZone ?? nearest?.timezone ?? tonightActivity.snapshot?.window.tz;
+  }, [adventureCenter, discoveryArea, nearbyPlaces, tonightActivity.snapshot?.window.tz]);
   const siargaoGuideAvailable = calculateDistance(adventureCenter.latitude, adventureCenter.longitude, DEFAULT_CENTER[0], DEFAULT_CENTER[1]) < 80;
   const surfSignal = useSiargaoSurfSignal(mapReady && siargaoGuideAvailable);
   const focalAdventureActivity = useMemo(() => rankTonightActivities(tonightActivity.snapshot?.activities ?? [], { now: recommendationNow, window: 'now', timeZone: recommendationTimeZone })[0]?.item ?? null, [recommendationNow, recommendationTimeZone, tonightActivity.snapshot?.activities]);

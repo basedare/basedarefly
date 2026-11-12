@@ -30,3 +30,9 @@ Manual browser verification found that a new paused QR without host permission s
 - Header search needed the same current canonical venue/identity filters. An inactive/blocked canonical place must not reappear through static curated fallback.
 - Recognition XP uses a separate namespace, source-authoritative awards, retry-safe immutable drafts and append-only correction/consent audit. Real DB tests show XP/reversal does not alter existing Signal Points. Reviewed creation still does not prove presence.
 - These are verified engineering findings. No field interviews, campaign participation, delivered messages, revenue or causal product lift has been measured by this release.
+
+## 2026-11-12 — browser acceptance findings
+
+- Source presence and mounted canvas count did not prove the business node background was visible: shared route CSS made its canvas zero-sized. A named canvas exception now preserves global/map suppression while rendering the intended business network. Desktop screenshot/dimensions and phone static fallback were checked.
+- A valid chosen-city timezone must precede an empty feed's UTC fallback. Map and home handoffs retain the selected Sydney zone; distant map pans still discard stale city context. This was a rendered-browser finding, not measured recommendation lift.
+- Local recognition page acceptance used only a clearly labelled disposable campaign and authenticated local API. Native date-entry automation was unavailable. Real participant consent, phone/provider acceptance, production campaign activation and commercial outcomes remain separate and unmeasured.
