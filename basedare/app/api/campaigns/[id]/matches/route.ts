@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { authorizeBuyerWallet, buyerJson } from '@/lib/buyer-workspace-auth';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
@@ -44,16 +45,16 @@ export async function GET(
         const { searchParams } = new URL(request.url);
         const brandWallet = normalizeWallet(searchParams.get('brandWallet'));
         const sessionWallet = await getVerifiedSessionWallet(request);
-        const actingWallet = sessionWallet ?? brandWallet;
+        const actingWallet = await authorizeBuyerWallet(request, brandWallet);
 
         if (!actingWallet) {
-            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+            return buyerJson({ success: false, error: 'Unauthorized' }, 401);
         }
 
         if (sessionWallet && brandWallet && brandWallet !== sessionWallet) {
-            return NextResponse.json(
+            return buyerJson(
                 { success: false, error: 'Wallet mismatch. Use the connected brand wallet.' },
-                { status: 401 }
+                401
             );
         }
 
@@ -70,13 +71,13 @@ export async function GET(
         });
 
         if (!campaign) {
-            return NextResponse.json({ success: false, error: 'Campaign not found' }, { status: 404 });
+            return buyerJson({ success: false, error: 'Campaign not found' }, 404);
         }
 
         if (campaign.brand.walletAddress.toLowerCase() !== actingWallet) {
-            return NextResponse.json(
+            return buyerJson(
                 { success: false, error: 'Unauthorized - not campaign owner' },
-                { status: 403 }
+                403
             );
         }
 
@@ -90,7 +91,7 @@ export async function GET(
             limit: 25,
         });
 
-        return NextResponse.json({
+        return buyerJson({
             success: true,
             data: {
                 campaign: {
@@ -107,6 +108,6 @@ export async function GET(
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         console.error('[CAMPAIGN_MATCHES] Failed:', message);
-        return NextResponse.json({ success: false, error: message }, { status: 500 });
+        return buyerJson({ success: false, error: 'Creator suggestions could not load. Please retry.' }, 503);
     }
 }

@@ -43,6 +43,10 @@ test("actual CLI rejects arbitrary suites and identities, writes a new private r
     assert.equal(good.status, 0, good.stderr);
     const report = JSON.parse(fs.readFileSync(out));
     assert.equal(report.productionAccess, false);
+    assert.equal(report.verificationScope, "CODE_GRAPH_ONLY");
+    assert.equal(report.releaseReady, false);
+    assert.equal(report.evaluations.length, 0);
+    assert.match(report.sourceFingerprint, /^[a-f0-9]{64}$/);
     assert.equal(report.mergeOrDeploy, false);
     assert.equal(report.product.measuredImprovement, false);
     assert.equal(fs.statSync(out).mode & 0o777, 0o600);
@@ -70,6 +74,48 @@ const counts = {
   shareActions: 1,
   verifiedCompletions: 0,
 };
+
+test("runner stops on failure, strips provider credentials and rejects evidence after source changes", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basedare-runner-control-"));
+  const root = path.join(dir, "source");
+  const logs = [];
+  try {
+    for (const folder of ["harness", "graphify-out", "checks", "lib"]) fs.mkdirSync(path.join(root, folder), { recursive: true });
+    for (const file of ["run.mjs", "coverage.mjs", "evaluate.mjs"]) fs.copyFileSync(path.join("harness", file), path.join(root, "harness", file));
+    // The real maintained graph is an input, not a replacement for executed checks.
+    fs.copyFileSync("graphify-out/graph.json", path.join(root, "graphify-out/graph.json"));
+    fs.writeFileSync(path.join(root, "harness/scenarios.json"), JSON.stringify({ failure: ["test:fail", "test:after"], mutation: ["test:change"] }));
+    fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ scripts: { "test:fail": "node checks/fail.mjs", "test:after": "node checks/after.mjs", "test:change": "node checks/change.mjs" } }));
+    fs.writeFileSync(path.join(root, "checks/fail.mjs"), "if(process.env.RESEND_API_KEY || process.env.DATABASE_URL) throw Error('unexpected provider access'); console.log('credential isolation checked'); process.exit(7);");
+    fs.writeFileSync(path.join(root, "checks/after.mjs"), "import fs from 'node:fs'; fs.writeFileSync('must-not-run', 'unexpected');");
+    fs.writeFileSync(path.join(root, "checks/change.mjs"), "import fs from 'node:fs'; fs.writeFileSync('lib/fixture.ts', 'export const value = 2;');");
+    fs.writeFileSync(path.join(root, "lib/fixture.ts"), "export const value = 1;");
+    const git = (...args) => { const result = spawnSync("git", args, { cwd: root, encoding: "utf8" }); assert.equal(result.status, 0, result.stderr); };
+    git("init", "-q"); git("add", "."); git("-c", "user.name=Harness fixture", "-c", "user.email=fixture@example.invalid", "-c", "core.hooksPath=/dev/null", "commit", "-qm", "isolated runner fixture");
+    const run = (suite) => {
+      const out = path.join(dir, suite + ".json");
+      const result = spawnSync(process.execPath, ["harness/run.mjs", "--suite", suite, "--out", out], { cwd: root, encoding: "utf8", env: { ...process.env, RESEND_API_KEY: "synthetic-canary", DATABASE_URL: "synthetic-canary" } });
+      assert.notEqual(result.status, 0);
+      const report = JSON.parse(fs.readFileSync(out));
+      logs.push(...report.evaluations.map(entry => path.dirname(entry.log)));
+      return report;
+    };
+    const failed = run("failure");
+    assert.equal(failed.passed, false);
+    assert.equal(failed.releaseReady, false);
+    assert.equal(failed.evaluations.length, 1);
+    assert.equal(failed.evaluations[0].exitCode, 7);
+    assert.match(fs.readFileSync(failed.evaluations[0].log, "utf8"), /credential isolation checked/);
+    assert.equal(fs.existsSync(path.join(root, "must-not-run")), false);
+    const changed = run("mutation");
+    assert.equal(changed.evaluations[0].status, "PASS");
+    assert.equal(changed.sourceUnchanged, false);
+    assert.equal(changed.passed, false);
+  } finally {
+    for (const log of new Set(logs)) fs.rmSync(log, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
 test("a low-start fixture produces a hypothesis, never a claimed improvement or verified finish", () => {
   const result = planImprovements(observation(counts));
   assert.ok(result.proposals.some((p) => p.id === "simplify-first-action"));

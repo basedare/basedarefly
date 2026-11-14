@@ -1,11 +1,12 @@
+import { sameOrigin } from '@/lib/social-request';
+import { boundedRequestBytes } from '@/lib/bounded-request';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth-options';
 import { isInternalApiAuthorized } from '@/lib/api-auth';
 import { getBrandVenueRadar } from '@/lib/venues';
+import { authorizeBuyerWallet } from '@/lib/buyer-workspace-auth';
 
 // ============================================================================
 // BRANDS API
@@ -23,31 +24,6 @@ const PRIVATE_RESPONSE_HEADERS = {
   'Cache-Control': 'private, no-store, max-age=0',
   Pragma: 'no-cache',
 };
-
-type WalletSession = {
-  token?: string;
-  walletAddress?: string;
-  user?: {
-    walletAddress?: string | null;
-  } | null;
-};
-
-async function getVerifiedSessionWallet(request: NextRequest): Promise<string | null> {
-  const session = (await getServerSession(authOptions)) as WalletSession | null;
-  if (!session) return null;
-
-  const authHeader = request.headers.get('authorization');
-  const bearerToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
-
-  if (session.token && (!bearerToken || bearerToken !== session.token)) {
-    return null;
-  }
-
-  const wallet = session.walletAddress ?? session.user?.walletAddress ?? null;
-  if (!wallet || !isAddress(wallet)) return null;
-
-  return wallet.toLowerCase();
-}
 
 // ============================================================================
 // GET /api/brands - Get brand by wallet address
@@ -72,6 +48,9 @@ export async function GET(request: NextRequest) {
     }
 
     const normalizedWallet = walletAddress.toLowerCase();
+    if (!(await authorizeBuyerWallet(request, normalizedWallet))) {
+      return NextResponse.json({ success: false, error: 'Verify your account to open this workspace.' }, { status: 401, headers: PRIVATE_RESPONSE_HEADERS });
+    }
 
     const brand = await prisma.brand.findUnique({
       where: { walletAddress: normalizedWallet },
@@ -89,6 +68,7 @@ export async function GET(request: NextRequest) {
             linkedDare: {
               select: {
                 status: true,
+                isSimulated: true, verifyTxHash: true,
                 videoUrl: true,
                 targetWalletAddress: true,
                 claimedBy: true,
@@ -139,7 +119,7 @@ export async function GET(request: NextRequest) {
     const proofsSubmitted = brand.campaigns.filter((campaign) => Boolean(campaign.linkedDare?.videoUrl));
     const inReview = brand.campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_REVIEW');
     const payoutQueued = brand.campaigns.filter((campaign) => campaign.linkedDare?.status === 'PENDING_PAYOUT');
-    const paid = brand.campaigns.filter((campaign) => campaign.linkedDare?.status === 'VERIFIED');
+    const paid = brand.campaigns.filter((campaign) => campaign.linkedDare?.status === 'VERIFIED' && campaign.linkedDare.isSimulated === false && /^0x[0-9a-fA-F]{64}$/.test(campaign.linkedDare.verifyTxHash ?? ''));
 
     return NextResponse.json({
       success: true,
@@ -147,7 +127,7 @@ export async function GET(request: NextRequest) {
         ...brand,
         latestCompletedSprintReceiptHref: latestCompletedSprint
           ? `/field-sprints/${encodeURIComponent(latestCompletedSprint.receiptCode)}`
-          : '/field-sprints/example',
+          : undefined,
         campaignSummary: {
           total: brand.campaigns.length,
           live: liveCampaigns.length,
@@ -169,7 +149,7 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[BRANDS] Failed to fetch brand:', message);
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: 'The buyer request could not be completed. Please retry.' },
       { status: 500, headers: PRIVATE_RESPONSE_HEADERS }
     );
   }
@@ -180,7 +160,8 @@ export async function GET(request: NextRequest) {
 // ============================================================================
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    if (!sameOrigin(request) && !isInternalApiAuthorized(request)) return NextResponse.json({ success: false, error: 'Invalid origin.' }, { status: 403, headers: PRIVATE_RESPONSE_HEADERS });
+    const body = JSON.parse(new TextDecoder().decode(await boundedRequestBytes(request, 4096)));
     const validation = RegisterBrandSchema.safeParse(body);
 
     if (!validation.success) {
@@ -192,7 +173,7 @@ export async function POST(request: NextRequest) {
 
     const { name, logo, walletAddress } = validation.data;
     const normalizedWallet = walletAddress.toLowerCase();
-    const sessionWallet = await getVerifiedSessionWallet(request);
+    const sessionWallet = await authorizeBuyerWallet(request, normalizedWallet, 'buyer:register');
     const isInternalAuthorized = isInternalApiAuthorized(request);
 
     if (!isInternalAuthorized && !sessionWallet) {
@@ -236,7 +217,7 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[BRANDS] Failed to register brand:', message);
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: 'The buyer request could not be completed. Please retry.' },
       { status: 500 }
     );
   }
