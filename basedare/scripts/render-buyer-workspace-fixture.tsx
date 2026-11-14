@@ -1,0 +1,19 @@
+/** Local, synthetic visual fixture. It does not authenticate or represent a real buyer. */
+import { createServer } from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { renderToStaticMarkup } from 'react-dom/server';
+import PortalStats from '../app/brands/portal/PortalStats';
+import ResponseRail from '../app/brands/portal/ResponseRail';
+import type { Campaign } from '../app/brands/portal/activation-packages';
+const root=process.cwd();
+const styles=fs.readdirSync(path.join(root,'.next/static/css'),{recursive:true}).filter(f=>String(f).endsWith('.css')).map(f=>fs.readFileSync(path.join(root,'.next/static/css',String(f)),'utf8')).join('\n');
+const common={type:'PLACE',tier:'SIP_MENTION',description:'A local layout fixture only. No real work, customer or payment.',budgetUsdc:62.5,creatorCountTarget:1,payoutPerCreator:62.5,status:'LIVE',syncTime:null,createdAt:'2026-11-14T00:00:00Z',slotCounts:{total:1,open:0,claimed:0,assigned:1,completed:0}};
+const campaigns:Campaign[]=[
+ {...common,id:'layout-waiting',shortId:'layout-waiting',title:'A short video of the café entrance',linkedDare:{id:'fixture-1',shortId:'layout-waiting',status:'PENDING',bounty:62.5,isSimulated:false,onChainDareId:'1',txHash:'0x'+'1'.repeat(64),claimedBy:'fixture-participant',streamerHandle:'@local-fixture'}},
+ {...common,id:'layout-review',shortId:'layout-review',title:'Check the opening hours and access',linkedDare:{id:'fixture-2',shortId:'layout-review',status:'PENDING_REVIEW',isSimulated:false}},
+ {...common,id:'layout-approved',shortId:'layout-approved',title:'Capture three useful local details',linkedDare:{id:'fixture-3',shortId:'layout-approved',status:'VERIFIED',isSimulated:false}},
+];
+const noop=()=>{};
+const html='<!doctype html>'+renderToStaticMarkup(<html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Buyer workspace · local layout fixture</title><style dangerouslySetInnerHTML={{__html:styles}}/><style>{'body{background:#060810;color:white} .activation-shell{background:#0b101b;border-color:#ffffff1f} .activation-inset{background:#070b13} a,button,summary{min-height:44px} .bd-action{display:inline-flex;align-items:center;border:1px solid #ffffff33;border-radius:12px;padding:10px 16px} .bd-action--gold{background:#f5c518;color:#17120b}'}</style></head><body><main className="mx-auto max-w-6xl px-4 py-8"><p className="mb-5 rounded-xl border border-amber-200/30 p-3 text-sm text-amber-100">Local layout fixture · no real customers or payments · visual verification only</p><header className="mb-6 flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-3xl font-black">Your work</h1><p className="mt-2 text-sm text-white/65">Your briefs, evidence and results in one place.</p></div><a href="#" className="bd-action bd-action--gold">New request →</a></header><PortalStats brand={null} campaignSummary={undefined} campaigns={campaigns} creatorMovementCount={0} inReviewCount={1} liveCampaignCount={0} paidOutCount={0} payoutQueuedCount={0} proofsSubmittedCount={0}/><ResponseRail campaigns={campaigns} claimRequestsPendingCount={0} creatorsAttachedCount={1} expandedMatchesCampaignId={null} inReviewCount={1} matchesByCampaign={{}} openActivationBuilder={noop} openCampaignComposerForCampaign={noop} paidOutCount={0} payoutQueuedCount={0} proofsSubmittedCount={0} responsesTabByCampaign={{}} setResponsesTabByCampaign={noop} shortlistedCreators={{}} toggleCampaignMatches={async()=>{}} toggleShortlistCreator={noop}/></main></body></html>);
+createServer((req,res)=>{if(req.url!=='/'){res.writeHead(404);res.end();return;}res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(html);}).listen(3222,'127.0.0.1',()=>console.log('Local buyer visual fixture: http://127.0.0.1:3222 · no authentication or payment acceptance'));

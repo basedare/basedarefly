@@ -1,3 +1,4 @@
+import { authorizeBuyerWallet, buyerJson } from '@/lib/buyer-workspace-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
@@ -60,6 +61,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const viewer = await authorizeBuyerWallet(request, request.nextUrl.searchParams.get('brandWallet'));
+    if (!viewer) return buyerJson({ success: false, error: 'Verify your account to view this work.' }, 401);
 
     const campaign = await prisma.campaign.findUnique({
       where: { id },
@@ -111,17 +114,19 @@ export async function GET(
     });
 
     if (!campaign) {
-      return NextResponse.json(
+      return buyerJson(
         { success: false, error: 'Campaign not found' },
-        { status: 404 }
+        404
       );
     }
+
+    if (campaign.brand.walletAddress.toLowerCase() !== viewer) return buyerJson({ success: false, error: 'This work is unavailable.' }, 404);
 
     const slotStats = buildCampaignSlotCounts(campaign.slots, campaign.creatorCountTarget);
     const payoutTotals = buildCampaignPayoutTotals(campaign.slots);
     const truth = buildCampaignTruth(campaign);
 
-    return NextResponse.json({
+    return buyerJson({
       success: true,
       data: {
         ...campaign,
@@ -135,9 +140,9 @@ export async function GET(
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[CAMPAIGNS] Failed to fetch campaign:', message);
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 500 }
+    return buyerJson(
+      { success: false, error: 'Your work could not load. Please retry.' },
+      503
     );
   }
 }

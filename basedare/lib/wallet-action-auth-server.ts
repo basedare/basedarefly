@@ -137,10 +137,12 @@ export async function getAuthorizedWalletForRequest(
     walletAddress,
     action,
     resource,
+    allowWalletSession = true,
   }: {
     walletAddress: string | null | undefined;
     action: string;
     resource: string;
+    allowWalletSession?: boolean;
   }
 ): Promise<string | null> {
   const normalizedWallet = normalizeWallet(walletAddress ?? null);
@@ -151,10 +153,10 @@ export async function getAuthorizedWalletForRequest(
     return normalizedWallet;
   }
 
-  const walletSession = await getVerifiedWalletSessionSignature({
+  const walletSession = allowWalletSession ? await getVerifiedWalletSessionSignature({
     request,
     walletAddress: normalizedWallet,
-  });
+  }) : null;
 
   if (walletSession === normalizedWallet) {
     return normalizedWallet;

@@ -17,6 +17,7 @@ type PortalGatesProps = {
   setRegisterName: Dispatch<SetStateAction<string>>;
   loadError: string | null;
   retryLoad: () => void;
+  verifying: boolean;
   showLoading: boolean;
   showNotConnected: boolean;
   showRegisterView: boolean;
@@ -37,6 +38,7 @@ export default function PortalGates({
   setRegisterName,
   loadError,
   retryLoad,
+  verifying,
   showLoading,
   showNotConnected,
   showRegisterView,
@@ -98,7 +100,7 @@ export default function PortalGates({
           <h1 className="text-2xl font-black text-white">Your workspace hasn’t loaded.</h1>
           <p role="alert" className="mt-3 text-base leading-7 text-amber-100">{loadError}</p>
           <p className="mt-3 text-sm leading-6 text-white/65">An unavailable read does not mean you have no work or payments.</p>
-          <div className="mt-5 flex flex-wrap gap-3"><button type="button" className="bd-action bd-action--gold !text-sm" onClick={retryLoad}>Retry workspace</button><Link href={controlBackHref} className="bd-action !text-sm">{controlBackLabel}</Link></div>
+          <div className="mt-5 flex flex-wrap gap-3"><button type="button" className="bd-action bd-action--gold !text-sm" disabled={verifying} onClick={retryLoad}>{verifying ? 'Verifying…' : 'Verify account & retry'}</button><Link href={controlBackHref} className="bd-action !text-sm">{controlBackLabel}</Link></div>
         </section>
       </main> : null}
 

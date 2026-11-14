@@ -720,8 +720,9 @@ export default function Dashboard() {
 
       try {
         setOpportunitiesLoading(true);
+        const headers = await buildWalletActionAuthHeaders({ walletAddress: address, sessionToken, sessionWallet, action: 'campaigns:read', resource: address.toLowerCase(), allowSignPrompt: false });
         const response = await fetch(`/api/campaigns/for-creator?wallet=${encodeURIComponent(address)}`, {
-          headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : undefined,
+          headers, cache: 'no-store',
         });
         const payload = await response.json();
 

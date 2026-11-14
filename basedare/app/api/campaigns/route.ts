@@ -1,3 +1,4 @@
+import { authorizeBuyerWallet, buyerJson } from '@/lib/buyer-workspace-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { Prisma } from '@prisma/client';
@@ -197,6 +198,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const type = searchParams.get('type');
     const forScouts = searchParams.get('forScouts') === 'true';
+    if (!brandWallet) return buyerJson({ success: false, error: forScouts ? CREATOR_CAMPAIGNS_DORMANT_MESSAGE : 'Choose your buyer workspace.' }, forScouts ? 410 : 400);
+    if (!isAddress(brandWallet)) return buyerJson({ success: false, error: 'Invalid account.' }, 400);
+    if (!(await authorizeBuyerWallet(request, brandWallet))) return buyerJson({ success: false, error: 'Verify your account to open this workspace.' }, 401);
 
     const where: Record<string, unknown> = {};
 
@@ -204,9 +208,8 @@ export async function GET(request: NextRequest) {
       const brand = await prisma.brand.findUnique({
         where: { walletAddress: brandWallet.toLowerCase() },
       });
-      if (brand) {
-        where.brandId = brand.id;
-      }
+      if (!brand) return buyerJson({ success: false, code: 'NOT_FOUND', error: 'Buyer workspace not found.' }, 404);
+      where.brandId = brand.id;
     }
 
     if (status) {
@@ -257,6 +260,7 @@ export async function GET(request: NextRequest) {
             id: true,
             shortId: true,
             status: true,
+            bounty: true, isSimulated: true, txHash: true, onChainDareId: true, verifyTxHash: true, expiresAt: true,
             videoUrl: true,
             updatedAt: true,
             moderatedAt: true,
@@ -276,7 +280,7 @@ export async function GET(request: NextRequest) {
           },
         },
         slots: {
-          select: { status: true },
+          select: { status: true, paidAt: true, payoutTxHash: true, totalPayout: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -324,6 +328,10 @@ export async function GET(request: NextRequest) {
 
       return {
         ...mappedCampaign,
+        settlementEvidence: {
+          paidSlotCount: campaign.slots.filter(slot => slot.status === 'PAID' && slot.paidAt && /^0x[0-9a-fA-F]{64}$/.test(slot.payoutTxHash ?? '')).length,
+          recordedPayoutUsdc: campaign.slots.filter(slot => slot.status === 'PAID' && slot.paidAt && /^0x[0-9a-fA-F]{64}$/.test(slot.payoutTxHash ?? '')).reduce((sum, slot) => sum + (slot.totalPayout ?? 0), 0),
+        },
         venue: campaign.venue
           ? {
               id: campaign.venue.id,
@@ -349,17 +357,14 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({
+    return buyerJson({
       success: true,
       data: campaignsWithCounts,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[CAMPAIGNS] Failed to fetch campaigns:', message);
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 500 }
-    );
+    return buyerJson({ success: false, error: 'Your work could not load. Please retry.' }, 503);
   }
 }
 

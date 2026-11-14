@@ -23,5 +23,12 @@
   ],
   "recognition": [
     "test:adventure-sharing:db"
+  ],
+  "buyer": [
+    "test:buyer-workspace",
+    "test:buyer-workspace:db"
+  ],
+  "harness": [
+    "test:harness"
   ]
 }

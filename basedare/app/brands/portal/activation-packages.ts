@@ -116,6 +116,12 @@ export interface Campaign {
     id: string;
     shortId: string | null;
     status: string;
+    bounty?: number;
+    isSimulated?: boolean;
+    txHash?: string | null;
+    onChainDareId?: string | null;
+    verifyTxHash?: string | null;
+    expiresAt?: string | null;
     videoUrl?: string | null;
     createdAt?: string | null;
     updatedAt?: string | null;

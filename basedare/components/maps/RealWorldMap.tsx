@@ -74,6 +74,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useAccount, useSignMessage } from 'wagmi';
+import { useSession } from 'next-auth/react';
 import { calculateDistance } from '@/lib/geo';
 import { getDareLifecycleModel } from '@/lib/dare-lifecycle';
 import { formatCommunitySparkPlayRadius } from '@/lib/community-spark-map-policy';
@@ -3425,6 +3426,9 @@ function renderProofPreview(tag: PlaceTagItem, options?: { compact?: boolean }) 
 export default function RealWorldMap({ approximateArea = null }: { approximateArea?: MapArea|null }) {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const { data: creatorSession } = useSession();
+  const creatorSessionToken = (creatorSession as { token?: string | null } | null)?.token ?? null;
+  const creatorSessionWallet = (creatorSession as { walletAddress?: string | null } | null)?.walletAddress ?? null;
   const router = useRouter();
   const searchParams = useSearchParams();
   const { area: discoveryArea, ready: discoveryReady, updateArea } = useDiscovery();
@@ -4221,8 +4225,9 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
 
     const loadCreatorOpportunities = async () => {
       try {
+        const headers = await buildWalletActionAuthHeaders({ walletAddress: address, sessionToken: creatorSessionToken, sessionWallet: creatorSessionWallet, action: 'campaigns:read', resource: address.toLowerCase(), allowSignPrompt: false });
         const response = await fetch(`/api/campaigns/for-creator?wallet=${encodeURIComponent(address)}`, {
-          signal: controller.signal,
+          headers, cache: 'no-store', signal: controller.signal,
         });
         const payload = (await response.json()) as CreatorCampaignsResponse;
 
@@ -4230,7 +4235,7 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
           throw new Error('Failed to load creator opportunity routing');
         }
 
-        setCreatorOpportunities(payload.data.campaigns);
+        if (!controller.signal.aborted) setCreatorOpportunities(payload.data.campaigns);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -4244,7 +4249,7 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
     void loadCreatorOpportunities();
 
     return () => controller.abort();
-  }, [address, isConnected]);
+  }, [address, isConnected, creatorSessionToken, creatorSessionWallet]);
 
   useEffect(() => {
     if (!isConnected) {

@@ -29,9 +29,10 @@ test('a buyer snapshot waits for both successful reads and accepts an actual emp
     calls.push(String(url));
     assert.equal(options?.cache, 'no-store');
     assert.ok(options?.signal);
+    assert.equal(new Headers(options?.headers).get('x-test-purpose'), 'buyer-read');
     return calls.length === 1 ? reply({ success: true, data: profile }) : reply({ success: true, data: [] });
   };
-  const result = await loadBuyerWorkspace(wallet, new AbortController().signal, request);
+  const result = await loadBuyerWorkspace(wallet, new AbortController().signal, request, { 'x-test-purpose': 'buyer-read' });
   assert.equal(result.kind, 'ready');
   if (result.kind === 'ready') assert.deepEqual(result.campaigns, []);
   assert.equal(calls.length, 2);
@@ -42,7 +43,7 @@ test('only the explicit profile 404 becomes a registration state', async () => {
   const result = await loadBuyerWorkspace(wallet, new AbortController().signal, async () => reply({ code: 'NOT_FOUND', success: false }, 404));
   assert.equal(result.kind, 'missing');
   for (const status of [401, 403, 500]) {
-    await assert.rejects(loadBuyerWorkspace(wallet, new AbortController().signal, async () => reply({ code: 'NOT_FOUND' }, status)), /profile could not be loaded/);
+    await assert.rejects(loadBuyerWorkspace(wallet, new AbortController().signal, async () => reply({ code: 'NOT_FOUND' }, status)), /could not be loaded|Verify your account/);
   }
 });
 

@@ -50,9 +50,12 @@
     "test:local-spend": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register scripts/local-spend-route-check.ts",
     "test:moments": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\",\"target\":\"ES2020\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register --test lib/social-moments.test.ts lib/moment-release.test.ts lib/moment-motivation.test.ts scripts/moment-storage-safety.test.ts",
     "test:uri-decoder-security": "node --test scripts/uri-decoder-security.test.mjs",
-    "harness:check": "node --test harness/evaluate.test.mjs && node harness/run.mjs",
+    "harness:check": "npm run test:harness && node harness/run.mjs",
     "harness:evaluate": "node harness/run.mjs",
-    "test:discovery-intelligence": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/discovery-intelligence.test.ts"
+    "test:discovery-intelligence": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/discovery-intelligence.test.ts",
+    "test:harness": "node --test harness/evaluate.test.mjs harness/coverage.test.mjs",
+    "test:buyer-workspace": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/buyer-workspace-presentation.test.ts",
+    "test:buyer-workspace:db": "bash scripts/run-buyer-workspace-db.sh"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.6",

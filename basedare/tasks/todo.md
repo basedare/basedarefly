@@ -1,5 +1,13 @@
 # BaseDare Todo
 
+### Task — Buyer workspace and quality harness (2026-11-14)
+- Owner: Codex. Scope and findings: docs/design/buyer-workspace-2026-11-14.md; release boundaries: docs/releases/buyer-quality-2026-11-14.md.
+- [x] Audit and repair owner/private reads, unknown buyers, registration authority and dormant slot writes; preserve canonical PLACE rails.
+- [x] Simplify to one overview/state per brief with details/responses; verify320/390px and desktop fixture layout.
+- [x] Add change-aware checks, source fingerprints, reviewed mappings, CI evidence and real runner negative controls.
+- [x] Actual isolated PostgreSQL/signature/policy tests, zero-error lint and build/typecheck. Independent review findings fixed and focused canaries rerun by reviewer.
+- [ ] Exact final source CI, main merge, deployment and live read-only receipts. Keep phone/provider/real-money acceptance distinct; no production fixtures or activation.
+
 ### Task — Live Plan commitment loop (2026-08-26)
 - Owner: Codex
 - Goal: Turn a real RSVP into a useful when/where commitment and repeat-crew loop without fake attendance, artificial scarcity, or streak pressure.

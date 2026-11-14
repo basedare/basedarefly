@@ -1,4 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { getAuthorizedWalletForRequest } from '@/lib/wallet-action-auth-server';
+import { buyerJson } from '@/lib/buyer-workspace-auth';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { isAddress } from 'viem';
 import { prisma } from '@/lib/prisma';
@@ -42,23 +44,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const queryWallet = normalizeWallet(searchParams.get('wallet'));
     const sessionWallet = await getVerifiedSessionWallet(request);
-    const actingWallet = sessionWallet ?? queryWallet;
+    const actingWallet = queryWallet ? await getAuthorizedWalletForRequest(request, { walletAddress: queryWallet, action: 'campaigns:read', resource: queryWallet }) : sessionWallet;
 
     if (!actingWallet) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return buyerJson({ success: false, error: 'Unauthorized' }, 401);
     }
 
     if (sessionWallet && queryWallet && queryWallet !== sessionWallet) {
-      return NextResponse.json(
+      return buyerJson(
         { success: false, error: 'Wallet mismatch. Use the connected creator wallet.' },
-        { status: 401 }
+        401
       );
     }
 
     const creator = await findPrimaryCreatorTagForWallet(actingWallet);
 
     if (!creator) {
-      return NextResponse.json({
+      return buyerJson({
         success: true,
         data: {
           creator: null,
@@ -217,7 +219,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 8);
 
-    return NextResponse.json({
+    return buyerJson({
       success: true,
       data: {
         creator: {
@@ -239,6 +241,6 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to load creator opportunities';
     console.error('[FOR_CREATOR_CAMPAIGNS] Failed:', message);
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return buyerJson({ success: false, error: 'Opportunities could not load. Please retry.' }, 503);
   }
 }

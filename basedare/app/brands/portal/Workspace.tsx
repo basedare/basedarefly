@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useAccount, useConnect } from 'wagmi';
+import { useAccount, useConnect, useSignMessage } from 'wagmi';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
@@ -9,16 +9,14 @@ import {
   CheckCircle2,
   MapPin,
   ReceiptText,
-  Sparkles,
 } from 'lucide-react';
-import ParticleNetwork from '@/components/ParticleNetwork';
+import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { MANAGED_FIELD_SPRINT } from '@/lib/financial-canon';
 import BusinessRequestOptions from '@/components/BusinessRequestOptions';
-import { businessRequestHref } from '@/lib/business-request';
 import { loadBuyerWorkspace } from '@/lib/buyer-workspace';
 
 // ============================================================================
-// CONTROL MODE - BUYER WORKSPACE
+// CONTROL MODE - Buyer workspace
 // Fund useful real-world questions, verify the answers, keep the receipt.
 // ============================================================================
 
@@ -51,8 +49,11 @@ import ResponseRail from './ResponseRail';
 export default function BrandPortalPage() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
+  const { signMessageAsync } = useSignMessage();
   const { data: session } = useSession();
   const sessionToken = (session as { token?: string | null } | null)?.token ?? null;
+  const sessionWallet = (session as { walletAddress?: string | null } | null)?.walletAddress ?? null;
+  const walletAuth = useCallback((action = 'buyer:read', allowSignPrompt = false) => buildWalletActionAuthHeaders({ walletAddress: address, sessionToken, sessionWallet, action, resource: address?.toLowerCase() ?? '', signatureScope: 'action', allowSignPrompt, signMessageAsync }), [address, sessionToken, sessionWallet, signMessageAsync]);
 
   // Hydration guard to prevent SSR/client mismatch flickering
   const [mounted, setMounted] = useState(false);
@@ -61,6 +62,7 @@ export default function BrandPortalPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
   const [workspaceAttempt, setWorkspaceAttempt] = useState(0);
   const [loadedWallet, setLoadedWallet] = useState<string | null>(null);
   const walletKey = isConnected && address ? address.toLowerCase() : null;
@@ -428,7 +430,8 @@ export default function BrandPortalPage() {
       if (!background) setLoading(true);
       const deadline = window.setTimeout(() => controller.abort(), 10_000);
       try {
-        const snapshot = await loadBuyerWorkspace(walletKey, controller.signal);
+        const headers = await walletAuth();
+        const snapshot = await loadBuyerWorkspace(walletKey, controller.signal, fetch, headers);
         if (!active || currentWallet.current !== walletKey) return;
         if (snapshot.kind === 'missing') {
           setBrand(null); setCampaigns([]); setShowRegister(true);
@@ -447,9 +450,9 @@ export default function BrandPortalPage() {
       }
     };
     void fetchData();
-    const interval = window.setInterval(() => { if (!controller.signal.aborted) void fetchData(true); }, 15_000);
+    const interval = window.setInterval(() => { if (document.visibilityState === 'visible' && !controller.signal.aborted) void fetchData(true); }, 15_000);
     return () => { active = false; controller.abort(); window.clearInterval(interval); };
-  }, [walletKey, workspaceAttempt]);
+  }, [walletKey, workspaceAttempt, walletAuth]);
 
   useEffect(() => {
     if (formData.type !== 'PLACE') {
@@ -505,11 +508,13 @@ export default function BrandPortalPage() {
 
     try {
       setRegisterError(null);
+      const headers = await walletAuth('buyer:register', true);
+      if (currentWallet.current !== address.toLowerCase()) return;
       const res = await fetch('/api/brands', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+          ...headers,
         },
         body: JSON.stringify({
           name: registerName,
@@ -545,16 +550,20 @@ export default function BrandPortalPage() {
       },
     }));
 
+    const requestedWallet = address.toLowerCase();
     try {
+      const headers = await walletAuth('buyer:read', true);
+      if (currentWallet.current !== requestedWallet) return;
       const response = await fetch(
         `/api/campaigns/${encodeURIComponent(campaignId)}/matches?brandWallet=${encodeURIComponent(address)}`,
         {
-          headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : undefined,
+          headers, cache: 'no-store', signal: AbortSignal.timeout(12000),
         }
       );
       const payload = await response.json();
 
-      if (!payload.success) {
+      if (currentWallet.current !== requestedWallet) return;
+      if (!response.ok || !payload.success) {
         throw new Error(payload.error || 'Failed to load matches');
       }
 
@@ -567,6 +576,7 @@ export default function BrandPortalPage() {
         },
       }));
     } catch (error) {
+      if (currentWallet.current !== requestedWallet) return;
       setMatchesByCampaign((current) => ({
         ...current,
         [campaignId]: {
@@ -802,28 +812,6 @@ export default function BrandPortalPage() {
           }
         }
       `}</style>
-      {/* VHS Scan Lines Overlay - old film aesthetic */}
-      <div
-        className="fixed inset-0 z-[200] pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
-          backgroundSize: '100% 4px',
-        }}
-      />
-
-      {/* Subtle film grain noise */}
-      <div
-        className="fixed inset-0 z-[199] pointer-events-none opacity-[0.015] mix-blend-overlay"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Keep mobile quiet and legible; the animated layer is desktop ambience only. */}
-      <div className="fixed inset-0 z-0 hidden md:block">
-        <ParticleNetwork particleCount={48} minDist={132} particleColor="rgba(165, 155, 215, 0.22)" lineColor="rgba(125, 149, 195, 0.06)" speed={0.18} />
-      </div>
-
       {/* Pre-hydration skeleton */}
       {!mounted && (
         <div className="flex items-center justify-center h-full relative z-10">
@@ -842,7 +830,14 @@ export default function BrandPortalPage() {
         registerName={registerName}
         setRegisterName={setRegisterName}
         loadError={mounted && isConnected && workspaceLoaded && !loading ? loadError : null}
-        retryLoad={() => setWorkspaceAttempt((value) => value + 1)}
+        verifying={verifying}
+        retryLoad={async () => {
+          const requestedWallet = currentWallet.current;
+          setVerifying(true);
+          try { await walletAuth('buyer:read', true); if (requestedWallet === currentWallet.current) setWorkspaceAttempt(value => value + 1); }
+          catch { if (requestedWallet === currentWallet.current) setLoadError('Account verification was not completed. Try again when you’re ready.'); }
+          finally { setVerifying(false); }
+        }}
         showLoading={showLoading}
         showNotConnected={showNotConnected}
         showRegisterView={showRegisterView}
@@ -869,7 +864,7 @@ export default function BrandPortalPage() {
             </Link>
             <div>
               <div className="text-[1.05rem] font-black leading-none tracking-[-0.03em] text-white antialiased md:text-2xl">
-                BUYER WORKSPACE
+                Buyer workspace
               </div>
               <div className="mt-1 hidden text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200/70 md:block">
                 Your briefs · evidence · receipts
@@ -894,10 +889,10 @@ export default function BrandPortalPage() {
             <div className="touch-manipulation" style={{ padding: '8px 8px 16px 8px', margin: '-8px -8px -16px -8px', WebkitTapHighlightColor: 'transparent' }}>
               <Link
                 href="/?from=control"
-                className="activation-raised-purple inline-flex items-center gap-1 rounded-xl border px-4 py-3 text-xs font-black uppercase tracking-[0.16em] transition active:translate-y-[1px] md:gap-2 md:px-4 md:py-2 md:text-sm"
+                className="activation-soft-button inline-flex items-center gap-1 rounded-xl border px-4 py-3 text-xs font-black uppercase tracking-[0.16em] transition active:translate-y-[1px] md:gap-2 md:px-4 md:py-2 md:text-sm"
                 style={{ minHeight: '44px' }}
               >
-                <span>EXPLORE</span>
+                <span>Explore</span>
                 <span>→</span>
               </Link>
             </div>
@@ -937,38 +932,11 @@ export default function BrandPortalPage() {
           </section>
         ) : (
           <>
-        {!showCreateCampaign ? <div className="activation-shell mb-6 overflow-hidden rounded-[28px] border p-4 backdrop-blur-xl md:mb-8 md:p-6">
-          <div className="text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100/70">
-            Managed fieldwork · On-site checks
-          </div>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-white md:text-5xl">
-            Get answers from people on the ground
-          </h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-white/70">
-            Choose a place and tell us what you need checked. BaseDare coordinates {MANAGED_FIELD_SPRINT.assignedContributorCount} independent contributors, reviews their evidence and delivers a receipt in {MANAGED_FIELD_SPRINT.durationDaysMin}–{MANAGED_FIELD_SPRINT.durationDaysMax} days. The managed package costs ${MANAGED_FIELD_SPRINT.invoiceTotalUsd.toLocaleString()}.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={openActivationBuilder}
-              className="activation-raised-gold inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.12em] transition active:translate-y-[1px]"
-            >
-              <Sparkles className="h-4 w-4" />
-              Describe what you need
-            </button>
-            <Link
-              href={brand?.latestCompletedSprintReceiptHref ?? '/field-sprints/example'}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-cyan-300/[0.24] bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_12px_28px_rgba(0,0,0,0.2)] transition hover:border-cyan-200/40 hover:bg-cyan-400/[0.14]"
-            >
-              <ReceiptText className="h-4 w-4" />
-              {brand?.latestCompletedSprintReceiptHref ? 'See your results' : 'See an example result'}
-            </Link>
-          </div>
-          <p className="mt-4 text-sm font-semibold leading-6 text-white/58">
-            Own this venue? Find it on the map, open View place and request management access.
-          </p>
-        </div> : null}
-
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+          <div><h1 className="text-3xl font-black tracking-tight text-white">Your work</h1><p className="mt-2 text-sm leading-6 text-white/65">Your briefs, evidence and results in one place.</p></div>
+          <Link href="/brands/portal" className="bd-action bd-action--gold !text-sm">New request →</Link>
+        </div>
+        {brand?.latestCompletedSprintReceiptHref && brand.latestCompletedSprintReceiptHref !== '/field-sprints/example' ? <Link href={brand.latestCompletedSprintReceiptHref} className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-cyan-100"><ReceiptText size={16} />View latest result →</Link> : null}
         <ActivationComposer
           buyerWalletAddress={address?.toLowerCase() ?? null}
           checkoutSectionRef={checkoutSectionRef}
@@ -988,12 +956,11 @@ export default function BrandPortalPage() {
           showCreateCampaign={showCreateCampaign}
         />
 
-        <p className="mb-6 flex flex-wrap gap-x-2 gap-y-1 px-1 text-sm leading-6 text-white/60">
-          Need content or promotion for a place?
-          <Link href={businessRequestHref('content-brief')} className="font-bold text-[#f8dd72] underline decoration-[#f8dd72]/30 underline-offset-4">Plan a content brief →</Link>
-          <Link href={businessRequestHref('activity-brief')} className="min-h-11 font-bold text-cyan-100 underline">Bring people in →</Link><Link href={businessRequestHref('visibility-brief')} className="min-h-11 font-bold text-violet-100 underline">Get more visibility →</Link><span>Agree on the scope, price and permissions before work starts.</span>
-        </p>
-
+        <details className="mb-6 rounded-2xl border border-white/10 px-4">
+          <summary className="flex min-h-12 cursor-pointer items-center text-sm font-bold text-white/70">On-site checks & other tools</summary>
+          <p className="mb-3 max-w-2xl text-sm leading-6 text-white/65">Need an independent check at a place? The managed package, scope and price are shown before you request an invoice.</p>
+          <div className="mb-4 flex flex-wrap gap-3"><button type="button" className="bd-action !text-sm" onClick={openActivationBuilder}>Open on-site check builder</button><Link className="inline-flex min-h-11 items-center text-sm font-bold text-white/70" href="/field-sprints/example">View an example result →</Link><Link className="inline-flex min-h-11 items-center text-sm font-bold text-white/70" href="/map">Manage a place →</Link></div>
+        </details>
         {hasBrandActivity ? (
           <>
         <PortalStats
