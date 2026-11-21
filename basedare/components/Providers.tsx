@@ -7,10 +7,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { SessionProvider } from 'next-auth/react';
 import { ReactNode, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { DiscoveryProvider } from './DiscoveryProvider';
 import WalletAutoReconnect from './WalletAutoReconnect';
 import PostHogProvider from './PostHogProvider';
 import { SocialWebviewProvider } from './mission-pass/SocialWebviewProvider';
+import { accountAccessEnabled } from '@/lib/account-access';
+// The optional account SDK must not be part of the default guest bundle.
+const RecoverableAccountProvider = dynamic(() => import('./RecoverableAccount').then(module => module.RecoverableAccountProvider));
 
 // Use Coinbase RPC if API key available, otherwise fallback to public
 const rpcUrl = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY
@@ -61,7 +65,7 @@ export function Providers({ children }: { children: ReactNode }) {
                 }}
               >
                 <WalletAutoReconnect />
-                <DiscoveryProvider>{children}</DiscoveryProvider>
+                <DiscoveryProvider>{accountAccessEnabled() ? <RecoverableAccountProvider>{children}</RecoverableAccountProvider> : children}</DiscoveryProvider>
               </OnchainKitProvider>
             </QueryClientProvider>
           </WagmiProvider>

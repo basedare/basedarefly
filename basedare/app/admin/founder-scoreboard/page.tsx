@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import MomentGrowthPanel from '@/components/admin/MomentGrowthPanel';
+import TakeoffPanel from '@/components/admin/TakeoffPanel';
 import IslandLaunchOperations from '@/components/adventures/IslandLaunchOperations';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -136,7 +137,8 @@ export default function FounderScoreboardPage() {
 
       <section className="relative z-10 mx-auto flex max-w-7xl flex-col gap-8">
         <IslandLaunchOperations />
-        <MomentGrowthPanel enabled={Boolean(report)} days={periodDays} headers={adminAuthHeaders} />
+        <TakeoffPanel key={`takeoff:${address ?? 'no-wallet'}:${hasAdminSession}`} enabled={Boolean(report)} headers={adminAuthHeaders} />
+        <MomentGrowthPanel key={`growth:${address ?? 'no-wallet'}:${hasAdminSession}`} enabled={Boolean(report)} days={periodDays} headers={adminAuthHeaders} />
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div>
             <Link

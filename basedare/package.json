@@ -55,7 +55,8 @@
     "test:discovery-intelligence": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/discovery-intelligence.test.ts",
     "test:harness": "node --test harness/evaluate.test.mjs harness/coverage.test.mjs",
     "test:buyer-workspace": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/buyer-workspace-presentation.test.ts",
-    "test:buyer-workspace:db": "bash scripts/run-buyer-workspace-db.sh"
+    "test:buyer-workspace:db": "bash scripts/run-buyer-workspace-db.sh",
+    "test:takeoff": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' node -r ts-node/register --test lib/takeoff.test.ts"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.6",
@@ -66,6 +67,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@hyperbrowser/sdk": "^0.83.3",
     "@prisma/client": "^6.19.3",
+    "@privy-io/react-auth": "3.12.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -81,14 +83,17 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "decode-uri-component": "file:vendor/decode-uri-component-cjs",
     "framer-motion": "^12.23.26",
     "gl-matrix": "^3.4.4",
     "gsap": "^3.14.2",
     "lucide-react": "^0.559.0",
     "maplibre-gl": "^6.14.0",
-    "next": "16.4.1",
+    "next": "16.4.6",
     "next-auth": "^4.24.15",
     "ogl": "^1.0.11",
+    "ox": "0.8.9",
+    "permissionless": "0.2.57",
     "pinata": "^2.5.2",
     "posthog-js": "^1.387.0",
     "qrcode.react": "^4.2.0",
@@ -103,8 +108,7 @@
     "viem": "^2.44.1",
     "wagmi": "^2.19.5",
     "web-push": "^3.6.7",
-    "zod": "^4.6.6",
-    "decode-uri-component": "file:vendor/decode-uri-component-cjs"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
@@ -132,17 +136,18 @@
     "hardhat": "^2.28.0",
     "hardhat-gas-reporter": "^1.0.10",
     "prisma": "^6.19.3",
+    "puppeteer-core": "^24.37.5",
     "solidity-coverage": "^0.8.17",
     "tailwindcss": "^4",
     "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
-    "typescript": "^5",
-    "puppeteer-core": "^24.37.5"
+    "typescript": "^5"
   },
   "overrides": {
     "@prisma/config": {
-      "deepmerge-ts": "8.0.0"
+      "deepmerge-ts": "8.0.0",
+      "effect": "3.22.5"
     },
     "axios": "1.20.0",
     "lodash": "4.18.1",
