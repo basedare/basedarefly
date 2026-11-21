@@ -15,12 +15,13 @@ export function momentReleaseOptions(
     allowlist.every((w) => /^0x[a-f0-9]{40}$/.test(w)) &&
     !!verifiedWallet &&
     allowlist.includes(verifiedWallet.toLowerCase());
-  const socialLinks = env.MOMENT_SUBMISSIONS_ENABLED === "true" || acceptance;
+  const publicLinks = env.MOMENT_SUBMISSIONS_ENABLED === "true";
+  const socialLinks = publicLinks || acceptance;
   return {
     socialLinks,
     originalMedia:
       socialLinks &&
-      (env.MOMENT_ORIGINAL_MEDIA_ENABLED === "true" ||
+      ((publicLinks && env.MOMENT_ORIGINAL_MEDIA_ENABLED === "true") ||
         (acceptance && env.MOMENT_ACCEPTANCE_ORIGINALS_ENABLED === "true")) &&
       Boolean(env.PINATA_JWT),
   };

@@ -6,12 +6,15 @@ import { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useBaretagIdentity } from '@/hooks/useBaretagIdentity';
 import { useFeedback } from '@/hooks/useFeedback';
 import { MissionPassSheet } from '@/components/mission-pass/MissionPassSheet';
 import { useSocialWebview } from '@/components/mission-pass/SocialWebviewProvider';
 import { accountAccessEnabled, ACCOUNT_CONNECTOR_PREFIX } from '@/lib/account-access';
-import RecoverableAccount from './RecoverableAccount';
+const RecoverableAccount = dynamic(() => import('./RecoverableAccount'), {
+  loading: () => <p className="px-2 text-xs text-white/60">Loading account sign-in…</p>,
+});
 
 const CONNECTOR_META: Record<string, { label: string; icon: string }> = {
   injected: { label: 'Browser Wallet (MetaMask/Brave)', icon: '🦊' },

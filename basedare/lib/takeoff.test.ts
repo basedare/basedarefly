@@ -64,6 +64,15 @@ test("media acceptance requires the verified account, short valid window and ind
     socialLinks: true,
     originalMedia: false,
   });
+  assert.deepEqual(
+    momentReleaseOptions(
+      { ...env, MOMENT_ORIGINAL_MEDIA_ENABLED: "true" },
+      a,
+      now.getTime()
+    ),
+    { socialLinks: true, originalMedia: false },
+    "A stale public originals switch cannot broaden a private link-only test"
+  );
   assert.equal(
     momentReleaseOptions(
       { ...env, MOMENT_ACCEPTANCE_ORIGINALS_ENABLED: "true" },
