@@ -11,6 +11,8 @@ import { DiscoveryProvider } from './DiscoveryProvider';
 import WalletAutoReconnect from './WalletAutoReconnect';
 import PostHogProvider from './PostHogProvider';
 import { SocialWebviewProvider } from './mission-pass/SocialWebviewProvider';
+import { accountAccessEnabled } from '@/lib/account-access';
+import { RecoverableAccountProvider } from './RecoverableAccount';
 
 // Use Coinbase RPC if API key available, otherwise fallback to public
 const rpcUrl = process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY
@@ -61,7 +63,7 @@ export function Providers({ children }: { children: ReactNode }) {
                 }}
               >
                 <WalletAutoReconnect />
-                <DiscoveryProvider>{children}</DiscoveryProvider>
+                <DiscoveryProvider>{accountAccessEnabled() ? <RecoverableAccountProvider>{children}</RecoverableAccountProvider> : children}</DiscoveryProvider>
               </OnchainKitProvider>
             </QueryClientProvider>
           </WagmiProvider>

@@ -10,6 +10,8 @@ import { useBaretagIdentity } from '@/hooks/useBaretagIdentity';
 import { useFeedback } from '@/hooks/useFeedback';
 import { MissionPassSheet } from '@/components/mission-pass/MissionPassSheet';
 import { useSocialWebview } from '@/components/mission-pass/SocialWebviewProvider';
+import { accountAccessEnabled, ACCOUNT_CONNECTOR_PREFIX } from '@/lib/account-access';
+import RecoverableAccount from './RecoverableAccount';
 
 const CONNECTOR_META: Record<string, { label: string; icon: string }> = {
   injected: { label: 'Browser Wallet (MetaMask/Brave)', icon: '🦊' },
@@ -172,7 +174,7 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
   // distinct brand rows so the picker does not show duplicate generic entries.
   const uniqueConnectors = Array.from(
     new Map(
-      connectors.map((connector) => {
+      connectors.filter(c => !c.id.startsWith(ACCOUNT_CONNECTOR_PREFIX)).map((connector) => {
         const meta = getConnectorMeta(connector);
         return [meta.key, { connector, meta }] as const;
       })
@@ -249,7 +251,7 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
   const accountMenu = showDropdown && isConnected ? (
     <div
       ref={accountMenuRef}
-      className="fixed w-48 bg-[#0a0a0f] border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[200]"
+      className="fixed max-h-[70dvh] w-48 overflow-y-auto bg-[#0a0a0f] border border-white/10 backdrop-blur-3xl rounded-xl shadow-2xl z-[200]"
       style={{ top: menuPosition.top, right: menuPosition.right }}
     >
       <div className="px-4 py-3 border-b border-white/10">
@@ -261,6 +263,7 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
         {username ? 'My profile' : 'Choose a username'}
       </Link>
       <Link href="/community?people=1#people" onClick={() => setShowDropdown(false)} className="block px-4 py-3 text-sm text-white/70 hover:bg-white/5">People & friends</Link>
+      {accountAccessEnabled() && <div className="p-2"><details><summary className="cursor-pointer text-sm">Account recovery</summary><RecoverableAccount/></details></div>}
       <Link
         href="/dashboard#wallet"
         onClick={() => setShowDropdown(false)}
@@ -302,7 +305,7 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
       id={pickerId}
       role="dialog"
       aria-labelledby={pickerId + '-title'}
-      className="fixed w-72 bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-3xl rounded-xl overflow-hidden shadow-2xl z-[200]"
+      className="fixed max-h-[70dvh] w-72 overflow-y-auto bg-[#0a0a0f]/95 border border-white/10 backdrop-blur-3xl rounded-xl shadow-2xl z-[200]"
       style={{ top: menuPosition.top, right: menuPosition.right }}
     >
       <div className="flex items-center gap-2 pl-4 pr-1 py-1 border-b border-white/[0.06] bg-black/40">
@@ -338,6 +341,7 @@ export function IdentityButton({ disconnectedLabel = 'Sign in' }: IdentityButton
           </div>
         )}
 
+        {accountAccessEnabled() && <RecoverableAccount onConnected={() => setShowWalletPicker(false)}/>}
         {otherConnectors.length > 0 ? (
           <button
             onClick={() => setShowOtherWallets((current) => !current)}

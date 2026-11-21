@@ -34,6 +34,8 @@ export default function ShareAdventure({
     originalMedia: boolean;
   } | null>(null);
   const [releaseError, setReleaseError] = useState(false);
+  const [acceptanceOpen, setAcceptanceOpen] = useState(false);
+  const [checkingAcceptance, setCheckingAcceptance] = useState(false);
   const [releaseRetry, setReleaseRetry] = useState(0);
   const [query, setQuery] = useState(""),
     [places, setPlaces] = useState<
@@ -69,6 +71,7 @@ export default function ShareAdventure({
           throw Error();
         if (!controller.signal.aborted) {
           setRelease(b.data);
+          setAcceptanceOpen(b.acceptanceOpen === true);
           if (!b.data.originalMedia) setMode("link");
         }
       })
@@ -84,7 +87,7 @@ export default function ShareAdventure({
       clearTimeout(deadline);
       controller.abort(new Error("Navigation"));
     };
-  }, [open, releaseRetry]);
+  }, [open, releaseRetry, wallet]);
   useEffect(() => {
     if (!open || query.trim().length < 2) {
       setPlaces([]);
@@ -95,7 +98,7 @@ export default function ShareAdventure({
     const timer = setTimeout(() => {
       void fetch(
         "/api/adventure-submissions/places?q=" + encodeURIComponent(query),
-        { signal: controller.signal },
+        { signal: controller.signal }
       )
         .then(async (r) => {
           const b = await r.json();
@@ -175,9 +178,62 @@ export default function ShareAdventure({
           ) : !release ? (
             <p role="status">Checking sharing availability…</p>
           ) : !release.socialLinks ? (
-            <p role="status" className="bd-well p-4 text-sm leading-6">
-              {MOMENT_SHARING_PAUSED}
-            </p>
+            <div className="bd-well p-4 text-sm leading-6">
+              <p role="status">{MOMENT_SHARING_PAUSED}</p>
+              {message && (
+                <p role="status" className="mt-2 text-amber-100">
+                  {message}
+                </p>
+              )}
+              {acceptanceOpen && (
+                <button
+                  className="bd-action mt-3 min-h-11"
+                  disabled={checkingAcceptance}
+                  onClick={async () => {
+                    if (!wallet) {
+                      window.dispatchEvent(new Event("basedare:sign-in"));
+                      return;
+                    }
+                    setCheckingAcceptance(true);
+                    setMessage("");
+                    try {
+                      const owner = wallet,
+                        signed = await headers("adventure:read");
+                      const response = await fetch(
+                        "/api/adventure-submissions/options?wallet=" +
+                          encodeURIComponent(owner),
+                        {
+                          headers: signed,
+                          cache: "no-store",
+                          signal: AbortSignal.timeout(8000),
+                        }
+                      );
+                      const body = await response.json();
+                      if (liveWallet.current !== owner) return;
+                      if (
+                        !response.ok ||
+                        !body.success ||
+                        !body.data?.socialLinks
+                      )
+                        throw Error();
+                      setRelease(body.data);
+                    } catch {
+                      setMessage(
+                        "This account does not have confirmed test access."
+                      );
+                    } finally {
+                      setCheckingAcceptance(false);
+                    }
+                  }}
+                >
+                  {checkingAcceptance
+                    ? "Checking…"
+                    : wallet
+                    ? "Verify private test access"
+                    : "Sign in for the private test"}
+                </button>
+              )}
+            </div>
           ) : !wallet ? (
             <div className="bd-well p-4">
               <p className="text-sm leading-6 text-white/70">
@@ -211,11 +267,11 @@ export default function ShareAdventure({
                 if (mode === "link") {
                   form.delete("file");
                   const social = publicSocialPost(
-                    String(form.get("socialUrl") ?? ""),
+                    String(form.get("socialUrl") ?? "")
                   );
                   if (!social) {
                     setMessage(
-                      "Use a full public TikTok video, Instagram post/Reel or X post link.",
+                      "Use a full public TikTok video, Instagram post/Reel or X post link."
                     );
                     return;
                   }
@@ -260,8 +316,8 @@ export default function ShareAdventure({
                       b.data.status === "APPROVED"
                         ? "This contribution is already published."
                         : b.data.status === "PENDING"
-                          ? "Saved privately for review. Nothing is published yet."
-                          : "This attempt already has a submission. Check its current status.",
+                        ? "Saved privately for review. Nothing is published yet."
+                        : "This attempt already has a submission. Check its current status."
                     );
                   }
                 } catch (err) {
@@ -270,8 +326,8 @@ export default function ShareAdventure({
                       controller.signal.aborted
                         ? "The response timed out. Check My submissions before retrying; this attempt won’t be added twice."
                         : err instanceof Error
-                          ? err.message
-                          : "Could not submit. Please retry.",
+                        ? err.message
+                        : "Could not submit. Please retry."
                     );
                 } finally {
                   clearTimeout(deadline);
@@ -429,9 +485,10 @@ export default function ShareAdventure({
                   name="spotlightConsent"
                   value="true"
                 />
-                Allow editorial Spotlight inside BaseDare, including weekly picks, with my creator
-                credit. Selection isn’t promised. This grants no reposting, editing, advertising or
-                commercial-use rights.
+                Allow editorial Spotlight inside BaseDare, including weekly
+                picks, with my creator credit. Selection isn’t promised. This
+                grants no reposting, editing, advertising or commercial-use
+                rights.
               </label>
               <label className="flex gap-3 text-sm leading-6">
                 <input

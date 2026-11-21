@@ -83,6 +83,9 @@ jobs:
       - name: Social Moment policy checks
         run: npm run test:moments
 
+      - name: Participation and controlled launch policy checks
+        run: npm run test:takeoff
+
       - name: Social Moment forward migration and privacy regression
         run: |
           export PATH="$(pg_config --bindir):$PATH"

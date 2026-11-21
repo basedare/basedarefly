@@ -30,5 +30,10 @@
   ],
   "harness": [
     "test:harness"
+  ],
+  "takeoff": [
+    "test:takeoff",
+    "test:adventure-sharing:db",
+    "test:prisma-config"
   ]
 }
