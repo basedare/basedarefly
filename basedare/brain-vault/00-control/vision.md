@@ -220,3 +220,7 @@ BaseDare is not:
 - an anonymous local operating business hidden behind crypto
 
 It is a **proof-backed discovery network**: fund useful real-world questions, reward verified answers, attach them to places, and let the resulting memory compound.
+
+## Founder direction — November 23, 2026: living local economy and Sessions
+
+BaseDare connects people, consenting creator projects/collectives and canonical venues through offers, needs, gigs, collaborations and experiences. Anyone can discover, offer, participate, earn or connect without a permanent marketplace role. Siargao and Bhabie Waves are the intended pilot, subject to real consent and operating readiness. Nodes extend existing person identities; venues stay canonical places. Sessions extend the existing public Meetup rail with separately approved guest roles. Free, barter and stated paid terms are distinct; booking intent, accepted terms, mutual completion, presence evidence and actual settlement remain separate. Permissioned recordings reuse Moments and the existing BaseClips v1 local contract, with explicit music/featured-person permissions, processing scope and withdrawal. This dated instruction authorizes a coherent reviewed MVP implementation, superseding older blanket deferrals of structured opportunities; it does not activate payments, providers, publication or production fixtures.

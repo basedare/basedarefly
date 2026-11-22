@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { currentSessionSourceIds } from '@/lib/local-economy-server';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, createRateLimitHeaders, getClientIp } from '@/lib/rate-limit';
 import { MEETUP_TYPES, MEETUP_LIVE_WINDOW_MS, isHappeningNow, isStartTimeInBounds, roundCoord } from '@/lib/meetups';
@@ -31,7 +32,7 @@ export async function GET() {
         startTime: { gte: cutoff },
         ...(blocked.length ? { creatorBaretagId: { notIn: blocked } } : {}),
       },
-      include: { _count: { select: { rsvps: true } } },
+      include: { session: true, _count: { select: { rsvps: true } } },
       orderBy: { startTime: 'asc' },
       take: 200,
     });
@@ -46,7 +47,8 @@ export async function GET() {
       : [];
     const creatorById = new Map(creators.map((c) => [c.id, c]));
 
-    const data = meetups.map((m) => {
+    const sessionEligibility = await currentSessionSourceIds(meetups.flatMap(m => m.session ? [m.session.id] : []));
+    const data = meetups.filter(m => !m.session || m.session.endsAt > new Date() && sessionEligibility.has(m.session.id)).map((m) => {
       const creator = creatorById.get(m.creatorBaretagId);
       return {
         id: m.id,

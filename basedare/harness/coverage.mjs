@@ -5,6 +5,8 @@ import { spawnSync } from 'node:child_process';
 
 // Reviewed mappings select registered suites, never commands supplied by observations.
 const rules = [
+  [/^config\/rls-tables\.json$/, ['safety', 'economy']],
+  [/^(lib\/(local-economy|session-recordings|mobile-surface-policy|adventure-sharing|adventure-evidence|meetup-plan|live-plans-server)|components\/local-economy|app\/(venues\/|local\/|n\/|sessions\/|api\/(admin\/)?local-economy|admin\/local-economy|api\/meetups|adventures\/)|scripts\/(run-local-economy|local-economy))/, ['economy', 'social']],
   [/^(lib\/(account-access|takeoff-|participation-scorecard|moment-release|retention-email)|components\/(RecoverableAccount|admin\/(TakeoffPanel|RetentionStatus)|adventures\/ShareAdventure)|app\/(admin\/founder-scoreboard|api\/admin\/takeoff|api\/growth\/participation|api\/adventure-submissions)|scripts\/takeoff-db-check|scripts\/run-adventure-sharing-db|tsconfig\.test\.json)/, ['takeoff', 'social', 'safety']],
   [/^(app\/api\/(brands|campaigns)|app\/brands\/|lib\/(buyer-workspace|campaign-|business-|financial-canon)|scripts\/(run-|render-)?buyer-workspace)/, ['buyer', 'business']],
   [/^lib\/wallet-action-auth/, ['buyer', 'safety', 'social']],

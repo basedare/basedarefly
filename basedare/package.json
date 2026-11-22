@@ -56,7 +56,9 @@
     "test:harness": "node --test harness/evaluate.test.mjs harness/coverage.test.mjs",
     "test:buyer-workspace": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/buyer-workspace-presentation.test.ts",
     "test:buyer-workspace:db": "bash scripts/run-buyer-workspace-db.sh",
-    "test:takeoff": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' node -r ts-node/register --test lib/takeoff.test.ts"
+    "test:takeoff": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' node -r ts-node/register --test lib/takeoff.test.ts",
+    "test:local-economy:db": "bash scripts/run-local-economy-db.sh",
+    "test:local-economy": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' node -r ./scripts/register-test-server-only.cjs -r ts-node/register --test lib/local-economy.test.ts"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.6",

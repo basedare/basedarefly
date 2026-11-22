@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { isAddress } from 'viem';
+import { EconomyError } from '@/lib/local-economy';
+import { currentSession } from '@/lib/local-economy-server';
 import { prisma } from '@/lib/prisma';
 import { isMeetupExpired } from '@/lib/meetups';
 import { resolveHostBaretag } from '@/lib/meetups-server';
@@ -81,6 +83,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (!meetup) throw new Error('MEETUP_NOT_FOUND');
       if (meetup.status !== 'active') throw new Error('MEETUP_INACTIVE');
       if (isMeetupExpired(meetup.startTime)) throw new Error('MEETUP_ENDED');
+      const session = await tx.baseDareSession.findUnique({ where: { meetupId: id } });
+      if (session) await currentSession(tx, session.id);
 
       const created = await tx.meetupRsvp.createMany({
         data: [{ meetupId: id, baretagId: baretag.id }],
@@ -167,6 +171,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (journeyToken) applyJourneyCookie(response, journeyToken);
     return response;
   } catch (error) {
+    if (error instanceof EconomyError) return NextResponse.json({ success: false, error: error.message }, { status: error.status });
     const code = error instanceof Error ? error.message : '';
     if (code === 'MEETUP_NOT_FOUND') {
       return NextResponse.json({ success: false, error: 'Meetup not found' }, { status: 404 });

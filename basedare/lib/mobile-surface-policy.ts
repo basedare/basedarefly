@@ -5,12 +5,12 @@ export function isActivityTrayRoute(pathname: string | null) {
 }
 
 export function suppressInstallPrompt(pathname: string | null) {
-  return isActivityTrayRoute(pathname) || ['/updates', '/brands/portal', '/activations', '/moments', '/claim-tag', '/island-trials', '/adventures', '/start', '/create', '/community/rally/new']
+  return isActivityTrayRoute(pathname) || ['/local', '/n', '/sessions', '/updates', '/brands/portal', '/activations', '/moments', '/claim-tag', '/island-trials', '/adventures', '/start', '/create', '/community/rally/new']
     .some((path) => pathname === path || pathname?.startsWith(`${path}/`));
 }
 
 /** Immediate entry for participation and guest business enquiries. */
 export function bypassDecorativeLoader(pathname: string | null) {
-  return ['/start', '/now', '/community', '/updates', '/brands/portal', '/activations', '/moments', '/adventures', '/island-trials']
+  return ['/local', '/n', '/sessions', '/start', '/now', '/community', '/updates', '/brands/portal', '/activations', '/moments', '/adventures', '/island-trials']
     .some(path => pathname === path || pathname?.startsWith(`${path}/`));
 }

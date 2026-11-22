@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSocialAction } from "@/hooks/useSocialAction";
 import {
   ADVENTURE_DISPLAY_CONSENT,
+  SESSION_RECORDING_CONSENT,
   ADVENTURE_MEDIA_LIMIT,
   adventureHashtag,
 } from "@/lib/adventure-sharing";
@@ -16,12 +17,14 @@ export default function ShareAdventure({
   runId,
   placeSlug,
   parentMomentId,
+  sessionId,
   initiallyOpen = false,
 }: {
   activityId: string;
   runId: string;
   placeSlug?: string;
   parentMomentId?: string;
+  sessionId?: string;
   initiallyOpen?: boolean;
 }) {
   const { wallet, headers } = useSocialAction();
@@ -296,6 +299,7 @@ export default function ShareAdventure({
                   form.set("wallet", submittingWallet);
                   form.set("activityId", activityId);
                   form.set("runId", runId);
+                  if (sessionId) form.set("sessionId", sessionId);
                   if (place) form.set("venueSlug", place);
                   if (parentMomentId)
                     form.set("parentMomentId", parentMomentId);
@@ -392,9 +396,11 @@ export default function ShareAdventure({
                     accept="image/jpeg,image/png,image/gif,video/mp4,video/quicktime,video/webm"
                   />
                   <span className="mt-2 block text-xs font-normal leading-5 text-white/55">
-                    Up to 4 MB. Stored privately for review, then displayed only
-                    while approved. Leave out sensitive information, location
-                    metadata and people without permission.
+                    Up to 4 MB. Stored privately for review; public use requires
+                    separate permission. For ordinary adventure submissions,
+                    displayed only while approved. Leave out sensitive
+                    information, location metadata and people without
+                    permission.
                   </span>
                 </label>
               )}
@@ -462,12 +468,15 @@ export default function ShareAdventure({
                   type="checkbox"
                   required
                   name="consent"
-                  value={ADVENTURE_DISPLAY_CONSENT}
+                  value={
+                    activityId === "session-recording"
+                      ? SESSION_RECORDING_CONSENT
+                      : ADVENTURE_DISPLAY_CONSENT
+                  }
                 />
-                I made this, have permission from everyone featured, and allow
-                BaseDare to display this contribution with its challenge and
-                optional place. I can withdraw it from BaseDare; copies shared
-                elsewhere may remain.
+                {activityId === "session-recording"
+                  ? "I own this original and have permission to submit it for private review. This does not grant public display, editing or publication rights. I can withdraw it."
+                  : "I made this, have permission from everyone featured, and allow BaseDare to display this contribution with its challenge and optional place. I can withdraw it from BaseDare; copies shared elsewhere may remain."}
               </label>
               <label className="flex gap-3 text-sm leading-6">
                 <input
@@ -478,18 +487,20 @@ export default function ShareAdventure({
                 />
                 Show my existing Baretag as creator credit, if I have one.
               </label>
-              <label className="flex gap-3 text-sm leading-6">
-                <input
-                  className="mt-1 size-5 shrink-0"
-                  type="checkbox"
-                  name="spotlightConsent"
-                  value="true"
-                />
-                Allow editorial Spotlight inside BaseDare, including weekly
-                picks, with my creator credit. Selection isn’t promised. This
-                grants no reposting, editing, advertising or commercial-use
-                rights.
-              </label>
+              {activityId !== "session-recording" && (
+                <label className="flex gap-3 text-sm leading-6">
+                  <input
+                    className="mt-1 size-5 shrink-0"
+                    type="checkbox"
+                    name="spotlightConsent"
+                    value="true"
+                  />
+                  Allow editorial Spotlight inside BaseDare, including weekly
+                  picks, with my creator credit. Selection isn’t promised. This
+                  grants no reposting, editing, advertising or commercial-use
+                  rights.
+                </label>
+              )}
               <label className="flex gap-3 text-sm leading-6">
                 <input
                   className="mt-1 size-5 shrink-0"

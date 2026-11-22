@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BaseDare \u2192 BaseClips local media pilot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "sent_at",
+    "nonce",
+    "payload",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "baseclips.basedare.media.v1"
+    },
+    "sent_at": {
+      "type": "integer"
+    },
+    "nonce": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "payload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "tenant_id",
+            "request_id",
+            "channel_id",
+            "target",
+            "media_sha256",
+            "grant",
+            "title",
+            "max_seconds"
+          ],
+          "properties": {
+            "action": {
+              "const": "process"
+            },
+            "tenant_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "request_id": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{32}$"
+            },
+            "channel_id": {
+              "const": "1ba3b9da8b3d4bb7a5ffa920618d43c9"
+            },
+            "target": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "id",
+                "revision"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "dare",
+                    "place",
+                    "moment"
+                  ]
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,100}$"
+                },
+                "revision": {
+                  "type": "integer"
+                }
+              }
+            },
+            "media_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "grant": {
+              "type": "object",
+              "required": [
+                "id",
+                "version",
+                "source_sha256",
+                "processing",
+                "publication",
+                "evaluation",
+                "training",
+                "destinations",
+                "expires_at"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{32}$"
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "source_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "processing": {
+                  "type": "boolean"
+                },
+                "publication": {
+                  "type": "boolean"
+                },
+                "evaluation": {
+                  "type": "boolean"
+                },
+                "training": {
+                  "type": "boolean"
+                },
+                "destinations": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "BaseDare",
+                      "TikTok",
+                      "YouTube",
+                      "Instagram",
+                      "X"
+                    ]
+                  }
+                },
+                "expires_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "revoked": {
+                  "type": "boolean"
+                },
+                "required_credit": {
+                  "type": "string"
+                }
+              }
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "max_seconds": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 180
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "tenant_id",
+            "request_id"
+          ],
+          "properties": {
+            "action": {
+              "const": "candidates"
+            },
+            "tenant_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "request_id": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{32}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "tenant_id",
+            "grant_id",
+            "version"
+          ],
+          "properties": {
+            "action": {
+              "const": "revoke"
+            },
+            "tenant_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "grant_id": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{32}$"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    }
+  }
+}

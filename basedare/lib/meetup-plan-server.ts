@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { sessionSourceCurrent } from '@/lib/local-economy-server';
 import { prisma } from '@/lib/prisma';
 import { isHappeningNow, isMeetupExpired, type MeetupType } from '@/lib/meetups';
 import type { MeetupPlanStatus, MeetupPlanSummary } from '@/lib/meetup-plan';
@@ -22,6 +23,8 @@ export async function getMeetupPlan(
     },
   });
   if (!meetup) return null;
+  const session = await prisma.baseDareSession.findUnique({ where: { meetupId } });
+  if (session && !await sessionSourceCurrent(session.id)) return null;
 
   const [creator, venue] = await Promise.all([
     prisma.streamerTag.findUnique({

@@ -1,4 +1,5 @@
 import 'server-only';
+import { currentSessionSourceIds } from '@/lib/local-economy-server';
 
 import { calculateDistance, isValidCoordinates } from '@/lib/geo';
 import {
@@ -137,6 +138,7 @@ export async function getLivePlanSnapshot(input: LivePlanQuery): Promise<LivePla
         ...(blocked.length ? { creatorBaretagId: { notIn: blocked } } : {}),
       },
       include: {
+        session: true,
         rsvps: { select: { baretagId: true } },
       },
       orderBy: { startTime: 'asc' },
@@ -228,7 +230,9 @@ export async function getLivePlanSnapshot(input: LivePlanQuery): Promise<LivePla
   const identified = Boolean(viewer || viewerWallet);
   const venueSlugById = new Map(nearbyVenues.map((venue) => [venue.id, venue.slug]));
 
+  const eligibleSessions = await currentSessionSourceIds(meetups.flatMap(m => m.session ? [m.session.id] : []));
   for (const meetup of meetups) {
+    if (meetup.session && (meetup.session.endsAt <= now || !eligibleSessions.has(meetup.session.id))) continue;
     const distance = roundedDistance(origin, {
       latitude: meetup.approxLat,
       longitude: meetup.approxLng,

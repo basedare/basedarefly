@@ -19,7 +19,7 @@ export default async function SubmitPage({
   return (
     <main className="bd-page-top mx-auto min-h-screen max-w-2xl px-4 pb-32 text-white">
       <Link
-        href={adventureHref(id)}
+        href={id === "session-recording" ? "/local?tab=sessions" : adventureHref(id)}
         className="inline-flex min-h-12 items-center text-sm font-bold text-cyan-100"
       >
         ← {activity.title}

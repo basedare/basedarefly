@@ -230,6 +230,7 @@ model Venue {
   activeRakeReviewedAt DateTime?
   createdAt            DateTime                     @default(now())
   updatedAt            DateTime                     @updatedAt
+  localOpportunities LocalOpportunity[]
   adventureSubmissions AdventureSubmission[]
   dares                Dare[]
   campaigns            Campaign[]
@@ -1356,6 +1357,7 @@ model Meetup {
   minimumPeople    Int? // Optional Rally threshold; null keeps a normal open meetup
   status           String         @default("active") // active | cancelled (expired derived at READ time from startTime)
   createdAt        DateTime       @default(now())
+  session          BaseDareSession?
   rsvps            MeetupRsvp[]
   reports          MeetupReport[]
 
@@ -1874,6 +1876,9 @@ model AdventureJournal {
 
 model AdventureSubmission {
   id String @id @default(cuid())
+  sessionId String?
+  session BaseDareSession? @relation("SessionOriginals", fields: [sessionId], references: [id], onDelete: Restrict)
+  sessionGrants SessionRecordingGrant[]
   wallet String
   activityId String
   runId String
@@ -1949,4 +1954,154 @@ model SavedItem {
   updatedAt DateTime @updatedAt
   @@unique([wallet, targetKind, targetKey])
   @@index([wallet, active, updatedAt])
+}
+
+// Nodes are public projects/collectives, not accounts. Person and Venue remain canonical.
+model LocalNode {
+  id             String             @id @default(cuid())
+  slug           String             @unique
+  name           String
+  about          String
+  category       String
+  city           String
+  ownerWallet    String
+  ownerTagId     String
+  status         String             @default("DRAFT")
+  publicConsent  Boolean            @default(false)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  members        NodeMembership[]
+  opportunities  LocalOpportunity[] @relation("OpportunityNode")
+  directedOffers LocalOpportunity[] @relation("OpportunityTarget")
+  sessions       BaseDareSession[]
+
+  @@index([status, city, category])
+}
+
+model NodeMembership {
+  id            String    @id @default(cuid())
+  nodeId        String
+  node          LocalNode @relation(fields: [nodeId], references: [id], onDelete: Restrict)
+  wallet        String
+  tagId         String
+  role          String
+  status        String    @default("INVITED")
+  publicConsent Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([nodeId, wallet])
+  @@index([wallet, status])
+}
+
+// Terms are immutable. A replacement offer requires a new record and new acceptance.
+model LocalOpportunity {
+  id            String               @id @default(cuid())
+  venueId       String
+  venue         Venue                @relation(fields: [venueId], references: [id], onDelete: Restrict)
+  nodeId        String?
+  node          LocalNode?           @relation("OpportunityNode", fields: [nodeId], references: [id], onDelete: Restrict)
+  targetNodeId  String?
+  targetNode    LocalNode?           @relation("OpportunityTarget", fields: [targetNodeId], references: [id], onDelete: Restrict)
+  authorWallet  String
+  authorTagId   String
+  kind          String
+  title         String
+  description   String
+  compensation  String
+  amountMinor   Int?
+  currency      String?
+  exchangeTerms String
+  termsHash     String
+  startsAt      DateTime
+  endsAt        DateTime
+  expiresAt     DateTime
+  capacity      Int
+  status        String               @default("OPEN")
+  createdAt     DateTime             @default(now())
+  requests      OpportunityRequest[]
+
+  @@index([status, expiresAt, venueId])
+  @@index([authorWallet])
+  @@index([targetNodeId, status])
+}
+
+model OpportunityRequest {
+  id                     String           @id @default(cuid())
+  opportunityId          String
+  opportunity            LocalOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
+  wallet                 String
+  tagId                  String
+  message                String
+  termsHash              String
+  status                 String           @default("PENDING")
+  hostCompletedAt        DateTime?
+  participantCompletedAt DateTime?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  @@unique([opportunityId, wallet])
+  @@index([wallet, status])
+}
+
+// A Session is a format on the existing public Meetup, never a parallel event feed.
+model BaseDareSession {
+  originalSubmissions AdventureSubmission[] @relation("SessionOriginals")
+  id              String                  @id @default(cuid())
+  meetupId        String                  @unique
+  meetup          Meetup                  @relation(fields: [meetupId], references: [id], onDelete: Restrict)
+  nodeId          String?
+  node            LocalNode?              @relation(fields: [nodeId], references: [id], onDelete: Restrict)
+  hostWallet      String
+  hostTagId       String
+  endsAt          DateTime
+  guestCapacity   Int
+  recordingPolicy String
+  guests          SessionGuest[]
+  recordings      SessionRecordingGrant[]
+  createdAt       DateTime                @default(now())
+
+  @@index([hostWallet])
+}
+
+model SessionGuest {
+  id                    String          @id @default(cuid())
+  sessionId             String
+  session               BaseDareSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  wallet                String
+  tagId                 String
+  role                  String
+  application           String
+  status                String          @default("PENDING")
+  hostAttestedAt        DateTime?
+  participantAttestedAt DateTime?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@unique([sessionId, wallet])
+  @@index([wallet, status])
+}
+
+// Immutable grant, terminal withdrawal. Scope never implies approved publication.
+model SessionRecordingGrant {
+  id              String              @id
+  sessionId       String
+  session         BaseDareSession     @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  submissionId    String
+  submission      AdventureSubmission @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+  wallet          String
+  sourceSha256    String
+  processing      Boolean
+  publication     Boolean             @default(false)
+  destinations    String[]            @default([])
+  requiredCredit  String
+  rightsVersion   String
+  rightsConfirmed Boolean
+  expiresAt       DateTime
+  withdrawnAt     DateTime?
+  hostApprovedAt  DateTime?
+  createdAt       DateTime            @default(now())
+
+  @@unique([sessionId, submissionId])
+  @@index([wallet])
 }

@@ -79,9 +79,9 @@ export async function writeRelationship(
   const canonical = await canonicalReference(ref);
   const follow = action === "follow" || action === "unfollow";
   const active = action === "follow" || action === "save";
-  if (follow && !["PERSON", "VENUE"].includes(canonical.kind))
+  if (follow && !["PERSON", "VENUE", "NODE"].includes(canonical.kind))
     throw new RetentionError(
-      "Only public people and verified venues can be followed.",
+      "Only public people, Nodes and verified venues can be followed.",
     );
   if (!follow && canonical.kind === "PERSON")
     throw new RetentionError("Use Follow for a public profile.");
@@ -267,7 +267,7 @@ export async function followingProjection(
       (111.32 * Math.max(0.2, Math.cos((area.lat * Math.PI) / 180)));
   const lat = { gte: area.lat - latDelta, lte: area.lat + latDelta },
     lng = { gte: area.lng - lngDelta, lte: area.lng + lngDelta };
-  const [stories, moments, events, meetups] = await Promise.all([
+  const [stories, moments, events, meetups, nodeOffers, nodeSessions] = await Promise.all([
     prisma.founderEvent.findMany({
       where: {
         eventType: "LOCAL_SIGNAL",
@@ -316,8 +316,12 @@ export async function followingProjection(
       orderBy: { startTime: "asc" },
       take: 101,
     }),
+    prisma.localOpportunity.findMany({ where: { nodeId: { in: followed.filter(t => t.kind === 'NODE').map(t => t.key) }, status: 'OPEN', targetNodeId: null, expiresAt: { gt: now } }, select: { id: true }, take: 101 }),
+    prisma.baseDareSession.findMany({ where: { nodeId: { in: followed.filter(t => t.kind === 'NODE').map(t => t.key) }, meetup: { status: 'active', startTime: { gte: now, lte: horizon } } }, select: { meetupId: true }, take: 101 }),
   ]);
   const candidates: SocialReference[] = [
+    ...nodeOffers.map(o => ({ kind: 'OPPORTUNITY' as const, key: o.id })),
+    ...nodeSessions.map(s => ({ kind: 'ACTIVITY' as const, key: 'meetup:' + s.meetupId })),
     ...stories.map((r) => ({ kind: "STORY" as const, key: r.id })),
     ...moments
       .filter(momentCreditAllowed)
@@ -353,6 +357,6 @@ export async function followingProjection(
     followingCount: followed.length,
     hasMore:
       items.length > 40 ||
-      [stories, moments, events, meetups].some((r) => r.length > 100),
+      [stories, moments, events, meetups, nodeOffers, nodeSessions].some((r) => r.length > 100),
   };
 }
