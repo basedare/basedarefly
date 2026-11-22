@@ -1,5 +1,7 @@
 export const RETENTION_KINDS = [
   "PERSON",
+  "NODE",
+  "OPPORTUNITY",
   "VENUE",
   "STORY",
   "MOMENT",

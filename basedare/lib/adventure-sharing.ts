@@ -1,10 +1,12 @@
-import { ACTIVITY_SUGGESTIONS } from "@/lib/home-activities";
+import { ACTIVITY_SUGGESTIONS, type ActivitySuggestion } from "@/lib/home-activities";
+export const SESSION_RECORDING_CONSENT = "session-original-review-v1";
 export const ADVENTURE_DISPLAY_CONSENT = "adventure-display-v2";
 export const ADVENTURE_MEDIA_LIMIT = 4 * 1024 * 1024;
 export function adventureHashtag(activityId: string) {
   return "basedare" + activityId.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
-export function adventureTemplate(id: string) {
+export function adventureTemplate(id: string): ActivitySuggestion | undefined {
+  if (id === 'session-recording') return { id, title: 'A permissioned Session recording', summary: 'Contribute an original recording with permission for people and music.', minutes: 10, moods: ['create'], steps: ['Check the host allows recording.', 'Get permission from featured people and the music rights holders.', 'Submit your original video for review; processing permission is separate.'] };
   return ACTIVITY_SUGGESTIONS.find((a) => a.id === id);
 }
 export function friendPair(a: string, b: string) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sessionSourceCurrent } from "@/lib/local-economy-server";
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { socialWallet, socialError, sameOrigin } from "@/lib/social-request";
@@ -6,6 +7,7 @@ import {
   adventureHashtag,
   adventureTemplate,
   ADVENTURE_DISPLAY_CONSENT,
+  SESSION_RECORDING_CONSENT,
   ADVENTURE_MEDIA_LIMIT,
 } from "@/lib/adventure-sharing";
 import { publicSocialPost, socialPostIdentity } from "@/lib/social-post-url";
@@ -206,7 +208,8 @@ export async function POST(req: NextRequest) {
       return socialError(
         "Choose an adventure and a caption of 1–280 characters.",
       );
-    if (form.get("consent") !== ADVENTURE_DISPLAY_CONSENT)
+    const consentVersion = activityId === "session-recording" ? SESSION_RECORDING_CONSENT : ADVENTURE_DISPLAY_CONSENT;
+    if (form.get("consent") !== consentVersion)
       return socialError("Confirm permission to display your contribution.");
     const file = form.get("file"),
       hasFile = file instanceof File && file.size > 0;
@@ -240,6 +243,7 @@ export async function POST(req: NextRequest) {
           : Buffer.from(await (file as File).arrayBuffer()),
       )
       .digest("hex");
+    const sessionId = String(form.get("sessionId") ?? "").trim() || null;
     const parentId = String(form.get("parentMomentId") ?? "").trim() || null;
     const row = await prisma.$transaction(
       async (tx) => {
@@ -252,7 +256,7 @@ export async function POST(req: NextRequest) {
             previous.activityId !== activityId ||
             previous.sourceKey !== sourceKey ||
             previous.caption !== caption ||
-            previous.venueSlug !== venueSlug
+            previous.venueSlug !== venueSlug || previous.sessionId !== sessionId
           )
             throw new SubmissionError(
               "This attempt already has a different submission. Open My submissions to review it.",
@@ -284,6 +288,12 @@ export async function POST(req: NextRequest) {
             "You can submit three creations per day. Try again tomorrow.",
             429,
           );
+        if (activityId === 'session-recording') {
+          const session = sessionId ? await tx.baseDareSession.findUnique({ where: { id: sessionId }, include: { meetup: true } }) : null;
+          const sourceVenue = session?.meetup.venueId ? await tx.venue.findUnique({ where: { id: session.meetup.venueId }, select: { slug: true } }) : null;
+          if (!session || !await sessionSourceCurrent(session.id, tx) || session.recordingPolicy !== 'SEPARATE_CONSENT' || sourceVenue?.slug !== venueSlug || !hasFile || (file as File).type !== 'video/mp4') throw new SubmissionError('Choose an original MP4 for a Session that permits recording at this venue.');
+          if (session.meetup.startTime > new Date() || session.endsAt.getTime() + 7 * 86400000 < Date.now()) throw new SubmissionError('Session originals can be submitted during the event or within seven days after it.');
+        } else if (sessionId) throw new SubmissionError('Only a Session recording can carry a Session reference.');
         if (parentId) {
           const parent = await tx.adventureSubmission.findFirst({
             where: {
@@ -328,6 +338,7 @@ export async function POST(req: NextRequest) {
             caption,
             venueSlug,
             sourceKey,
+            sessionId,
             hashtag: adventureHashtag(activityId),
             mediaUrl: null,
             mediaType: social ? "SOCIAL" : media!.mediaType,
@@ -336,10 +347,10 @@ export async function POST(req: NextRequest) {
             privateMediaCid: media?.cid,
             privateMediaMime: media?.mime,
             parentMomentId: parentId,
-            publicConsentVersion: ADVENTURE_DISPLAY_CONSENT,
+            publicConsentVersion: consentVersion,
             creatorCreditConsent: form.get("creatorCreditConsent") === "true",
-            spotlightConsent: form.get("spotlightConsent") === "true",
-            promotionContact: form.get("promotionContact") === "true",
+            spotlightConsent: activityId !== "session-recording" && form.get("spotlightConsent") === "true",
+            promotionContact: activityId !== "session-recording" && form.get("promotionContact") === "true",
           },
         });
         await momentAudit(tx, {

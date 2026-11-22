@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { prisma } from '@/lib/prisma';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -22,5 +24,6 @@ export default async function MeetupPlanPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const plan = await getMeetupPlan(id).catch(() => null);
   if (!plan) notFound();
-  return <MeetupPlanClient initialPlan={plan} />;
+  const session = await prisma.baseDareSession.findUnique({ where: { meetupId: id }, select: { id: true } });
+  return <>{session && <div className="bd-surface mx-auto mt-28 max-w-xl p-4 text-white"><p>BaseDare Session · Audience RSVP does not approve a performer role or recording.</p><Link className="bd-action mt-3" href={'/sessions/' + session.id}>Request a guest role or view Session details</Link></div>}<MeetupPlanClient initialPlan={plan} /></>;
 }

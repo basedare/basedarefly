@@ -35,5 +35,9 @@
     "test:takeoff",
     "test:adventure-sharing:db",
     "test:prisma-config"
+  ],
+  "economy": [
+    "test:local-economy",
+    "test:local-economy:db"
   ]
 }

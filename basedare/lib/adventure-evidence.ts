@@ -13,6 +13,7 @@ export function momentCreditAllowed(post: {
   );
 }
 export function publicMomentAllowed(post: {
+  activityId?: string;
   status: string;
   publicConsentVersion: string;
   venueSlug?: string | null;
@@ -22,6 +23,7 @@ export function publicMomentAllowed(post: {
   socialUrl?: string | null;
 }) {
   return (
+    post.activityId !== "session-recording" &&
     post.status === "APPROVED" &&
     ["adventure-display-v1", "adventure-display-v2"].includes(
       post.publicConsentVersion,

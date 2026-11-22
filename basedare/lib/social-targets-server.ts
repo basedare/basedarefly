@@ -102,6 +102,10 @@ export function targetDto(target: ResolvedTarget): SocialTarget {
 export async function canonicalReference(
   ref: SocialReference,
 ): Promise<SocialReference> {
+  if (ref.kind === 'NODE') {
+    const row = await prisma.localNode.findFirst({ where: { OR: [{ id: ref.key }, { slug: ref.key }] }, select: { id: true } });
+    return { ...ref, key: row?.id ?? ref.key };
+  }
   if (ref.kind === "PERSON") {
     const handle = ref.key.replace(/^@/, "");
     const row = await prisma.streamerTag.findFirst({
@@ -185,6 +189,7 @@ export async function resolveSocialTargets(
             status: "active",
             startTime: { gte: now },
           },
+          include: { session: true },
         })
       : Promise.resolve([]),
   ]);
@@ -334,7 +339,9 @@ export async function resolveSocialTargets(
       at: event.startsAt.toISOString(),
     });
   }
+  const eligibleSessions = meetups.some(m => m.session) ? await (await import('./local-economy-server')).currentSessionSourceIds(meetups.flatMap(m => m.session ? [m.session.id] : [])) : new Set<string>();
   for (const meetup of meetups) {
+    if (meetup.session && !eligibleSessions.has(meetup.session.id)) continue;
     const author = publicPeople.find((p) => p.id === meetup.creatorBaretagId);
     if (!author || (meetup.venueId && !activePlaceIds.has(meetup.venueId)))
       continue;
@@ -351,6 +358,12 @@ export async function resolveSocialTargets(
       longitude: meetup.approxLng,
       at: meetup.startTime.toISOString(),
     });
+  }
+  if (keys('NODE').length || keys('OPPORTUNITY').length) {
+    const { readEconomy } = await import('./local-economy-server');
+    const snapshot = await readEconomy(context.wallet, {}, false);
+    for (const n of snapshot.nodes.filter(n => keys('NODE').includes(n.id))) add({ kind: 'NODE', key: n.id, title: n.name, summary: n.about, href: '/n/' + n.slug, label: n.category + ' · ' + n.city, followable: true });
+    for (const o of snapshot.opportunities.filter(o => keys('OPPORTUNITY').includes(o.id))) add({ kind: 'OPPORTUNITY', key: o.id, title: o.title, summary: o.description, href: '/local?opportunity=' + o.id, label: o.kind, followable: false, venueId: o.venue.id, latitude: o.venue.latitude, longitude: o.venue.longitude, at: o.startsAt.toISOString() });
   }
   return result;
 }

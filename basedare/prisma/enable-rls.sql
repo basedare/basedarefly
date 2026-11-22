@@ -86,6 +86,7 @@ DECLARE
     'Mark',
     'PackMember',
     'PackClaim',
+    'LocalNode', 'NodeMembership', 'LocalOpportunity', 'OpportunityRequest', 'BaseDareSession', 'SessionGuest', 'SessionRecordingGrant',
     'Meetup',
     'MeetupRsvp',
     'MeetupReport',

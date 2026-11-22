@@ -1,3 +1,4 @@
+import LocalPlaceActivity from '@/components/local-economy/LocalPlaceActivity';
 import SocialActions from '@/components/social/SocialActions';
 import RelatedDiscovery from '@/components/discovery/RelatedDiscovery';
 import { Suspense } from 'react';
@@ -1661,6 +1662,7 @@ export default async function VenueDetailPage(
             </div></details>
           </div>
         </section>
+        <Suspense fallback={<p className="mt-6 text-white/50">Opening local activity…</p>}><LocalPlaceActivity venueId={venue.id} /></Suspense>
         <section className="bd-surface mt-6 p-5"><RelatedDiscovery kind="VENUE" targetKey={venue.slug} /></section>
       </main>
     </VenuePageShell>

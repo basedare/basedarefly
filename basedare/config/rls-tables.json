@@ -78,5 +78,12 @@
   "AdventureSubmission",
   "FriendConnection",
   "SocialFollow",
-  "SavedItem"
+  "SavedItem",
+  "LocalNode",
+  "NodeMembership",
+  "LocalOpportunity",
+  "OpportunityRequest",
+  "BaseDareSession",
+  "SessionGuest",
+  "SessionRecordingGrant"
 ]

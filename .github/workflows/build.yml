@@ -86,6 +86,12 @@ jobs:
       - name: Participation and controlled launch policy checks
         run: npm run test:takeoff
 
+      - name: Living economy and Session authorization and migrations
+        run: |
+          export PATH="$(pg_config --bindir):$PATH"
+          npm run test:local-economy
+          npm run test:local-economy:db
+
       - name: Social Moment forward migration and privacy regression
         run: |
           export PATH="$(pg_config --bindir):$PATH"

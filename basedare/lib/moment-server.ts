@@ -85,7 +85,7 @@ export async function momentPosts(
                 longitude: row.venue.longitude,
               }
             : null,
-        momentHref: "/moments/" + encodeURIComponent(row.id),
+        momentHref: row.activityId === "session-recording" ? undefined : "/moments/" + encodeURIComponent(row.id),
         featured: Boolean(row.featuredAt && row.spotlightConsent && creatorTag),
         parentMomentId: row.parentMomentId,
       },
