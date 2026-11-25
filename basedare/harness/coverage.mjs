@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 
 // Reviewed mappings select registered suites, never commands supplied by observations.
 const rules = [
+  [/^(app\/(earn\/|api\/dares\/|dashboard\/|page\.tsx)|components\/(Navbar\.tsx|Footer\.tsx|ViewToggle\.tsx|ClientLoader\.tsx|DeferredLivePotBubble\.tsx|home\/|creators\/)|lib\/(product-copy|creator-missions-server|dare-loop-presentation))/, ['dare-loop', 'discovery', 'safety']],
   [/^(lib\/(account-access|takeoff-|participation-scorecard|moment-release|retention-email)|components\/(RecoverableAccount|admin\/(TakeoffPanel|RetentionStatus)|adventures\/ShareAdventure)|app\/(admin\/founder-scoreboard|api\/admin\/takeoff|api\/growth\/participation|api\/adventure-submissions)|scripts\/takeoff-db-check|scripts\/run-adventure-sharing-db|tsconfig\.test\.json)/, ['takeoff', 'social', 'safety']],
   [/^(app\/api\/(brands|campaigns)|app\/brands\/|lib\/(buyer-workspace|campaign-|business-|financial-canon)|scripts\/(run-|render-)?buyer-workspace)/, ['buyer', 'business']],
   [/^lib\/wallet-action-auth/, ['buyer', 'safety', 'social']],

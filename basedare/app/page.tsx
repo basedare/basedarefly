@@ -16,6 +16,7 @@ import ProtocolLoader from "@/components/ProtocolLoader";
 import StreetAccent from '@/components/ui/StreetAccent';
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import HomeGridRadar from "@/components/home/HomeGridRadar";
+import HomeDareAvailability from "@/components/home/HomeDareAvailability";
 import RoleChoiceCards from "@/components/home/RoleChoiceCards";
 import MarketsSection from "@/components/home/MarketsSection";
 import DiscoveryLink from '@/components/DiscoveryLink';
@@ -67,6 +68,7 @@ function HomeContent() {
     return () => window.clearTimeout(deadline);
   }, [triggerMatrixRain, finishBusinessEntry]);
   const [showBelowFoldSections, setShowBelowFoldSections] = useState(false);
+  const [showAdvancedHome, setShowAdvancedHome] = useState(false);
   const [useLightweightHome, setUseLightweightHome] = useState(true);
   const [desktopHero, setDesktopHero] = useState(false);
   useEffect(() => {
@@ -171,7 +173,7 @@ function HomeContent() {
           <GradualBlurOverlay intensity={useLightweightHome ? 'none' : 'full'} />
         </div>
       ) : null}
-      <ViewToggle view={view} setView={handleViewChange} />
+      {view === 'BUSINESS' || process.env.NEXT_PUBLIC_ENABLE_LEGACY_VIEW_SWITCH === 'true' ? <ViewToggle view={view} setView={handleViewChange} /> : null}
 
       {/* Reality Shift - Sin City lightning from Control to Chaos */}
       <RealityShift
@@ -185,7 +187,7 @@ function HomeContent() {
         onComplete={finishBusinessEntry}
       />
 
-      {view === 'FAN' ? (
+      {view === 'FAN' && showAdvancedHome ? (
         <HomeGridRadar
           floating
           className="pointer-events-auto hidden xl:block"
@@ -193,7 +195,7 @@ function HomeContent() {
         />
       ) : null}
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         {view === 'FAN' && (
           <motion.div
             key="fan-view"
@@ -203,20 +205,17 @@ function HomeContent() {
             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
             className="w-full flex flex-col items-center relative"
           >
-            <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
+            <div className="w-full flex flex-col items-center relative z-20 px-3 py-2 md:p-0">
               <div className="w-full relative">
-                <div className="relative z-[60] mx-auto max-w-3xl px-1 pt-4 text-center sm:px-4 md:pt-7" aria-label="Discover BaseDare">
-                  <StreetAccent className="mx-auto mb-3 w-20" />
-                  <h1 className="text-[clamp(1.9rem,9.3vw,4.5rem)] font-black italic uppercase leading-[0.98] tracking-[-0.045em] text-white">
-                    The world<br /><span className="text-[#f5c518] drop-shadow-[0_2px_14px_rgba(245,197,24,0.18)]">is your feed.</span>
+                <div className="relative z-[40] mx-auto max-w-3xl px-1 pt-1 text-center sm:px-4 md:pt-4" aria-label="Discover BaseDare">
+                  <StreetAccent className="mx-auto mb-1 w-16" />
+                  <h1 className="text-[clamp(1.8rem,7.8vw,3.8rem)] font-black italic uppercase leading-[0.91] tracking-[-0.045em] text-white">
+                    Do the dare.<br />Film it.<br /><span className="text-[#f5c518] drop-shadow-[0_2px_14px_rgba(245,197,24,0.18)]">Get paid.</span>
                   </h1>
-                  <p className="mx-auto mt-4 max-w-lg text-sm font-semibold leading-6 text-white/75 sm:text-base">{BASEDARE_INTRO}</p>
-                  <DiscoveryLink href="/now?source=home-intro" prefetch={false} className="bd-action bd-action--gold mt-5 px-6 !text-sm">Find something nearby →</DiscoveryLink>
-                  <p className="mt-3 text-xs leading-5 text-white/60">Try a free adventure without signing in.</p>
-                  <nav aria-label="Work with BaseDare" className="mt-2 flex flex-wrap justify-center gap-x-6 text-sm font-semibold text-white/70">
-                    <DiscoveryLink href="/earn?source=home-intro" prefetch={false} className="inline-flex min-h-11 items-center hover:text-yellow-100">For creators <span className="ml-1" aria-hidden="true">↗</span></DiscoveryLink>
-                    <a href="#work-with-basedare" className="inline-flex min-h-11 items-center hover:text-cyan-100">For businesses <span className="ml-1" aria-hidden="true">↓</span></a>
-                  </nav>
+                  <p className="mx-auto mt-2 max-w-lg text-xs font-semibold leading-5 text-white/75 sm:text-sm">{BASEDARE_INTRO}</p>
+                  <HomeDareAvailability />
+                  <DiscoveryLink href="/map?source=home-intro" prefetch={false} className="bd-action bd-action--gold mt-3 px-6 !text-sm">See dares near you →</DiscoveryLink>
+                  <p className="mt-3 text-xs leading-5 text-white/60">Browse without signing in. Rewards are paid after verification and settlement.</p>
                 </div>
                 {/* Desktop: Full 3D Hero with orbiting cards */}
                 <div className="hidden lg:block">
@@ -235,6 +234,9 @@ function HomeContent() {
                 </div>
               </div>
 
+              <details id="more-about-basedare" onToggle={event => setShowAdvancedHome(event.currentTarget.open)} className="relative z-30 w-full max-w-[1680px] px-4 pb-8 md:px-6">
+                <summary className="mx-auto max-w-lg cursor-pointer rounded-xl border border-white/12 bg-black/30 p-4 text-center text-sm font-bold text-white/70">Explore more of BaseDare</summary>
+                {showAdvancedHome ? <>
               <div id="active-bounties" className="z-30 flex w-full justify-center px-4 pb-12 pt-8 md:px-6 md:pb-14 md:pt-12">
                 <div className="relative w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_16%_8%,rgba(184,127,255,0.11),transparent_32%),radial-gradient(circle_at_86%_92%,rgba(34,211,238,0.08),transparent_34%),linear-gradient(160deg,rgba(30,22,52,0.42),rgba(8,9,18,0.94))] px-4 py-10 shadow-[16px_22px_58px_rgba(0,0,0,0.48),-9px_-9px_24px_rgba(255,255,255,0.034),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-28px_42px_rgba(0,0,0,0.28)] backdrop-blur-xl md:px-6 md:py-12">
                   <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
@@ -307,6 +309,8 @@ function HomeContent() {
                   <TruthProtocol />
                 </>
               ) : null}
+                </> : null}
+              </details>
             </div>
           </motion.div>
         )}

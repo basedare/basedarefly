@@ -17,16 +17,16 @@ import styles from './Navbar.module.css';
 // Primary nav uses ordinary consumer language. Product vocabulary can appear
 // inside the experience after the user understands the action it represents.
 const NAV_LINKS = [
-  { name: "NOW", href: "/now", activePrefixes: ["/now"] },
+  { name: "HOME", href: "/", activePrefixes: ["/", "/earn", "/dare"] },
   { name: "MAP", href: "/map", activePrefixes: ["/map", "/board"] },
-  {
-    name: "CREATE",
-    href: "/start",
-    activePrefixes: ["/start", "/create", "/community/rally/new"],
-  },
-  { name: "MY ACTIVITY", href: "/dashboard", activePrefixes: ["/dashboard", "/adventures/passport", "/missions"] },
-  { name: "COMMUNITY", href: "/community", activePrefixes: ["/community"] },
+  { name: "YOU", href: "/dashboard", activePrefixes: ["/dashboard", "/adventures/passport", "/missions"] },
 ];
+
+const MORE_LINKS = [
+  ['All paid dares', '/earn'], ['What’s happening', '/now'], ['Explore & community', '/community'],
+  ['Other ways to create', '/start'], ['Messages', '/chat'], ['For businesses', '/brands/portal'],
+  ['People & Nodes', '/creators'], ['Join BaseDare', '/join'], ['Help', '/contact'],
+] as const;
 
 const NAV_LINK_PREFETCH = false;
 
@@ -79,7 +79,7 @@ export default function Navbar() {
         prefetch={NAV_LINK_PREFETCH}
         aria-label="Open messenger"
         title="Messenger"
-        className={`relative z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
+        className={`relative z-10 hidden h-9 w-9 items-center justify-center rounded-full border transition-colors ${
           pathname?.startsWith('/chat')
             ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.16)]'
             : 'border-white/10 bg-white/[0.04] text-white/70 hover:border-cyan-300/30 hover:bg-cyan-400/[0.1] hover:text-white'
@@ -90,12 +90,12 @@ export default function Navbar() {
 
       {/* Universal first-run path — distinct gold CTA, not a creator application. */}
       <Link
-        href="/join"
+        href="/create"
         prefetch={NAV_LINK_PREFETCH}
         className="relative z-10 ml-1 inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-yellow-300/35 bg-yellow-300/[0.14] px-4 text-[10px] font-black uppercase tracking-[0.16em] text-yellow-100 transition hover:bg-yellow-300/[0.22] hover:text-white"
       >
         <Sparkles className="h-3.5 w-3.5" />
-        Join
+        Post a dare
       </Link>
     </div>
   );
@@ -186,7 +186,7 @@ export default function Navbar() {
               aria-expanded={isOpen}
               aria-controls="mobile-navigation"
               onClick={() => setIsOpen(!isOpen)}
-              className="order-5 xl:hidden h-11 w-11 shrink-0 flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-white active:scale-90 transition-transform"
+              className="order-5 h-11 w-11 shrink-0 flex items-center justify-center bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-white active:scale-90 transition-transform"
             >
               {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -198,7 +198,7 @@ export default function Navbar() {
           DESKTOP GLOBAL SEARCH
           Fixed to the left, parallel to the ViewToggle (which is top-24 right-6)
           ============================================ */}
-      {!isMapRoute ? (
+      {!isMapRoute && process.env.NEXT_PUBLIC_SHOW_ADVANCED_SEARCH === 'true' ? (
         <div className="fixed left-6 top-24 z-[90] hidden md:block">
           <DeferredGlobalSearch isDesktopApp />
         </div>
@@ -212,10 +212,10 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             id="mobile-navigation"
-            className="fixed inset-0 z-40 bg-[#050505]/95 backdrop-blur-xl xl:hidden flex flex-col overflow-y-auto pt-24 px-6 pb-8"
+            className="fixed inset-0 z-40 bg-[#050505]/95 backdrop-blur-xl flex flex-col overflow-y-auto pt-24 px-6 pb-8 xl:items-center"
           >
             {/* Mobile Links - Liquid Metal Chrome */}
-            <div className="flex flex-col gap-4">
+            <div className="flex w-full max-w-2xl flex-col gap-4">
               {NAV_LINKS.map((link, i) => {
                 const isActive = link.activePrefixes.some(
                   (prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`),
@@ -275,17 +275,23 @@ export default function Navbar() {
               })}
             </div>
 
-            <Link href="/chat" onClick={() => setIsOpen(false)} className="bd-action mt-4">Messages</Link>
             {/* Universal first-run CTA. */}
             <Link
-              href="/join"
+              href="/create"
               prefetch={NAV_LINK_PREFETCH}
               onClick={() => setIsOpen(false)}
-              className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-yellow-300/35 bg-yellow-300 px-5 text-sm font-black uppercase tracking-[0.16em] text-black transition active:scale-[0.98]"
+              className="mt-6 inline-flex min-h-12 w-full max-w-2xl items-center justify-center gap-2 rounded-2xl border border-yellow-300/35 bg-yellow-300 px-5 text-sm font-black uppercase tracking-[0.16em] text-black transition active:scale-[0.98]"
             >
               <Sparkles className="h-4 w-4" />
-              Join BaseDare
+              Post a dare
             </Link>
+
+            <details className="mt-6 w-full max-w-2xl rounded-xl border border-white/10 p-4">
+              <summary className="cursor-pointer text-sm font-bold text-white/80">More of BaseDare</summary>
+              <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                {MORE_LINKS.map(([label, href]) => <Link key={href} href={href} prefetch={false} onClick={() => setIsOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 text-sm text-white/65 hover:bg-white/5 hover:text-white">{label}</Link>)}
+              </div>
+            </details>
 
             {/* The map already owns a full search field; keep global search off that route. */}
             {!isMapRoute ? (

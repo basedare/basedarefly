@@ -30,7 +30,9 @@ function shouldShowProtocolLoader() {
 
 export default function ClientLoader({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isImmediateEntry = bypassDecorativeLoader(pathname);
+  // The original signal-lock effect remains available for a deliberate legacy
+  // experience, but must never block the default Dare Loop front door.
+  const isImmediateEntry = process.env.NEXT_PUBLIC_ENABLE_PROTOCOL_LOADER !== 'true' || pathname === '/' || ['/map', '/earn', '/dare', '/create', '/dashboard'].some(route => pathname === route || pathname?.startsWith(`${route}/`)) || bypassDecorativeLoader(pathname);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 

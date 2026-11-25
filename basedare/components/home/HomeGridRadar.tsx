@@ -1,9 +1,15 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Crosshair, LocateFixed, Loader2, MapPin, Navigation, Radio } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { formatPhp, formatUsdc, getBaseCashPhpPerUsdc } from '@/lib/basecash-shared';
+import { SIARGAO_ACTIVITY_AREA } from '@/lib/home-activities';
+import type { DareLoopCard } from '@/lib/dare-loop-presentation';
+
+export type RadarDare = DareLoopCard;
 
 type RadarTone = 'gold' | 'cyan' | 'purple' | 'emerald';
 type RadarMode = 'idle' | 'locating' | 'located' | 'denied' | 'error';
@@ -37,6 +43,7 @@ type RadarPoint = {
   tone: RadarTone;
   signal: string;
   href: string;
+  dares?: RadarDare[];
 };
 
 type NearbyResponse = {
@@ -52,7 +59,13 @@ type HomeGridRadarProps = {
   floating?: boolean;
   className?: string;
   style?: CSSProperties;
+  hero?: boolean;
+  dares?: RadarDare[];
+  phpPerUsdc?: number;
+  fundingKnown?: boolean;
 };
+
+const EMPTY_DARES: RadarDare[] = [];
 
 const fallbackPoints: RadarPoint[] = [
   {
@@ -166,6 +179,26 @@ function mapNearbyVenuesToPoints(venues: NearbyVenue[], origin: { lat: number; l
   });
 }
 
+/** Existing radar nodes retain their position; nearby standalone dares use the same dial. */
+function attachFundedDares(points: RadarPoint[], dares: RadarDare[], origin: { lat: number; lng: number }): RadarPoint[] {
+  const result = points.map(point => ({ ...point }));
+  const metresPerLng = 111_000 * Math.max(0.22, Math.cos(origin.lat * Math.PI / 180));
+  for (const dare of dares) {
+    if (!dare.locationBound || dare.latitude === null || dare.longitude === null || !Number.isFinite(dare.latitude) || !Number.isFinite(dare.longitude)) continue;
+    const dx = (dare.longitude - origin.lng) * metresPerLng;
+    const dy = (dare.latitude - origin.lat) * 111_000;
+    if (Math.hypot(dx, dy) > 5000) continue;
+    const coordinateKey = `dare:${dare.latitude.toFixed(4)}:${dare.longitude.toFixed(4)}`;
+    const index = result.findIndex(point => point.key === coordinateKey || (dare.venueSlug && point.href.includes(`place=${encodeURIComponent(dare.venueSlug)}&`)));
+    if (index >= 0) {
+      result[index] = { ...result[index], tone: 'gold', dares: [...(result[index].dares ?? []), dare] };
+    } else {
+      result.push({ key: coordinateKey, label: dare.locationLabel, x: clamp(50 + dx / 5000 * 34, 18, 82), y: clamp(50 - dy / 5000 * 34, 18, 82), tone: 'gold', signal: 'Open dare', href: `/map?dare=${encodeURIComponent(dare.shortId)}&source=home-radar`, dares: [dare] });
+    }
+  }
+  return result;
+}
+
 function getRadarCopy(mode: RadarMode, count: number) {
   if (mode === 'locating') {
     return {
@@ -220,21 +253,28 @@ function getRadarCopy(mode: RadarMode, count: number) {
   };
 }
 
-export default function HomeGridRadar({ compact = false, floating = false, className = '', style }: HomeGridRadarProps) {
+export default function HomeGridRadar({ compact = false, floating = false, className = '', style, hero = false, dares = EMPTY_DARES, phpPerUsdc = getBaseCashPhpPerUsdc(), fundingKnown = true }: HomeGridRadarProps) {
   const router = useRouter();
+  const gradientId = useId();
   const [mode, setMode] = useState<RadarMode>('idle');
   const [points, setPoints] = useState<RadarPoint[]>(fallbackPoints);
   const [activePointKey, setActivePointKey] = useState(fallbackPoints[0]?.key ?? null);
   const [lockedLocation, setLockedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
+  const [selectedDareId, setSelectedDareId] = useState<string | null>(null);
+
+  const displayPoints = useMemo(() => hero ? attachFundedDares(points, dares, lockedLocation ?? SIARGAO_ACTIVITY_AREA) : points, [hero, lockedLocation, points, dares]);
+  const selectedNode = displayPoints.find(point => point.key === selectedNodeKey);
+  const selectedDare = selectedNode?.dares?.find(dare => dare.shortId === selectedDareId) ?? selectedNode?.dares?.[0];
 
   const activePoint = useMemo(
-    () => points.find((point) => point.key === activePointKey) ?? points[0],
-    [activePointKey, points]
+    () => displayPoints.find((point) => point.key === activePointKey) ?? displayPoints[0],
+    [activePointKey, displayPoints]
   );
-  const copy = getRadarCopy(mode, points.length);
+  const copy = getRadarCopy(mode, displayPoints.length);
 
   const mapHref = useMemo(() => {
-    if (activePoint) return activePoint.href;
+    if (hero ? selectedNode : activePoint) return (hero ? selectedNode : activePoint)!.href;
     if (lockedLocation) {
       const params = new URLSearchParams({
         source: 'home-radar',
@@ -244,11 +284,10 @@ export default function HomeGridRadar({ compact = false, floating = false, class
       return `/map?${params.toString()}`;
     }
     return '/map?source=home-radar';
-  }, [activePoint, lockedLocation]);
+  }, [activePoint, hero, lockedLocation, selectedNode]);
 
   async function loadNearbyVenues(position: GeolocationPosition) {
     const { latitude, longitude } = position.coords;
-    setLockedLocation({ lat: latitude, lng: longitude });
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 2600);
 
@@ -267,7 +306,9 @@ export default function HomeGridRadar({ compact = false, floating = false, class
       const nextPoints = mapNearbyVenuesToPoints(venues, { lat: latitude, lng: longitude });
 
       setPoints(nextPoints);
+      setLockedLocation({ lat: latitude, lng: longitude });
       setActivePointKey(nextPoints[0]?.key ?? null);
+      setSelectedNodeKey(null);
       setMode('located');
     } catch {
       setMode('error');
@@ -278,6 +319,8 @@ export default function HomeGridRadar({ compact = false, floating = false, class
 
   function handleReveal() {
     if (mode === 'locating') return;
+
+    if (hero) { openMap(); return; }
 
     if (mode === 'located' || mode === 'denied' || mode === 'error') {
       router.push(mapHref);
@@ -319,27 +362,23 @@ export default function HomeGridRadar({ compact = false, floating = false, class
     <div
       className={`home-grid-radar-shell ${compact ? 'home-grid-radar-shell--compact' : ''} ${
         floating ? 'home-grid-radar-shell--floating' : ''
-      }`}
+      } ${hero ? 'home-grid-radar-shell--hero' : ''}`}
     >
-      <button
-        type="button"
-        onClick={openMap}
-        className="home-grid-radar-disc group/radar"
-        aria-label="Open BaseDare venue radar map"
-      >
+      {hero ? <div className="mb-2 flex w-full items-center justify-between gap-2 px-1 text-xs font-bold"><span className="text-white">{lockedLocation ? 'Near your location' : 'General Luna, Siargao'}</span><span className="text-white/50">Cash labels = paid dares</span></div> : null}
+      <div className="home-grid-radar-disc group/radar" aria-label="BaseDare radar map">
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 220 220" aria-hidden="true">
           <defs>
-            <radialGradient id="homeGridRadarSea" cx="50%" cy="50%" r="60%">
+            <radialGradient id={`${gradientId}-sea`} cx="50%" cy="50%" r="60%">
               <stop offset="0%" stopColor="rgba(184, 127, 255, 0.22)" />
               <stop offset="62%" stopColor="rgba(22, 16, 42, 0.92)" />
               <stop offset="100%" stopColor="rgba(2, 3, 8, 0.98)" />
             </radialGradient>
-            <linearGradient id="homeGridRadarRoad" x1="0%" x2="100%" y1="0%" y2="100%">
+            <linearGradient id={`${gradientId}-road`} x1="0%" x2="100%" y1="0%" y2="100%">
               <stop offset="0%" stopColor="rgba(255,255,255,0.70)" />
               <stop offset="55%" stopColor="rgba(159,128,255,0.56)" />
               <stop offset="100%" stopColor="rgba(245,197,24,0.54)" />
             </linearGradient>
-            <linearGradient id="homeGridRadarRing" x1="0%" x2="100%">
+            <linearGradient id={`${gradientId}-ring`} x1="0%" x2="100%">
               <stop offset="0%" stopColor="#b66bff" />
               <stop offset="38%" stopColor="#f5c518" />
               <stop offset="70%" stopColor="#8f4dff" />
@@ -347,7 +386,7 @@ export default function HomeGridRadar({ compact = false, floating = false, class
             </linearGradient>
           </defs>
           <circle cx="110" cy="110" r="106" fill="rgba(0,0,0,0.78)" />
-          <circle cx="110" cy="110" r="96" fill="url(#homeGridRadarSea)" />
+          <circle cx="110" cy="110" r="96" fill={`url(#${gradientId}-sea)`} />
           <path
             d="M14 126 C45 118, 55 96, 82 101 C105 106, 113 76, 140 82 C165 88, 177 72, 207 69 L207 214 L14 214 Z"
             fill="rgba(10, 44, 38, 0.72)"
@@ -358,7 +397,7 @@ export default function HomeGridRadar({ compact = false, floating = false, class
           />
           <path
             d="M31 158 C62 139, 88 124, 112 113 C143 99, 169 86, 193 58"
-            stroke="url(#homeGridRadarRoad)"
+            stroke={`url(#${gradientId}-road)`}
             strokeWidth="7"
             strokeLinecap="round"
             fill="none"
@@ -399,7 +438,7 @@ export default function HomeGridRadar({ compact = false, floating = false, class
             className="home-grid-radar-arrow"
           />
           <circle cx="110" cy="110" r="104" fill="none" stroke="rgba(0,0,0,0.92)" strokeWidth="8" />
-          <circle cx="110" cy="110" r="100" fill="none" stroke="url(#homeGridRadarRing)" strokeWidth="4" opacity="0.88" />
+          <circle cx="110" cy="110" r="100" fill="none" stroke={`url(#${gradientId}-ring)`} strokeWidth="4" opacity="0.88" />
           <path d="M51 26 A100 100 0 0 1 109 10" stroke="rgba(184,127,255,0.9)" strokeWidth="7" fill="none" />
           <path d="M173 33 A100 100 0 0 1 207 109" stroke="rgba(245,197,24,0.82)" strokeWidth="7" fill="none" />
           <path d="M17 139 A100 100 0 0 0 52 193" stroke="rgba(245,197,24,0.76)" strokeWidth="7" fill="none" />
@@ -408,34 +447,61 @@ export default function HomeGridRadar({ compact = false, floating = false, class
         <span className="pointer-events-none absolute left-1/2 top-1/2 h-[2px] w-[46%] origin-left bg-gradient-to-r from-white/64 to-transparent home-grid-radar-sweep" />
         <span className="pointer-events-none absolute inset-[12%] rounded-full border border-white/10" />
 
-        {points.map((point) => (
-          <span
+        <button type="button" onClick={openMap} className="absolute inset-0 z-[1] rounded-full" aria-label="Open full BaseDare map" />
+        {displayPoints.map((point) => (
+          <button
+            type="button"
             key={point.key}
-            className="home-grid-radar-point"
+            className={`home-grid-radar-point ${point.dares?.length ? 'home-grid-radar-point--funded' : ''}`}
             style={{ left: `${point.x}%`, top: `${point.y}%` }}
+            aria-label={point.dares?.length ? `${point.label}: ${formatPhp(point.dares[0].creatorPayout * phpPerUsdc)} estimated reward` : point.label}
+            aria-expanded={point.dares?.length ? point.key === selectedNodeKey : undefined}
             onMouseEnter={() => setActivePointKey(point.key)}
+            onClick={() => {
+              setActivePointKey(point.key);
+              if (point.dares?.length) {
+                setSelectedNodeKey(point.key);
+                setSelectedDareId(point.dares[0].shortId);
+              } else {
+                router.push(point.href);
+              }
+            }}
           >
             <span className={`home-grid-radar-point-core ${toneClasses[point.tone]}`} />
             <span className="home-grid-radar-point-pulse" />
-          </span>
+            {point.dares?.length ? <span className={`home-grid-radar-reward ${point.dares[0].isMystery ? 'home-grid-radar-reward--mystery' : ''}`}>{point.dares[0].isMystery ? '? · ' : ''}≈ {formatPhp(point.dares[0].creatorPayout * phpPerUsdc)}{point.dares.length > 1 ? ` · +${point.dares.length - 1}` : ''}</span> : null}
+          </button>
         ))}
 
         <span className="pointer-events-none absolute bottom-7 left-1/2 min-w-[84px] -translate-x-1/2 rounded-full border border-black/70 bg-black/78 px-3 py-1 text-center font-mono text-[9px] font-black uppercase tracking-normal text-white shadow-[0_8px_18px_rgba(0,0,0,0.55)]">
           {activePoint?.label ?? 'Grid'}
         </span>
-      </button>
+      </div>
+
+      {hero && selectedDare ? <section aria-label="Selected dare" className="relative z-10 mt-3 w-full rounded-2xl border border-yellow-200/25 bg-[#100d1b] p-4 text-left shadow-xl">
+        <div className="flex items-start justify-between gap-3">
+          <div><p className="text-xs font-black uppercase text-yellow-100">Reward</p><p className="text-3xl font-black text-[#f5c518]">≈ {formatPhp(selectedDare.creatorPayout * phpPerUsdc)}</p><p className="text-xs text-white/60">{formatUsdc(selectedDare.creatorPayout)} after approval</p></div>
+          <button type="button" aria-label="Close dare" className="min-h-11 min-w-11 rounded-full border border-white/10 text-white/75" onClick={() => setSelectedNodeKey(null)}>×</button>
+        </div>
+        <p className={`mt-2 text-[10px] font-black uppercase tracking-widest ${selectedDare.category === 'CHAOS' ? 'text-purple-300' : 'text-yellow-200'}`}>{selectedDare.category}{selectedDare.isMystery ? ' · Mystery drop' : ''}</p>
+        <h3 className="mt-1 text-lg font-black text-white">{selectedDare.title}</h3>
+        <p className="mt-1 text-sm leading-5 text-white/75">{selectedDare.description}</p>
+        <p className="mt-2 text-xs text-white/65">{selectedDare.locationLabel} · {selectedDare.remainingSlots} reward slot · {selectedDare.expiresAt ? `Expires ${new Date(selectedDare.expiresAt).toLocaleString()}` : 'No fixed expiry'}</p>
+        {selectedNode?.dares && selectedNode.dares.length > 1 ? <div className="mt-3 flex flex-wrap gap-2">{selectedNode.dares.map(dare => <button key={dare.shortId} type="button" aria-pressed={dare.shortId === selectedDare.shortId} onClick={() => setSelectedDareId(dare.shortId)} className="min-h-11 rounded-full border border-white/15 px-3 text-xs text-yellow-100">≈ {formatPhp(dare.creatorPayout * phpPerUsdc)}</button>)}</div> : null}
+        <Link href={`/earn/${encodeURIComponent(selectedDare.shortId)}`} prefetch={false} className="bd-action bd-action--gold mt-3 w-full">DO THIS →</Link>
+      </section> : null}
 
       <div className="home-grid-radar-copy">
         <div className="flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-normal text-cyan-100/80">
           <Radio className="h-3.5 w-3.5 text-cyan-200" />
-          {copy.eyebrow}
+          {hero ? 'Dare radar' : copy.eyebrow}
         </div>
         <div className="mt-1 text-xl font-black italic leading-none text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-          {copy.title}
+          {hero ? 'Find your next dare' : copy.title}
         </div>
         <div className="mt-2 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-normal text-zinc-400">
           <MapPin className="h-3.5 w-3.5 text-[#f5c518]" />
-          <span>{activePoint?.signal ?? copy.detail}</span>
+          <span>{hero ? fundingKnown ? `${displayPoints.filter(point => point.dares?.length).length} funded locations on this radar` : 'Checking available dares' : activePoint?.signal ?? copy.detail}</span>
         </div>
       </div>
 
@@ -446,7 +512,7 @@ export default function HomeGridRadar({ compact = false, floating = false, class
         disabled={mode === 'locating'}
       >
         {mode === 'locating' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-        <span>{copy.action}</span>
+        <span>{hero ? 'Open full map' : copy.action}</span>
       </button>
 
       <button
@@ -840,6 +906,23 @@ export default function HomeGridRadar({ compact = false, floating = false, class
           box-shadow: 2px 2px 0 #ed65bf55, inset 0 1px 0 #fff3cd22;
         }
         .home-grid-radar-shell button:focus-visible { outline: 2px solid #67e8df; outline-offset: 4px; }
+        .home-grid-radar-shell--hero {
+          width: min(100%, 360px); min-height: 0; padding: 12px;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .home-grid-radar-shell--hero .home-grid-radar-disc { width: min(100%, 260px); height: auto; aspect-ratio: 1; flex-shrink: 0; }
+        .home-grid-radar-shell--hero .home-grid-radar-copy { align-self: stretch; }
+        .home-grid-radar-shell--hero .home-grid-radar-point { width: 44px; height: 44px; }
+        .home-grid-radar-shell--hero .home-grid-radar-point-core { inset: 16px; }
+        .home-grid-radar-shell--hero .home-grid-radar-point-pulse { inset: 10px; }
+        .home-grid-radar-shell--hero .home-grid-radar-point--funded { z-index: 6; }
+        .home-grid-radar-reward {
+          position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); white-space: nowrap;
+          padding: 4px 7px; border-radius: 12px; border: 1px solid #f5c518aa; color: #0c0712;
+          background: #f5c518; font-size: 11px; font-weight: 900; box-shadow: 0 0 12px #f5c51866;
+        }
+        .home-grid-radar-reward--mystery { color: #fff; background: #7c3aed; border-color: #c084fc; box-shadow: 0 0 12px #a855f788; }
+        .home-grid-radar-shell--hero .home-grid-radar-locate-button, .home-grid-radar-shell--hero .home-grid-radar-map-button { top: 38px; height: 44px; width: 44px; }
         @keyframes home-grid-radar-sweep {
           from {
             transform: rotate(-28deg);

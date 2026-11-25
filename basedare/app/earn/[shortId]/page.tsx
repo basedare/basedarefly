@@ -36,9 +36,9 @@ function formatDeadline(expiresAt: Date | null) {
 export async function generateMetadata({ params }: MissionPageProps): Promise<Metadata> {
   const { shortId } = await params;
   const mission = await getCreatorMissionByShortId(shortId);
-  if (!mission) return { title: 'Paid Mission | BaseDare' };
+  if (!mission) return { title: 'Dare | BaseDare' };
   return {
-    title: `${mission.title} | BaseDare Paid Mission`,
+    title: `${mission.title} | BaseDare Dare`,
     description: `${mission.typeLabel}. ${formatUsdc(mission.creatorPayout)} when the work is approved.`,
     alternates: { canonical: `/earn/${encodeURIComponent(mission.shortId)}` },
   };
@@ -162,7 +162,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
 
         <div className="mt-5 flex justify-center">
           <Link href="/earn" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/45 hover:text-white">
-            <Sparkles className="h-4 w-4 text-cyan-200" aria-hidden="true" /> See all paid missions
+            <Sparkles className="h-4 w-4 text-cyan-200" aria-hidden="true" /> See all paid dares
           </Link>
         </div>
       </div>
