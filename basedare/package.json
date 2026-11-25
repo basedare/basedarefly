@@ -54,7 +54,7 @@
     "harness:evaluate": "node harness/run.mjs",
     "test:discovery-intelligence": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/discovery-intelligence.test.ts",
     "test:harness": "node --test harness/evaluate.test.mjs harness/coverage.test.mjs",
-    "test:dare-loop": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/dare-loop-presentation.test.ts lib/creator-mission-policy.test.ts lib/creator-mission-action.test.ts",
+    "test:dare-loop": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/dare-loop-presentation.test.ts lib/creator-mission-policy.test.ts lib/creator-mission-action.test.ts lib/dare-share.test.ts lib/dare-proof-media.test.ts",
     "test:buyer-workspace": "node --experimental-strip-types --loader ./scripts/test-alias-loader.mjs --test lib/buyer-workspace-presentation.test.ts",
     "test:buyer-workspace:db": "bash scripts/run-buyer-workspace-db.sh",
     "test:takeoff": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_COMPILER_OPTIONS='{\"module\":\"CommonJS\",\"moduleResolution\":\"Node\"}' node -r ts-node/register --test lib/takeoff.test.ts"

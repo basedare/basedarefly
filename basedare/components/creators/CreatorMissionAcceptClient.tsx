@@ -17,6 +17,7 @@ import CosmicButton from '@/components/ui/CosmicButton';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { trackClientEvent } from '@/lib/analytics';
 import { PostMissionIdentity } from '@/components/creator-entry/PostMissionIdentity';
+import DareClipPermission from '@/components/DareClipPermission';
 import { getCreatorMissionActionState } from '@/lib/creator-mission-action';
 import { isProximityGatedDare } from '@/lib/proof-proximity-policy';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
@@ -198,6 +199,7 @@ export function CreatorMissionAcceptClient({
         <p className="mt-3 text-lg font-black text-white">{stateCopy.title}</p>
         <p className="mt-1 text-sm leading-6 text-white/52">{stateCopy.detail}</p>
         {actionState === 'PAID' ? <PostMissionIdentity /> : null}
+        <DareClipPermission dareId={missionId} />
       </div>
     );
   }

@@ -17,6 +17,7 @@ type Availability = {
 export default function HomeDareAvailability() {
   const [result, setResult] = useState<Availability | 'unavailable' | null>(null);
   const [category, setCategory] = useState<'ALL' | 'CHAOS' | 'CONTROL'>('ALL');
+  const [view, setView] = useState<'map' | 'list'>('map');
 
   useEffect(() => {
     let controller: AbortController | undefined;
@@ -62,7 +63,7 @@ export default function HomeDareAvailability() {
               <p className="text-xs text-white/60">{formatUsdc(result.listedRewardUsdc)}{result.listedCount > 0 ? ' · estimated peso value, after fees' : ''}</p>
             </div>
             <Link href="/earn" prefetch={false} className="text-sm font-bold text-yellow-100 underline underline-offset-4">
-              {result.listedCount} open {result.listedCount === 1 ? 'dare' : 'dares'} →
+              {result.listedCount} open {result.listedCount === 1 ? 'dare' : 'dares'} · {result.dares.reduce((sum, dare) => sum + dare.remainingSlots, 0)} paid slots →
             </Link>
           </div>
         ) : (
@@ -73,14 +74,17 @@ export default function HomeDareAvailability() {
         <button type="button" aria-pressed={category === 'ALL'} onClick={() => setCategory('ALL')} className={`min-h-11 rounded-full px-3 text-xs font-black uppercase ${category === 'ALL' ? 'border border-yellow-200/30 bg-yellow-100/10 text-yellow-100' : 'text-white/55'}`}>All dares</button>
         <ViewToggle categoryMode allSelected={category === 'ALL'} view={category === 'CONTROL' ? 'BUSINESS' : 'FAN'} setView={next => setCategory(next === 'BUSINESS' ? 'CONTROL' : 'CHAOS')} />
       </div>
-      <HomeGridRadar hero dares={visibleDares} phpPerUsdc={available ? result.phpPerUsdc : undefined} fundingKnown={available} className="mt-3 flex justify-center" />
+      <div className="mt-3 flex justify-center gap-1 rounded-full border border-white/10 bg-black/30 p-1 text-xs" aria-label="Dare view">
+        {(['map','list'] as const).map(value => <button key={value} type="button" aria-pressed={view === value} onClick={() => setView(value)} className={`min-h-10 flex-1 rounded-full font-bold ${view === value ? 'bg-purple-500/25 text-white' : 'text-white/60'}`}>{value === 'map' ? 'Map' : 'List'}</button>)}
+      </div>
+      {view === 'map' ? <HomeGridRadar hero dares={visibleDares} phpPerUsdc={available ? result.phpPerUsdc : undefined} fundingKnown={available} className="mt-3 flex justify-center" /> : null}
       <div className="mt-4 flex items-center justify-between gap-3 px-1">
         <h2 className="text-lg font-black uppercase italic text-white">{category === 'ALL' ? 'Active dares' : `${category} dares`}</h2>
         <Link href="/earn" prefetch={false} className="min-h-11 content-center text-xs font-bold text-yellow-100 underline underline-offset-4">See all →</Link>
       </div>
       {available && visibleDares.length > 0 ? (
         <ul className="mt-1 grid gap-2 sm:grid-cols-3">
-          {visibleDares.slice(0, 3).map(dare => (
+          {(view === 'map' ? visibleDares.slice(0, 3) : visibleDares).map(dare => (
             <li key={dare.shortId}>
               <Link href={`/earn/${encodeURIComponent(dare.shortId)}`} prefetch={false} className="flex h-full flex-col gap-2 rounded-[20px] border border-yellow-200/15 bg-[linear-gradient(145deg,rgba(245,197,24,0.09),rgba(12,9,22,0.86))] p-4 hover:border-yellow-200/30">
                 <strong className="text-xl font-black text-yellow-200">≈ {formatPhp(dare.creatorPayout * result.phpPerUsdc)} <span className="block text-[10px] font-semibold text-white/60">{formatUsdc(dare.creatorPayout)} after approval</span></strong>

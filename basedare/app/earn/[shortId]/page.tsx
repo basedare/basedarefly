@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Clock3, FileCheck2, MapPin, ShieldCheck, Sparkles, WalletCards } from 'lucide-react';
 
 import { CreatorMissionAcceptClient } from '@/components/creators/CreatorMissionAcceptClient';
-import { CreatorMissionShareButton } from '@/components/creators/CreatorMissionShareButton';
+import DareShareButton from '@/components/DareShareButton';
 import {
   controlHairline,
   controlInset,
@@ -62,7 +62,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
           <Link href="/earn" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/50 hover:text-white">
             <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Paid missions
           </Link>
-          <CreatorMissionShareButton missionId={mission.id} title={mission.title} />
+          <DareShareButton missionId={mission.id} shortId={mission.shortId} title={mission.title} />
         </div>
 
         <section className={`${controlPanel} p-5 sm:p-8 md:p-10`}>

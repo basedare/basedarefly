@@ -17,13 +17,13 @@ import styles from './Navbar.module.css';
 // Primary nav uses ordinary consumer language. Product vocabulary can appear
 // inside the experience after the user understands the action it represents.
 const NAV_LINKS = [
-  { name: "HOME", href: "/", activePrefixes: ["/", "/earn", "/dare"] },
-  { name: "MAP", href: "/map", activePrefixes: ["/map", "/board"] },
-  { name: "YOU", href: "/dashboard", activePrefixes: ["/dashboard", "/adventures/passport", "/missions"] },
+  { name: "DARES", href: "/", activePrefixes: ["/", "/earn", "/dare", "/map", "/board", "/dares"] },
+  { name: "WATCH", href: "/moments", activePrefixes: ["/moments"] },
+  { name: "PROFILE", href: "/dashboard", activePrefixes: ["/dashboard", "/adventures/passport", "/missions"] },
 ];
 
 const MORE_LINKS = [
-  ['All paid dares', '/earn'], ['What’s happening', '/now'], ['Explore & community', '/community'],
+  ['All paid dares', '/earn'], ['Full map', '/map'], ['What’s happening', '/now'], ['Explore & community', '/community'],
   ['Other ways to create', '/start'], ['Messages', '/chat'], ['For businesses', '/brands/portal'],
   ['People & Nodes', '/creators'], ['Join BaseDare', '/join'], ['Help', '/contact'],
 ] as const;

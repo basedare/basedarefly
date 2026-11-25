@@ -9,7 +9,7 @@ import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import {
-  ArrowLeft, Share2, Clock, Heart, MessageCircle,
+  ArrowLeft, Clock, Heart, MessageCircle,
   ExternalLink, AlertCircle, Loader2, CheckCircle,
   ChevronDown, Send, Zap, LayoutDashboard, Star,
   Play, Users, Sparkles, MapPin,
@@ -32,6 +32,7 @@ import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { MissionPassSheet } from '@/components/mission-pass/MissionPassSheet';
 import { useSocialWebview } from '@/components/mission-pass/SocialWebviewProvider';
 import { parseOutcomeContractSnapshot, type ReportedOutcome } from '@/lib/outcome-contracts';
+import DareShareButton from '@/components/DareShareButton';
 
 // ── ABI stubs ──────────────────────────────────────────────────────────────
 const USDC_ABI = [
@@ -909,13 +910,7 @@ export default function DareDetailPage() {
                 Dashboard
               </Link>
             )}
-            <button
-              onClick={handleShare}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[rgba(13,16,35,0.45)] border border-white/[0.12] text-white/70 text-xs font-bold hover:text-white hover:bg-[rgba(13,16,35,0.62)] transition-colors backdrop-blur-xl"
-            >
-              <Share2 className="w-3 h-3" />
-              Share
-            </button>
+            <DareShareButton shortId={dare.shortId} title={dare.title} />
           </div>
         </div>
         {shareFeedback && (
