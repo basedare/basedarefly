@@ -15735,7 +15735,7 @@
       "label": "RoleChoiceCards()",
       "file_type": "code",
       "source_file": "components/home/RoleChoiceCards.tsx",
-      "source_location": "L11",
+      "source_location": "L10",
       "id": "rolechoicecards_rolechoicecards",
       "community": 658
     },
@@ -63745,7 +63745,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "components/home/RoleChoiceCards.tsx",
-      "source_location": "L11",
+      "source_location": "L10",
       "weight": 1.0,
       "_src": "components_home_rolechoicecards_tsx",
       "_tgt": "rolechoicecards_rolechoicecards",
