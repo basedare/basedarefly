@@ -15,10 +15,11 @@ import InitProtocolButton from "@/components/InitProtocolButton";
 import StreetAccent from '@/components/ui/StreetAccent';
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import HomeGridRadar from "@/components/home/HomeGridRadar";
-import HomeDareAvailability from "@/components/home/HomeDareAvailability";
+import HomeDareAvailability, { useHomeDareAvailability, type HomeDareAvailabilityResult } from "@/components/home/HomeDareAvailability";
 import RoleChoiceCards from "@/components/home/RoleChoiceCards";
 import MarketsSection from "@/components/home/MarketsSection";
 import DiscoveryLink from '@/components/DiscoveryLink';
+import { useDiscovery } from '@/components/DiscoveryProvider';
 
 import { useView } from "@/app/context/ViewContext";
 import {
@@ -28,6 +29,7 @@ import {
 } from "@/lib/client-performance";
 import { MANAGED_FIELD_SPRINT } from "@/lib/financial-canon";
 import { BUSINESS_DEFINITION } from '@/lib/business-request';
+import type { DareLoopCategory } from '@/lib/dare-loop-presentation';
 
 const HeroEllipticalStream = dynamic(() => import("@/components/HeroEllipticalStream"), {
   loading: () => <div className="h-[560px] w-full md:h-[680px]" aria-hidden="true" />,
@@ -49,7 +51,7 @@ const MatrixRain = dynamic(() => import("@/components/MatrixRain"));
 
 // Keep the actual headline and actions visible on the first paint, even while
 // the URL-aware home content hydrates. The original loader remains elsewhere.
-function HomeIntro({ ready = true }: { ready?: boolean }) {
+function HomeIntro({ ready = true, availability = null }: { ready?: boolean; availability?: HomeDareAvailabilityResult }) {
   const IntroLink = ready ? DiscoveryLink : Link;
   return (
     <div className="relative z-30 mx-auto max-w-3xl px-1 pt-4 text-center sm:px-4 md:pt-7" aria-label="Discover BaseDare">
@@ -59,7 +61,7 @@ function HomeIntro({ ready = true }: { ready?: boolean }) {
       </h1>
       <p className="mx-auto mt-4 max-w-lg text-sm font-semibold leading-6 text-white/75 sm:text-base">{BASEDARE_INTRO}</p>
       <IntroLink href="/earn?source=home-intro" prefetch={false} className="bd-action bd-action--gold mt-5 px-6 !text-sm">Find paid dares →</IntroLink>
-      {ready ? <HomeDareAvailability presentation="summary" /> : <p className="mx-auto mt-3 min-h-5 max-w-lg text-xs font-semibold leading-5 text-white/65" aria-hidden="true">Checking live dare rewards…</p>}
+      {ready ? <HomeDareAvailability presentation="summary" result={availability} /> : <p className="mx-auto mt-3 min-h-5 max-w-lg text-xs font-semibold leading-5 text-white/65" aria-hidden="true">Checking live dare rewards…</p>}
       <nav aria-label="More ways to discover dares" className="mt-2 flex flex-wrap justify-center gap-x-6 text-sm font-semibold text-white/70">
         <IntroLink href="/map?source=home-intro" prefetch={false} className="inline-flex min-h-11 items-center hover:text-yellow-100">Open the map <span className="ml-1" aria-hidden="true">↗</span></IntroLink>
         <IntroLink href="/create" prefetch={false} className="inline-flex min-h-11 items-center hover:text-cyan-100">Post a dare <span className="ml-1" aria-hidden="true">↗</span></IntroLink>
@@ -89,8 +91,17 @@ function HomeContent() {
     return () => window.clearTimeout(deadline);
   }, [triggerMatrixRain, finishBusinessEntry]);
   const [showBelowFoldSections, setShowBelowFoldSections] = useState(false);
-  const [showAdvancedHome, setShowAdvancedHome] = useState(false);
-  const [showDareDiscovery, setShowDareDiscovery] = useState(false);
+  const availability = useHomeDareAvailability();
+  const [category, setCategory] = useState<'ALL' | DareLoopCategory>('ALL');
+  const { updateArea } = useDiscovery();
+  const selectCategory = (next: 'ALL' | DareLoopCategory) => {
+    setCategory(next);
+    updateArea({ participation: next === 'ALL' ? 'all' : 'earn' });
+  };
+  const fundedDares = availability && availability !== 'unavailable'
+    ? availability.dares.filter(dare => category === 'ALL' || dare.category === category)
+    : [];
+  const phpPerUsdc = availability && availability !== 'unavailable' ? availability.phpPerUsdc : undefined;
   const [useLightweightHome, setUseLightweightHome] = useState(true);
   const [desktopHero, setDesktopHero] = useState(false);
   useEffect(() => {
@@ -195,7 +206,12 @@ function HomeContent() {
           <GradualBlurOverlay intensity={useLightweightHome ? 'none' : 'full'} />
         </div>
       ) : null}
-      {view === 'BUSINESS' || process.env.NEXT_PUBLIC_ENABLE_LEGACY_VIEW_SWITCH === 'true' ? <ViewToggle view={view} setView={handleViewChange} /> : null}
+      {view === 'BUSINESS' || process.env.NEXT_PUBLIC_ENABLE_LEGACY_VIEW_SWITCH === 'true' ? <ViewToggle view={view} setView={handleViewChange} /> : (
+        <div aria-label="Dare categories" className="relative z-30 mr-4 mt-2 flex flex-col items-end self-end xl:absolute xl:right-6 xl:top-0 xl:z-[35] xl:mr-0 xl:mt-0">
+          <ViewToggle categoryMode homePosition allSelected={category === 'ALL'} view={category === 'CONTROL' ? 'BUSINESS' : 'FAN'} setView={next => selectCategory(next === 'BUSINESS' ? 'CONTROL' : 'CHAOS')} />
+          <button type="button" aria-pressed={category === 'ALL'} onClick={() => selectCategory('ALL')} className={`min-h-9 rounded-full px-3 text-[10px] font-bold uppercase tracking-widest ${category === 'ALL' ? 'text-yellow-100' : 'text-white/60 hover:text-yellow-100'}`}>All dares</button>
+        </div>
+      )}
 
       {/* Reality Shift - Sin City lightning from Control to Chaos */}
       <RealityShift
@@ -212,6 +228,9 @@ function HomeContent() {
       {view === 'FAN' ? (
         <HomeGridRadar
           floating
+          showFunded
+          dares={fundedDares}
+          phpPerUsdc={phpPerUsdc}
           className="pointer-events-auto hidden xl:block"
           style={{ position: 'fixed', left: 18, bottom: 22, zIndex: 45 }}
         />
@@ -229,7 +248,7 @@ function HomeContent() {
           >
             <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
               <div className="w-full relative">
-                <HomeIntro />
+                <HomeIntro availability={availability} />
                 {/* Desktop: Full 3D Hero with orbiting cards */}
                 <div className="hidden lg:block">
                   {desktopHero ? <HeroEllipticalStream /> : null}
@@ -247,14 +266,6 @@ function HomeContent() {
                 </div>
               </div>
 
-              <details id="paid-dare-discovery" onToggle={event => setShowDareDiscovery(event.currentTarget.open)} className="relative z-30 w-full max-w-3xl px-4 pb-5 md:px-6">
-                <summary className="cursor-pointer rounded-xl border border-yellow-200/20 bg-black/30 p-4 text-center text-sm font-bold text-yellow-100">Browse paid dares by Map, List, CHAOS or CONTROL</summary>
-                {showDareDiscovery ? <HomeDareAvailability /> : null}
-              </details>
-
-              <details id="more-about-basedare" onToggle={event => setShowAdvancedHome(event.currentTarget.open)} className="relative z-30 w-full max-w-[1680px] px-4 pb-8 md:px-6">
-                <summary className="mx-auto max-w-lg cursor-pointer rounded-xl border border-white/12 bg-black/30 p-4 text-center text-sm font-bold text-white/70">Explore more of BaseDare</summary>
-                {showAdvancedHome ? <>
               <div id="active-bounties" className="z-30 flex w-full justify-center px-4 pb-12 pt-8 md:px-6 md:pb-14 md:pt-12">
                 <div className="relative w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_16%_8%,rgba(184,127,255,0.11),transparent_32%),radial-gradient(circle_at_86%_92%,rgba(34,211,238,0.08),transparent_34%),linear-gradient(160deg,rgba(30,22,52,0.42),rgba(8,9,18,0.94))] px-4 py-10 shadow-[16px_22px_58px_rgba(0,0,0,0.48),-9px_-9px_24px_rgba(255,255,255,0.034),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-28px_42px_rgba(0,0,0,0.28)] backdrop-blur-xl md:px-6 md:py-12">
                   <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
@@ -275,7 +286,7 @@ function HomeContent() {
                   </div>
 
                   <div className="relative z-10">
-                    <HomeActivityFeed />
+                    <HomeActivityFeed availability={availability} category={category} />
                   </div>
                 </div>
               </div>
@@ -327,8 +338,6 @@ function HomeContent() {
                   <TruthProtocol />
                 </>
               ) : null}
-                </> : null}
-              </details>
             </div>
           </motion.div>
         )}

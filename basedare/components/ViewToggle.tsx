@@ -7,9 +7,10 @@ interface ViewToggleProps {
   setView: (view: 'FAN' | 'BUSINESS') => void;
   categoryMode?: boolean;
   allSelected?: boolean;
+  homePosition?: boolean;
 }
 
-export default function ViewToggle({ view, setView, categoryMode = false, allSelected = false }: ViewToggleProps) {
+export default function ViewToggle({ view, setView, categoryMode = false, allSelected = false, homePosition = false }: ViewToggleProps) {
   const isControl = view === 'BUSINESS';
   const activeChaos = !isControl && !allSelected;
   const activeControl = isControl && !allSelected;
@@ -27,8 +28,8 @@ export default function ViewToggle({ view, setView, categoryMode = false, allSel
       {/* ============================================
           DESKTOP - Original Premium Neumorphic Switch
           ============================================ */}
-      <div className={categoryMode ? 'relative' : 'hidden md:block fixed top-24 right-6 z-[90]'}>
-        <div className={`relative flex items-center ${categoryMode ? 'gap-2' : 'gap-4'}`}>
+        <div className={categoryMode ? 'relative' : 'hidden md:block fixed top-24 right-6 z-[90]'}>
+        <div className={`relative flex items-center ${categoryMode ? homePosition ? 'gap-2 xl:gap-4' : 'gap-2' : 'gap-4'}`}>
           {/* CHAOS Label */}
           <button type="button" onClick={() => setView('FAN')} aria-pressed={activeChaos} className={`min-h-11 text-xs font-black uppercase tracking-widest transition-all duration-500 ${
             activeChaos ? 'text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]' : categoryMode ? 'text-purple-300/75' : 'text-zinc-600'
@@ -41,7 +42,7 @@ export default function ViewToggle({ view, setView, categoryMode = false, allSel
           <button
             onClick={flip}
             type="button"
-            className={`street-mode-toggle relative cursor-pointer flex items-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-300 ${categoryMode ? 'h-[44px] w-[100px] sm:w-[145px]' : 'w-[180px] h-[72px]'}`}
+            className={`street-mode-toggle relative cursor-pointer flex items-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-300 ${categoryMode ? homePosition ? 'h-[44px] w-[100px] sm:w-[145px] xl:h-[72px] xl:w-[180px]' : 'h-[44px] w-[100px] sm:w-[145px]' : 'w-[180px] h-[72px]'}`}
             style={{
               background: 'linear-gradient(145deg, #0a0a0f, #15151f)',
               boxShadow: `

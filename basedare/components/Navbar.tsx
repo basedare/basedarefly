@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, MessageCircle, Sparkles, X } from "lucide-react";
+import { Map, Menu, MessageCircle, Sparkles, X } from "lucide-react";
 import BaseDareWordmark from './BaseDareWordmark';
 import Link from "@/components/DiscoveryLink";
 import { usePathname } from 'next/navigation';
@@ -17,21 +17,31 @@ import styles from './Navbar.module.css';
 // Primary nav uses ordinary consumer language. Product vocabulary can appear
 // inside the experience after the user understands the action it represents.
 const NAV_LINKS = [
-  { name: "DARES", href: "/", activePrefixes: ["/", "/earn", "/dare", "/map", "/board", "/dares"] },
+  { name: "DARES", href: "/", activePrefixes: ["/", "/earn", "/dare", "/dares"] },
+  { name: "MAP", href: "/map", activePrefixes: ["/map", "/board"] },
   { name: "WATCH", href: "/moments", activePrefixes: ["/moments"] },
   { name: "PROFILE", href: "/dashboard", activePrefixes: ["/dashboard", "/adventures/passport", "/missions"] },
 ];
 
 const MORE_LINKS = [
-  ['All paid dares', '/earn'], ['Full map', '/map'], ['What’s happening', '/now'], ['Explore & community', '/community'],
+  ['All paid dares', '/earn'], ['What’s happening', '/now'], ['Explore & community', '/community'],
   ['Other ways to create', '/start'], ['Messages', '/chat'], ['For businesses', '/brands/portal'],
   ['People & Nodes', '/creators'], ['Join BaseDare', '/join'], ['Help', '/contact'],
 ] as const;
 
 const NAV_LINK_PREFETCH = false;
+const PHONE_MEDIA_QUERY = '(max-width: 639px)';
+const subscribePhone = (onChange: () => void) => {
+  const query = window.matchMedia(PHONE_MEDIA_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+};
+const getPhoneSnapshot = () => window.matchMedia(PHONE_MEDIA_QUERY).matches;
+const getServerPhoneSnapshot = () => false;
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const compactPhone = useSyncExternalStore(subscribePhone, getPhoneSnapshot, getServerPhoneSnapshot);
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setIsOpen(false); };
@@ -54,6 +64,7 @@ export default function Navbar() {
             key={link.name}
             href={link.href}
             prefetch={NAV_LINK_PREFETCH}
+            aria-current={isActive ? "page" : undefined}
             className="relative z-10 rounded-full px-3 py-2.5 text-[9px] font-black tracking-[0.14em] text-gray-400 transition-colors hover:text-white lg:px-4 lg:text-[10px] lg:tracking-[0.18em] xl:px-5 xl:tracking-[0.2em]"
           >
             {isActive && (
@@ -173,9 +184,18 @@ export default function Navbar() {
             >
               <MessageCircle className="h-4 w-4" />
             </Link>
-            <div className="order-3">
-              <DeferredNotificationBell />
-            </div>
+            <Link
+              href="/map"
+              prefetch={NAV_LINK_PREFETCH}
+              aria-label="Open map"
+              aria-current={isMapRoute ? "page" : undefined}
+              onClick={() => setIsOpen(false)}
+              className={`order-2 inline-flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded-full border text-[8px] font-black uppercase tracking-wide transition-colors xl:hidden ${isMapRoute ? 'border-yellow-300/50 bg-yellow-300/15 text-yellow-100' : 'border-white/10 bg-black/50 text-white/85 hover:text-yellow-100'}`}
+            >
+              <Map className="h-4 w-4" aria-hidden="true" />
+              Map
+            </Link>
+            {!compactPhone ? <div className="order-3 hidden sm:block"><DeferredNotificationBell /></div> : null}
             <div className={`${styles.accountSlot} order-4 w-[108px] min-w-0 sm:w-[140px] md:w-auto`}>
               <IdentityButton />
             </div>
@@ -231,6 +251,7 @@ export default function Navbar() {
                       href={link.href}
                       prefetch={NAV_LINK_PREFETCH}
                       onClick={() => setIsOpen(false)}
+                      aria-current={isActive ? "page" : undefined}
                       className="relative block rounded-xl overflow-hidden active:scale-[0.98] transition-transform"
                     >
                       {/* Active state - Liquid Metal Chrome */}
@@ -286,6 +307,10 @@ export default function Navbar() {
               Post a dare
             </Link>
 
+            {compactPhone ? <div className="mt-4 flex w-full max-w-2xl items-center justify-between rounded-xl border border-white/10 p-3 sm:hidden">
+              <span className="text-sm font-bold text-white/75">Notifications</span>
+              <DeferredNotificationBell />
+            </div> : null}
             <details className="mt-6 w-full max-w-2xl rounded-xl border border-white/10 p-4">
               <summary className="cursor-pointer text-sm font-bold text-white/80">More of BaseDare</summary>
               <div className="mt-2 grid gap-1 sm:grid-cols-2">

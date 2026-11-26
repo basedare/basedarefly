@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildDareLoopPresentation, dareLoopCategory, isMysteryDareTitle } from './dare-loop-presentation.ts';
+import { buildDareLoopPresentation, dareLoopCategory, isMysteryDareTitle, selectLocalPaidDares } from './dare-loop-presentation.ts';
 
 const base = {
   shortId: 'dare-1', title: 'Make a coconut advert', locationLabel: 'General Luna', creatorPayout: 5,
@@ -38,4 +38,20 @@ test('mystery keeps requirements visible and online/invalid targets do not get m
   assert.equal(presentation.dares[0].latitude, null);
   assert.equal(presentation.dares[1].longitude, null);
   assert.equal('contentRightsFingerprint' in presentation.dares[0], false);
+});
+
+test('restored local dashboard uses only eligible nearby funded cards and groups the same inventory by category', () => {
+  const { dares } = buildDareLoopPresentation([
+    base,
+    { ...base, shortId: 'control', family: 'FIELD_TRUTH' },
+    { ...base, shortId: 'away', latitude: 14.6, longitude: 120.98 },
+    { ...base, shortId: 'online', missionMode: 'STREAM' },
+    { ...base, shortId: 'expires', expiresAt: new Date(50) },
+    { ...base, shortId: 'not-funded', isAvailable: false },
+  ], 10);
+  const area = { lat: 9.7905, lng: 126.158, radiusKm: 25 };
+  const available = [...dares, { ...dares[0], shortId: 'no-slot', remainingSlots: 0 }];
+  assert.deepEqual(selectLocalPaidDares(available, area, 'ALL', 100).map(dare => dare.shortId), ['dare-1', 'control']);
+  assert.deepEqual(selectLocalPaidDares(available, area, 'CHAOS', 100).map(dare => dare.shortId), ['dare-1']);
+  assert.deepEqual(selectLocalPaidDares(available, area, 'CONTROL', 100).map(dare => dare.shortId), ['control']);
 });

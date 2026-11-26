@@ -14,10 +14,13 @@ import './PremiumBentoGrid.css';
 
 // Mission-type is chosen first (no default) so the product never quietly pre-selects
 // a lane. Categories = the single-source taxonomy (CREATOR_CAPTAIN_CATEGORIES).
-// Idea templates are on-thesis venue/experience proof — never streamer stunts.
+// Ideas invite short, playful, filmable experiences alongside useful venue briefs.
+// Participation is voluntary; no dangerous stunts, pranks on strangers or disruption.
 const MISSION_SUGGESTIONS: Record<CreatorCaptainCategory, string[]> = {
   nightlife: [
-    'Film a 15-second first-impression walkthrough of the venue',
+    'Invent a signature 15-second dance for this spot, give it a ridiculous name and film the routine',
+    'Make a dramatic movie-trailer intro for your night out in 20 seconds',
+    'Create a tiny awards show: pick the funniest detail at this spot and give it an imaginary trophy',
     'Capture the signature drink or ritual that makes this spot memorable',
     'Ask a staff member for one local recommendation and film the answer',
     'Record the cleanest crowd-energy moment without disturbing anyone',
@@ -41,9 +44,12 @@ const MISSION_SUGGESTIONS: Record<CreatorCaptainCategory, string[]> = {
     'Create a 10-second micro-guide for someone arriving for the first time',
   ],
   challenge: [
-    'Take on a harmless skill challenge (pool shot, darts, trivia) and film the attempt',
-    'Set a simple group challenge and capture who wins',
-    "Film a 30-second 'can you do this?' and invite a friend to try",
+    'Invent a 15-second dance, give it a ridiculous name and film the full routine',
+    'Make a 20-second luxury advert for an ordinary object you own (a coconut, flip-flop or water bottle)',
+    'Challenge a willing friend to a silent staring contest. Film the funniest reaction in 15 seconds',
+    'Deliver a dramatic sports commentary of yourself doing a completely ordinary task in 20 seconds',
+    'Recreate three iconic movie-poster poses in one 15-second clip',
+    'Make up a 10-second jingle for this spot and perform it on camera',
   ],
   fitness: [
     'Film a safe 60-second movement or drill and explain it',
@@ -93,9 +99,9 @@ const COMMUNITY_SUGGESTIONS: Record<CreatorCaptainCategory, string[]> = {
     'Clear litter along one block and prove the cleanup',
   ],
   challenge: [
-    'Set a friendly group challenge and capture strangers joining in',
-    'Start a harmless dare chain and film who takes it on',
-    'Rally people for a silly group challenge and prove the crowd',
+    'Get a willing group to invent a 15-second synchronized dance and film the final take',
+    'Play a quick charades round with willing friends and film the funniest guess',
+    'Create a mini talent show with friends: one silly talent each, up to 30 seconds total',
   ],
   fitness: [
     'Host a free run, surf, or yoga meetup and film the group session',
@@ -145,11 +151,16 @@ function buildSuggestions(
   const base = (isCommunitySpark ? COMMUNITY_SUGGESTIONS : MISSION_SUGGESTIONS)[category];
   const name = venueName?.trim();
   if (!name) return base;
+  const venueIdea = isCommunitySpark
+    ? category === 'challenge' || category === 'nightlife' || category === 'music'
+      ? `Bring willing friends together at ${name} for a 15-second group dance and film the final take.`
+      : `Bring people together at ${name} and capture the turnout — human, useful, and easy to prove.`
+    : category === 'challenge' || category === 'nightlife'
+      ? `Make a 15-second fake movie trailer starring yourself at ${name} — big drama, tiny budget.`
+      : `Tell the ${name} story in one fun, verifiable clip — make it memorable.`;
   return [
     ...base.map((s) => s),
-    isCommunitySpark
-      ? `Bring people together at ${name} and capture the turnout — human, useful, and easy to prove.`
-      : `Tell the ${name} story in one clean, verifiable clip — human, useful, and easy to prove.`,
+    venueIdea,
   ];
 }
 
