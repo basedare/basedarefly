@@ -12,7 +12,6 @@ import Link from "next/link";
 import ViewToggle from "@/components/ViewToggle";
 import { LiquidInput } from "@/components/LiquidInput";
 import InitProtocolButton from "@/components/InitProtocolButton";
-import ProtocolLoader from "@/components/ProtocolLoader";
 import StreetAccent from '@/components/ui/StreetAccent';
 import HoneyGooAccent from "@/components/HoneyGooAccent";
 import HomeGridRadar from "@/components/home/HomeGridRadar";
@@ -47,6 +46,28 @@ const PeeBearConveyor = dynamic(() => import("@/components/PeeBearConveyor"));
 const PeeBearOrb = dynamic(() => import("@/components/PeeBearOrb"));
 const RealityShift = dynamic(() => import("@/components/RealityShift"));
 const MatrixRain = dynamic(() => import("@/components/MatrixRain"));
+
+// Keep the actual headline and actions visible on the first paint, even while
+// the URL-aware home content hydrates. The original loader remains elsewhere.
+function HomeIntro({ ready = true }: { ready?: boolean }) {
+  const IntroLink = ready ? DiscoveryLink : Link;
+  return (
+    <div className="relative z-30 mx-auto max-w-3xl px-1 pt-4 text-center sm:px-4 md:pt-7" aria-label="Discover BaseDare">
+      <StreetAccent className="mx-auto mb-3 w-20" />
+      <h1 className="text-[clamp(1.9rem,8.2vw,4.5rem)] font-black italic uppercase leading-[0.98] tracking-[-0.045em] text-white">
+        Do the dare.<br /><span className="inline-block">Film it.</span>{' '}<span className="inline-block text-[#f5c518] drop-shadow-[0_2px_14px_rgba(245,197,24,0.18)]">Get paid.</span>
+      </h1>
+      <p className="mx-auto mt-4 max-w-lg text-sm font-semibold leading-6 text-white/75 sm:text-base">{BASEDARE_INTRO}</p>
+      <IntroLink href="/earn?source=home-intro" prefetch={false} className="bd-action bd-action--gold mt-5 px-6 !text-sm">Find paid dares →</IntroLink>
+      {ready ? <HomeDareAvailability presentation="summary" /> : <p className="mx-auto mt-3 min-h-5 max-w-lg text-xs font-semibold leading-5 text-white/65" aria-hidden="true">Checking live dare rewards…</p>}
+      <nav aria-label="More ways to discover dares" className="mt-2 flex flex-wrap justify-center gap-x-6 text-sm font-semibold text-white/70">
+        <IntroLink href="/map?source=home-intro" prefetch={false} className="inline-flex min-h-11 items-center hover:text-yellow-100">Open the map <span className="ml-1" aria-hidden="true">↗</span></IntroLink>
+        <IntroLink href="/create" prefetch={false} className="inline-flex min-h-11 items-center hover:text-cyan-100">Post a dare <span className="ml-1" aria-hidden="true">↗</span></IntroLink>
+      </nav>
+    </div>
+  );
+}
+
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -69,6 +90,7 @@ function HomeContent() {
   }, [triggerMatrixRain, finishBusinessEntry]);
   const [showBelowFoldSections, setShowBelowFoldSections] = useState(false);
   const [showAdvancedHome, setShowAdvancedHome] = useState(false);
+  const [showDareDiscovery, setShowDareDiscovery] = useState(false);
   const [useLightweightHome, setUseLightweightHome] = useState(true);
   const [desktopHero, setDesktopHero] = useState(false);
   useEffect(() => {
@@ -187,7 +209,7 @@ function HomeContent() {
         onComplete={finishBusinessEntry}
       />
 
-      {view === 'FAN' && showAdvancedHome ? (
+      {view === 'FAN' ? (
         <HomeGridRadar
           floating
           className="pointer-events-auto hidden xl:block"
@@ -205,18 +227,9 @@ function HomeContent() {
             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
             className="w-full flex flex-col items-center relative"
           >
-            <div className="w-full flex flex-col items-center relative z-20 px-3 py-2 md:p-0">
+            <div className="w-full flex flex-col items-center relative z-20 p-6 md:p-0">
               <div className="w-full relative">
-                <div className="relative z-[40] mx-auto max-w-3xl px-1 pt-1 text-center sm:px-4 md:pt-4" aria-label="Discover BaseDare">
-                  <StreetAccent className="mx-auto mb-1 w-16" />
-                  <h1 className="text-[clamp(1.8rem,7.8vw,3.8rem)] font-black italic uppercase leading-[0.91] tracking-[-0.045em] text-white">
-                    Do the dare.<br />Film it.<br /><span className="text-[#f5c518] drop-shadow-[0_2px_14px_rgba(245,197,24,0.18)]">Get paid.</span>
-                  </h1>
-                  <p className="mx-auto mt-2 max-w-lg text-xs font-semibold leading-5 text-white/75 sm:text-sm">{BASEDARE_INTRO}</p>
-                  <HomeDareAvailability />
-                  <DiscoveryLink href="/map?source=home-intro" prefetch={false} className="bd-action bd-action--gold mt-3 px-6 !text-sm">See dares near you →</DiscoveryLink>
-                  <p className="mt-3 text-xs leading-5 text-white/60">Browse without signing in. Rewards are paid after verification and settlement.</p>
-                </div>
+                <HomeIntro />
                 {/* Desktop: Full 3D Hero with orbiting cards */}
                 <div className="hidden lg:block">
                   {desktopHero ? <HeroEllipticalStream /> : null}
@@ -233,6 +246,11 @@ function HomeContent() {
                   {!desktopHero ? <PeeBearConveyor /> : null}
                 </div>
               </div>
+
+              <details id="paid-dare-discovery" onToggle={event => setShowDareDiscovery(event.currentTarget.open)} className="relative z-30 w-full max-w-3xl px-4 pb-5 md:px-6">
+                <summary className="cursor-pointer rounded-xl border border-yellow-200/20 bg-black/30 p-4 text-center text-sm font-bold text-yellow-100">Browse paid dares by Map, List, CHAOS or CONTROL</summary>
+                {showDareDiscovery ? <HomeDareAvailability /> : null}
+              </details>
 
               <details id="more-about-basedare" onToggle={event => setShowAdvancedHome(event.currentTarget.open)} className="relative z-30 w-full max-w-[1680px] px-4 pb-8 md:px-6">
                 <summary className="mx-auto max-w-lg cursor-pointer rounded-xl border border-white/12 bg-black/30 p-4 text-center text-sm font-bold text-white/70">Explore more of BaseDare</summary>
@@ -667,10 +685,12 @@ function HomeContent() {
   );
 }
 
-// Use the same orbital loader (looping) as the suspense fallback, so there's
-// only ever ONE loader — never a second, different placeholder flashing.
 function HomeFallback() {
-  return <ProtocolLoader onComplete={() => {}} loop />;
+  return (
+    <main className="home-street flex min-h-screen flex-col items-center bg-transparent font-sans relative overflow-x-hidden">
+      <div className="relative z-20 w-full p-6 md:p-0"><HomeIntro ready={false} /></div>
+    </main>
+  );
 }
 
 export default function Home() {

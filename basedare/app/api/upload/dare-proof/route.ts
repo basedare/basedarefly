@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     let raw: unknown;
     try { raw = JSON.parse(new TextDecoder().decode(await boundedRequestBytes(request, 8192))); }
     catch { return fail('Invalid proof upload request.', 400); }
+    const receivedAt = new Date();
     const prepared = DareProofPrepareSchema.safeParse(raw);
     const completed = DareProofCompleteSchema.safeParse(raw);
     if (!prepared.success && !completed.success) return fail('Invalid proof upload request.', 400);
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (content && wallet !== assignee) return fail('Only the assigned contributor can deliver this content.', 403);
     if (dare.videoUrl && dare.proofCid) return success({ success: true, existingProof: true, cid: dare.proofCid, url: dare.videoUrl, status: dare.status });
     if (dare.proofCid || dare.videoUrl) return fail('Proof is being recovered. Reload the dare.', 409);
-    if ((dare.expiresAt && dare.expiresAt <= new Date()) || (content && Date.now() > Date.parse(content.deadline))) return fail('The dare delivery window has closed.', 409);
+    if ((dare.expiresAt && dare.expiresAt <= receivedAt) || (content && receivedAt.getTime() > Date.parse(content.deadline))) return fail('The dare delivery window has closed.', 409);
     if (!process.env.PINATA_JWT) return fail('Video storage is unavailable. Please try again later.', 503);
     const pinata = new PinataSDK({ pinataJwt: process.env.PINATA_JWT, pinataGateway: gateway() });
 
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
     const attached = await prisma.$transaction(async tx => {
       const duplicate = await tx.dare.findFirst({ where: { id: { not: dare.id }, OR: [{ proofCid: input.cid }, { videoUrl: url }] }, select: { id: true } });
       if (duplicate) return 'duplicate';
-      const result = await tx.dare.updateMany({ where: { id: dare.id, status: 'PENDING', proofCid: null, videoUrl: null, claimedBy: dare.claimedBy, targetWalletAddress: dare.targetWalletAddress, stakerAddress: dare.stakerAddress }, data: { proofCid: input.cid, videoUrl: url, ...(content ? { contentSubmittedAt: attachedAt } : {}) } });
+      const result = await tx.dare.updateMany({ where: { id: dare.id, status: 'PENDING', proofCid: null, videoUrl: null, claimedBy: dare.claimedBy, targetWalletAddress: dare.targetWalletAddress, stakerAddress: dare.stakerAddress, expiresAt: dare.expiresAt }, data: { proofCid: input.cid, videoUrl: url, ...(content ? { contentSubmittedAt: receivedAt } : {}) } });
       if (result.count !== 1) return 'changed';
       const saved = await tx.founderEvent.updateMany({ where: { id: record.id, status: 'ISSUED' }, data: { status: 'ATTACHED', metadataJson: { ...ticket, cid: input.cid, fileId: file.id, attachedAt: attachedAt.toISOString() } as Prisma.InputJsonValue } });
       if (saved.count !== 1) throw new Error('Upload ticket was already used.');

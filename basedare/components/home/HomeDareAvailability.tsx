@@ -14,7 +14,7 @@ type Availability = {
   dares: RadarDare[];
 };
 
-export default function HomeDareAvailability() {
+export default function HomeDareAvailability({ presentation = 'discovery' }: { presentation?: 'summary' | 'discovery' }) {
   const [result, setResult] = useState<Availability | 'unavailable' | null>(null);
   const [category, setCategory] = useState<'ALL' | 'CHAOS' | 'CONTROL'>('ALL');
   const [view, setView] = useState<'map' | 'list'>('map');
@@ -52,6 +52,13 @@ export default function HomeDareAvailability() {
 
   const available = result !== null && result !== 'unavailable';
   const visibleDares = available ? result.dares.filter(dare => category === 'ALL' || dare.category === category) : [];
+  if (presentation === 'summary') {
+    return (
+      <p aria-live="polite" className="mx-auto mt-3 min-h-5 max-w-lg text-xs font-semibold leading-5 text-white/65">
+        {available ? <><strong className="text-yellow-200">{result.listedCount > 0 ? `≈ ${formatPhp(result.listedRewardUsdc * result.phpPerUsdc)}` : formatPhp(0)}</strong> in listed rewards · {result.listedCount} open {result.listedCount === 1 ? 'paid dare' : 'paid dares'}</> : result === 'unavailable' ? 'Live rewards couldn’t refresh. Browse dares to check again.' : 'Checking live dare rewards…'}
+      </p>
+    );
+  }
   return (
     <section aria-label="Open paid dares" className="mx-auto mt-3 w-full max-w-3xl text-left">
       <div aria-live="polite" className="rounded-[20px] border border-yellow-200/20 bg-[linear-gradient(145deg,rgba(245,197,24,0.09),rgba(12,9,22,0.86))] px-4 py-3 shadow-[0_12px_34px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)]">

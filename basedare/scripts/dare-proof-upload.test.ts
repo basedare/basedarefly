@@ -7,15 +7,15 @@ const Module = require('node:module');
 const originalLoad = Module._load;
 const wallet = '0x' + '1'.repeat(40);
 const cid = 'bafy' + 'a'.repeat(50);
-const makeState = () => ({ authorized: true, rights: true, funder: false, funded: true, issue: 0, attach: 0, list: 0, wrongTicket: false, changed: false, duplicate: false, record: null as any, row: { id:'dare-1', title:'Dance', streamerHandle:'@open', status:'PENDING', bounty:10, isSimulated:false, txHash:'0x'+'1'.repeat(64), onChainDareId:'1', expiresAt:new Date(Date.now()+3600000), videoUrl:null as string|null, proofCid:null as string|null, claimedBy:wallet, targetWalletAddress:null, stakerAddress:'0x'+'2'.repeat(40), outcomeContractSnapshot:null } });
+const makeState = () => ({ authorized: true, rights: true, funder: false, funded: true, issue: 0, attach: 0, list: 0, wrongTicket: false, changed: false, duplicate: false, onList: () => {}, record: null as any, row: { id:'dare-1', title:'Dance', streamerHandle:'@open', status:'PENDING', bounty:10, isSimulated:false, txHash:'0x'+'1'.repeat(64), onChainDareId:'1', expiresAt:new Date(Date.now()+3600000), videoUrl:null as string|null, proofCid:null as string|null, claimedBy:wallet, targetWalletAddress:null, stakerAddress:'0x'+'2'.repeat(40), outcomeContractSnapshot:null as unknown, contentSubmittedAt:null as Date|null } });
 let state = makeState();
 const tx = {
-  dare: { findFirst: async () => state.duplicate ? { id:'other' } : null, updateMany: async ({ data, where }: any) => { assert.equal(where.claimedBy,wallet); assert.equal(where.status,'PENDING'); assert.equal(where.proofCid,null); if(state.changed) return {count:0}; Object.assign(state.row,data); state.attach++; return {count:1}; } },
+  dare: { findFirst: async () => state.duplicate ? { id:'other' } : null, updateMany: async ({ data, where }: any) => { assert.equal(where.claimedBy,wallet); assert.equal(where.status,'PENDING'); assert.equal(where.proofCid,null); assert.equal(where.expiresAt,state.row.expiresAt); if(state.changed) return {count:0}; Object.assign(state.row,data); state.attach++; return {count:1}; } },
   founderEvent:{ updateMany: async ({ data }: any) => { Object.assign(state.record,data); return {count:1}; } },
 };
 class Storage {
   upload = { public: { createSignedURL: async (options: any) => { state.issue++; assert.equal(options.maxFileSize,1024); assert.equal(options.mimeTypes[0],'video/mp4'); return 'https://uploads.pinata.cloud/v3/files?fixture=signed'; } } };
-  files = {public:{list:()=>({cid:()=>({keyvalues:()=>({limit:async()=>{state.list++;return {files:[{id:'file-1',cid,size:1024,number_of_files:1,mime_type:'video/mp4',keyvalues:{basedareDare:state.row.id,basedareTicket:state.wrongTicket?'other':state.record.metadataJson.ticket}}]}}})})})}};
+  files = {public:{list:()=>({cid:()=>({keyvalues:()=>({limit:async()=>{state.list++;state.onList();return {files:[{id:'file-1',cid,size:1024,number_of_files:1,mime_type:'video/mp4',keyvalues:{basedareDare:state.row.id,basedareTicket:state.wrongTicket?'other':state.record.metadataJson.ticket}}]}}})})})}};
 }
 Module._load = function(name: string, ...args: any[]) {
   if (name === '@/lib/prisma') return {prisma:{dare:{findUnique:async()=>state.row},founderEvent:{create:async({data}:any)=>{state.record={id:'event-1',...data};return state.record},findUnique:async()=>state.record},$transaction:async(fn:any)=>fn(tx)}};
@@ -50,4 +50,14 @@ test('mismatched receipt, duplicate evidence, expired ticket or concurrent dare 
     state=makeState();const {ticket}=await prepare();if(reason==='metadata')state.wrongTicket=true;if(reason==='duplicate')state.duplicate=true;if(reason==='expired')state.record.metadataJson.expiresAt=new Date(Date.now()-1000).toISOString();if(reason==='changed')state.changed=true;
     const response=await complete(ticket);assert.equal(response.status,409,reason);assert.equal(state.attach,0);assert.equal(state.row.proofCid,null);assert.equal(state.record.status,'ISSUED');
   }
+});
+
+test('timely completion retains its server receipt time when provider confirmation crosses delivery deadline',async(t)=>{
+  const start=Date.now(); t.mock.timers.enable({apis:['Date'], now:start});
+  state=makeState(); const deadline=start+1000;
+  state.row.outcomeContractSnapshot={contentDelivery:{termsVersion:'content-organic-v1',buyerName:'Cafe',assetType:'VIDEO',format:'Vertical 20s',acceptanceCriteria:'Show the entrance clearly',posting:'NONE',postingInstructions:'',deadline:new Date(deadline).toISOString(),revisionLimit:0}};
+  const {ticket}=await prepare(); state.onList=()=>t.mock.timers.tick(2000);
+  const response=await complete(ticket); assert.equal(response.status,200);
+  assert.equal(state.row.contentSubmittedAt?.getTime(),start);
+  assert.ok(Date.parse(state.record.metadataJson.attachedAt)>deadline);
 });

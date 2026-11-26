@@ -910,7 +910,7 @@ export default function DareDetailPage() {
                 Dashboard
               </Link>
             )}
-            <DareShareButton shortId={dare.shortId} title={dare.title} />
+            <DareShareButton shortId={shortId} title={dare.title} />
           </div>
         </div>
         {shareFeedback && (

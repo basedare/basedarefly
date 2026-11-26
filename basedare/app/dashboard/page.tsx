@@ -1244,20 +1244,18 @@ export default function Dashboard() {
       <StreetAccent className="mb-3 w-24" />
       <HoneyGooAccent className="absolute right-4 top-0" size="sm" />
       <p className="bd-page-kicker mb-3">Your dares</p>
-      <h1 className="bd-page-title">YOU.</h1>
-      <p className="bd-page-copy mt-3">Your earnings, completed dares, submissions and payout details.</p>
+      <h1 className="bd-page-title">Your activity</h1>
+      <p className="bd-page-copy mt-3">Do the dare. Film it. Get paid. Sign in to see your dares and rewards.</p>
       <button className="bd-action bd-action--gold mt-5" onClick={handleConnect} disabled={isConnecting}>{isConnecting ? 'Connecting…' : 'Sign in'}</button>
-      <Link href="/map" className="bd-action mt-3 ml-2">Find a dare →</Link>
+      <Link href="/earn" className="bd-action mt-3 ml-2">Find paid dares →</Link>
     </section>
-    <details className="mt-5 rounded-2xl border border-white/10 p-4"><summary className="cursor-pointer font-bold text-white/70">More of BaseDare</summary>
     <div className="mt-5 grid gap-3 sm:grid-cols-2">{[
+      ['/earn','Find paid dares','See available dares and real rewards before signing in.'],
       ['/now','Find something to do','Explore current plans and free activities.'],
-      ['/earn','Find paid work','See real briefs and rewards before signing in.'],
       ['/missions','Private mission links','Continue a mission from its saved link.'],
       ['/brands/portal','Plan a business brief','Commission content or fund a useful local activity.'],
     ].map(([href,title,detail]) => <Link key={href} href={href} className={`${softCardClass} p-5`}><h2 className="font-black">{title}</h2><p className="mt-2 text-sm text-white/65">{detail}</p></Link>)}</div>
     <div className="mt-5"><AdventurePassportEntry /><SavedSocialPanel /></div>
-    </details>
   </div>;
 
   return (
@@ -1304,7 +1302,8 @@ export default function Dashboard() {
 
                 <StreetAccent className="mt-3 w-24" />
                 <h1 className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[2.2rem] leading-none sm:text-5xl md:text-6xl font-black uppercase italic tracking-[-0.06em]">
-                  <span className="text-[#FACC15] drop-shadow-[0_4px_18px_rgba(250,204,21,0.25)]">YOU.</span>
+                  <span className="text-[#FACC15] drop-shadow-[0_4px_18px_rgba(250,204,21,0.25)]">Your</span>
+                  <span className="text-[#e879f9] drop-shadow-[0_4px_18px_rgba(168,85,247,0.2)]">activity</span>
                 </h1>
                 <p className="mt-2 text-sm text-white/55">
                   {isConnected
@@ -1314,19 +1313,10 @@ export default function Dashboard() {
                     : 'Sign in to see your dares.'}
                 </p>
 
-                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Dare summary">
-                  {[
-                    ['Recorded earnings', summaryReady ? formatUsdc(paidTotal) : '—'],
-                    ['Dares completed', summaryReady ? String(completedDares) : '—'],
-                    ['Under review', summaryReady ? String(reviewDares) : '—'],
-                    ['Posted dares', summaryReady ? String(postedDares) : '—'],
-                  ].map(([label, value]) => <div key={label} className={`${metricTileClass} min-w-0 p-3`}><p className="text-xs font-bold text-white/65">{label}</p><p className="mt-1 break-words text-xl font-black text-yellow-100">{value}</p></div>)}
-                </div>
-                {summaryReady ? <p className="mt-2 text-xs text-white/50">≈ {formatPhp(paidTotal * getBaseCashPhpPerUsdc())} recorded settled rewards, from up to 100 recent dares. Not a wallet balance.</p> : <p className="mt-2 text-xs text-white/50">{loading ? 'Loading your dares…' : 'Couldn’t check your activity.'}</p>}
-                <Link href="/map" className="bd-action bd-action--gold mt-4">Find another dare →</Link>
+                {summaryReady ? <p className="mt-3 text-xs leading-5 text-white/65"><strong className="text-yellow-100">{formatUsdc(paidTotal)} recorded earnings</strong> (≈ {formatPhp(paidTotal * getBaseCashPhpPerUsdc())}) · {completedDares} dares completed · {reviewDares} under review · {postedDares} posted. Up to 100 recent dares; not a wallet balance.</p> : <p className="mt-3 text-xs text-white/50">{loading ? 'Loading your dares…' : 'Couldn’t check your activity.'}</p>}
+                <Link href="/earn" className="bd-action bd-action--gold mt-4">Find paid dares →</Link>
 
                 {isConnected && userTag ? (
-                  <details className="mt-4 rounded-2xl border border-white/10 p-3"><summary className="cursor-pointer text-sm font-bold text-white/65">Profile and reputation</summary>
                   <div className={`${insetCardClass} mt-4 px-4 py-4 sm:px-5`}>
                     <div className="flex items-center gap-4">
                       <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border border-white/15 bg-[linear-gradient(135deg,rgba(168,85,247,0.95),rgba(250,204,21,0.9))] shadow-[0_16px_34px_rgba(0,0,0,0.32)] sm:h-24 sm:w-24">
@@ -1373,7 +1363,6 @@ export default function Dashboard() {
                       </div>
                     ) : null}
                   </div>
-                  </details>
                 ) : null}
               </div>
 
@@ -1444,13 +1433,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <nav aria-label="Your dare sections" className="order-1 mb-5 flex flex-wrap gap-2">
-          <Link href="/action-center" className="bd-action">Your submissions</Link><Link href="/my-dares" className="bd-action">Your posted dares</Link>
+        <nav aria-label="Your activity sections" className="order-1 mb-5 flex flex-wrap gap-2">
+          <Link href="/action-center" className="bd-action">Your submissions</Link><Link href="/my-dares" className="bd-action">Your posted dares</Link><Link href="/now" className="bd-action">Plans</Link><Link href="/missions" className="bd-action">Saved</Link>
         </nav>
-        <details className={`${softCardClass} order-2 mb-5 p-4`}><summary className="cursor-pointer text-sm font-black text-white">Payout details</summary><div className="mt-4"><WalletOverview key={address || 'disconnected'} /></div></details>
-        <details className={`${softCardClass} order-6 mb-6 p-4`}><summary className="cursor-pointer text-sm font-black text-white/75">More activity and advanced tools</summary>
-        <nav aria-label="Advanced activity" className="mt-4 mb-5 flex flex-wrap gap-2"><Link href="/now" className="bd-action">Plans</Link><Link href="/missions" className="bd-action">Saved</Link></nav>
-        <div className="mb-6"><AdventurePassportEntry /><SavedSocialPanel /></div>
+        <div className="order-3 mb-6"><AdventurePassportEntry /><SavedSocialPanel /></div>
+        <WalletOverview key={address || 'disconnected'} />
         {primaryDashboardMove || dashboardQuickActions.length > 0 ? (
           <div className="order-2 mb-6">
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -2102,7 +2089,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        </details>
         <div ref={activationsRef} className={`${softCardClass} order-3 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <button

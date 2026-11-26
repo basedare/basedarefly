@@ -1,9 +1,9 @@
-/** Illustrations of participation, never inventory or funded offers. Shared by both hero sizes. */
+/** Illustrations of video dares, never inventory, confirmed rewards or funded offers. Shared by both hero sizes. */
 export const HOME_ACTIVITY_EXAMPLES = [
-  { id: 'example-photo', description: 'TRY A PHOTO CHALLENGE', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · PLAY', valueLabel: 'Free to play', participationLabel: 'Solo or with a friend', href: '/how-it-works#playing-for-fun' },
-  { id: 'example-walk', description: 'MEET FOR A PHOTO WALK', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · MEET', valueLabel: 'Go together', participationLabel: 'Choose a place and time', href: '/how-it-works#meeting-people' },
-  { id: 'example-content', description: 'MAKE A CAFÉ VIDEO', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · EARN', valueLabel: 'Paid mission', participationLabel: 'See requirements and reward', href: '/how-it-works#earning-from-a-dare' },
-  { id: 'example-discovery', description: 'CAPTURE A LOCAL DETAIL', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · PLAY', valueLabel: 'Free to play', participationLabel: 'Share a useful place photo', href: '/how-it-works#playing-for-fun' },
-  { id: 'example-crew', description: 'GET YOUR CREW TOGETHER', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · MEET', valueLabel: 'Make a plan', participationLabel: 'Invite friends to a real place', href: '/how-it-works#meeting-people' },
-  { id: 'example-promotion', description: 'SHARE A VENUE STORY', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · EARN', valueLabel: 'Paid mission', participationLabel: 'See posting requirements', href: '/how-it-works#earning-from-a-dare' },
+  { id: 'example-photo', description: 'DANCE FOR 15 SECONDS', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · CHAOS', valueLabel: 'Film it', participationLabel: '15-second video', href: '/earn' },
+  { id: 'example-walk', description: 'FIND A HIDDEN LOCAL SPOT', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · CHAOS', valueLabel: 'Film it', participationLabel: 'Show your discovery', href: '/earn' },
+  { id: 'example-content', description: 'MAKE A CAFÉ VIDEO', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · CONTROL', valueLabel: 'Film it', participationLabel: 'Show the venue', href: '/earn' },
+  { id: 'example-discovery', description: 'CAPTURE A LOCAL DETAIL', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · CONTROL', valueLabel: 'Film it', participationLabel: 'Tell a local story', href: '/earn' },
+  { id: 'example-crew', description: 'SHOW A CREATIVE TALENT', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · CHAOS', valueLabel: 'Film it', participationLabel: 'Make an original clip', href: '/earn' },
+  { id: 'example-promotion', description: 'SHARE A VENUE STORY', stake_amount: 0, example: true, expiry_timer: 'EXAMPLE · CONTROL', valueLabel: 'Film it', participationLabel: 'Show the experience', href: '/earn' },
 ];
