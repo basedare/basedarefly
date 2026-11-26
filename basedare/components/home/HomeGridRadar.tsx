@@ -60,6 +60,7 @@ type HomeGridRadarProps = {
   className?: string;
   style?: CSSProperties;
   hero?: boolean;
+  showFunded?: boolean;
   dares?: RadarDare[];
   phpPerUsdc?: number;
   fundingKnown?: boolean;
@@ -253,7 +254,7 @@ function getRadarCopy(mode: RadarMode, count: number) {
   };
 }
 
-export default function HomeGridRadar({ compact = false, floating = false, className = '', style, hero = false, dares = EMPTY_DARES, phpPerUsdc = getBaseCashPhpPerUsdc(), fundingKnown = true }: HomeGridRadarProps) {
+export default function HomeGridRadar({ compact = false, floating = false, className = '', style, hero = false, showFunded = hero, dares = EMPTY_DARES, phpPerUsdc = getBaseCashPhpPerUsdc(), fundingKnown = true }: HomeGridRadarProps) {
   const router = useRouter();
   const gradientId = useId();
   const [mode, setMode] = useState<RadarMode>('idle');
@@ -263,7 +264,7 @@ export default function HomeGridRadar({ compact = false, floating = false, class
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
   const [selectedDareId, setSelectedDareId] = useState<string | null>(null);
 
-  const displayPoints = useMemo(() => hero ? attachFundedDares(points, dares, lockedLocation ?? SIARGAO_ACTIVITY_AREA) : points, [hero, lockedLocation, points, dares]);
+  const displayPoints = useMemo(() => showFunded ? attachFundedDares(points, dares, lockedLocation ?? SIARGAO_ACTIVITY_AREA) : points, [showFunded, lockedLocation, points, dares]);
   const selectedNode = displayPoints.find(point => point.key === selectedNodeKey);
   const selectedDare = selectedNode?.dares?.find(dare => dare.shortId === selectedDareId) ?? selectedNode?.dares?.[0];
 
@@ -274,7 +275,8 @@ export default function HomeGridRadar({ compact = false, floating = false, class
   const copy = getRadarCopy(mode, displayPoints.length);
 
   const mapHref = useMemo(() => {
-    if (hero ? selectedNode : activePoint) return (hero ? selectedNode : activePoint)!.href;
+    const target = hero ? selectedNode : selectedNode ?? activePoint;
+    if (target) return target.href;
     if (lockedLocation) {
       const params = new URLSearchParams({
         source: 'home-radar',
@@ -478,7 +480,7 @@ export default function HomeGridRadar({ compact = false, floating = false, class
         </span>
       </div>
 
-      {hero && selectedDare ? <section aria-label="Selected dare" className="relative z-10 mt-3 w-full rounded-2xl border border-yellow-200/25 bg-[#100d1b] p-4 text-left shadow-xl">
+      {showFunded && selectedDare ? <section aria-label="Selected dare" className={`z-10 rounded-2xl border border-yellow-200/25 bg-[#100d1b] p-4 text-left shadow-xl ${floating ? 'absolute bottom-[calc(100%+16px)] left-0 max-h-[min(340px,45vh)] w-[290px] overflow-y-auto' : 'relative mt-3 w-full'}`}>
         <div className="flex items-start justify-between gap-3">
           <div><p className="text-xs font-black uppercase text-yellow-100">Reward</p><p className="text-3xl font-black text-[#f5c518]">≈ {formatPhp(selectedDare.creatorPayout * phpPerUsdc)}</p><p className="text-xs text-white/60">{formatUsdc(selectedDare.creatorPayout)} after approval</p></div>
           <button type="button" aria-label="Close dare" className="min-h-11 min-w-11 rounded-full border border-white/10 text-white/75" onClick={() => setSelectedNodeKey(null)}>×</button>
@@ -915,13 +917,18 @@ export default function HomeGridRadar({ compact = false, floating = false, class
         .home-grid-radar-shell--hero .home-grid-radar-point { width: 44px; height: 44px; }
         .home-grid-radar-shell--hero .home-grid-radar-point-core { inset: 16px; }
         .home-grid-radar-shell--hero .home-grid-radar-point-pulse { inset: 10px; }
-        .home-grid-radar-shell--hero .home-grid-radar-point--funded { z-index: 6; }
+        .home-grid-radar-shell--hero .home-grid-radar-point--funded,
+        .home-grid-radar-shell--floating .home-grid-radar-point--funded { z-index: 6; }
+        .home-grid-radar-shell--floating .home-grid-radar-point--funded { width: 30px; height: 30px; }
+        .home-grid-radar-shell--floating .home-grid-radar-point--funded .home-grid-radar-point-core { inset: 9px; }
+        .home-grid-radar-shell--floating .home-grid-radar-point--funded .home-grid-radar-point-pulse { inset: 4px; }
         .home-grid-radar-reward {
           position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); white-space: nowrap;
           padding: 4px 7px; border-radius: 12px; border: 1px solid #f5c518aa; color: #0c0712;
           background: #f5c518; font-size: 11px; font-weight: 900; box-shadow: 0 0 12px #f5c51866;
         }
         .home-grid-radar-reward--mystery { color: #fff; background: #7c3aed; border-color: #c084fc; box-shadow: 0 0 12px #a855f788; }
+        .home-grid-radar-shell--floating .home-grid-radar-reward { bottom: 23px; font-size: 10px; padding: 3px 5px; }
         .home-grid-radar-shell--hero .home-grid-radar-locate-button, .home-grid-radar-shell--hero .home-grid-radar-map-button { top: 38px; height: 44px; width: 44px; }
         @keyframes home-grid-radar-sweep {
           from {

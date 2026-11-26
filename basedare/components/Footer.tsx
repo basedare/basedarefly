@@ -5,9 +5,12 @@ import { Twitter, Shield, ShieldCheck, FileText, HelpCircle, Info, MessageSquare
 import BaseDareWordmark from './BaseDareWordmark';
 import Link from '@/components/DiscoveryLink';
 import { useView } from '@/app/context/ViewContext';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
   const { isControlMode } = useView();
+  const isHome = usePathname() === '/';
+  const FooterLinks = isHome ? 'div' : 'details';
 
   return (
     <footer id="site-footer" className="w-full relative z-20 overflow-hidden">
@@ -40,7 +43,7 @@ export default function Footer() {
             }}
           />
 
-          <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+          {!isHome ? <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
             <BaseDareWordmark isControlMode={isControlMode} sizes="(min-width: 768px) 159px, 127px" className="h-9 w-auto object-contain" />
             <p className="text-xs font-semibold text-white/55">The world is your playground. · basedare.xyz</p>
             <div className="flex flex-wrap justify-center gap-x-4 text-xs text-white/70">
@@ -49,10 +52,10 @@ export default function Footer() {
               <Link href="/privacy" className="inline-flex min-h-11 items-center hover:text-white">Privacy</Link>
               <Link href="/contact" className="inline-flex min-h-11 items-center hover:text-white">Need help?</Link>
             </div>
-          </div>
-          <details className="mt-4 border-t border-white/10 pt-3">
-            <summary className="cursor-pointer text-center text-xs font-bold text-white/55">More links</summary>
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 text-center md:text-left">
+          </div> : null}
+          <FooterLinks className={isHome ? '' : 'mt-4 border-t border-white/10 pt-3'}>
+            {!isHome ? <summary className="cursor-pointer text-center text-xs font-bold text-white/55">More links</summary> : null}
+          <div className={`grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 text-center md:text-left ${isHome ? '' : 'mt-6'}`}>
 
             {/* COL 1: LOGO + IDENTITY */}
             <div className="col-span-1 md:col-span-2 flex flex-col items-center md:items-start">
@@ -64,9 +67,9 @@ export default function Footer() {
                   className="h-8 sm:h-10 md:h-14 w-auto mb-3 md:mb-4 object-contain mx-auto md:mx-0"
                 />
                 <p className="max-w-sm text-center text-sm leading-6 text-gray-300 md:text-left">
-                  Find your next move.
+                  Do the dare. Film it. Get paid.
                   <br />
-                  <span className="text-purple-200">Free adventures, local meetups and paid missions.</span>
+                  <span className="text-purple-200">Paid dares, free adventures and local meetups.</span>
                 </p>
               </div>
 
@@ -107,6 +110,9 @@ export default function Footer() {
                   <Twitter className="w-4 h-4" />
                 </div>
                 <span className="text-xs font-mono uppercase tracking-wider">Twitter / X</span>
+              </a>
+              <a href="https://www.tiktok.com/@basedarexyz" target="_blank" rel="noopener noreferrer" className="group flex min-h-11 items-center gap-3 rounded-xl px-2 text-xs font-mono uppercase tracking-wider text-gray-200 transition-colors hover:text-purple-300">
+                TikTok @basedarexyz
               </a>
             </div>
 
@@ -213,7 +219,7 @@ export default function Footer() {
               </span>
             </div>
           </div>
-          </details>
+          </FooterLinks>
         </div>
       </div>
     </footer>

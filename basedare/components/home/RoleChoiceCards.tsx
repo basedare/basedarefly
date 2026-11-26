@@ -34,14 +34,14 @@ export default function RoleChoiceCards() {
               For creators
             </p>
             <h3 className="mt-1 text-xl font-black italic tracking-[-0.02em] text-white sm:text-2xl">
-              I want paid work
+              I want to do dares
             </h3>
             <p className="mt-2 text-sm font-bold leading-6 text-white/64">
-              Create content, document a place, or complete another paid task. See the brief and reward before you request it.
+              Do the dare, film it and get paid after approval. See the challenge and reward before you take it on.
             </p>
           </div>
           <span className="relative mt-auto inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#f5c518]">
-            See paid missions
+            See paid dares
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </span>
         </DiscoveryLink>
@@ -69,7 +69,7 @@ export default function RoleChoiceCards() {
             <Link href="/brands/portal?from=home" prefetch={false} className="bd-action bd-action--gold w-full !text-sm">Grow my business <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
           </div>
           <p className="relative text-sm leading-6 text-white/60">No account or payment needed to enquire. A request does not start work or reserve contributors.</p>
-          <Link href="/create?sparkType=paid&source=home-mission-buyer" prefetch={false} className="relative inline-flex min-h-11 items-center text-sm font-bold text-cyan-100 underline decoration-cyan-100/30 underline-offset-4">Set up a paid mission yourself →</Link>
+          <Link href="/create?sparkType=paid&source=home-mission-buyer" prefetch={false} className="relative inline-flex min-h-11 items-center text-sm font-bold text-cyan-100 underline decoration-cyan-100/30 underline-offset-4">Post a paid dare yourself →</Link>
         </article>
       </div>
     </div>

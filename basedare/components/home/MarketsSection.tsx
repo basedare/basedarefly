@@ -17,7 +17,7 @@ export default function MarketsSection() {
           Choose your scene
         </h2>
         <p className="mx-auto mt-3 max-w-md text-sm font-bold leading-6 text-white/56">
-          Find paid work, local plans and community where BaseDare is live—or hear when your city opens.
+          Find dares, local plans and community where BaseDare is live—or hear when your city opens.
         </p>
       </div>
 
@@ -102,7 +102,7 @@ export default function MarketsSection() {
       <p className="mt-6 text-center text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
         Don&apos;t see your city?{' '}
         <Link href="/earn?alerts=1&source=markets#mission-alerts" className="text-[#f5c518]/80 underline-offset-4 hover:underline">
-          Get mission alerts →
+          Get dare alerts →
         </Link>
       </p>
     </section>

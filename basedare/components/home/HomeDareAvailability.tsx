@@ -5,6 +5,7 @@ import Link from '@/components/DiscoveryLink';
 import { formatPhp, formatUsdc } from '@/lib/basecash-shared';
 import HomeGridRadar, { type RadarDare } from '@/components/home/HomeGridRadar';
 import ViewToggle from '@/components/ViewToggle';
+import type { DareLoopCategory } from '@/lib/dare-loop-presentation';
 
 type Availability = {
   available: true;
@@ -13,12 +14,11 @@ type Availability = {
   phpPerUsdc: number;
   dares: RadarDare[];
 };
+export type HomeDareAvailabilityResult = Availability | 'unavailable' | null;
 
-export default function HomeDareAvailability({ presentation = 'discovery' }: { presentation?: 'summary' | 'discovery' }) {
-  const [result, setResult] = useState<Availability | 'unavailable' | null>(null);
-  const [category, setCategory] = useState<'ALL' | 'CHAOS' | 'CONTROL'>('ALL');
-  const [view, setView] = useState<'map' | 'list'>('map');
-
+/** The homepage shares one current funded inventory between its existing surfaces. */
+export function useHomeDareAvailability() {
+  const [result, setResult] = useState<HomeDareAvailabilityResult>(null);
   useEffect(() => {
     let controller: AbortController | undefined;
     let disposed = false;
@@ -49,13 +49,19 @@ export default function HomeDareAvailability({ presentation = 'discovery' }: { p
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
+  return result;
+}
+
+export default function HomeDareAvailability({ result, presentation = 'discovery' }: { result: HomeDareAvailabilityResult; presentation?: 'summary' | 'discovery' }) {
+  const [category, setCategory] = useState<'ALL' | DareLoopCategory>('ALL');
+  const [view, setView] = useState<'map' | 'list'>('map');
 
   const available = result !== null && result !== 'unavailable';
   const visibleDares = available ? result.dares.filter(dare => category === 'ALL' || dare.category === category) : [];
   if (presentation === 'summary') {
     return (
       <p aria-live="polite" className="mx-auto mt-3 min-h-5 max-w-lg text-xs font-semibold leading-5 text-white/65">
-        {available ? <><strong className="text-yellow-200">{result.listedCount > 0 ? `≈ ${formatPhp(result.listedRewardUsdc * result.phpPerUsdc)}` : formatPhp(0)}</strong> in listed rewards · {result.listedCount} open {result.listedCount === 1 ? 'paid dare' : 'paid dares'}</> : result === 'unavailable' ? 'Live rewards couldn’t refresh. Browse dares to check again.' : 'Checking live dare rewards…'}
+        {available ? <><strong className="text-yellow-200">{result.listedCount > 0 ? `≈ ${formatPhp(result.listedRewardUsdc * result.phpPerUsdc)}` : formatPhp(0)}</strong> in listed rewards · {result.listedCount} open {result.listedCount === 1 ? 'paid dare' : 'paid dares'} · {result.dares.reduce((sum, dare) => sum + dare.remainingSlots, 0)} paid slots</> : result === 'unavailable' ? 'Live rewards couldn’t refresh. Browse dares to check again.' : 'Checking live dare rewards…'}
       </p>
     );
   }

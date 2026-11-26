@@ -1,3 +1,5 @@
+import { calculateDistance } from './geo';
+
 /** One Dare Loop. Categories are presentation metadata, never user roles or payment rails. */
 export type DareLoopCategory = 'CHAOS' | 'CONTROL';
 
@@ -50,3 +52,19 @@ export function buildDareLoopPresentation(dares: readonly EligibleDare[], now = 
 }
 
 export type DareLoopCard = ReturnType<typeof buildDareLoopPresentation>['dares'][number];
+
+/** The original local dashboard only advertises eligible funded dares in its selected area. */
+export function selectLocalPaidDares(
+  dares: readonly DareLoopCard[],
+  area: { lat: number; lng: number; radiusKm: number },
+  category: 'ALL' | DareLoopCategory,
+  now = Date.now(),
+) {
+  return dares.filter(dare =>
+    (category === 'ALL' || dare.category === category) &&
+    dare.remainingSlots > 0 && Number.isFinite(dare.creatorPayout) && dare.creatorPayout > 0 &&
+    (!dare.expiresAt || Date.parse(dare.expiresAt) > now) &&
+    dare.locationBound && dare.latitude !== null && dare.longitude !== null &&
+    calculateDistance(area.lat, area.lng, dare.latitude, dare.longitude) <= area.radiusKm
+  );
+}

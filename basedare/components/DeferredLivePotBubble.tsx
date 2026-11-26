@@ -21,7 +21,7 @@ export default function DeferredLivePotBubble() {
   const [shouldLoad, setShouldLoad] = useState(false);
 
   useEffect(() => {
-    if (pathname !== '/' || process.env.NEXT_PUBLIC_SHOW_LEGACY_LIVE_POT !== 'true') {
+    if (pathname !== '/' || process.env.NEXT_PUBLIC_SHOW_LEGACY_LIVE_POT === 'false') {
       return undefined;
     }
 
@@ -46,7 +46,7 @@ export default function DeferredLivePotBubble() {
     };
   }, [pathname, shouldLoad]);
 
-  if (pathname !== '/' || !shouldLoad || process.env.NEXT_PUBLIC_SHOW_LEGACY_LIVE_POT !== 'true') {
+  if (pathname !== '/' || !shouldLoad || process.env.NEXT_PUBLIC_SHOW_LEGACY_LIVE_POT === 'false') {
     return null;
   }
 
