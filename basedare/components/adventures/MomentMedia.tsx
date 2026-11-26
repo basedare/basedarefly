@@ -9,10 +9,12 @@ export default function MomentMedia({
   post,
   privateView = false,
   adminPreview = false,
+  presentation = "default",
 }: {
   post: AdventurePost;
   privateView?: boolean;
   adminPreview?: boolean;
+  presentation?: "default" | "spotlight";
 }) {
   const { wallet, headers } = useSocialAction();
   const [preview, setPreview] = useState<{ scope: string; url: string }>();
@@ -71,6 +73,9 @@ export default function MomentMedia({
         ? preview.url
         : null
       : post.mediaUrl;
+  const mediaClass = presentation === "spotlight"
+    ? "aspect-[4/5] max-h-[min(60svh,36rem)] w-full rounded-2xl bg-black object-contain md:max-h-[36rem]"
+    : "aspect-video w-full rounded-2xl bg-black object-contain";
   return (
     <div>
       {post.socialUrl ? (
@@ -102,7 +107,7 @@ export default function MomentMedia({
             controls
             preload="none"
             playsInline
-            className="aspect-video w-full rounded-2xl bg-black object-contain"
+            className={mediaClass}
           />
         ) : (
           // Private blob previews and revocable media must bypass the public image cache.
@@ -111,7 +116,7 @@ export default function MomentMedia({
             src={src}
             alt={post.caption}
             loading="lazy"
-            className="aspect-video w-full rounded-2xl bg-black object-contain"
+            className={mediaClass}
           />
         )
       ) : (

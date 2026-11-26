@@ -144,20 +144,20 @@ export default function SharedAdventures({
   ]);
   const visible = mine && postScope !== wallet ? [] : posts;
   return (
-    <section id="shared-adventures" className="bd-surface mt-6 p-5 sm:p-7">
+    <section id="shared-adventures" className={`bd-surface ${compact ? "mt-4 p-3 sm:p-5" : "mt-6 p-5 sm:p-7"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black">
+          <h2 className={compact ? "text-lg font-black" : "text-xl font-black"}>
             {mine ? "My submissions" : "Community Moments"}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-white/55">
+          <p className={compact ? "mt-1 text-xs leading-5 text-white/65" : "mt-2 text-sm leading-6 text-white/55"}>
             {mine
               ? "Private status, review notes and withdrawal."
               : place
                 ? "Contributions linked to this place. Not proof of attendance."
                 : activityId || tag || creatorTag
                   ? "People’s takes on the same challenge."
-                  : "Nearby place stories and challenges you can play anywhere."}
+                  : compact ? "Real takes from the BaseDare community." : "Nearby place stories and challenges you can play anywhere."}
           </p>
         </div>
         <Link
@@ -219,7 +219,7 @@ export default function SharedAdventures({
       ) : null}
       <div
         className={
-          "mt-4 grid gap-5 " + (compact ? "md:grid-cols-3" : "sm:grid-cols-2")
+          (compact ? "mt-2 grid gap-3 md:grid-cols-3" : "mt-4 grid gap-5 sm:grid-cols-2")
         }
       >
         {visible.slice(0, compact ? 3 : 30).map((post) => (
