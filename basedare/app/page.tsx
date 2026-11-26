@@ -266,13 +266,13 @@ function HomeContent() {
                 </div>
               </div>
 
-              <div id="active-bounties" className="z-30 flex w-full justify-center px-4 pb-12 pt-8 md:px-6 md:pb-14 md:pt-12">
-                <div className="relative w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_16%_8%,rgba(184,127,255,0.11),transparent_32%),radial-gradient(circle_at_86%_92%,rgba(34,211,238,0.08),transparent_34%),linear-gradient(160deg,rgba(30,22,52,0.42),rgba(8,9,18,0.94))] px-4 py-10 shadow-[16px_22px_58px_rgba(0,0,0,0.48),-9px_-9px_24px_rgba(255,255,255,0.034),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-28px_42px_rgba(0,0,0,0.28)] backdrop-blur-xl md:px-6 md:py-12">
+              <div id="active-bounties" className="z-30 flex w-full justify-center px-4 pb-8 pt-5 md:px-6 md:pb-14 md:pt-12">
+                <div className="relative w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_16%_8%,rgba(184,127,255,0.11),transparent_32%),radial-gradient(circle_at_86%_92%,rgba(34,211,238,0.08),transparent_34%),linear-gradient(160deg,rgba(30,22,52,0.42),rgba(8,9,18,0.94))] px-4 py-5 shadow-[16px_22px_58px_rgba(0,0,0,0.48),-9px_-9px_24px_rgba(255,255,255,0.034),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-28px_42px_rgba(0,0,0,0.28)] backdrop-blur-xl md:px-6 md:py-8">
                   <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent" />
                   <div className="pointer-events-none absolute inset-x-8 bottom-[17rem] hidden h-px bg-gradient-to-r from-transparent via-[#b87fff]/22 to-transparent lg:block" />
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-[linear-gradient(180deg,rgba(184,127,255,0)_0%,rgba(34,211,238,0.045)_34%,rgba(245,197,24,0.035)_100%)]" />
                   <HoneyGooAccent className="absolute right-6 top-[-2px] z-20 hidden xl:block 2xl:right-10" size="md" />
-                  <div className="relative z-10 mb-12 flex flex-col items-center">
+                  <div className="relative z-10 mb-5 flex flex-col items-center md:mb-7">
                     <h3
                       className="active-bounties-neon text-lg font-black italic uppercase tracking-[0.2em] md:text-xl"
                       style={{
@@ -282,7 +282,7 @@ function HomeContent() {
                     >
                       Live Around You
                     </h3>
-                    <div className="bd-purple-pulse-line mt-3 h-px w-32" />
+                    <div className="bd-purple-pulse-line mt-2 h-px w-24 md:w-32" />
                   </div>
 
                   <div className="relative z-10">

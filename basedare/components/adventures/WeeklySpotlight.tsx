@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { getWeeklySpotlight } from "@/lib/moment-spotlight-server";
 import { adventureTemplate } from "@/lib/adventure-sharing";
 export default async function WeeklySpotlight() {
@@ -12,7 +13,13 @@ export default async function WeeklySpotlight() {
       </p>
     );
   }
-  if (!selection) return <Link href="/moments/spotlight" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-violet-100">How creator Spotlight works →</Link>;
+  if (!selection) return (
+    <Link href="/moments/spotlight" className="bd-card mt-4 flex min-h-16 items-center gap-3 px-4 py-3 text-sm transition-colors hover:border-violet-300/40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-200">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-200/20 bg-amber-200/10 text-amber-200"><Sparkles size={20} aria-hidden="true" /></span>
+      <span className="min-w-0 flex-1"><span className="block font-black text-white">Creator Spotlight</span><span className="mt-0.5 block text-xs text-white/65">No weekly pick yet.</span></span>
+      <ArrowRight size={17} className="shrink-0 text-violet-200" aria-hidden="true" />
+    </Link>
+  );
   return (
     <aside
       className="bd-surface my-6 p-5 sm:p-7"

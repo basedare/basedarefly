@@ -10,7 +10,7 @@ const rules = [
   [/^(app\/api\/(brands|campaigns)|app\/brands\/|lib\/(buyer-workspace|campaign-|business-|financial-canon)|scripts\/(run-|render-)?buyer-workspace)/, ['buyer', 'business']],
   [/^lib\/wallet-action-auth/, ['buyer', 'safety', 'social']],
   [/^(components\/maps\/|app\/map\/|lib\/(discovery|recommendation|map-entry)|components\/discovery\/)/, ['discovery']],
-  [/^(app\/(dashboard|creator|community|moments)\/|components\/(social|ui\/Notification)|lib\/(social|creator|community|moment))/, ['social']],
+  [/^(app\/(dashboard|creator|community|moments)\/|components\/(social|ui\/Notification|adventures\/(MomentMedia|WeeklySpotlight|SharedAdventures)\.tsx)|lib\/(social|creator|community|moment))/, ['social']],
   [/^(lib\/contribution|app\/api\/(admin\/)?contribution|components\/contributions|app\/island-trials\/seasons)/, ['recognition']],
   [/^(lib\/discovery-qr|app\/go\/|app\/api\/discovery-qr)/, ['qr']],
   [/^(app\/(global\.css|page\.tsx|layout\.tsx)|components\/(Business|MatrixRain|IdentityButton|Providers|home\/)|package(-lock)?\.json|next\.config|prisma\/)/, ['buyer', 'business', 'discovery', 'safety']],

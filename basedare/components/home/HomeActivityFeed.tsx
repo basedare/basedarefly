@@ -138,58 +138,58 @@ export default function HomeActivityFeed({ availability, category }: { availabil
       <p className="mt-2 text-sm leading-6 text-white/60">{active.area.label} · Pick up where you left off. This free adventure doesn’t earn money or verified points.</p>
       <Link className="bd-action bd-action--gold mt-4 !text-sm" href={adventureHref(active.activityId, active.placeSlug, active.area)} onClick={() => recordOpen(active.activityId, 'adventure_resume')}>Continue adventure <ArrowRight size={16} aria-hidden="true" /></Link>
     </div> : null}
-    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-      <div><p className="text-sm font-bold text-white/80">Find a paid dare or your next adventure.</p><p className="mt-1 flex items-center gap-1 text-xs text-cyan-100/60"><MapPin size={13} />{area.label} · within {area.radiusKm} km</p></div>
-      <div className="flex flex-wrap gap-2 text-xs">
-        <button type="button" aria-pressed={siargaoSelected} className={`premium-filter-chip home-area-button rounded-full gap-2 px-4 ${siargaoSelected ? 'premium-filter-chip--active' : ''}`} onClick={() => {
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <div className="min-w-0 flex-1"><p className="flex items-center gap-1.5 text-sm font-bold text-cyan-100"><MapPin size={15} className="shrink-0" aria-hidden="true" />{area.label}</p><p className="mt-0.5 pl-5 text-xs text-white/60">Within {area.radiusKm} km</p></div>
+      <Link href={mapHref} className="bd-action bd-action--cyan shrink-0 gap-2 !px-3 !text-xs"><MapPin size={15} aria-hidden="true" />Open map <ArrowRight size={13} aria-hidden="true" /></Link>
+    </div>
+    <div className="mb-3 flex flex-wrap gap-2 text-xs">
+        <button type="button" aria-pressed={siargaoSelected} className={`premium-filter-chip home-area-button flex-1 rounded-xl gap-1.5 px-3 sm:flex-none ${siargaoSelected ? 'premium-filter-chip--active' : ''}`} onClick={() => {
           requestedLocation.current = false;
           setShowLocationError(false);
           setArea(SIARGAO_ACTIVITY_AREA);
           setAreaNotice('Showing General Luna, Siargao. Choose an activity type below.');
         }}>{siargaoSelected ? <Check size={15} /> : <MapPin size={15} />}{siargaoSelected ? 'Siargao selected' : 'Browse Siargao'}</button>
-        <button type="button" className="premium-filter-chip home-area-button rounded-full gap-2 px-4" disabled={locating} onClick={() => {
+        <button type="button" className="premium-filter-chip home-area-button flex-1 rounded-xl gap-1.5 px-3 sm:flex-none" disabled={locating} onClick={() => {
           requestedLocation.current = true;
           setShowLocationError(true);
           setAreaNotice('');
           requestLocation();
         }}><LocateFixed size={15} />{locating ? 'Locating…' : 'Use my location'}</button>
-      </div>
     </div>
     {showLocationError && locationError ? <p role="status" className="mb-3 text-xs text-amber-100/70">{locationError} Still browsing {area.label}.</p> : null}
     {areaNotice ? <p role="status" className="mb-3 text-xs text-cyan-100/80">{areaNotice}</p> : null}
-    <div className="premium-bounties-controls relative mb-5 flex flex-wrap items-center justify-between gap-2 p-2 md:p-3">
-      <div className="home-activity-filters premium-filter-shell grid w-full grid-cols-2 gap-1 p-1 sm:flex sm:w-auto sm:flex-wrap" role="group" aria-label="Activity filters">
+    <div className="mb-4 border-b border-white/10 pb-3">
+      <div className="home-activity-filters grid w-full grid-cols-2 gap-1.5 sm:grid-cols-4" role="group" aria-label="Activity filters">
         {PARTICIPATION_FILTERS.map(({ id, label }) => {
           const value = id.toUpperCase() as ActivityFilter;
-          return <button key={id} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} className={`premium-filter-chip rounded-full px-3 text-[10px] font-black tracking-widest md:px-4 ${filter === value ? 'premium-filter-chip--active text-yellow-200' : ''}`}>{id === 'earn' ? 'Paid dares' : label}</button>;
+          return <button key={id} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} className={`premium-filter-chip rounded-xl px-2 font-bold md:px-4 ${filter === value ? 'premium-filter-chip--active text-yellow-200' : ''}`}>{id === 'earn' ? 'Paid dares' : label}</button>;
         })}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Link href={adventureHref(undefined, undefined, effectiveArea, preferences)} className="bd-action bd-action--violet !text-sm">Free adventures <ArrowRight size={16} aria-hidden="true" /></Link>
-        <Link href={mapHref} className="inline-flex min-h-11 items-center gap-2 px-3 text-sm font-bold text-cyan-100">Open map <ArrowRight size={14} aria-hidden="true" /></Link>
-      </div>
     </div>
-    {failed ? <p role="status" className="mb-4 text-xs text-amber-100/70">Live activities couldn’t refresh. These suggestions are still available. <button className="min-h-11 underline" onClick={() => setRefresh((v) => v + 1)}>Try again</button></p>
-      : loading ? <p role="status" className="mb-4 text-xs text-white/50">Checking local activities…</p> : null}
-    {postsFailed ? <p className="mb-3 text-xs text-white/50">Community updates couldn’t refresh. Any published schedule below still needs checking with the venue.</p> : null}
-    {!loading && !failed && !live.length && !posts.length && filter === 'MEET' ? <p className="mb-4 text-sm text-white/60">No published group plans in this area right now. <Link href="/adventures" className="ml-2 underline text-cyan-100">Try a free activity instead →</Link></p> : null}
-    {(paidDares.length > 0 || filter === 'EARN') ? <section className="mb-6" aria-label="Paid dares nearby">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    {(filter === 'ALL' || filter === 'EARN') ? <section className="mb-5" aria-label="Paid dares nearby">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2">
         <h3 className="text-lg font-black text-white">{category === 'ALL' ? 'Paid dares nearby' : `${category} dares nearby`}</h3>
         <Link href="/earn" className="min-h-11 content-center text-xs font-bold text-yellow-100">All paid dares →</Link>
       </div>
       {funded && paidDares.length > 0 ? <ActivityRail key={`paid:${category}:${paidDares.map(dare => dare.shortId).join(':')}`} count={paidDares.length}>
         {paidDares.map(dare => <article key={dare.shortId} className={cardClass}>
           <p className="text-2xl font-black text-[#f5c518]">≈ {formatPhp(dare.creatorPayout * funded.phpPerUsdc)}</p>
-          <p className="text-xs text-white/65">{formatUsdc(dare.creatorPayout)} after approval · {dare.remainingSlots} paid slot</p>
+          <p className="mt-1 text-xs text-white/70">{formatUsdc(dare.creatorPayout)} after approval · {dare.remainingSlots} paid {dare.remainingSlots === 1 ? 'slot' : 'slots'}</p>
           <p className={`mt-3 text-[10px] font-black uppercase tracking-widest ${dare.category === 'CHAOS' ? 'text-purple-300' : 'text-yellow-200'}`}>{dare.category}{dare.isMystery ? ' · Mystery drop' : ''}</p>
           <h4 className="mt-2 text-xl font-black leading-tight text-white">{dare.title}</h4>
           <p className="mt-2 text-xs text-cyan-100/75">{dare.locationLabel}</p>
           <p className="mt-2 line-clamp-3 text-sm text-white/60">{dare.description}</p>
           <div className="mt-auto"><Link href={`/earn/${encodeURIComponent(dare.shortId)}`} onClick={() => recordOpen(dare.shortId, 'paid_dare')} className={`${actionClass} bd-action--gold w-full`}>Do this <ArrowRight size={14} aria-hidden="true" /></Link></div>
         </article>)}
-      </ActivityRail> : <p role="status" className="text-sm text-white/60">{availability === 'unavailable' ? 'Couldn’t check funded dares right now.' : !funded || !areaReady ? 'Checking paid dares…' : 'No nearby funded dares in the current listings.'}</p>}
+      </ActivityRail> : <div className="rounded-2xl border border-amber-200/10 bg-black/20 px-3 py-3">
+        <div className="flex items-start gap-2.5"><Sparkles size={17} className="mt-0.5 shrink-0 text-amber-200" aria-hidden="true" /><div className="min-w-0"><p role="status" className="text-sm font-bold text-white/85">{availability === 'unavailable' ? 'Couldn’t check funded dares right now.' : !funded || !areaReady ? 'Checking paid dares…' : 'No funded dares here yet.'}</p>
+        {funded && areaReady ? <p className="mt-1 text-xs leading-5 text-white/60">Check back for the next drop or explore the map.</p> : null}</div></div>
+      </div>}
     </section> : null}
+    {filter !== 'EARN' ? failed ? <p role="status" className="mb-4 text-xs text-amber-100/70">Live activities couldn’t refresh. <button className="min-h-11 underline" onClick={() => setRefresh((v) => v + 1)}>Try again</button></p>
+      : loading ? <p role="status" className="mb-4 text-xs text-white/50">Checking local activities…</p> : null : null}
+    {(filter === 'ALL' || filter === 'MEET') && postsFailed ? <p className="mb-3 text-xs text-white/50">Community updates couldn’t refresh. Any published schedule below still needs checking with the venue.</p> : null}
+    {!loading && !failed && !live.length && !posts.length && filter === 'MEET' ? <p className="mb-4 text-sm text-white/60">No published group plans in this area right now. <Link href="/adventures" className="ml-2 underline text-cyan-100">Try a free activity instead →</Link></p> : null}
     {showIdeas ? <div className="mb-4 mt-6">
       {!active && areaReady ? <FeaturedSiargaoChallenge area={effectiveArea} now={now} /> : null}
       <h3 className="mb-2 text-lg font-black text-white">Free adventures to try</h3>
@@ -228,12 +228,15 @@ export default function HomeActivityFeed({ availability, category }: { availabil
       <p className="mt-3 text-sm text-white/60">{idea.summary}</p>
       <div className="mt-auto"><Link className={`${actionClass} w-full`} href={active?.activityId === idea.id ? adventureHref(active.activityId, active.placeSlug, active.area) : adventureHref(idea.id, undefined, effectiveArea, preferences)} onClick={() => recordOpen(idea.id, 'suggestion')}>{active?.activityId === idea.id ? 'Continue adventure' : 'Try this adventure'} <ArrowRight size={14} aria-hidden="true" /></Link></div>
     </article>)}</ActivityRail> : null}
-    <div className="mt-5 flex flex-wrap gap-x-5 text-xs font-bold text-white/55">
-      <Link className="min-h-11 py-3" href={adventureHref(undefined, undefined, effectiveArea, preferences)}>More free adventures →</Link>
-      <Link className="min-h-11 py-3" href="/community">Community posts →</Link>
-      <Link className="min-h-11 py-3" href="/earn">All paid dares →</Link>
-      <Link className="min-h-11 py-3" href="/community/rally/new">Start a meetup →</Link>
-    </div>
+    <details className="mt-4 border-t border-white/10 text-sm">
+      <summary className="min-h-11 cursor-pointer py-3 font-bold text-white/70">More to explore</summary>
+      <div className="grid grid-cols-2 gap-x-3 text-xs font-bold text-cyan-100/80 sm:flex sm:flex-wrap sm:gap-x-5">
+        <Link className="min-h-11 py-3" href={adventureHref(undefined, undefined, effectiveArea, preferences)}>Free adventures →</Link>
+        <Link className="min-h-11 py-3" href="/community">Community posts →</Link>
+        <Link className="min-h-11 py-3" href="/earn">All paid dares →</Link>
+        <Link className="min-h-11 py-3" href="/community/rally/new">Start a meetup →</Link>
+      </div>
+    </details>
   <SharedAdventures compact/>
 </section>;
 }
