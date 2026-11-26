@@ -5,6 +5,14 @@ founder_decision: Master Unification, Polish & Launch Prompt — November 2026
 ---
 # BaseDare Product Constitution
 
+## Founder direction — November 26, 2026: the Dare Loop is the front door
+
+**DO THE DARE. FILM IT. GET PAID.** One game, one map, one Dare infrastructure. Everything else is an extension; do not delete Nodes, Sessions, bookings, community, business tools, consent, reputation or any existing rail. Preserve the current electric visual identity, PeeBear, original map and radar, and keep non-blocking animation. The homepage is a compact dashboard for real available rewards and active Dares, not a marketplace landing page or a full-screen map. DARES / WATCH / PROFILE are the primary public navigation, with the Map/List toggle in Dares and the full map still available.
+
+CHAOS and CONTROL retain their physical aesthetic as optional labels and filters on the same Dares. CHAOS covers entertainment, mystery, funny/creative challenges and shared experiences. CONTROL covers a purpose, deliverable or objective. Individuals and businesses can fund or participate in either. Neither label changes auth, evidence, safety, verification or payment rules. Default to all available Dares; the category is secondary to the reward and action. Mystery must never obscure requirements before participation.
+
+This is a prioritization and presentation decision, **not a destructive removal** or authority to invent activity, make payouts, activate providers or bypass review. Existing financial canon, settlement verification, permissions, release and consent gates remain in force. Expand the world only when real participants and evidence justify it.
+
 **BaseDare is the social network for the real world. THE WORLD IS YOUR FEED. Belong. Explore. Dare.**
 
 The core is one living Feed + Map connecting people, canonical places, authentic content, experiences and actions. People may explore alone, meet others, share, try free Dares or pursue genuinely funded work. Venues, creators, hosts and operators create value together. Siargao is Node001; prove usefulness and repeat participation there before expansion. This dated founder decision supersedes earlier market-tournament and proof-first product positioning; those historical records stay intact.

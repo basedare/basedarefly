@@ -126,14 +126,14 @@ export default function HeroEllipticalStream({ dares = [], onCardClick }: HeroPr
                 : '/map?source=home-orbit'}
               className="block -translate-x-1/2 -translate-y-1/2 cursor-pointer"
               onClick={() => onCardClick && onCardClick(dare)}
-              aria-label={dare.example ? `Example: ${dare.description}. See how it works` : `Open ${dare.description || dare.title}`}
+              aria-label={dare.example ? `Example dare: ${dare.description}. Browse paid dares` : `Open ${dare.description || dare.title}`}
             >
               <ElectricCard
                 className="street-orbit-card"
                 badge={dare.expiry_timer || "24H"}
                 title={dare.description || dare.title || "OPEN MISSION"}
                 description={dare.example ? `${dare.valueLabel} | ${dare.participationLabel}` : `${dare.stake_amount} USDC | ${dare.streamer_name || "@Anon"}`}
-                rewardLabel={dare.example ? 'HOW YOU TAKE PART' : undefined}
+                rewardLabel={dare.example ? 'VIDEO DARE EXAMPLE' : undefined}
               />
             </Link>
           </div>

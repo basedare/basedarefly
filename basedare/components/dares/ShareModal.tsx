@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Copy, X as XIcon, MessageSquare, Share2, Mail } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { publicDareUrl } from '@/lib/dare-share';
 
 interface ShareModalProps {
   dare: any;
@@ -20,7 +21,7 @@ export default function ShareModal({ dare, creator, isOpen, onClose }: ShareModa
 
   if (!dare) return null;
 
-  const shareUrl = `https://basedare.app/dare/${dare.id}`;
+  const shareUrl = publicDareUrl(dare.shortId || dare.short_id || dare.id);
   const shareText = `Check out this dare: "${dare.title}" by ${creator || dare.streamer_name || 'streamer'} on BASEDARE! 🔥`;
 
   const handleCopy = async () => {

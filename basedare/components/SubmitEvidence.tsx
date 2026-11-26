@@ -12,6 +12,8 @@ import CosmicButton from '@/components/ui/CosmicButton';
 import SafetyWaiver from '@/components/SafetyWaiver';
 import CameraCaptureModal, { type CameraCaptureMode } from '@/components/media/CameraCaptureModal';
 import { PROOF_SUBMIT_WINDOW_MS, buildProofSubmitMessage } from '@/lib/proof-submit-auth';
+import { uploadDareVideo, type PendingVideoUpload } from '@/lib/dare-proof-upload-client';
+import DareClipPermission from '@/components/DareClipPermission';
 import {
   defaultPlaceMaintenanceOutcome,
   getAllowedReportedOutcomes,
@@ -91,6 +93,10 @@ export default function SubmitEvidence({
   const [appealBusy, setAppealBusy] = useState(false);
   const isContentDelivery = Boolean(readContentDelivery(outcomeContractValue));
   const [proofWaiverAccepted, setProofWaiverAccepted] = useState(false);
+  const [clipProcessing, setClipProcessing] = useState(false);
+  const [clipPublication, setClipPublication] = useState(false);
+  const [clipRightsConfirmed, setClipRightsConfirmed] = useState(false);
+  const pendingVideoUpload = useRef<PendingVideoUpload | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraCaptureMode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -373,6 +379,10 @@ export default function SubmitEvidence({
     }
 
     setFile(selectedFile);
+    pendingVideoUpload.current = null;
+    setClipProcessing(false);
+    setClipPublication(false);
+    setClipRightsConfirmed(false);
     setError(null);
     setStatus('idle');
     setVerificationResult(null);
@@ -381,6 +391,13 @@ export default function SubmitEvidence({
       const video = document.createElement('video');
       video.src = URL.createObjectURL(selectedFile);
       video.onloadedmetadata = () => {
+        if (Number.isFinite(video.duration) && video.duration > 60.5) {
+          setFile(null);
+          setPreview(null);
+          URL.revokeObjectURL(video.src);
+          setError('Keep the proof video to 60 seconds or less.');
+          return;
+        }
         setPreview(video.src);
       };
     } else {
@@ -435,22 +452,16 @@ export default function SubmitEvidence({
     let uploadedVideoUrl: string | null = null;
 
     try {
-      const proofAuthHeaders = await getProofAuthHeaders();
-      // Step 1: Upload file to IPFS via Pinata
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('dareId', dareId);
-
-      const uploadResponse = await fetch('/api/upload', {
-        method: 'POST',
-        headers: proofAuthHeaders,
-        body: formData,
-      });
-
-      const uploadData = await parseJsonSafe(uploadResponse);
-
-      if (!uploadResponse.ok) {
-        throw new Error(readErrorMessage(uploadData, 'We could not upload your evidence. Please try again.'));
+      let uploadData: Record<string, unknown>;
+      if (file.type.startsWith('video/')) {
+        if (clipProcessing && !clipRightsConfirmed) throw new Error('Confirm your permission for clip use or leave clip processing off.');
+        uploadData = await uploadDareVideo({ dareId, file, consent: { processing: clipProcessing, publication: clipProcessing && clipPublication, rightsConfirmed: clipProcessing && clipRightsConfirmed }, headers: getProofAuthHeaders, pending: pendingVideoUpload.current, onPending: value => { pendingVideoUpload.current = value; } });
+      } else {
+        // Preserve the existing photo delivery path for legacy and explicit photo briefs.
+        const formData = new FormData(); formData.append('file', file); formData.append('dareId', dareId);
+        const uploadResponse = await fetch('/api/upload', { method: 'POST', headers: await getProofAuthHeaders(), body: formData });
+        uploadData = await parseJsonSafe(uploadResponse);
+        if (!uploadResponse.ok) throw new Error(readErrorMessage(uploadData, 'We could not upload your evidence. Please try again.'));
       }
 
       const uploadPayload = uploadData as {
@@ -470,7 +481,7 @@ export default function SubmitEvidence({
       uploadedVideoUrl = videoUrl;
       console.log('[EVIDENCE] File uploaded:', videoUrl);
 
-      await handleVerifyUploadedProof(videoUrl, proofAuthHeaders);
+      await handleVerifyUploadedProof(videoUrl, await getProofAuthHeaders());
     } catch (err: unknown) {
       const defaultError = uploadedVideoUrl
         ? 'Your proof was uploaded safely. Tap submit proof again to retry verification.'
@@ -626,6 +637,7 @@ export default function SubmitEvidence({
             stats={payoutLabel ? [{ label: 'payout', value: payoutLabel }] : []}
             className="w-full max-w-[340px]"
           />
+          <DareClipPermission dareId={dareId} />
           <div className="pt-2">
             <ShareWinButton
               dare={dareTitle}
@@ -880,13 +892,20 @@ export default function SubmitEvidence({
                   {error}
                 </div>
               )}
+              {file?.type.startsWith('video/') ? <div className="rounded-2xl border border-purple-300/15 bg-purple-500/[0.05] p-3 text-left text-xs leading-5 text-white/75">
+                <p className="font-bold text-white">Optional: turn this into a BaseDare clip</p>
+                <p className="mt-1">Proof is uploaded to public media storage for review. Clip permissions are separate, and declining never changes your reward eligibility.</p>
+                <label className="mt-3 flex items-start gap-2"><input type="checkbox" className="mt-1" checked={clipProcessing} disabled={Boolean(pendingVideoUpload.current)} onChange={event => { setClipProcessing(event.target.checked); if (!event.target.checked) { setClipPublication(false); setClipRightsConfirmed(false); } }} /><span>Let BaseClips edit this exact video into a branded clip after approval (permission lasts 30 days and can be withdrawn).</span></label>
+                {clipProcessing ? <><label className="mt-3 flex items-start gap-2"><input type="checkbox" className="mt-1" checked={clipRightsConfirmed} disabled={Boolean(pendingVideoUpload.current)} onChange={event => setClipRightsConfirmed(event.target.checked)} /><span>I have permission to use the footage, identifiable people and music for the uses I select.</span></label>
+                <label className="mt-3 flex items-start gap-2"><input type="checkbox" className="mt-1" checked={clipPublication} disabled={Boolean(pendingVideoUpload.current)} onChange={event => setClipPublication(event.target.checked)} /><span>Also allow BaseDare to publish a separately reviewed finished clip on BaseDare, TikTok, Instagram, YouTube and X within that permission period. No training or resale permission.</span></label></> : null}
+              </div> : null}
               <SafetyWaiver checked={proofWaiverAccepted} onChange={setProofWaiverAccepted} context="proof" />
               <CosmicButton
                 onClick={(e) => {
                   e.stopPropagation();
                   handleUploadAndVerify();
                 }}
-                disabled={!!error || !proofWaiverAccepted}
+                disabled={!proofWaiverAccepted || (clipProcessing && !clipRightsConfirmed)}
                 variant="gold"
                 size="md"
                 fullWidth

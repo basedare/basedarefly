@@ -14,6 +14,7 @@ import DareGenerator from "@/components/DareGenerator";
 import GradualBlurOverlay from "@/components/GradualBlurOverlay";
 import LiquidBackground from "@/components/LiquidBackground";
 import ShareComposerButton from "@/components/ShareComposerButton";
+import DareShareButton from '@/components/DareShareButton';
 import InitProtocolButton from "@/components/InitProtocolButton";
 import { useToast } from '@/components/ui/use-toast';
 import { useFeedback } from '@/hooks/useFeedback';
@@ -1243,18 +1244,9 @@ function CreateDareContent() {
             )}
 
             {/* Normal Success - Show Share Link */}
-            {!successData.awaitingClaim && successData.shortId && (
+            {!successData.awaitingClaim && successData.shortId && !successData.syncPending && (!successData.simulated || successData.isCommunitySpark) && (
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <ShareComposerButton
-                  title={watchTitle || 'Live BaseDare challenge'}
-                  bounty={successData.isCommunitySpark ? undefined : successData.amount ?? watchAmount}
-                  streamerTag={successData.streamerTag}
-                  shortId={successData.shortId}
-                  placeName={successData.locationLabel}
-                  status="live"
-                  buttonLabel="Share Live Dare"
-                  compact
-                />
+                <DareShareButton shortId={successData.shortId} title={watchTitle || 'BaseDare challenge'} />
                 <a
                   href={`/dare/${successData.shortId}`}
                   className="text-sm text-purple-400 hover:text-purple-300 font-mono transition-colors"

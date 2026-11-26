@@ -40,7 +40,19 @@ export default function Footer() {
             }}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 text-center md:text-left">
+          <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+            <BaseDareWordmark isControlMode={isControlMode} sizes="(min-width: 768px) 159px, 127px" className="h-9 w-auto object-contain" />
+            <p className="text-xs font-semibold text-white/55">The world is your playground. · basedare.xyz</p>
+            <div className="flex flex-wrap justify-center gap-x-4 text-xs text-white/70">
+              <a href="https://www.tiktok.com/@basedarexyz" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center hover:text-white">TikTok @basedarexyz</a>
+              <Link href="/faq" className="inline-flex min-h-11 items-center hover:text-white">FAQ</Link>
+              <Link href="/privacy" className="inline-flex min-h-11 items-center hover:text-white">Privacy</Link>
+              <Link href="/contact" className="inline-flex min-h-11 items-center hover:text-white">Need help?</Link>
+            </div>
+          </div>
+          <details className="mt-4 border-t border-white/10 pt-3">
+            <summary className="cursor-pointer text-center text-xs font-bold text-white/55">More links</summary>
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 text-center md:text-left">
 
             {/* COL 1: LOGO + IDENTITY */}
             <div className="col-span-1 md:col-span-2 flex flex-col items-center md:items-start">
@@ -201,6 +213,7 @@ export default function Footer() {
               </span>
             </div>
           </div>
+          </details>
         </div>
       </div>
     </footer>

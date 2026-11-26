@@ -17,6 +17,7 @@ import CosmicButton from '@/components/ui/CosmicButton';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { trackClientEvent } from '@/lib/analytics';
 import { PostMissionIdentity } from '@/components/creator-entry/PostMissionIdentity';
+import DareClipPermission from '@/components/DareClipPermission';
 import { getCreatorMissionActionState } from '@/lib/creator-mission-action';
 import { isProximityGatedDare } from '@/lib/proof-proximity-policy';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
@@ -187,7 +188,7 @@ export function CreatorMissionAcceptClient({
       },
       PAID: {
         title: 'Paid',
-        detail: 'This mission is complete and settled.',
+        detail: 'This dare is complete and settled.',
         icon: CheckCircle2,
       },
     }[actionState];
@@ -198,6 +199,7 @@ export function CreatorMissionAcceptClient({
         <p className="mt-3 text-lg font-black text-white">{stateCopy.title}</p>
         <p className="mt-1 text-sm leading-6 text-white/52">{stateCopy.detail}</p>
         {actionState === 'PAID' ? <PostMissionIdentity /> : null}
+        <DareClipPermission dareId={missionId} />
       </div>
     );
   }
@@ -224,16 +226,16 @@ export function CreatorMissionAcceptClient({
           {anotherRequestIsPending
             ? 'Another contributor is being reviewed'
             : sponsorReuseNeedsOptIn
-              ? 'This mission needs a clearer rights agreement'
-              : 'This mission is not currently open'}
+              ? 'This dare needs a clearer rights agreement'
+              : 'This dare is not currently open'}
         </p>
         <p className="mt-2 text-sm leading-6 text-white/46">
           {sponsorReuseNeedsOptIn
             ? 'Requests stay closed until explicit sponsor-use consent is available.'
-            : 'Browse the live paid missions for another brief.'}
+            : 'Browse the live dares to pick another.'}
         </p>
         <CosmicButton href="/earn" variant="blue" size="md" className="mt-4">
-          See open missions
+          See open dares
         </CosmicButton>
       </div>
     );
@@ -247,7 +249,7 @@ export function CreatorMissionAcceptClient({
     const isBlockedWebview = webviewChecked && isSocialWebview;
     return (
       <div className="rounded-[22px] border border-yellow-200/14 bg-yellow-300/[0.04] p-5 text-center">
-        <p className="text-lg font-black text-white">Want this mission?</p>
+        <p className="text-lg font-black text-white">Do this dare?</p>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-white/50">
           {isBlockedWebview
             ? `Save it, then open the pass in Safari or Chrome outside ${socialWebviewLabel}.`
@@ -298,10 +300,10 @@ export function CreatorMissionAcceptClient({
         className="mt-4"
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-        Request mission
+        Do this
       </CosmicButton>
       <p className="mt-3 text-center text-xs leading-5 text-white/38">
-        Work starts only after BaseDare approves and assigns the mission to you.
+        Start filming only after BaseDare confirms the dare is assigned to you.
       </p>
     </div>
   );

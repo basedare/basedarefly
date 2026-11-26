@@ -20,15 +20,15 @@ import PaidAvailability from '@/components/PaidAvailability';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Paid Missions | BaseDare',
-  description: 'Pick a real-world mission, do the work, submit it, and get paid when your work is approved.',
+  title: 'Dares | BaseDare',
+  description: 'Find a funded dare, film your proof and get paid after approval and settlement.',
   alternates: { canonical: '/earn' },
 };
 
 const LOOP = [
-  ['1', 'Pick'],
-  ['2', 'Do the work'],
-  ['3', 'Submit'],
+  ['1', 'Pick a dare'],
+  ['2', 'Do it'],
+  ['3', 'Film it'],
   ['4', 'Get paid'],
 ] as const;
 
@@ -57,19 +57,19 @@ export default async function EarnPage({
             href="/create"
             className="inline-flex min-h-11 items-center gap-2 px-2 text-sm font-semibold text-white/65 hover:text-yellow-100"
           >
-            <Plus className="h-4 w-4" aria-hidden="true" /> Create a paid mission
+            <Plus className="h-4 w-4" aria-hidden="true" /> Post a dare
           </Link>
         </div>
         <section className={`${controlPanel} px-6 py-9 sm:px-10 md:py-11`}>
           <div className={controlHairline} />
           <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
-              <p className="bd-page-kicker">Paid missions</p>
+              <p className="bd-page-kicker">Real rewards</p>
               <h1 className="bd-page-title mt-4 max-w-4xl text-white">
-                Pick a mission. Make it real. Get paid.
+                Do the dare. Film it. Get paid.
               </h1>
               <p className="bd-page-copy mt-4 max-w-2xl">
-                Check a place, capture a moment, or create something for a venue or brand. Read the brief and reward, then request the assignment. Start once confirmed; payment follows approval and settlement.
+                Pick a funded dare, check the requirements and film your proof. Start once your request is confirmed; payment follows verification and settlement.
               </p>
             </div>
             <Link
@@ -77,7 +77,7 @@ export default async function EarnPage({
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/[0.04] px-5 text-[10px] font-black uppercase tracking-[0.15em] text-white/72 transition hover:border-white/24 hover:text-white"
             >
               <BriefcaseBusiness className="h-4 w-4 text-yellow-200" aria-hidden="true" />
-              My work
+              Your dares
             </Link>
           </div>
 
@@ -97,7 +97,7 @@ export default async function EarnPage({
             <div>
               <p className={controlMicroLabel}>Available now</p>
               <h2 id="open-creator-missions" className="mt-1 text-2xl font-black text-white">
-                {unavailable ? 'Missions couldn’t load' : missions.length === 1 ? '1 open mission' : `${missions.length} open missions`}
+                {unavailable ? 'Dares couldn’t load' : missions.length === 1 ? '1 open dare' : `${missions.length} open dares`}
               </h2>
             </div>
             <span className="hidden text-xs font-semibold text-white/35 sm:block">Real rewards only · no sample jobs</span>
@@ -110,7 +110,7 @@ export default async function EarnPage({
           ) : (
             <div className={`${controlPanel} px-6 py-10 text-center sm:px-10`}>
               <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-200" aria-hidden="true" />
-              <h2 className="mt-4 text-2xl font-black text-white">{unavailable ? 'We couldn’t check available missions' : 'No open paid missions right now'}</h2>
+              <h2 className="mt-4 text-2xl font-black text-white">{unavailable ? 'We couldn’t check available dares' : 'No open paid dares right now'}</h2>
               <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/48">
                 {unavailable ? 'Please try again. Your existing work is still available from Your activity.' : 'Get an alert when a funded brief opens, or find something free to do nearby.'}
               </p>
@@ -120,7 +120,7 @@ export default async function EarnPage({
                   href="#mission-alerts"
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-yellow-200/18 bg-yellow-300/[0.07] px-5 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-100"
                 >
-                  Get mission alerts <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  Get dare alerts <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
                 <DiscoveryLink
                   href="/now"
@@ -144,9 +144,9 @@ export default async function EarnPage({
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-200/16 bg-cyan-300/[0.06] text-cyan-100">
                 <Radio className="h-5 w-5" aria-hidden="true" />
               </span>
-              <p className={`${controlMicroLabel} mt-5`}>Mission alerts</p>
+              <p className={`${controlMicroLabel} mt-5`}>Dare alerts</p>
               <h2 id="mission-alerts-heading" className="mt-2 text-3xl font-black leading-tight text-white">
-                Hear when real work opens.
+                Hear when the next dare drops.
               </h2>
               <p className="mt-3 max-w-md text-sm font-semibold leading-6 text-white/50">
                 Leave one contact and your city. No wallet, public profile, follower count or creator application required.
@@ -158,7 +158,7 @@ export default async function EarnPage({
           <p className="mt-7 text-center text-sm text-white/48">
             Nothing here suits you?{' '}
             <DiscoveryLink href={`/earn?${alertsQuery.toString()}#mission-alerts`} className="text-cyan-100 underline underline-offset-4">
-              Get mission alerts
+              Get dare alerts
             </DiscoveryLink>
           </p>
         )}

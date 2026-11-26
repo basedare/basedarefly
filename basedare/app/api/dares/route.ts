@@ -5,6 +5,8 @@ import { reconcileFundingDares } from '@/lib/bounty-reconciliation';
 import { getStakerAvatarMap, resolveDareImageUrl } from '@/lib/dare-images';
 import { isCommunitySparkRecord } from '@/lib/community-spark-map-policy';
 import { getActionSportsCommunitySparkByStreamId } from '@/lib/action-sports-community-sparks';
+import { calculateCreatorPayout } from '@/lib/creator-mission-policy';
+import { hasRecordedRewardFunding } from '@/lib/reward-funding';
 
 const PUBLIC_DARE_QUERY_TIMEOUT_MS = 900;
 const PUBLIC_DARE_FALLBACK_COOLDOWN_MS = 30_000;
@@ -216,6 +218,8 @@ export async function GET(request: NextRequest) {
         reconciledDares.map((dare) => ({
           ...toPublicDare(dare),
           imageUrl: resolveDareImageUrl(dare, stakerAvatarMap),
+          isSimulated: dare.isSimulated,
+          paidRewardUsdc: dare.status === 'VERIFIED' && hasRecordedRewardFunding(dare) && /^0x[0-9a-f]{64}$/i.test(dare.verifyTxHash ?? '') ? calculateCreatorPayout(dare.bounty) : null,
         }))
       );
       response.headers.set('Cache-Control', 'private, no-store');

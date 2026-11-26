@@ -1,3 +1,5 @@
+> **26 November 2026 — founder direction:** **DO THE DARE. FILM IT. GET PAID.** The Dare Loop is the public product; all Nodes, relationships, Sessions, bookings, experience and business tools are extensions of the same world. Keep CHAOS and CONTROL as optional entertainment and purpose-driven categories, not separate products, systems or users. Preserve existing functionality, branding and infrastructure; simplify only the front door. See the dated [Product Constitution](product-constitution.md). Safety, consent and financial gates remain binding.
+
 > **5 November 2026 — superseding founder decision:** [Product Constitution](product-constitution.md). BaseDare is the social network for the real world: one Feed + Map, Siargao first. Earlier proof-first and market-tournament positioning below is retained as history. Financial canon and safety gates remain authoritative.
 
 ---

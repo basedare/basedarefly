@@ -35,5 +35,11 @@
     "test:takeoff",
     "test:adventure-sharing:db",
     "test:prisma-config"
+  ],
+  "dare-loop": [
+    "test:dare-loop",
+    "test:discovery",
+    "test:usability",
+    "safety:static"
   ]
 }

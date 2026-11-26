@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Clock3, FileCheck2, MapPin, ShieldCheck, Sparkles, WalletCards } from 'lucide-react';
 
 import { CreatorMissionAcceptClient } from '@/components/creators/CreatorMissionAcceptClient';
-import { CreatorMissionShareButton } from '@/components/creators/CreatorMissionShareButton';
+import DareShareButton from '@/components/DareShareButton';
 import {
   controlHairline,
   controlInset,
@@ -36,9 +36,9 @@ function formatDeadline(expiresAt: Date | null) {
 export async function generateMetadata({ params }: MissionPageProps): Promise<Metadata> {
   const { shortId } = await params;
   const mission = await getCreatorMissionByShortId(shortId);
-  if (!mission) return { title: 'Paid Mission | BaseDare' };
+  if (!mission) return { title: 'Dare | BaseDare' };
   return {
-    title: `${mission.title} | BaseDare Paid Mission`,
+    title: `${mission.title} | BaseDare Dare`,
     description: `${mission.typeLabel}. ${formatUsdc(mission.creatorPayout)} when the work is approved.`,
     alternates: { canonical: `/earn/${encodeURIComponent(mission.shortId)}` },
   };
@@ -62,7 +62,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
           <Link href="/earn" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/50 hover:text-white">
             <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Paid missions
           </Link>
-          <CreatorMissionShareButton missionId={mission.id} title={mission.title} />
+          <DareShareButton missionId={mission.id} shortId={mission.shortId} title={mission.title} />
         </div>
 
         <section className={`${controlPanel} p-5 sm:p-8 md:p-10`}>
@@ -162,7 +162,7 @@ export default async function CreatorMissionPage({ params }: MissionPageProps) {
 
         <div className="mt-5 flex justify-center">
           <Link href="/earn" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/45 hover:text-white">
-            <Sparkles className="h-4 w-4 text-cyan-200" aria-hidden="true" /> See all paid missions
+            <Sparkles className="h-4 w-4 text-cyan-200" aria-hidden="true" /> See all paid dares
           </Link>
         </div>
       </div>

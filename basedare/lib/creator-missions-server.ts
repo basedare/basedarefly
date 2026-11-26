@@ -23,6 +23,8 @@ export type CreatorMission = {
   locationLabel: string;
   venueName: string | null;
   venueSlug: string | null;
+  latitude: number | null;
+  longitude: number | null;
   expiresAt: Date | null;
   grossReward: number;
   creatorPayout: number;
@@ -63,6 +65,8 @@ const creatorMissionSelect = {
   appealStatus: true,
   videoUrl: true,
   isNearbyDare: true,
+  latitude: true,
+  longitude: true,
   reportedOutcome: true,
   expiresAt: true,
   claimedBy: true,
@@ -76,6 +80,8 @@ const creatorMissionSelect = {
       name: true,
       slug: true,
       city: true,
+      latitude: true,
+      longitude: true,
     },
   },
 } as const;
@@ -132,6 +138,8 @@ function shapeCreatorMission(row: CreatorMissionRow, now = new Date()): CreatorM
       (row.missionMode === 'STREAM' ? 'Online' : 'Mission location'),
     venueName: row.venue?.name ?? null,
     venueSlug: row.venue?.slug ?? null,
+    latitude: row.latitude !== null && row.longitude !== null ? row.latitude : row.venue?.latitude ?? null,
+    longitude: row.latitude !== null && row.longitude !== null ? row.longitude : row.venue?.longitude ?? null,
     expiresAt: row.expiresAt,
     grossReward: row.bounty,
     creatorPayout: calculateCreatorPayout(row.bounty),

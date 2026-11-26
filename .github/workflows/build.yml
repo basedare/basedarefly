@@ -86,6 +86,9 @@ jobs:
       - name: Participation and controlled launch policy checks
         run: npm run test:takeoff
 
+      - name: Dare Loop and signed video upload regression
+        run: npm run test:dare-loop
+
       - name: Social Moment forward migration and privacy regression
         run: |
           export PATH="$(pg_config --bindir):$PATH"

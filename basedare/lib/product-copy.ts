@@ -1,7 +1,7 @@
 /** Shared public description: keep discovery, help and search metadata aligned. */
-export const BASEDARE_TITLE = 'BaseDare — The World Is Your Feed';
-export const BASEDARE_DESCRIPTION = 'The social network for the real world. Discover places, share experiences, find your people and try free Dares. Starting in Siargao.';
-export const BASEDARE_INTRO = 'Discover places, share experiences, find your people and try a free Dare. Belong. Explore. Dare.';
+export const BASEDARE_TITLE = 'BaseDare — Do the Dare. Film It. Get Paid.';
+export const BASEDARE_DESCRIPTION = 'Real-life dares, real rewards. Find a dare on the map, film your proof and earn when your submission is verified and paid. The world is your playground.';
+export const BASEDARE_INTRO = 'Real-life dares. Real rewards. The world is your playground.';
 
 /** Public activity names. Self-guided adventures remain separate from published challenges. */
 export const ACTIVITY_TYPE_LABELS = {
@@ -9,5 +9,5 @@ export const ACTIVITY_TYPE_LABELS = {
   meetup: 'Meetup',
   venue_event: 'Event',
   community_spark: 'Free challenge',
-  paid_dare: 'Paid mission',
+  paid_dare: 'Paid dare',
 } as const;

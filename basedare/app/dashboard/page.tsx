@@ -24,6 +24,7 @@ import { DARE_STATUS_DECLINED, DARE_STATUS_PENDING_ACCEPTANCE } from '@/lib/dare
 import { getPreferredWalletConnector } from '@/lib/wallet-connect';
 import { buildWalletActionAuthHeaders } from '@/lib/wallet-action-auth';
 import { isProximityGatedDare } from '@/lib/proof-proximity-policy';
+import { formatPhp, formatUsdc, getBaseCashPhpPerUsdc } from '@/lib/basecash-shared';
 
 interface Dare {
   id: string;
@@ -38,6 +39,7 @@ interface Dare {
   moderatedAt?: string | null;
   verifiedAt?: string | null;
   isSimulated?: boolean;
+  paidRewardUsdc?: number | null;
   stakerAddress?: string;
   targetWalletAddress?: string;
   claimedBy?: string | null;
@@ -470,6 +472,7 @@ export default function Dashboard() {
   const { data: session } = useSession();
   const [fundedDares, setFundedDares] = useState<Dare[]>([]);
   const [forMeDares, setForMeDares] = useState<Dare[]>([]);
+  const [summaryWallet, setSummaryWallet] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedFundedId, setExpandedFundedId] = useState<string | null>(null);
   const [expandedActivationId, setExpandedActivationId] = useState<string | null>(null);
@@ -628,6 +631,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDares = async () => {
       if (!address) {
+        setSummaryWallet(null);
         setFundedDares([]);
         setForMeDares([]);
         setUserTag(null);
@@ -638,6 +642,7 @@ export default function Dashboard() {
 
       try {
         setLoading(true);
+        setSummaryWallet(null);
 
         // Fetch user's verified tag
         const tagRes = await fetch(`/api/tags?wallet=${address}`);
@@ -670,6 +675,7 @@ export default function Dashboard() {
 
         setFundedDares(fundedData);
         setForMeDares(forMeData);
+        if (fundedRes.ok && forMeRes.ok && Array.isArray(fundedData) && Array.isArray(forMeData)) setSummaryWallet(address.toLowerCase());
 
         // Calculate stats from funded dares
         const active = fundedData.filter((d: Dare) => d.status === 'PENDING' || d.status === DARE_STATUS_PENDING_ACCEPTANCE).length;
@@ -815,6 +821,8 @@ export default function Dashboard() {
     if (!matchingOpportunity) return;
 
     const frame = window.requestAnimationFrame(() => {
+      const disclosure = opportunitiesRef.current?.closest('details');
+      if (disclosure) disclosure.open = true;
       opportunitiesRef.current?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
@@ -1224,18 +1232,26 @@ export default function Dashboard() {
     });
   }
 
+  const summaryReady = Boolean(address && summaryWallet === address.toLowerCase() && !loading);
+  const assignedDares = forMeDares.filter(dare => dare.isSimulated === false && (walletsMatch(dare.claimedBy, address) || walletsMatch(dare.targetWalletAddress, address)));
+  const completedDares = assignedDares.filter(dare => dare.status === 'VERIFIED').length;
+  const reviewDares = assignedDares.filter(dare => dare.status === 'PENDING_REVIEW').length;
+  const paidTotal = assignedDares.reduce((sum, dare) => sum + (dare.paidRewardUsdc ?? 0), 0);
+  const postedDares = fundedDares.filter(dare => dare.isSimulated === false).length;
+
   if (!isConnected) return <div className="activity-page mx-auto min-h-screen max-w-4xl bd-page-top px-4 pb-24 text-white">
     <section className={`${raisedPanelClass} activity-hero p-6`}>
       <StreetAccent className="mb-3 w-24" />
       <HoneyGooAccent className="absolute right-4 top-0" size="sm" />
-      <p className="bd-page-kicker mb-3">My activity</p>
+      <p className="bd-page-kicker mb-3">Your dares</p>
       <h1 className="bd-page-title">Your activity</h1>
-      <p className="bd-page-copy mt-3">Your plans, paid work and saved activities, together. Sign in to see work linked to your wallet.</p>
+      <p className="bd-page-copy mt-3">Do the dare. Film it. Get paid. Sign in to see your dares and rewards.</p>
       <button className="bd-action bd-action--gold mt-5" onClick={handleConnect} disabled={isConnecting}>{isConnecting ? 'Connecting…' : 'Sign in'}</button>
+      <Link href="/earn" className="bd-action mt-3 ml-2">Find paid dares →</Link>
     </section>
     <div className="mt-5 grid gap-3 sm:grid-cols-2">{[
+      ['/earn','Find paid dares','See available dares and real rewards before signing in.'],
       ['/now','Find something to do','Explore current plans and free activities.'],
-      ['/earn','Find paid work','See real briefs and rewards before signing in.'],
       ['/missions','Private mission links','Continue a mission from its saved link.'],
       ['/brands/portal','Plan a business brief','Commission content or fund a useful local activity.'],
     ].map(([href,title,detail]) => <Link key={href} href={href} className={`${softCardClass} p-5`}><h2 className="font-black">{title}</h2><p className="mt-2 text-sm text-white/65">{detail}</p></Link>)}</div>
@@ -1256,7 +1272,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={sectionLabelClass}>Dashboard</span>
+                  <span className={sectionLabelClass}>Your dares</span>
                   {isConnected && address ? (
                     <span className={`${pillClass} normal-case tracking-normal text-xs text-gray-300`}>
                       {formatAddress(address)}
@@ -1293,9 +1309,12 @@ export default function Dashboard() {
                   {isConnected
                     ? identityHandle && identityPlatform
                       ? `@${identityHandle} on ${getProviderLabel(identityPlatform)}`
-                      : 'Explore, join a plan or request paid work. A public profile is optional.'
-                    : 'Sign in to resume your plans and paid work.'}
+                      : 'Your dares and recorded rewards. A public profile is optional.'
+                    : 'Sign in to see your dares.'}
                 </p>
+
+                {summaryReady ? <p className="mt-3 text-xs leading-5 text-white/65"><strong className="text-yellow-100">{formatUsdc(paidTotal)} recorded earnings</strong> (≈ {formatPhp(paidTotal * getBaseCashPhpPerUsdc())}) · {completedDares} dares completed · {reviewDares} under review · {postedDares} posted. Up to 100 recent dares; not a wallet balance.</p> : <p className="mt-3 text-xs text-white/50">{loading ? 'Loading your dares…' : 'Couldn’t check your activity.'}</p>}
+                <Link href="/earn" className="bd-action bd-action--gold mt-4">Find paid dares →</Link>
 
                 {isConnected && userTag ? (
                   <div className={`${insetCardClass} mt-4 px-4 py-4 sm:px-5`}>
@@ -1415,7 +1434,7 @@ export default function Dashboard() {
         </div>
 
         <nav aria-label="Your activity sections" className="order-1 mb-5 flex flex-wrap gap-2">
-          <Link href="/now" className="bd-action">Plans</Link><Link href="/missions" className="bd-action">Saved</Link><Link href="/action-center" className="bd-action">Paid work &amp; actions</Link><Link href="/my-dares" className="bd-action">Funded by me</Link>
+          <Link href="/action-center" className="bd-action">Your submissions</Link><Link href="/my-dares" className="bd-action">Your posted dares</Link><Link href="/now" className="bd-action">Plans</Link><Link href="/missions" className="bd-action">Saved</Link>
         </nav>
         <div className="order-3 mb-6"><AdventurePassportEntry /><SavedSocialPanel /></div>
         <WalletOverview key={address || 'disconnected'} />
@@ -2070,13 +2089,13 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div ref={activationsRef} className={`${softCardClass} order-7 mb-8 p-5 sm:p-6`}>
+        <div ref={activationsRef} className={`${softCardClass} order-3 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <button
               onClick={() => setActivationsOpen((current) => !current)}
               className={`${sectionBarClass} flex min-h-[44px] flex-1 items-center justify-between gap-3 text-left`}
             >
-              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">My activations</h2>
+              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">My submissions &amp; videos</h2>
               <div className="flex items-center gap-3">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">{creatorClaims.length}</span>
                 {activationsOpen ? (
@@ -2276,13 +2295,13 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div id="mission-control" className={`${softCardClass} order-8 mb-8 p-5 sm:p-6`}>
+        <div id="mission-control" className={`${softCardClass} order-4 mb-8 p-5 sm:p-6`}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <button
               onClick={() => setFundedOpen((current) => !current)}
               className={`${sectionBarClass} flex min-h-[44px] flex-1 items-center justify-between gap-3 text-left`}
             >
-              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Funded dares</h2>
+              <h2 className="text-lg font-black uppercase tracking-[0.12em] text-white">Posted dares</h2>
               <div className="flex items-center gap-3">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">{fundedRows.length}</span>
                 {fundedOpen ? (

@@ -5,17 +5,21 @@ import { triggerHaptic } from '@/lib/mobile-haptics';
 interface ViewToggleProps {
   view: 'FAN' | 'BUSINESS';
   setView: (view: 'FAN' | 'BUSINESS') => void;
+  categoryMode?: boolean;
+  allSelected?: boolean;
 }
 
-export default function ViewToggle({ view, setView }: ViewToggleProps) {
+export default function ViewToggle({ view, setView, categoryMode = false, allSelected = false }: ViewToggleProps) {
   const isControl = view === 'BUSINESS';
+  const activeChaos = !isControl && !allSelected;
+  const activeControl = isControl && !allSelected;
   const [isPressed, setIsPressed] = useState(false);
 
   // Flip Chaos <-> Control with a crisp shared haptic. The old local
   // navigator.vibrate(15) was too weak to feel next to the rest of the app.
   const flip = () => {
     triggerHaptic('impact');
-    setView(isControl ? 'FAN' : 'BUSINESS');
+    setView(allSelected || isControl ? 'FAN' : 'BUSINESS');
   };
 
   return (
@@ -23,20 +27,21 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
       {/* ============================================
           DESKTOP - Original Premium Neumorphic Switch
           ============================================ */}
-      <div className="hidden md:block fixed top-24 right-6 z-[90]">
-        <div className="relative flex items-center gap-4">
+      <div className={categoryMode ? 'relative' : 'hidden md:block fixed top-24 right-6 z-[90]'}>
+        <div className={`relative flex items-center ${categoryMode ? 'gap-2' : 'gap-4'}`}>
           {/* CHAOS Label */}
-          <span className={`text-xs font-black uppercase tracking-widest transition-all duration-500 ${
-            !isControl ? 'text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]' : 'text-zinc-600'
+          <button type="button" onClick={() => setView('FAN')} aria-pressed={activeChaos} className={`min-h-11 text-xs font-black uppercase tracking-widest transition-all duration-500 ${
+            activeChaos ? 'text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]' : categoryMode ? 'text-purple-300/75' : 'text-zinc-600'
           }`}>
             CHAOS
-            <span className="mt-1 block text-[9px] font-semibold normal-case tracking-normal text-white/50">Community</span>
-          </span>
+            <span className="mt-1 block text-[9px] font-semibold normal-case tracking-normal text-white/50">{categoryMode ? 'Entertainment' : 'Community'}</span>
+          </button>
 
           {/* The Switch Track */}
           <button
             onClick={flip}
-            className="street-mode-toggle relative cursor-pointer flex items-center w-[180px] h-[72px] rounded-full focus:outline-none"
+            type="button"
+            className={`street-mode-toggle relative cursor-pointer flex items-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-300 ${categoryMode ? 'h-[44px] w-[100px] sm:w-[145px]' : 'w-[180px] h-[72px]'}`}
             style={{
               background: 'linear-gradient(145deg, #0a0a0f, #15151f)',
               boxShadow: `
@@ -45,16 +50,16 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
                 0 0 20px rgba(0, 0, 0, 0.5)
               `
             }}
-            aria-label={isControl ? 'Switch to Chaos: community' : 'Switch to Control: for businesses'}
+            aria-label={categoryMode ? allSelected || isControl ? 'Show Chaos dares' : 'Show Control dares' : isControl ? 'Switch to Chaos: community' : 'Switch to Control: for businesses'}
           >
             {/* Left Indicator (CHAOS/Purple) */}
             <div
               className="absolute left-[8%] w-[36%] h-[55%] rounded-l-full overflow-hidden transition-all duration-500"
               style={{
-                background: !isControl
+                background: activeChaos
                   ? 'linear-gradient(180deg, #E9D5FF 10%, #C084FC 30%, #A855F7 60%, #9333EA 75%, #7C3AED)'
                   : 'linear-gradient(180deg, #1a1a2e, #0f0f1a 60%, #1a1a2e)',
-                boxShadow: !isControl
+                boxShadow: activeChaos
                   ? 'inset 0 0 2px rgba(168, 85, 247, 0.6), inset 0 0 8px rgba(168, 85, 247, 0.4), 0 0 20px rgba(168, 85, 247, 0.5)'
                   : 'inset 0 0 10px rgba(0, 0, 0, 0.9), inset 8px 8px 12px rgba(0, 0, 0, 0.8)'
               }}
@@ -71,10 +76,10 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
             <div
               className="absolute right-[8%] w-[36%] h-[55%] rounded-r-full overflow-hidden transition-all duration-500"
               style={{
-                background: isControl
+                background: activeControl
                   ? 'linear-gradient(180deg, #FEF9C3 10%, #FDE047 30%, #FACC15 60%, #EAB308 75%, #CA8A04)'
                   : 'linear-gradient(180deg, #1a1a2e, #0f0f1a 60%, #1a1a2e)',
-                boxShadow: isControl
+                boxShadow: activeControl
                   ? 'inset 0 0 2px rgba(250, 204, 21, 0.6), inset 0 0 8px rgba(250, 204, 21, 0.4), 0 0 20px rgba(250, 204, 21, 0.5)'
                   : 'inset 0 0 10px rgba(0, 0, 0, 0.9), inset -8px 8px 12px rgba(0, 0, 0, 0.8)'
               }}
@@ -91,7 +96,7 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
             <div
               className="absolute z-10 w-[50%] h-[75%] rounded-full transition-all duration-500 ease-[cubic-bezier(1,0,1,1)]"
               style={{
-                left: isControl ? '45%' : '5%',
+                left: allSelected ? '25%' : isControl ? '45%' : '5%',
                 background: 'linear-gradient(160deg, #e8e8f0 40%, #a0a0b0 70%)',
                 boxShadow: `
                   2px 2px 4px rgba(0, 0, 0, 0.6),
@@ -119,19 +124,19 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
           </button>
 
           {/* CONTROL Label */}
-          <span className={`text-xs font-black uppercase tracking-widest transition-all duration-500 ${
-            isControl ? 'text-zinc-900' : 'text-zinc-600'
+          <button type="button" onClick={() => setView('BUSINESS')} aria-pressed={activeControl} className={`min-h-11 text-xs font-black uppercase tracking-widest transition-all duration-500 ${
+            activeControl ? categoryMode ? 'text-yellow-300' : 'text-zinc-900' : categoryMode ? 'text-yellow-300/65' : 'text-zinc-600'
           }`}>
             CONTROL
-            <span className="mt-1 block text-[9px] font-semibold normal-case tracking-normal text-white/50">For businesses</span>
-          </span>
+            <span className="mt-1 block text-[9px] font-semibold normal-case tracking-normal text-white/50">{categoryMode ? 'Purpose-driven' : 'For businesses'}</span>
+          </button>
         </div>
       </div>
 
       {/* ============================================
           MOBILE - Tap Target Wrapper + Visual Button
           ============================================ */}
-      <button
+      {!categoryMode ? <button
         type="button"
         aria-label={isControl ? 'Switch to community' : 'Switch to businesses'}
         className="md:hidden relative z-20 self-end mr-6 mt-2 mb-1 touch-manipulation select-none cursor-pointer rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-300"
@@ -177,7 +182,7 @@ export default function ViewToggle({ view, setView }: ViewToggleProps) {
             </>
           )}
         </div>
-      </button>
+      </button> : null}
     </>
   );
 }
