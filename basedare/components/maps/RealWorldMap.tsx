@@ -4,7 +4,7 @@ import { mapViewportArea } from '@/lib/map-entry';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 import MapAreaPicker from '@/components/maps/MapAreaPicker';
-import { mapCoordinates, mapEntry, type MapArea } from '@/lib/map-entry';
+import { buildMapDareCreateHref, mapCoordinates, mapEntry, type MapArea } from '@/lib/map-entry';
 import { useDiscovery } from '@/components/DiscoveryProvider';
 import { adventureHref } from '@/lib/adventure-progress';
 import { SURF_SPOT_PATHS } from '@/lib/map-surf-art';
@@ -10003,6 +10003,15 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
     'check-in': selectedPlaceCheckInButton,
     'fund-dare': selectedPlaceFundDareButton,
   };
+  const selectedPlacePostDareHref = selectedPlace && !selectedPlaceIsPrivateSpot
+    ? buildMapDareCreateHref({
+        latitude: selectedPlace.latitude,
+        longitude: selectedPlace.longitude,
+        name: selectedPlace.name,
+        resolvedVenueId: selectedResolvedPlaceId,
+        placeSource: selectedPlace.placeSource,
+      })
+    : null;
   const selectedPlaceLeadActions = [
     ...(selectedPlaceDirectionsButton
       ? [{ id: 'directions', node: selectedPlaceDirectionsButton }]
@@ -10044,21 +10053,34 @@ export default function RealWorldMap({ approximateArea = null }: { approximateAr
         : 'venue-action-rail--one';
   const selectedPlaceLeadActionRail =
     selectedPlace && !selectedPlaceIsPrivateSpot ? (
-      <div
-        className={`venue-action-rail venue-action-rail--primary venue-action-rail--lead grid ${
-          selectedPlaceLeadActions.length > 1
-            ? 'venue-action-rail--lead-duo'
-            : 'venue-action-rail--one'
-        } ${showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''}`}
-      >
-        {selectedPlaceLeadActions.map(({ id, node }, index) => (
-          <div
-            key={id}
-            className={`venue-action-slot venue-action-slot--${index === 0 ? 'primary' : 'secondary'}`}
+      <div className="flex flex-col gap-2">
+        {selectedPlacePostDareHref ? (
+          <Link
+            href={selectedPlacePostDareHref}
+            prefetch={false}
+            onClick={() => triggerHaptic('selection')}
+            className="bd-action bd-action--gold min-h-11 w-full !text-xs"
           >
-            {node}
-          </div>
-        ))}
+            <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
+            Post a dare here
+          </Link>
+        ) : null}
+        <div
+          className={`venue-action-rail venue-action-rail--primary venue-action-rail--lead grid ${
+            selectedPlaceLeadActions.length > 1
+              ? 'venue-action-rail--lead-duo'
+              : 'venue-action-rail--one'
+          } ${showCompactSelectedPlacePanel ? 'venue-action-rail--compact-dock' : ''}`}
+        >
+          {selectedPlaceLeadActions.map(({ id, node }, index) => (
+            <div
+              key={id}
+              className={`venue-action-slot venue-action-slot--${index === 0 ? 'primary' : 'secondary'}`}
+            >
+              {node}
+            </div>
+          ))}
+        </div>
       </div>
     ) : null;
 

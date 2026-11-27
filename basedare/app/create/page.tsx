@@ -35,6 +35,7 @@ import ContentDeliveryFields from '@/components/ContentDeliveryFields';
 import PaidAvailability from '@/components/PaidAvailability';
 import { usePaymentReadiness } from '@/hooks/usePaymentReadiness';
 import { readContentDelivery, type ContentDeliveryBrief } from '@/lib/content-delivery';
+import { readMapDarePrefill, resolveDareCreateCoordinates } from '@/lib/map-entry';
 
 
 const dentInputClass =
@@ -154,6 +155,12 @@ const BOUNTY_CREATE_AUTH_STORAGE_KEY = 'basedare:bounty-create-auth';
 
 function CreateDareContent() {
   const searchParams = useSearchParams();
+  const mapDarePrefill = useMemo(() => readMapDarePrefill(searchParams), [searchParams]);
+  const hasMapDareIntent = mapDarePrefill.state !== 'none';
+  const selectedMapPin = mapDarePrefill.state === 'selected' ? mapDarePrefill : null;
+  const choosePinHref = selectedMapPin
+    ? `/map?${new URLSearchParams({ lat: String(selectedMapPin.lat), lng: String(selectedMapPin.lng), zoom: '16' })}`
+    : '/map';
   const sprintId = searchParams.get('sprintId');
   const sprintOrdinal = Number(searchParams.get('sprintOrdinal'));
   const sprintBuyerQuestion = searchParams.get('buyerQuestion')?.trim() || '';
@@ -201,6 +208,7 @@ function CreateDareContent() {
     mode: string | null;
     source: string | null;
   } | null>(null);
+  const previousMapDareIntent = useRef(false);
   const recommendationTrackedRef = useRef<SentinelRecommendationReason | null>(null);
 
   const readStoredBountyCreateAuth = useCallback((walletAddress: string): StoredBountyCreateAuth | null => {
@@ -256,6 +264,7 @@ function CreateDareContent() {
     clearLocation,
     isSupported: geoSupported,
   } = useGeolocation();
+  const dareCoordinates = resolveDareCreateCoordinates(mapDarePrefill, coordinates);
 
   const {
     register,
@@ -317,7 +326,8 @@ function CreateDareContent() {
       : 'Venue proof';
   const invoiceParams = new URLSearchParams({ source: 'fund-without-crypto', missionType: activeContentDelivery ? 'content-commission' : 'paid-dare', budgetRange: 'discuss', packageId: 'pilot-drop', goal: activeContentDelivery ? 'ugc' : 'other', missionTitle: String(watchTitle || '').slice(0, 160), payout: checkoutRewardLabel, timeWindow: checkoutWindowLabel, proofRequired: checkoutProofLabel });
   if (watchVenueId) invoiceParams.set('venueId', watchVenueId);
-  if (venuePrefill?.name) invoiceParams.set('venueName', venuePrefill.name);
+  if (selectedMapPin?.venueId) invoiceParams.set('venueName', selectedMapPin.label);
+  else if (venuePrefill?.name) invoiceParams.set('venueName', venuePrefill.name);
   const invoiceRequestHref = '/activations?' + invoiceParams.toString() + '#activation-intake';
   const fundingPreview = isCommunitySpark
     ? {
@@ -425,15 +435,16 @@ function CreateDareContent() {
         return;
       }
 
-      if (getValues('missionMode') !== mode) {
-        setValue('missionMode', mode, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+      const dareMode = hasMapDareIntent ? 'IRL' : mode;
+      if (getValues('missionMode') !== dareMode) {
+        setValue('missionMode', dareMode, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
       }
 
       if (getValues('missionTag') !== tag) {
         setValue('missionTag', tag, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
       }
     },
-    [getValues, setValue]
+    [getValues, hasMapDareIntent, setValue]
   );
   const handleGeneratorSelect = useCallback(
     (text: string) => {
@@ -486,10 +497,16 @@ function CreateDareContent() {
         setValue('amount', Math.max(5, parsedAmount));
       }
     }
-    if (venueId || venueLabel) {
-      if (venueId) {
-        setValue('venueId', venueId);
-      }
+    if (hasMapDareIntent) {
+      // Explicit handoffs are pinned, even if the poster has cached GPS in another city.
+      setValue('venueId', selectedMapPin?.venueId ?? '');
+      setValue('isNearbyDare', true);
+      setValue('missionMode', 'IRL');
+      setValue('locationLabel', selectedMapPin?.label ?? '');
+      setValue('discoveryRadiusKm', 0.5);
+      setVenuePrefill(null);
+    } else if (venueId || venueLabel) {
+      setValue('venueId', venueId || '');
       setValue('isNearbyDare', true);
       setValue('locationLabel', venueLabel || 'Selected venue');
       setValue('discoveryRadiusKm', venueId ? 0.5 : 1);
@@ -501,7 +518,13 @@ function CreateDareContent() {
       });
     } else {
       setVenuePrefill(null);
+      if (previousMapDareIntent.current) {
+        setValue('venueId', '');
+        setValue('locationLabel', '');
+        setValue('discoveryRadiusKm', 5);
+      }
     }
+    previousMapDareIntent.current = hasMapDareIntent;
     if (isSprintMission) {
       setValue('sparkType', 'PAID');
       setValue('streamerTag', '');
@@ -511,16 +534,16 @@ function CreateDareContent() {
       setValue('isNearbyDare', true);
       setValue('discoveryRadiusKm', 0.5);
     }
-  }, [isSprintMission, searchParams, setValue, syncCommunitySparkPreset]);
+  }, [hasMapDareIntent, isSprintMission, searchParams, selectedMapPin, setValue, syncCommunitySparkPreset]);
 
 
 
   useEffect(() => {
-    if (watchVenueId) return;
+    if (hasMapDareIntent || watchVenueId) return;
     if (!watchIsNearbyDare) return;
     if (!geoSupported || geoLoading || coordinates || geoError) return;
     requestLocation();
-  }, [watchVenueId, watchIsNearbyDare, geoSupported, geoLoading, coordinates, geoError, requestLocation]);
+  }, [hasMapDareIntent, watchVenueId, watchIsNearbyDare, geoSupported, geoLoading, coordinates, geoError, requestLocation]);
 
   useEffect(() => {
     if (!isCommunitySpark) {
@@ -614,7 +637,9 @@ function CreateDareContent() {
   const hasMissionObjective = missionObjective.length >= 3;
   const hasRewardReady = isCommunitySpark || normalizedWatchAmount >= 5;
   const hasDeadlineReady = activeContentDelivery ? Boolean(readContentDelivery({ contentDelivery: activeContentDelivery })) : Number.isFinite(Number(watchTimeValue)) && Number(watchTimeValue) >= 1;
-  const hasLocationReady = !watchIsNearbyDare || Boolean(watchVenueId) || Boolean(coordinates);
+  const hasLocationReady = hasMapDareIntent
+    ? Boolean(selectedMapPin)
+    : !watchIsNearbyDare || Boolean(watchVenueId) || Boolean(dareCoordinates);
   const hasWalletReady = isConnected && Boolean(address);
   const settlementReady =
     isCommunitySpark ||
@@ -629,7 +654,9 @@ function CreateDareContent() {
     : !hasWalletReady
       ? 'Connect wallet from the top bar to launch.'
       : !hasLocationReady
-        ? geoLoading
+        ? hasMapDareIntent
+          ? 'Choose a valid dare pin on the map before posting.'
+          : geoLoading
           ? 'Waiting for location capture.'
           : 'Enable location, pick a venue, or turn off nearby discovery.'
         : !hasRewardReady
@@ -650,7 +677,9 @@ function CreateDareContent() {
     : !hasWalletReady
       ? 'Connect Wallet'
       : !hasLocationReady
-        ? geoLoading
+        ? hasMapDareIntent
+          ? 'Choose Pin'
+          : geoLoading
           ? 'Capturing Location'
           : 'Location Needed'
         : !hasRewardReady
@@ -678,7 +707,9 @@ function CreateDareContent() {
     },
     {
       label: 'Location',
-      value: watchVenueId
+      value: hasMapDareIntent
+        ? selectedMapPin ? 'Map pin' : 'Choose pin'
+        : watchVenueId
         ? 'Venue pin'
         : !watchIsNearbyDare
           ? 'Off'
@@ -719,6 +750,7 @@ function CreateDareContent() {
   });
 
   const handleNearbyToggle = useCallback(() => {
+    if (hasMapDareIntent) return;
     const nextValue = !watchIsNearbyDare;
     setValue('isNearbyDare', nextValue, { shouldDirty: true, shouldTouch: true });
 
@@ -728,7 +760,7 @@ function CreateDareContent() {
 
     haptic(nextValue ? 'success' : 'tap');
     trigger('click');
-  }, [coordinates, haptic, requestLocation, setValue, trigger, watchIsNearbyDare, watchVenueId]);
+  }, [coordinates, hasMapDareIntent, haptic, requestLocation, setValue, trigger, watchIsNearbyDare, watchVenueId]);
 
   const onSubmit = async (data: FormData) => {
     trigger('fund');
@@ -754,6 +786,9 @@ function CreateDareContent() {
       const selectedSentinel = submitAsCommunitySpark ? false : Boolean(data.requireSentinel);
       if (!connectedWallet) {
         throw new Error('Connect your wallet before deploying a dare');
+      }
+      if (hasMapDareIntent && !selectedMapPin) {
+        throw new Error('Choose a valid dare pin on the map before posting.');
       }
       if (isSprintMission && isSimulationMode) {
         throw new Error('Verified Field Sprint missions require real Base escrow. Switch simulation mode off before funding.');
@@ -834,7 +869,8 @@ function CreateDareContent() {
         setDareImage(uploadedDareImage);
       }
 
-      const isNearbyDareEnabled = submitAsCommunitySpark || isSprintMission || Boolean(data.isNearbyDare);
+      const isNearbyDareEnabled = hasMapDareIntent || submitAsCommunitySpark || isSprintMission || Boolean(data.isNearbyDare);
+      const targetVenueId = selectedMapPin ? selectedMapPin.venueId ?? undefined : data.venueId || undefined;
       const result = await submitBountyCreation(
         {
           title: data.title,
@@ -842,15 +878,17 @@ function CreateDareContent() {
           sparkType: isSprintMission ? 'PAID' : data.sparkType,
           streamerTag: submitAsCommunitySpark ? '@everyone' : isSprintMission ? '' : data.streamerTag,
           streamId: data.streamId ?? 'dev-stream-001',
-          missionMode: submitAsCommunitySpark || isSprintMission ? 'IRL' : data.missionMode ?? 'IRL',
+          missionMode: hasMapDareIntent || submitAsCommunitySpark || isSprintMission ? 'IRL' : data.missionMode ?? 'IRL',
           missionTag: submitAsCommunitySpark ? 'community' : isSprintMission ? 'field-truth' : (data.missionTag || 'other'),
           isNearbyDare: isNearbyDareEnabled,
-          latitude: isNearbyDareEnabled ? coordinates?.lat : undefined,
-          longitude: isNearbyDareEnabled ? coordinates?.lng : undefined,
-          locationLabel: data.locationLabel || undefined,
-          discoveryRadiusKm: data.discoveryRadiusKm ?? 5,
-          venueId: data.venueId || undefined,
-          creationContext: data.venueId ? 'MAP' : 'CREATE',
+          latitude: isNearbyDareEnabled ? dareCoordinates?.lat : undefined,
+          longitude: isNearbyDareEnabled ? dareCoordinates?.lng : undefined,
+          locationLabel: data.locationLabel || selectedMapPin?.label || undefined,
+          discoveryRadiusKm: selectedMapPin ? 0.5 : data.discoveryRadiusKm ?? 5,
+          venueId: targetVenueId,
+          // A raw pin uses the existing coordinate-only Create flow. MAP remains
+          // reserved for a canonical venue, validated server-side as before.
+          creationContext: targetVenueId ? 'MAP' : 'CREATE',
           imageUrl: uploadedDareImage?.uploadedUrl,
           imageCid: uploadedDareImage?.uploadedCid,
           requireSentinel: selectedSentinel,
@@ -917,7 +955,7 @@ function CreateDareContent() {
         source: 'create_form',
       });
 
-      if (result.isNearbyDare) clearLocation();
+      if (result.isNearbyDare && !hasMapDareIntent) clearLocation();
 
       toast({
         title: result.isCommunitySpark
@@ -935,6 +973,11 @@ function CreateDareContent() {
         duration: 6000,
       });
       reset();
+      if (selectedMapPin) {
+        setValue('venueId', selectedMapPin.venueId ?? '');
+        setValue('locationLabel', selectedMapPin.label);
+        setValue('discoveryRadiusKm', 0.5);
+      }
       setDareImage(null);
       setImageError(null);
 
@@ -1068,7 +1111,21 @@ function CreateDareContent() {
           </div>
         </div>
 
-        {venuePrefill && (
+        {hasMapDareIntent && (
+          <div className={`mb-5 flex flex-wrap items-center gap-3 rounded-[22px] border px-4 py-3 md:mb-7 md:px-5 ${selectedMapPin ? 'border-cyan-300/20 bg-cyan-400/[0.08]' : 'border-amber-300/25 bg-amber-300/[0.08]'}`} aria-label="Selected dare location">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-black/20 text-cyan-100"><MapPin className="h-5 w-5" aria-hidden="true" /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-cyan-100/75">{selectedMapPin ? 'Map pin selected' : 'Map pin unavailable'}</p>
+              {selectedMapPin ? <>
+                <p className="mt-1 break-words text-base font-black text-white">{selectedMapPin.label}</p>
+                <p className="mt-1 text-xs leading-5 text-white/65">{selectedMapPin.lat.toFixed(5)}, {selectedMapPin.lng.toFixed(5)} · Your device location is not needed.</p>
+              </> : <p role="status" className="mt-1 text-sm text-amber-100">Choose a valid pin again before posting this dare.</p>}
+            </div>
+            <Link href={choosePinHref} className="inline-flex min-h-11 items-center text-xs font-bold text-cyan-100 underline underline-offset-4">Choose another pin →</Link>
+          </div>
+        )}
+
+        {!hasMapDareIntent && venuePrefill && (
           <div className="mb-5 rounded-[22px] border border-cyan-400/18 bg-[linear-gradient(180deg,rgba(34,211,238,0.12)_0%,rgba(10,12,22,0.74)_100%)] px-4 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] md:mb-7 md:px-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
@@ -1402,7 +1459,7 @@ function CreateDareContent() {
                   onSelect={handleGeneratorSelect}
                   shouldAutoFillTitle={!watchTitle || watchTitle.trim() === ''}
                   onContextChange={handleGeneratorContextChange}
-                  venueName={venuePrefill?.name ?? null}
+                  venueName={selectedMapPin?.venueId ? selectedMapPin.label : venuePrefill?.name ?? null}
                   isCommunitySpark={isCommunitySpark}
                 />
                 <textarea
@@ -1487,14 +1544,14 @@ function CreateDareContent() {
                     <MapPin className={`w-5 h-5 ${watchIsNearbyDare ? 'text-[#FACC15]' : 'text-gray-500'} transition-colors`} />
                     <div>
                       <p className={`text-sm font-bold ${watchIsNearbyDare ? 'text-[#FACC15]' : 'text-white'} transition-colors`}>
-                        Show Nearby
+                        {hasMapDareIntent ? 'Dare location' : 'Show Nearby'}
                       </p>
                       <p className="text-[10px] font-mono text-gray-500 md:text-xs">
-                        Let nearby people find it.
+                        {hasMapDareIntent ? 'This dare uses the selected map pin.' : 'Let nearby people find it.'}
                       </p>
                     </div>
                   </div>
-                  <button
+                  {hasMapDareIntent ? <span className="shrink-0 rounded-full border border-cyan-200/20 px-3 py-1.5 text-xs font-bold text-cyan-100">{selectedMapPin ? 'Pin locked' : 'Pin needed'}</span> : <button
                     type="button"
                     onClick={handleNearbyToggle}
                     className={`relative h-10 w-16 rounded-full border-2 transition-all ${
@@ -1510,21 +1567,31 @@ function CreateDareContent() {
                           : 'left-1 bg-gray-500'
                       }`}
                     />
-                  </button>
+                  </button>}
                 </div>
 
                 {/* Location capture and options - shown when toggle is on */}
-                {watchIsNearbyDare && (
+                {(watchIsNearbyDare || hasMapDareIntent) && (
                   <div className="space-y-4">
                     {/* Location Status */}
-                    <div className={`bd-dent-surface bd-dent-surface--soft rounded-xl p-4 border ${coordinates
+                    <div className={`bd-dent-surface bd-dent-surface--soft rounded-xl p-4 border ${dareCoordinates
                       ? 'bg-green-500/10 border-green-500/20'
-                      : geoError
+                      : !hasMapDareIntent && geoError
                         ? 'bg-red-500/10 border-red-500/20'
                         : 'bg-white/[0.03] border-white/[0.06]'
                       }`}>
                       <div className="flex items-center gap-3">
-                        {watchVenueId ? (
+                        {hasMapDareIntent ? selectedMapPin ? (
+                          <>
+                            <CheckCircle className="w-5 h-5 shrink-0 text-cyan-300" />
+                            <span className="text-sm text-cyan-200 font-mono">Map pin captured · no GPS required</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertTriangle className="w-5 h-5 shrink-0 text-amber-300" />
+                            <Link href={choosePinHref} className="inline-flex min-h-11 items-center text-sm font-bold text-amber-100 underline">Choose a valid map pin</Link>
+                          </>
+                        ) : watchVenueId ? (
                           <>
                             <CheckCircle className="w-5 h-5 text-cyan-300" />
                             <span className="text-sm text-cyan-200 font-mono">Venue locked · funder GPS not needed</span>
@@ -1570,11 +1637,13 @@ function CreateDareContent() {
 
                     {/* Location Label */}
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-[#FACC15] uppercase tracking-widest">
+                      <label htmlFor="dare-location-label" className="text-xs font-bold text-[#FACC15] uppercase tracking-widest">
                         Spot Label <span className="text-gray-500 text-[9px] font-normal lowercase">(optional)</span>
                       </label>
                       <input
+                        id="dare-location-label"
                         {...register('locationLabel')}
+                        readOnly={Boolean(selectedMapPin?.venueId)}
                         placeholder="Cafe, beach, venue, landmark..."
                         className={`${dentInputClass} w-full h-12 text-base text-white placeholder:text-white/20 rounded-xl pl-4 focus:border-[#FACC15]/50 focus:bg-white/[0.05] focus:outline-none transition-all`}
                       />
@@ -1585,7 +1654,7 @@ function CreateDareContent() {
                         Range
                       </span>
                       <span className="text-xs font-black uppercase tracking-[0.16em] text-[#f8dd72]">
-                        {watchVenueId ? 'Venue pin' : 'Auto nearby'}
+                        {hasMapDareIntent ? '500 m · map pin' : watchVenueId ? 'Venue pin' : 'Auto nearby'}
                       </span>
                     </div>
                   </div>
