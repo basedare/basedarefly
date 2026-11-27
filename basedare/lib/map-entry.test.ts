@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { approximateMapArea, mapCoordinates, mapEntry, mapViewportArea } from "./map-entry";
+import { approximateMapArea, buildMapDareCreateHref, mapCoordinates, mapEntry, mapViewportArea, readMapDarePrefill, resolveDareCreateCoordinates } from "./map-entry";
 import {
   DEFAULT_DISCOVERY,
   discoveryHref,
@@ -9,6 +9,52 @@ import {
 
 const london = { lat: 51.5074, lng: -0.1278, label: "London, GB" };
 const sydney = { lat: -33.8688, lng: 151.2093, label: "Sydney, AU" };
+
+test('a dropped pin opens the existing paid dare form with the exact chosen coordinates, not device GPS', () => {
+  const target = { latitude: 9.808516731, longitude: 126.156793241, name: 'Dropped pin', placeSource: 'MAP_DROP' };
+  const href = buildMapDareCreateHref(target);
+  assert.ok(href);
+  const url = new URL(href, 'https://basedare.test');
+  assert.equal(url.pathname, '/create');
+  assert.equal(url.searchParams.get('sparkType'), 'paid');
+  assert.equal(url.searchParams.has('venueId'), false);
+  // A discovery-area or current GPS mismatch must never replace the selected target.
+  url.searchParams.set('lat', String(london.lat));
+  url.searchParams.set('lng', String(london.lng));
+  const pin = readMapDarePrefill(url.searchParams);
+  assert.deepEqual(pin, { state: 'selected', lat: target.latitude, lng: target.longitude, label: 'Dropped pin', venueId: null });
+  assert.deepEqual(resolveDareCreateCoordinates(pin, sydney), { lat: target.latitude, lng: target.longitude });
+  assert.deepEqual(resolveDareCreateCoordinates(pin, null), { lat: target.latitude, lng: target.longitude });
+});
+
+test('named canonical venues retain their id; unresolved places stay coordinate-only; private spots never receive a public-post link', () => {
+  const target = { latitude: 9.77, longitude: 126.15, name: 'Café & surf' };
+  const url = new URL(buildMapDareCreateHref({ ...target, resolvedVenueId: 'venue-123' })!, 'https://basedare.test');
+  assert.deepEqual(readMapDarePrefill(url.searchParams), { state: 'selected', lat: 9.77, lng: 126.15, label: 'Café & surf', venueId: 'venue-123' });
+  const unresolved = new URL(buildMapDareCreateHref({ ...target, resolvedVenueId: 'curated:example' })!, 'https://basedare.test');
+  assert.equal(unresolved.searchParams.has('venueId'), false);
+  assert.equal(buildMapDareCreateHref({ ...target, placeSource: 'PRIVATE_SAVE_SPOT' }), null);
+  assert.equal(buildMapDareCreateHref({ ...target, placeSource: 'PRIVATE_SAVED_SPOT' }), null);
+  assert.equal(buildMapDareCreateHref({ ...target, latitude: Infinity }), null);
+});
+
+test('malformed explicit pin handoffs fail closed instead of using a cached GPS location; ordinary create links retain GPS behavior', () => {
+  for (const query of [
+    'mode=map-pin&source=map&pinLat=9.8',
+    'mode=map-pin&source=map&pinLat=&pinLng=126.1',
+    'mode=map-pin&source=map&pinLat=90&pinLng=126.1',
+    'mode=map-pin&source=map&pinLat=9.8&pinLng=181',
+    'mode=map-pin&source=map&pinLat=9.8&pinLng=126.1&venueId=curated%3Aexample',
+    'mode=map-pin&source=other&pinLat=9.8&pinLng=126.1',
+  ]) {
+    const pin = readMapDarePrefill(new URLSearchParams(query));
+    assert.deepEqual(pin, { state: 'invalid' });
+    assert.equal(resolveDareCreateCoordinates(pin, sydney), null);
+  }
+  const ordinary = readMapDarePrefill(new URLSearchParams('lat=9.8&lng=126.1&source=markets'));
+  assert.deepEqual(ordinary, { state: 'none' });
+  assert.deepEqual(resolveDareCreateCoordinates(ordinary, sydney), sydney);
+});
 test("explicit map destinations and zoom beat saved and approximate cities", () => {
   const entry = mapEntry(
     new URLSearchParams("lat=51.5074&lng=-0.1278&areaLabel=London&zoom=11"),

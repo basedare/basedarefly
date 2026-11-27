@@ -44,6 +44,55 @@ export function mapCoordinates(
     return null;
   return { lat: a, lng: b };
 }
+
+export type MapDareCoordinates = { lat: number; lng: number };
+export type MapDarePrefill =
+  | { state: 'none' }
+  | { state: 'invalid' }
+  | (MapDareCoordinates & { state: 'selected'; label: string; venueId: string | null });
+
+function mapDareLabel(value: string | null | undefined) {
+  return (value ?? '').replace(/[\x00-\x1f\x7f]/g, '').trim().slice(0, 100) || 'Dropped pin';
+}
+
+/** The selected pin, not the browsing center or the poster's GPS, is the dare target. */
+export function buildMapDareCreateHref(input: {
+  latitude: number;
+  longitude: number;
+  name: string;
+  resolvedVenueId?: string | null;
+  placeSource?: string | null;
+}): string | null {
+  if (input.placeSource === 'PRIVATE_SAVE_SPOT' || input.placeSource === 'PRIVATE_SAVED_SPOT') return null;
+  const point = mapCoordinates(input.latitude, input.longitude);
+  if (!point) return null;
+  const params = new URLSearchParams({
+    mode: 'map-pin', source: 'map', sparkType: 'paid',
+    pinLat: String(point.lat), pinLng: String(point.lng), pinLabel: mapDareLabel(input.name),
+  });
+  const venueId = input.resolvedVenueId?.trim();
+  if (venueId && venueId.length <= 128 && !venueId.startsWith('curated:')) params.set('venueId', venueId);
+  return `/create?${params.toString()}`;
+}
+
+/** Invalid explicit handoffs must never fall back to the device's location. */
+export function readMapDarePrefill(query: Pick<URLSearchParams, 'get'>): MapDarePrefill {
+  if (query.get('mode') !== 'map-pin') return { state: 'none' };
+  if (query.get('source') !== 'map') return { state: 'invalid' };
+  const point = mapCoordinates(query.get('pinLat'), query.get('pinLng'));
+  const rawVenueId = query.get('venueId');
+  const venueId = rawVenueId?.trim() || null;
+  if (!point || (rawVenueId !== null && (!venueId || venueId.length > 128 || venueId.startsWith('curated:')))) {
+    return { state: 'invalid' };
+  }
+  return { state: 'selected', ...point, label: mapDareLabel(query.get('pinLabel')), venueId };
+}
+
+export function resolveDareCreateCoordinates(pin: MapDarePrefill, gps: MapDareCoordinates | null): MapDareCoordinates | null {
+  if (pin.state === 'selected') return { lat: pin.lat, lng: pin.lng };
+  if (pin.state === 'invalid') return null;
+  return gps;
+}
 export function approximateMapArea(headers: {
   get: (key: string) => string | null;
 }): MapArea | null {
